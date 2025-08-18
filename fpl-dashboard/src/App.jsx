@@ -46,7 +46,22 @@ const FPLPointsChart = () => {
             managerRemainingPlayers[manager].finished_players++;
           } else {
             managerRemainingPlayers[manager].remaining_players++;
-            managerRemainingPlayers[manager].remaining_player_names.push(row.player);
+            
+            // Get kickoff date and time and format it to ET
+            let kickoffString = 'Time TBD';
+            if (row.kickoff_time) {
+                const kickoffTimeUTC = new Date(row.kickoff_time);
+                if (!isNaN(kickoffTimeUTC.getTime())) { // Check if date is valid
+                  const dateOptions = { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' };
+                  const timeOptions = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' };
+                  const datePart = kickoffTimeUTC.toLocaleDateString('en-US', dateOptions);
+                  const timePart = kickoffTimeUTC.toLocaleTimeString('en-US', timeOptions);
+                  kickoffString = `${datePart} - ${timePart}`;
+                }
+            }
+
+            const formattedPlayerName = `${row.player} (${row.club} - ${kickoffString})`;
+            managerRemainingPlayers[manager].remaining_player_names.push(formattedPlayerName);
           }
         });
 
@@ -392,7 +407,7 @@ const FPLPointsChart = () => {
                     <p className="text-sm text-gray-400 mt-1">{captainData.count} managers captained</p>
                   </div>
                   <div className="text-right">
-                    <span className="font-bold text-xl text-cyan-400">{captainData.points * 2} pts</span>
+                    <span className="font-bold text-xl text-cyan-400 bg-slate-800 px-2 py-1 rounded">{captainData.points * 2} pts</span>
                     <p className="text-xs text-gray-500 mt-1">(Original: {captainData.points} pts)</p>
                   </div>
                 </li>
