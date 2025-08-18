@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import Papa from 'papaparse';
 
 const FPLPointsChart = () => {
@@ -77,13 +77,27 @@ const FPLPointsChart = () => {
 
         const sortedData = managerTotals
           .sort((a, b) => b.total_points - a.total_points)
-          .map((item, index) => ({
-            ...item,
-            rank: index + 1,
-            displayName: item.manager_name.length > 12 ?
-              item.manager_name.substring(0, 12) + '...' :
-              item.manager_name
-          }));
+          .map((item, index) => {
+            const totalManagers = managerTotals.length;
+            let designation = 'Mid-table';
+            
+            if (index < 4) {
+              designation = 'Champions League';
+            } else if (index === 4) {
+              designation = 'Europa League';
+            } else if (index >= totalManagers - 3) {
+              designation = 'Relegation';
+            }
+
+            return {
+              ...item,
+              rank: index + 1,
+              designation,
+              displayName: item.manager_name.length > 12 ?
+                item.manager_name.substring(0, 12) + '...' :
+                item.manager_name
+            };
+          });
 
         setData(sortedData);
         setLoading(false);
@@ -96,29 +110,71 @@ const FPLPointsChart = () => {
     loadData();
   }, []);
 
+  const getBarColor = (designation) => {
+    switch(designation) {
+      case 'Champions League':
+        return '#10B981'; // Emerald green
+      case 'Europa League':
+        return '#3B82F6'; // Blue
+      case 'Relegation':
+        return '#EF4444'; // Red
+      default:
+        return '#6B7280'; // Gray
+    }
+  };
+
+  const getGradientColor = (designation) => {
+    switch(designation) {
+      case 'Champions League':
+        return {
+          start: '#10B981',
+          end: '#065F46'
+        };
+      case 'Europa League':
+        return {
+          start: '#3B82F6',
+          end: '#1E40AF'
+        };
+      case 'Relegation':
+        return {
+          start: '#EF4444',
+          end: '#B91C1C'
+        };
+      default:
+        return {
+          start: '#6B7280',
+          end: '#374151'
+        };
+    }
+  };
+
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
+      const bgColor = data.designation === 'Champions League' ? 'bg-green-900' :
+                     data.designation === 'Europa League' ? 'bg-blue-900' :
+                     data.designation === 'Relegation' ? 'bg-red-900' : 'bg-gray-800';
+      
       return (
-        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-xl border border-gray-700">
+        <div className={`${bgColor} text-white p-4 rounded-lg shadow-xl border-2 border-white/20`}>
           <p className="font-bold text-lg">{data.manager_name}</p>
           <p className="text-gray-300 text-sm mb-2">"{data.team_name}"</p>
           <div className="space-y-1">
-            <p className="font-semibold text-teal-400">
+            <p className="font-semibold text-cyan-300">
               Total: {data.total_points} points
             </p>
-            <p className="text-gray-400">
+            <p className="text-gray-300">
               Regular: {data.regular_points} pts
             </p>
-            <p className="text-gray-400">
+            <p className="text-gray-300">
               Captain: {data.captain_points} pts ({data.captain_player})
             </p>
-            <p className="text-gray-400">
+            <p className="text-gray-300">
               Starting XI Remaining: {data.remaining_players}
             </p>
           </div>
-          <p className="text-gray-400 text-sm mt-2">
-            Rank: #{data.rank}
+          <p className="text-cyan-200 text-sm mt-2 font-medium">
+            Rank: #{data.rank} ({data.designation})
           </p>
         </div>
       );
@@ -128,8 +184,8 @@ const FPLPointsChart = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96 bg-gray-900">
-        <div className="text-white text-xl animate-pulse">Loading FPL data...</div>
+      <div className="flex items-center justify-center h-96 bg-slate-900">
+        <div className="text-cyan-400 text-xl animate-pulse">Loading FPL data...</div>
       </div>
     );
   }
@@ -153,94 +209,139 @@ const FPLPointsChart = () => {
     .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gray-900 p-4 sm:p-6 font-sans text-gray-100">
+    <div className="min-h-screen bg-slate-900 p-4 sm:p-6 font-sans text-gray-100">
       <div className="max-w-7xl mx-auto">
         {/* Header and Summary Stats */}
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-teal-400 mb-2">
-            ⚽ FPL Gameweek 1 Leaderboard
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-cyan-400 mb-2 drop-shadow-lg">
+            ⚽ BPL Gameweek 1 Leaderboard
           </h1>
           <p className="text-md sm:text-lg text-gray-400">A quick look at the league standings and key stats.</p>
         </div>
 
-        {/* Top Stats Section - Stack on mobile, grid on larger screens */}
+        {/* Top Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
-          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-200 mb-1">🏆 League Champion</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-teal-400">{topScorer?.manager_name || 'N/A'}</p>
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">🏆 Current League Champion</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-green-400">{topScorer?.manager_name || 'N/A'}</p>
             <p className="text-xs sm:text-sm text-gray-400 truncate">"{topScorer?.team_name || 'N/A'}"</p>
           </div>
           
-          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-200 mb-1">📊 Average Points</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-teal-400">{avgPoints}</p>
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">📊 Average Points</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-cyan-400">{avgPoints}</p>
             <p className="text-xs sm:text-sm text-gray-400">Across the League</p>
           </div>
           
-          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-200 mb-1">⏰ Total Players Left</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-teal-400">{data.reduce((sum, m) => sum + m.remaining_players, 0)}</p>
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">⏰ Total Players Left</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-cyan-400">{data.reduce((sum, m) => sum + m.remaining_players, 0)}</p>
             <p className="text-xs sm:text-sm text-gray-400">Still to play</p>
           </div>
         </div>
 
         {/* Main Chart and Podiums */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 sm:mb-12">
-          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-2xl lg:col-span-2 border border-gray-700">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-100 mb-4 sm:mb-6 text-center">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl lg:col-span-2 border border-slate-700">
+            <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 sm:mb-6 text-center">
               All Managers Performance
             </h2>
+
+            {/* Legend for the chart colors */}
+            <div className="flex justify-center flex-wrap gap-4 text-sm mb-6">
+              <div className="flex items-center bg-slate-700/50 px-3 py-1 rounded-full">
+                <span className="w-4 h-4 rounded-full bg-green-500 mr-2"></span> 
+                <span className="text-green-300">Champions League</span>
+              </div>
+              <div className="flex items-center bg-slate-700/50 px-3 py-1 rounded-full">
+                <span className="w-4 h-4 rounded-full bg-blue-500 mr-2"></span> 
+                <span className="text-blue-300">Europa League</span>
+              </div>
+              <div className="flex items-center bg-slate-700/50 px-3 py-1 rounded-full">
+                <span className="w-4 h-4 rounded-full bg-gray-500 mr-2"></span> 
+                <span className="text-gray-300">Mid-table</span>
+              </div>
+              <div className="flex items-center bg-slate-700/50 px-3 py-1 rounded-full">
+                <span className="w-4 h-4 rounded-full bg-red-500 mr-2"></span> 
+                <span className="text-red-300">Relegation</span>
+              </div>
+            </div>
             
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={350}>
               <BarChart
                 data={data}
-                margin={{ top: 20, right: 10, left: 10, bottom: 40 }}
+                margin={{ top: 20, right: 10, left: 10, bottom: 60 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <defs>
+                  <linearGradient id="championsLeague" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#065F46" stopOpacity={0.8}/>
+                  </linearGradient>
+                  <linearGradient id="europaLeague" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#1E40AF" stopOpacity={0.8}/>
+                  </linearGradient>
+                  <linearGradient id="midTable" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6B7280" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#374151" stopOpacity={0.8}/>
+                  </linearGradient>
+                  <linearGradient id="relegation" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#EF4444" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#B91C1C" stopOpacity={0.8}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
                 <XAxis 
                   dataKey="displayName"
-                  stroke="#a0aec0"
+                  stroke="#94A3B8"
                   angle={-45}
                   textAnchor="end"
-                  height={50}
-                  fontSize={10}
+                  height={80}
+                  fontSize={11}
+                  interval={0}
                 />
-                <YAxis stroke="#a0aec0" />
+                <YAxis stroke="#94A3B8" />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar 
-                  dataKey="regular_points"
-                  stackId="points"
-                  fill="#0021A5"
-                  name="Regular Points"
-                />
-                <Bar 
-                  dataKey="captain_points"
-                  stackId="points"
-                  fill="#FF6600"
-                  radius={[4, 4, 0, 0]}
-                  name="Captain Points"
-                />
+                <Bar dataKey="total_points" name="Total Points" radius={[4, 4, 0, 0]}>
+                  {data.map((entry, index) => {
+                    let fillColor;
+                    switch(entry.designation) {
+                      case 'Champions League':
+                        fillColor = 'url(#championsLeague)';
+                        break;
+                      case 'Europa League':
+                        fillColor = 'url(#europaLeague)';
+                        break;
+                      case 'Relegation':
+                        fillColor = 'url(#relegation)';
+                        break;
+                      default:
+                        fillColor = 'url(#midTable)';
+                    }
+                    return <Cell key={`cell-${index}`} fill={fillColor} />;
+                  })}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
           
           {/* Top 3 Podium List */}
-          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-2xl border border-gray-700">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-100 mb-4 text-center">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
+            <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
               Top 3 Managers
             </h2>
             <div className="space-y-4">
               {data.slice(0, 3).map((manager, index) => (
-                <div key={manager.manager_name} className="flex items-center space-x-4 bg-gray-700 p-3 rounded-lg shadow-inner">
+                <div key={manager.manager_name} className="flex items-center space-x-4 bg-gradient-to-r from-slate-700 to-slate-600 p-3 rounded-lg shadow-inner border border-slate-500/50">
                   <div className="text-2xl sm:text-3xl">
                     {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
                   </div>
                   <div className="flex-1">
-                    <p className="font-bold text-lg">{manager.manager_name}</p>
+                    <p className="font-bold text-lg text-cyan-200">{manager.manager_name}</p>
                     <p className="text-xs text-gray-400">"{manager.team_name}"</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl sm:text-2xl font-extrabold text-teal-400">{manager.total_points}</p>
+                    <p className="text-xl sm:text-2xl font-extrabold text-green-400">{manager.total_points}</p>
                     <p className="text-xs text-gray-500">Total Points</p>
                   </div>
                 </div>
@@ -251,18 +352,18 @@ const FPLPointsChart = () => {
 
         {/* Detailed Analysis Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-2xl border border-gray-700">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 text-center">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
+            <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
               ⏳ Players Still To Play
             </h2>
             <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
               {data.filter(manager => manager.remaining_players > 0).map((manager) => (
-                <li key={manager.manager_name} className="bg-gray-700 rounded p-3">
+                <li key={manager.manager_name} className="bg-gradient-to-r from-slate-700 to-slate-600 rounded p-3 border border-slate-500/30">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-md text-teal-300">{manager.manager_name}</span>
-                    <span className="text-xl font-extrabold text-teal-400">{manager.remaining_players}</span>
+                    <span className="font-bold text-md text-cyan-300">{manager.manager_name}</span>
+                    <span className="text-xl font-extrabold text-cyan-400 bg-slate-800 px-2 py-1 rounded">{manager.remaining_players}</span>
                   </div>
-                  <div className="text-sm text-gray-400 mt-1">
+                  <div className="text-sm text-gray-300 mt-1">
                     {manager.remaining_player_names.join(', ')}
                   </div>
                 </li>
@@ -270,19 +371,19 @@ const FPLPointsChart = () => {
             </ul>
           </div>
 
-          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-2xl border border-gray-700">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 text-center">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
+            <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
               ⚡ Captains Analysis
             </h2>
             <ul className="space-y-2">
               {popularCaptains.map(([captain, captainData]) => (
-                <li key={captain} className="flex justify-between items-center bg-gray-700 p-3 rounded">
+                <li key={captain} className="flex justify-between items-center bg-gradient-to-r from-slate-700 to-slate-600 p-3 rounded border border-slate-500/30">
                   <div>
-                    <span className="font-bold text-gray-300">{captain}</span>
+                    <span className="font-bold text-cyan-200">{captain}</span>
                     <p className="text-sm text-gray-400 mt-1">{captainData.count} managers captained</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-xl font-bold text-teal-400">{captainData.points} pts</span>
+                    <span className="text-xl font-bold text-cyan-400 bg-slate-800 px-2 py-1 rounded">{captainData.points} pts</span>
                     <p className="text-xs text-gray-500">x2 = {captainData.points * 2}</p>
                   </div>
                 </li>
