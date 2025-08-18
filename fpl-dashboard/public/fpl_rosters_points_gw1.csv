@@ -3,7 +3,7 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 62221,Wirtz Case Scenario,John Sebastian,1,402,Rayan Aït-Nouri,DEF,Man City,1,False,False,9,9,90,played,Wolves,2025-08-16T16:30:00Z,True,True
 62221,Wirtz Case Scenario,John Sebastian,1,373,Virgil van Dijk,DEF,Liverpool,1,False,False,3,3,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 62221,Wirtz Case Scenario,John Sebastian,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,291,James Tarkowski,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+62221,Wirtz Case Scenario,John Sebastian,1,291,James Tarkowski,DEF,Everton,1,False,False,4,4,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 62221,Wirtz Case Scenario,John Sebastian,1,267,Ismaïla Sarr,MID,Crystal Palace,1,False,False,3,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
 62221,Wirtz Case Scenario,John Sebastian,1,235,Cole Palmer,MID,Chelsea,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 62221,Wirtz Case Scenario,John Sebastian,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
@@ -11,10 +11,10 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 62221,Wirtz Case Scenario,John Sebastian,1,64,Ollie Watkins,FWD,Aston Villa,1,False,True,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
 62221,Wirtz Case Scenario,John Sebastian,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
 62221,Wirtz Case Scenario,John Sebastian,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,242,Kiernan Dewsbury-Hall,MID,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+62221,Wirtz Case Scenario,John Sebastian,1,242,Kiernan Dewsbury-Hall,MID,Everton,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 62221,Wirtz Case Scenario,John Sebastian,1,541,Reinildo Mandava,DEF,Sunderland,0,False,False,6,0,90,played,West Ham,2025-08-16T14:00:00Z,True,True
 62221,Wirtz Case Scenario,John Sebastian,1,663,Jhon Arias,MID,Wolves,0,False,False,1,0,17,played,Man City,2025-08-16T16:30:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,,TOTAL,,,,,,,58,,,,,,
+62221,Wirtz Case Scenario,John Sebastian,1,,TOTAL,,,,,,,62,,,,,,
 373574,McGinn & Tonic,Garrett Kunkel,1,139,Bart Verbruggen,GK,Brighton,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
 373574,McGinn & Tonic,Garrett Kunkel,1,477,Tino Livramento,DEF,Newcastle,1,False,False,9,9,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
 373574,McGinn & Tonic,Garrett Kunkel,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
@@ -51,7 +51,7 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 468791,Blue is the Colour,JP Fischer,1,224,Marc Cucurella Saseta,DEF,Chelsea,1,False,False,9,9,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 468791,Blue is the Colour,JP Fischer,1,371,Milos Kerkez,DEF,Liverpool,1,False,False,0,0,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 468791,Blue is the Colour,JP Fischer,1,197,Oliver Sonne,DEF,Burnley,1,False,False,1,1,73,played,Spurs,2025-08-16T14:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,291,James Tarkowski,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+468791,Blue is the Colour,JP Fischer,1,291,James Tarkowski,DEF,Everton,1,False,False,4,4,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 468791,Blue is the Colour,JP Fischer,1,16,Bukayo Saka,MID,Arsenal,1,False,False,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
 468791,Blue is the Colour,JP Fischer,1,235,Cole Palmer,MID,Chelsea,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 468791,Blue is the Colour,JP Fischer,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
@@ -62,9 +62,9 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 468791,Blue is the Colour,JP Fischer,1,474,Fabian Schär,DEF,Newcastle,0,False,False,8,0,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
 468791,Blue is the Colour,JP Fischer,1,173,Mats Wieffer,MID,Brighton,0,False,False,4,0,90,played,Fulham,2025-08-16T14:00:00Z,True,True
 468791,Blue is the Colour,JP Fischer,1,135,Yoane Wissa,FWD,Brentford,0,False,False,0,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,,TOTAL,,,,,,,32,,,,,,
+468791,Blue is the Colour,JP Fischer,1,,TOTAL,,,,,,,36,,,,,,
 581156,etown,Adrian McLoughlin,1,101,Caoimhín Kelleher,GK,Brentford,1,False,False,1,1,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,293,Jake O'Brien,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+581156,etown,Adrian McLoughlin,1,293,Jake O'Brien,DEF,Everton,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 581156,etown,Adrian McLoughlin,1,370,Jeremie Frimpong,DEF,Liverpool,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 581156,etown,Adrian McLoughlin,1,106,Nathan Collins,DEF,Brentford,1,False,False,0,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
 581156,etown,Adrian McLoughlin,1,269,Romain Esse,MID,Crystal Palace,1,False,False,0,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
@@ -76,9 +76,9 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 581156,etown,Adrian McLoughlin,1,661,Hugo Ekitiké,FWD,Liverpool,1,False,False,11,11,71,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 581156,etown,Adrian McLoughlin,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
 581156,etown,Adrian McLoughlin,1,610,Aaron Wan-Bissaka,DEF,West Ham,0,False,False,1,0,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+581156,etown,Adrian McLoughlin,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 581156,etown,Adrian McLoughlin,1,256,Daniel Muñoz Mejía,DEF,Crystal Palace,0,False,False,5,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,,TOTAL,,,,,,,49,,,,,,
+581156,etown,Adrian McLoughlin,1,,TOTAL,,,,,,,51,,,,,,
 650881,Pep in your step,John Matthew,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,False,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 650881,Pep in your step,John Matthew,1,402,Rayan Aït-Nouri,DEF,Man City,1,False,False,9,9,90,played,Wolves,2025-08-16T16:30:00Z,True,True
 650881,Pep in your step,John Matthew,1,507,Ola Aina,DEF,Nott'm Forest,1,False,False,4,4,90,played,Brentford,2025-08-17T13:00:00Z,True,True
@@ -96,7 +96,7 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 650881,Pep in your step,John Matthew,1,575,Micky van de Ven,DEF,Spurs,0,False,False,6,0,90,played,Burnley,2025-08-16T14:00:00Z,True,True
 650881,Pep in your step,John Matthew,1,,TOTAL,,,,,,,72,,,,,,
 701623,Astoria,Jared Alexander,1,399,Ederson Santana de Moraes,GK,Man City,1,False,False,0,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
-701623,Astoria,Jared Alexander,1,291,James Tarkowski,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+701623,Astoria,Jared Alexander,1,291,James Tarkowski,DEF,Everton,1,False,False,4,4,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 701623,Astoria,Jared Alexander,1,191,Maxime Estève,DEF,Burnley,1,False,False,1,1,90,played,Spurs,2025-08-16T14:00:00Z,True,True
 701623,Astoria,Jared Alexander,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
 701623,Astoria,Jared Alexander,1,167,Carlos Baleba,MID,Brighton,1,False,False,3,3,68,played,Fulham,2025-08-16T14:00:00Z,True,True
@@ -109,8 +109,8 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 701623,Astoria,Jared Alexander,1,253,Dean Henderson,GK,Crystal Palace,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
 701623,Astoria,Jared Alexander,1,316,Antonee Robinson,DEF,Fulham,0,False,False,0,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
 701623,Astoria,Jared Alexander,1,256,Daniel Muñoz Mejía,DEF,Crystal Palace,0,False,False,5,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-701623,Astoria,Jared Alexander,1,,TOTAL,,,,,,,57,,,,,,
+701623,Astoria,Jared Alexander,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,False
+701623,Astoria,Jared Alexander,1,,TOTAL,,,,,,,61,,,,,,
 872442,Mostly Guessing,Patrick McCleary,1,139,Bart Verbruggen,GK,Brighton,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
 872442,Mostly Guessing,Patrick McCleary,1,610,Aaron Wan-Bissaka,DEF,West Ham,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
 872442,Mostly Guessing,Patrick McCleary,1,507,Ola Aina,DEF,Nott'm Forest,1,False,False,4,4,90,played,Brentford,2025-08-17T13:00:00Z,True,True
@@ -118,15 +118,15 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 872442,Mostly Guessing,Patrick McCleary,1,370,Jeremie Frimpong,DEF,Liverpool,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 872442,Mostly Guessing,Patrick McCleary,1,119,Bryan Mbeumo,MID,Man Utd,1,False,False,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
 872442,Mostly Guessing,Patrick McCleary,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,419,Jack Grealish,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+872442,Mostly Guessing,Patrick McCleary,1,419,Jack Grealish,MID,Everton,1,False,False,1,1,19,played,Leeds,2025-08-18T19:00:00Z,True,False
 872442,Mostly Guessing,Patrick McCleary,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 872442,Mostly Guessing,Patrick McCleary,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 872442,Mostly Guessing,Patrick McCleary,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
 872442,Mostly Guessing,Patrick McCleary,1,101,Caoimhín Kelleher,GK,Brentford,0,False,False,1,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
 872442,Mostly Guessing,Patrick McCleary,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,0,False,False,3,0,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
 872442,Mostly Guessing,Patrick McCleary,1,211,Aaron Ramsey,MID,Burnley,0,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-872442,Mostly Guessing,Patrick McCleary,1,,TOTAL,,,,,,,33,,,,,,
+872442,Mostly Guessing,Patrick McCleary,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,False
+872442,Mostly Guessing,Patrick McCleary,1,,TOTAL,,,,,,,34,,,,,,
 876871,Beef Cherki,Kevin Tomek,1,502,Matz Sels,GK,Nott'm Forest,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
 876871,Beef Cherki,Kevin Tomek,1,371,Milos Kerkez,DEF,Liverpool,1,False,False,0,0,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 876871,Beef Cherki,Kevin Tomek,1,408,Rúben dos Santos Gato Alves Dias,DEF,Man City,1,False,False,6,6,90,played,Wolves,2025-08-16T16:30:00Z,True,True
@@ -148,7 +148,7 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 1094601,Magpie Your Face,Joe Curran,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
 1094601,Magpie Your Face,Joe Curran,1,610,Aaron Wan-Bissaka,DEF,West Ham,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
 1094601,Magpie Your Face,Joe Curran,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,299,Iliman Ndiaye,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+1094601,Magpie Your Face,Joe Curran,1,299,Iliman Ndiaye,MID,Everton,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 1094601,Magpie Your Face,Joe Curran,1,427,Tijjani Reijnders,MID,Man City,1,False,False,10,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
 1094601,Magpie Your Face,Joe Curran,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 1094601,Magpie Your Face,Joe Curran,1,235,Cole Palmer,MID,Chelsea,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
@@ -158,7 +158,7 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 1094601,Magpie Your Face,Joe Curran,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,0,False,False,3,0,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
 1094601,Magpie Your Face,Joe Curran,1,252,Marc Guiu Paz,FWD,Sunderland,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
 1094601,Magpie Your Face,Joe Curran,1,575,Micky van de Ven,DEF,Spurs,0,False,False,6,0,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,,TOTAL,,,,,,,61,,,,,,
+1094601,Magpie Your Face,Joe Curran,1,,TOTAL,,,,,,,63,,,,,,
 3405299,Cole Train,Evan Bagheri,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,False,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 3405299,Cole Train,Evan Bagheri,1,568,Pedro Porro Sauceda,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
 3405299,Cole Train,Evan Bagheri,1,508,Neco Williams,DEF,Nott'm Forest,1,False,False,1,1,90,played,Brentford,2025-08-17T13:00:00Z,True,True
@@ -173,10 +173,10 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 3405299,Cole Train,Evan Bagheri,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
 3405299,Cole Train,Evan Bagheri,1,575,Micky van de Ven,DEF,Spurs,0,False,False,6,0,90,played,Burnley,2025-08-16T14:00:00Z,True,True
 3405299,Cole Train,Evan Bagheri,1,167,Carlos Baleba,MID,Brighton,0,False,False,3,0,68,played,Fulham,2025-08-16T14:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,242,Kiernan Dewsbury-Hall,MID,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+3405299,Cole Train,Evan Bagheri,1,242,Kiernan Dewsbury-Hall,MID,Everton,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 3405299,Cole Train,Evan Bagheri,1,,TOTAL,,,,,,,56,,,,,,
 4070923,The Masterplan,Brian Pleines,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,False,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,348,Joe Rodon,DEF,Leeds,1,False,False,0,0,0,not_started,Everton,2025-08-18T19:00:00Z,False,False
+4070923,The Masterplan,Brian Pleines,1,348,Joe Rodon,DEF,Leeds,1,False,False,6,6,90,played,Everton,2025-08-18T19:00:00Z,True,False
 4070923,The Masterplan,Brian Pleines,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
 4070923,The Masterplan,Brian Pleines,1,371,Milos Kerkez,DEF,Liverpool,1,False,False,0,0,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 4070923,The Masterplan,Brian Pleines,1,373,Virgil van Dijk,DEF,Liverpool,1,False,False,3,3,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
@@ -189,14 +189,14 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 4070923,The Masterplan,Brian Pleines,1,101,Caoimhín Kelleher,GK,Brentford,0,False,False,1,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
 4070923,The Masterplan,Brian Pleines,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
 4070923,The Masterplan,Brian Pleines,1,517,Elliot Anderson,MID,Nott'm Forest,0,False,False,6,0,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-4070923,The Masterplan,Brian Pleines,1,,TOTAL,,,,,,,45,,,,,,
+4070923,The Masterplan,Brian Pleines,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,False
+4070923,The Masterplan,Brian Pleines,1,,TOTAL,,,,,,,51,,,,,,
 4807443,Dune: Moyesiah,Max Maier,1,502,Matz Sels,GK,Nott'm Forest,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
 4807443,Dune: Moyesiah,Max Maier,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
 4807443,Dune: Moyesiah,Max Maier,1,145,Maxim De Cuyper,DEF,Brighton,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
 4807443,Dune: Moyesiah,Max Maier,1,610,Aaron Wan-Bissaka,DEF,West Ham,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
 4807443,Dune: Moyesiah,Max Maier,1,384,Cody Gakpo,MID,Liverpool,1,False,False,7,7,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,419,Jack Grealish,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+4807443,Dune: Moyesiah,Max Maier,1,419,Jack Grealish,MID,Everton,1,False,False,1,1,19,played,Leeds,2025-08-18T19:00:00Z,True,False
 4807443,Dune: Moyesiah,Max Maier,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 4807443,Dune: Moyesiah,Max Maier,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 4807443,Dune: Moyesiah,Max Maier,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
@@ -206,7 +206,7 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 4807443,Dune: Moyesiah,Max Maier,1,427,Tijjani Reijnders,MID,Man City,0,False,False,10,0,90,played,Wolves,2025-08-16T16:30:00Z,True,True
 4807443,Dune: Moyesiah,Max Maier,1,192,Quilindschy Hartman,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
 4807443,Dune: Moyesiah,Max Maier,1,36,Matty Cash,DEF,Aston Villa,0,False,False,8,0,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,,TOTAL,,,,,,,52,,,,,,
+4807443,Dune: Moyesiah,Max Maier,1,,TOTAL,,,,,,,53,,,,,,
 4912819,Vote for Pedro,Wes H,1,502,Matz Sels,GK,Nott'm Forest,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
 4912819,Vote for Pedro,Wes H,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
 4912819,Vote for Pedro,Wes H,1,506,Murillo Costa dos Santos,DEF,Nott'm Forest,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
@@ -214,7 +214,7 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 4912819,Vote for Pedro,Wes H,1,427,Tijjani Reijnders,MID,Man City,1,False,False,10,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
 4912819,Vote for Pedro,Wes H,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 4912819,Vote for Pedro,Wes H,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,299,Iliman Ndiaye,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+4912819,Vote for Pedro,Wes H,1,299,Iliman Ndiaye,MID,Everton,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 4912819,Vote for Pedro,Wes H,1,449,Bruno Borges Fernandes,MID,Man Utd,1,False,False,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
 4912819,Vote for Pedro,Wes H,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 4912819,Vote for Pedro,Wes H,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
@@ -222,11 +222,11 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 4912819,Vote for Pedro,Wes H,1,261,Chris Richards,DEF,Crystal Palace,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
 4912819,Vote for Pedro,Wes H,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
 4912819,Vote for Pedro,Wes H,1,252,Marc Guiu Paz,FWD,Sunderland,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,,TOTAL,,,,,,,48,,,,,,
+4912819,Vote for Pedro,Wes H,1,,TOTAL,,,,,,,50,,,,,,
 5423005,Deaner,Dean Maghsadi,1,253,Dean Henderson,GK,Crystal Palace,1,False,False,6,6,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
 5423005,Deaner,Dean Maghsadi,1,145,Maxim De Cuyper,DEF,Brighton,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
 5423005,Deaner,Dean Maghsadi,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,293,Jake O'Brien,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+5423005,Deaner,Dean Maghsadi,1,293,Jake O'Brien,DEF,Everton,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 5423005,Deaner,Dean Maghsadi,1,443,Luke Shaw,DEF,Man Utd,1,False,False,2,2,79,played,Arsenal,2025-08-17T15:30:00Z,True,True
 5423005,Deaner,Dean Maghsadi,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 5423005,Deaner,Dean Maghsadi,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
@@ -238,23 +238,23 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 5423005,Deaner,Dean Maghsadi,1,541,Reinildo Mandava,DEF,Sunderland,0,False,False,6,0,90,played,West Ham,2025-08-16T14:00:00Z,True,True
 5423005,Deaner,Dean Maghsadi,1,550,Ian Poveda-Ocampo,MID,Sunderland,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
 5423005,Deaner,Dean Maghsadi,1,326,Adama Traoré Diarra,MID,Fulham,0,False,False,1,0,24,played,Brighton,2025-08-16T14:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,,TOTAL,,,,,,,53,,,,,,
+5423005,Deaner,Dean Maghsadi,1,,TOTAL,,,,,,,55,,,,,,
 5438502,Angry Boys,Nate Cohen,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,True,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 5438502,Angry Boys,Nate Cohen,1,370,Jeremie Frimpong,DEF,Liverpool,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 5438502,Angry Boys,Nate Cohen,1,6,William Saliba,DEF,Arsenal,1,False,False,9,9,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
 5438502,Angry Boys,Nate Cohen,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,291,James Tarkowski,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+5438502,Angry Boys,Nate Cohen,1,291,James Tarkowski,DEF,Everton,1,False,False,4,4,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 5438502,Angry Boys,Nate Cohen,1,17,Martin Ødegaard,MID,Arsenal,1,False,False,5,5,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
 5438502,Angry Boys,Nate Cohen,1,266,Eberechi Eze,MID,Crystal Palace,1,False,False,3,3,83,played,Chelsea,2025-08-17T13:00:00Z,True,True
 5438502,Angry Boys,Nate Cohen,1,241,Moisés Caicedo Corozo,MID,Chelsea,1,False,False,5,5,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 5438502,Angry Boys,Nate Cohen,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 5438502,Angry Boys,Nate Cohen,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,2,True,False,2,4,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 5438502,Angry Boys,Nate Cohen,1,525,Chris Wood,FWD,Nott'm Forest,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,287,Jordan Pickford,GK,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+5438502,Angry Boys,Nate Cohen,1,287,Jordan Pickford,GK,Everton,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 5438502,Angry Boys,Nate Cohen,1,505,Nikola Milenković,DEF,Nott'm Forest,0,False,False,2,0,90,played,Brentford,2025-08-17T13:00:00Z,True,True
 5438502,Angry Boys,Nate Cohen,1,485,Anthony Gordon,MID,Newcastle,0,False,False,3,0,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
 5438502,Angry Boys,Nate Cohen,1,135,Yoane Wissa,FWD,Brentford,0,False,False,0,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,,TOTAL,,,,,,,55,,,,,,
+5438502,Angry Boys,Nate Cohen,1,,TOTAL,,,,,,,59,,,,,,
 5898648,Pukandi FC,Kevin K,1,470,Martin Dúbravka,GK,Burnley,1,False,False,2,2,90,played,Spurs,2025-08-16T14:00:00Z,True,True
 5898648,Pukandi FC,Kevin K,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,1,False,False,3,3,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
 5898648,Pukandi FC,Kevin K,1,610,Aaron Wan-Bissaka,DEF,West Ham,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
@@ -278,15 +278,15 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 6197529,lads and pitches,Brett Swikle,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 6197529,lads and pitches,Brett Swikle,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 6197529,lads and pitches,Brett Swikle,1,582,Mohammed Kudus,MID,Spurs,1,False,False,10,10,84,played,Burnley,2025-08-16T14:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,299,Iliman Ndiaye,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+6197529,lads and pitches,Brett Swikle,1,299,Iliman Ndiaye,MID,Everton,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 6197529,lads and pitches,Brett Swikle,1,525,Chris Wood,FWD,Nott'm Forest,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
 6197529,lads and pitches,Brett Swikle,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
 6197529,lads and pitches,Brett Swikle,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,341,Karl Darlow,GK,Leeds,0,False,False,0,0,0,not_started,Everton,2025-08-18T19:00:00Z,False,False
+6197529,lads and pitches,Brett Swikle,1,341,Karl Darlow,GK,Leeds,0,False,False,0,0,0,in_progress,Everton,2025-08-18T19:00:00Z,True,False
 6197529,lads and pitches,Brett Swikle,1,541,Reinildo Mandava,DEF,Sunderland,0,False,False,6,0,90,played,West Ham,2025-08-16T14:00:00Z,True,True
 6197529,lads and pitches,Brett Swikle,1,497,Lewis Miley,MID,Newcastle,0,False,False,1,0,7,played,Aston Villa,2025-08-16T11:30:00Z,True,True
 6197529,lads and pitches,Brett Swikle,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,,TOTAL,,,,,,,72,,,,,,
+6197529,lads and pitches,Brett Swikle,1,,TOTAL,,,,,,,74,,,,,,
 6256408,The Blind Squirrels,Chris Munoz,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,False,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 6256408,The Blind Squirrels,Chris Munoz,1,373,Virgil van Dijk,DEF,Liverpool,1,False,False,3,3,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 6256408,The Blind Squirrels,Chris Munoz,1,370,Jeremie Frimpong,DEF,Liverpool,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
@@ -305,17 +305,17 @@ entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,m
 6256408,The Blind Squirrels,Chris Munoz,1,,TOTAL,,,,,,,59,,,,,,
 8592148,tonyt,Tony Tharakan,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,True,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 8592148,tonyt,Tony Tharakan,1,317,Joachim Andersen,DEF,Fulham,1,False,False,2,2,90,played,Brighton,2025-08-16T14:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,291,James Tarkowski,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+8592148,tonyt,Tony Tharakan,1,291,James Tarkowski,DEF,Everton,1,False,False,4,4,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 8592148,tonyt,Tony Tharakan,1,508,Neco Williams,DEF,Nott'm Forest,1,False,False,1,1,90,played,Brentford,2025-08-17T13:00:00Z,True,True
 8592148,tonyt,Tony Tharakan,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 8592148,tonyt,Tony Tharakan,1,381,Mohamed Salah,MID,Liverpool,1,False,False,8,8,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
 8592148,tonyt,Tony Tharakan,1,235,Cole Palmer,MID,Chelsea,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 8592148,tonyt,Tony Tharakan,1,47,Morgan Rogers,MID,Aston Villa,1,False,False,3,3,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,242,Kiernan Dewsbury-Hall,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
+8592148,tonyt,Tony Tharakan,1,242,Kiernan Dewsbury-Hall,MID,Everton,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,False
 8592148,tonyt,Tony Tharakan,1,64,Ollie Watkins,FWD,Aston Villa,2,True,False,2,4,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
 8592148,tonyt,Tony Tharakan,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
 8592148,tonyt,Tony Tharakan,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
 8592148,tonyt,Tony Tharakan,1,441,Patrick Dorgu,DEF,Man Utd,0,False,False,1,0,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
 8592148,tonyt,Tony Tharakan,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
 8592148,tonyt,Tony Tharakan,1,252,Marc Guiu Paz,FWD,Sunderland,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,,TOTAL,,,,,,,32,,,,,,
+8592148,tonyt,Tony Tharakan,1,,TOTAL,,,,,,,38,,,,,,
