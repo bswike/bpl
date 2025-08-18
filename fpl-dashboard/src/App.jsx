@@ -392,7 +392,7 @@ const FPLPointsChart = () => {
                     <p className="text-sm text-gray-400 mt-1">{captainData.count} managers captained</p>
                   </div>
                   <div className="text-right">
-                    <span className="font-bold text-xl text-cyan-400 bg-slate-800 px-2 py-1 rounded">{captainData.points * 2} pts</span>
+                    <span className="font-bold text-xl text-cyan-400">{captainData.points * 2} pts</span>
                     <p className="text-xs text-gray-500 mt-1">(Original: {captainData.points} pts)</p>
                   </div>
                 </li>
