@@ -2,9 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import Papa from 'papaparse';
 
+const useIsMobile = (breakpoint = 768) => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < breakpoint);
+    };
+    window.addEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
+  }, [breakpoint]);
+  return isMobile;
+};
+
 const FPLPointsChart = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const loadData = async () => {
@@ -281,10 +295,10 @@ const FPLPointsChart = () => {
                 <XAxis 
                   dataKey="displayName"
                   stroke="#94A3B8"
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                  fontSize={11}
+                  angle={isMobile ? -90 : -45}
+                  textAnchor={isMobile ? 'end' : 'end'}
+                  height={isMobile ? 120 : 80}
+                  fontSize={isMobile ? 10 : 11}
                   interval={0}
                 />
                 <YAxis stroke="#94A3B8" />
@@ -341,7 +355,7 @@ const FPLPointsChart = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
             <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
-              ⏳ Players Still To Play
+              ⏳ League Ranking
             </h2>
             <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
               {data.map((manager, index) => (
