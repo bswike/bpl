@@ -238,6 +238,8 @@ const FPLPointsChart = () => {
 
   const topScorer = data[0];
   const avgPoints = data.length > 0 ? Math.round(data.reduce((sum, item) => sum + item.total_points, 0) / data.length) : 0;
+  const highPoints = data.length > 0 ? Math.max(...data.map(item => item.total_points)) : 0;
+  const lowPoints = data.length > 0 ? Math.min(...data.map(item => item.total_points)) : 0;
   const avgBenchPoints = data.length > 0 ? Math.round(data.reduce((sum, item) => sum + item.bench_points, 0) / data.length) : 0;
   
   const uniquePlayersRemaining = [...new Set(data.flatMap(manager => manager.remaining_player_names))].length;
@@ -276,15 +278,27 @@ const FPLPointsChart = () => {
         {/* Top Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">🏆 Current League Champion</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">🏆 Current Champion</h3>
             <p className="text-2xl sm:text-3xl font-bold text-green-400">{topScorer?.manager_name || 'N/A'}</p>
             <p className="text-xs sm:text-sm text-gray-400 truncate">"{topScorer?.team_name || 'N/A'}"</p>
           </div>
           
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">📊 Average Points</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-cyan-400">{avgPoints}</p>
-            <p className="text-xs sm:text-sm text-gray-400">Across the League</p>
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-3">📊 Points Distribution</h3>
+            <div className="space-y-2">
+              <div className="text-center">
+                <span className="text-sm text-gray-400">High: </span>
+                <span className="text-lg font-bold text-green-400">{highPoints}</span>
+              </div>
+              <div className="text-center">
+                <span className="text-sm text-gray-400">Avg: </span>
+                <span className="text-xl font-bold text-cyan-400">{avgPoints}</span>
+              </div>
+              <div className="text-center">
+                <span className="text-sm text-gray-400">Low: </span>
+                <span className="text-lg font-bold text-red-400">{lowPoints}</span>
+              </div>
+            </div>
           </div>
           
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
