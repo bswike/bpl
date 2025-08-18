@@ -9,8 +9,15 @@ const FPLPointsChart = () => {
   // The fetch function now exists outside of useEffect so it can be called multiple times.
   const fetchData = async () => {
     try {
-      const response = await fetch('/fpl_rosters_points_gw1.csv');
-      const csvData = await response.text();
+      // Try to read the uploaded file first
+      let csvData;
+      try {
+        csvData = await window.fs.readFile('fpl_rosters_points_gw1.csv', { encoding: 'utf8' });
+      } catch (fileError) {
+        // Fallback to fetch if file reading fails
+        const response = await fetch('/fpl_rosters_points_gw1.csv');
+        csvData = await response.text();
+      }
       
       const parsedData = Papa.parse(csvData, {
           header: true,
@@ -26,9 +33,10 @@ const FPLPointsChart = () => {
       });
 
       const managerRemainingPlayers = {};
+      const managerBenchPoints = {};
       
       parsedData.data
-        .filter(row => row.player !== "TOTAL" && row.multiplier >= 1)
+        .filter(row => row.player !== "TOTAL")
         .forEach(row => {
           const manager = row.manager_name;
           if (!managerRemainingPlayers[manager]) {
@@ -39,29 +47,47 @@ const FPLPointsChart = () => {
               remaining_player_names: []
             };
           }
+          if (!managerBenchPoints[manager]) {
+              managerBenchPoints[manager] = {
+                  bench_points: 0,
+                  bench_players: []
+              }
+          }
           
-          managerRemainingPlayers[manager].total_players++;
-          
-          if (row.fixture_finished === "True" || row.status === "dnp") {
-            managerRemainingPlayers[manager].finished_players++;
-          } else {
-            managerRemainingPlayers[manager].remaining_players++;
+          if (row.multiplier >= 1) { // Starting XI
+            managerRemainingPlayers[manager].total_players++;
             
-            // Get kickoff date and time and format it to ET
-            let kickoffString = 'Time TBD';
-            if (row.kickoff_time) {
-                const kickoffTimeUTC = new Date(row.kickoff_time);
-                if (!isNaN(kickoffTimeUTC.getTime())) { // Check if date is valid
-                  const dateOptions = { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' };
-                  const timeOptions = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' };
-                  const datePart = kickoffTimeUTC.toLocaleDateString('en-US', dateOptions);
-                  const timePart = kickoffTimeUTC.toLocaleTimeString('en-US', timeOptions);
-                  kickoffString = `${datePart} - ${timePart}`;
-                }
-            }
+            if (row.fixture_finished === "True" || row.status === "dnp") {
+              managerRemainingPlayers[manager].finished_players++;
+            } else {
+              managerRemainingPlayers[manager].remaining_players++;
+              
+              // Get kickoff date and time and format it to ET
+              let kickoffString = 'Time TBD';
+              if (row.kickoff_time) {
+                  const kickoffTimeUTC = new Date(row.kickoff_time);
+                  if (!isNaN(kickoffTimeUTC.getTime())) { // Check if date is valid
+                    const dateOptions = { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' };
+                    const timeOptions = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' };
+                    const datePart = kickoffTimeUTC.toLocaleDateString('en-US', dateOptions);
+                    const timePart = kickoffTimeUTC.toLocaleTimeString('en-US', timeOptions);
+                    kickoffString = `${datePart} - ${timePart}`;
+                  }
+              }
 
-            const formattedPlayerName = `${row.player} (${row.club} - ${kickoffString})`;
-            managerRemainingPlayers[manager].remaining_player_names.push(formattedPlayerName);
+              const formattedPlayerName = `${row.player} (${row.club} - ${kickoffString})`;
+              managerRemainingPlayers[manager].remaining_player_names.push(formattedPlayerName);
+            }
+          } else if (row.multiplier === 0) { // Bench players
+              // Use points_gw (the actual points scored) for bench players
+              const benchPoints = parseFloat(row.points_gw) || 0;
+              managerBenchPoints[manager].bench_points += benchPoints;
+              managerBenchPoints[manager].bench_players.push({
+                  name: row.player,
+                  points: benchPoints,
+                  club: row.club
+              });
+              console.log(`Bench player: ${manager} - ${row.player}: ${benchPoints} points`);
           }
         });
 
@@ -83,6 +109,7 @@ const FPLPointsChart = () => {
         const captainInfo = captainData[row.manager_name];
         const captainPoints = captainInfo?.captain_points || 0;
         const regularPoints = row.points_applied - captainPoints;
+        const benchInfo = managerBenchPoints[row.manager_name];
         
         return {
           manager_name: row.manager_name,
@@ -93,7 +120,9 @@ const FPLPointsChart = () => {
           captain_player: captainInfo?.captain_player || 'Unknown',
           captain_base_points: captainInfo?.captain_base_points || 0,
           remaining_players: managerRemainingPlayers[row.manager_name]?.remaining_players || 0,
-          remaining_player_names: managerRemainingPlayers[row.manager_name]?.remaining_player_names || []
+          remaining_player_names: managerRemainingPlayers[row.manager_name]?.remaining_player_names || [],
+          bench_points: benchInfo?.bench_points || 0,
+          bench_players: benchInfo?.bench_players || []
         };
       });
 
@@ -184,6 +213,9 @@ const FPLPointsChart = () => {
               Captain: {data.captain_points} pts ({captainLastName})
             </p>
             <p className="text-gray-300 text-xxs">
+              Bench: {data.bench_points} pts
+            </p>
+            <p className="text-gray-300 text-xxs">
               Starting XI Remaining: {data.remaining_players}
             </p>
           </div>
@@ -206,6 +238,7 @@ const FPLPointsChart = () => {
 
   const topScorer = data[0];
   const avgPoints = data.length > 0 ? Math.round(data.reduce((sum, item) => sum + item.total_points, 0) / data.length) : 0;
+  const avgBenchPoints = data.length > 0 ? Math.round(data.reduce((sum, item) => sum + item.bench_points, 0) / data.length) : 0;
   
   const uniquePlayersRemaining = [...new Set(data.flatMap(manager => manager.remaining_player_names))].length;
 
@@ -223,7 +256,12 @@ const FPLPointsChart = () => {
   const popularCaptains = Object.entries(captainCounts)
     .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 5);
-  
+
+  // Sort managers by bench points for bench analysis
+  const sortedBenchPoints = [...data]
+    .sort((a, b) => b.bench_points - a.bench_points)
+    .filter(manager => manager.bench_points > 0);
+
   return (
     <div className="min-h-screen bg-slate-900 p-4 sm:p-6 font-sans text-gray-100">
       <div className="max-w-7xl mx-auto">
@@ -236,7 +274,7 @@ const FPLPointsChart = () => {
         </div>
 
         {/* Top Stats Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
             <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">🏆 Current League Champion</h3>
             <p className="text-2xl sm:text-3xl font-bold text-green-400">{topScorer?.manager_name || 'N/A'}</p>
@@ -247,6 +285,12 @@ const FPLPointsChart = () => {
             <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">📊 Average Points</h3>
             <p className="text-2xl sm:text-3xl font-bold text-cyan-400">{avgPoints}</p>
             <p className="text-xs sm:text-sm text-gray-400">Across the League</p>
+          </div>
+          
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">🪑 Avg Bench Points</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-yellow-400">{avgBenchPoints}</p>
+            <p className="text-xs sm:text-sm text-gray-400">Points left on bench</p>
           </div>
           
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
@@ -367,7 +411,7 @@ const FPLPointsChart = () => {
         </div>
 
         {/* Detailed Analysis Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
             <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
               ⏳ XI Remaining
@@ -409,6 +453,35 @@ const FPLPointsChart = () => {
                   <div className="text-right">
                     <span className="font-bold text-xl text-cyan-400">{captainData.points * 2} pts</span>
                     <p className="text-xs text-gray-500 mt-1">(Original: {captainData.points} pts)</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
+            <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
+              🪑 Bench Points Leaders
+            </h2>
+            <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
+              {sortedBenchPoints.map((manager, index) => (
+                <li key={index} className="bg-gradient-to-r from-slate-700 to-slate-600 rounded p-3 border border-slate-500/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <span className="font-bold text-md text-yellow-300">{manager.manager_name}</span>
+                      <p className="text-sm text-gray-400">
+                        Rank #{manager.rank} ({manager.total_points} pts)
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-xl text-yellow-400">{manager.bench_points}</span>
+                      <p className="text-sm text-gray-500 mt-1">bench pts</p>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-300 mt-1">
+                    {manager.bench_players.map(player => 
+                      `${player.name} (${player.club}): ${player.points}pts`
+                    ).join(', ')}
                   </div>
                 </li>
               ))}
