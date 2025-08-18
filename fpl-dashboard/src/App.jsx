@@ -2,23 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import Papa from 'papaparse';
 
-const useIsMobile = (breakpoint = 768) => {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < breakpoint);
-    };
-    window.addEventListener('resize', handleResize);
-    handleResize();
-    return () => window.removeEventListener('resize', handleResize);
-  }, [breakpoint]);
-  return isMobile;
-};
-
 const FPLPointsChart = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     const loadData = async () => {
@@ -157,24 +143,24 @@ const FPLPointsChart = () => {
                      data.designation === 'Relegation' ? 'bg-red-900' : 'bg-gray-800';
       
       return (
-        <div className={`${bgColor} text-white p-4 rounded-lg shadow-xl border-2 border-white/20`}>
-          <p className="font-bold text-lg">{data.manager_name}</p>
-          <p className="text-gray-300 text-sm mb-2">"{data.team_name}"</p>
-          <div className="space-y-1">
-            <p className="font-semibold text-cyan-300">
+        <div className={`${bgColor} text-white p-1 rounded-lg shadow-xl border-2 border-white/20`}>
+          <p className="font-bold text-sm">{data.manager_name}</p>
+          <p className="text-gray-300 text-xs mb-0.5">"{data.team_name}"</p>
+          <div className="space-y-0.5">
+            <p className="font-semibold text-cyan-300 text-xs">
               Total: {data.total_points} points
             </p>
-            <p className="text-gray-300">
+            <p className="text-gray-300 text-xxs">
               Regular: {data.regular_points} pts
             </p>
-            <p className="text-gray-300">
+            <p className="text-gray-300 text-xxs">
               Captain: {data.captain_points} pts ({data.captain_player})
             </p>
-            <p className="text-gray-300">
+            <p className="text-gray-300 text-xxs">
               Starting XI Remaining: {data.remaining_players}
             </p>
           </div>
-          <p className="text-cyan-200 text-sm mt-2 font-medium">
+          <p className="text-cyan-200 text-xxs mt-1 font-medium">
             Rank: #{data.rank} ({data.designation})
           </p>
         </div>
@@ -295,10 +281,10 @@ const FPLPointsChart = () => {
                 <XAxis 
                   dataKey="displayName"
                   stroke="#94A3B8"
-                  angle={isMobile ? -90 : -45}
-                  textAnchor={isMobile ? 'end' : 'end'}
-                  height={isMobile ? 120 : 80}
-                  fontSize={isMobile ? 10 : 11}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  fontSize={11}
                   interval={0}
                 />
                 <YAxis stroke="#94A3B8" />
@@ -393,7 +379,7 @@ const FPLPointsChart = () => {
                   </div>
                   <div className="text-right">
                     <span className="font-bold text-xl text-cyan-400">{captainData.points * 2} pts</span>
-                    <p className="text-sm text-gray-500 mt-1">(Original: {captainData.points} pts)</p>
+                    <p className="text-xs text-gray-500 mt-1">(Original: {captainData.points} pts)</p>
                   </div>
                 </li>
               ))}
