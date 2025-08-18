@@ -10,7 +10,7 @@ const FPLPointsChart = () => {
     const loadData = async () => {
       try {
         const response = await fetch('/fpl_rosters_points_gw1.csv');
-const csvData = await response.text();
+        const csvData = await response.text();
         
         const parsedData = Papa.parse(csvData, {
           header: true,
@@ -18,11 +18,10 @@ const csvData = await response.text();
           skipEmptyLines: true
         });
 
-        // Calculate remaining players for each manager (starting lineup only)
         const managerRemainingPlayers = {};
         
         parsedData.data
-          .filter(row => row.player !== "TOTAL" && row.multiplier >= 1) // Starting lineup only (excludes bench)
+          .filter(row => row.player !== "TOTAL" && row.multiplier >= 1)
           .forEach(row => {
             const manager = row.manager_name;
             if (!managerRemainingPlayers[manager]) {
@@ -36,7 +35,6 @@ const csvData = await response.text();
             
             managerRemainingPlayers[manager].total_players++;
             
-            // Count as finished if fixture_finished is True OR status is 'dnp'
             if (row.fixture_finished === "True" || row.status === "dnp") {
               managerRemainingPlayers[manager].finished_players++;
             } else {
@@ -45,7 +43,6 @@ const csvData = await response.text();
             }
           });
 
-        // Get captain data
         const captainData = {};
         
         parsedData.data
@@ -58,7 +55,6 @@ const csvData = await response.text();
             };
           });
 
-        // Get totals from rows where player = "TOTAL" and combine with captain data
         const totalRows = parsedData.data.filter(row => row.player === "TOTAL");
         
         const managerTotals = totalRows.map(row => {
@@ -79,14 +75,13 @@ const csvData = await response.text();
           };
         });
 
-        // Sort by points descending
         const sortedData = managerTotals
           .sort((a, b) => b.total_points - a.total_points)
           .map((item, index) => ({
             ...item,
             rank: index + 1,
-            displayName: item.manager_name.length > 12 ? 
-              item.manager_name.substring(0, 12) + '...' : 
+            displayName: item.manager_name.length > 12 ?
+              item.manager_name.substring(0, 12) + '...' :
               item.manager_name
           }));
 
@@ -105,20 +100,20 @@ const csvData = await response.text();
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-gray-900 text-white p-4 rounded-lg shadow-xl border border-gray-700">
+        <div className="bg-gray-800 text-white p-4 rounded-lg shadow-xl border border-gray-700">
           <p className="font-bold text-lg">{data.manager_name}</p>
           <p className="text-gray-300 text-sm mb-2">"{data.team_name}"</p>
           <div className="space-y-1">
-            <p className="text-green-400 font-semibold">
+            <p className="font-semibold text-teal-400">
               Total: {data.total_points} points
             </p>
-            <p className="text-blue-400">
+            <p className="text-gray-400">
               Regular: {data.regular_points} pts
             </p>
-            <p className="text-yellow-400">
+            <p className="text-gray-400">
               Captain: {data.captain_points} pts ({data.captain_player})
             </p>
-            <p className="text-purple-400">
+            <p className="text-gray-400">
               Starting XI Remaining: {data.remaining_players}
             </p>
           </div>
@@ -133,23 +128,24 @@ const csvData = await response.text();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96 bg-gradient-to-br from-purple-900 to-blue-900">
-        <div className="text-white text-xl">Loading FPL data...</div>
+      <div className="flex items-center justify-center h-96 bg-gray-900">
+        <div className="text-white text-xl animate-pulse">Loading FPL data...</div>
       </div>
     );
   }
 
   const topScorer = data[0];
-  const avgPoints = Math.round(data.reduce((sum, item) => sum + item.total_points, 0) / data.length);
+  const avgPoints = data.length > 0 ? Math.round(data.reduce((sum, item) => sum + item.total_points, 0) / data.length) : 0;
 
-  // Calculate captain statistics
   const captainCounts = {};
   data.forEach(manager => {
     const captain = manager.captain_player;
-    if (!captainCounts[captain]) {
+    if (captain && !captainCounts[captain]) {
       captainCounts[captain] = { count: 0, points: manager.captain_base_points };
     }
-    captainCounts[captain].count++;
+    if (captain) {
+      captainCounts[captain].count++;
+    }
   });
 
   const popularCaptains = Object.entries(captainCounts)
@@ -157,189 +153,141 @@ const csvData = await response.text();
     .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-6">
+    <div className="min-h-screen bg-gray-900 p-4 sm:p-6 font-sans text-gray-100">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-white mb-4">
+        {/* Header and Summary Stats */}
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-teal-400 mb-2">
             ⚽ FPL Gameweek 1 Leaderboard
           </h1>
-          <div className="flex justify-center space-x-8 text-lg">
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4 text-white">
-              <div className="text-2xl font-bold text-yellow-400">{topScorer?.total_points}</div>
-              <div className="text-sm">Top Score</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4 text-white">
-              <div className="text-2xl font-bold text-blue-400">{avgPoints}</div>
-              <div className="text-sm">Average</div>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-lg p-4 text-white">
-              <div className="text-2xl font-bold text-purple-400">{data.reduce((sum, m) => sum + m.remaining_players, 0)}</div>
-              <div className="text-sm">Total Players Left</div>
-            </div>
+          <p className="text-md sm:text-lg text-gray-400">A quick look at the league standings and key stats.</p>
+        </div>
+
+        {/* Top Stats Section - Stack on mobile, grid on larger screens */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-700 text-center">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-200 mb-1">🏆 League Champion</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-teal-400">{topScorer?.manager_name || 'N/A'}</p>
+            <p className="text-xs sm:text-sm text-gray-400 truncate">"{topScorer?.team_name || 'N/A'}"</p>
+          </div>
+          
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-700 text-center">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-200 mb-1">📊 Average Points</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-teal-400">{avgPoints}</p>
+            <p className="text-xs sm:text-sm text-gray-400">Across the League</p>
+          </div>
+          
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-lg border border-gray-700 text-center">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-200 mb-1">⏰ Total Players Left</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-teal-400">{data.reduce((sum, m) => sum + m.remaining_players, 0)}</p>
+            <p className="text-xs sm:text-sm text-gray-400">Still to play</p>
           </div>
         </div>
 
-        {/* Top 3 Podium */}
-        <div className="flex justify-center items-end mb-8 space-x-4">
-          {data.slice(0, 3).map((manager, index) => {
-            const heights = ['h-32', 'h-40', 'h-28'];
-            const positions = [1, 0, 2];
-            const actualIndex = positions[index];
+        {/* Main Chart and Podiums */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 sm:mb-12">
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-2xl lg:col-span-2 border border-gray-700">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-100 mb-4 sm:mb-6 text-center">
+              All Managers Performance
+            </h2>
             
-            return (
-              <div key={manager.manager_name} className={`bg-white/20 backdrop-blur rounded-t-lg p-4 ${heights[actualIndex]} flex flex-col justify-end items-center text-white min-w-32`}>
-                <div className="text-3xl mb-2">
-                  {actualIndex === 0 ? '🥇' : actualIndex === 1 ? '🥈' : '🥉'}
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                data={data}
+                margin={{ top: 20, right: 10, left: 10, bottom: 40 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis 
+                  dataKey="displayName"
+                  stroke="#a0aec0"
+                  angle={-45}
+                  textAnchor="end"
+                  height={50}
+                  fontSize={10}
+                />
+                <YAxis stroke="#a0aec0" />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar 
+                  dataKey="regular_points"
+                  stackId="points"
+                  fill="#0021A5"
+                  name="Regular Points"
+                />
+                <Bar 
+                  dataKey="captain_points"
+                  stackId="points"
+                  fill="#FF6600"
+                  radius={[4, 4, 0, 0]}
+                  name="Captain Points"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {/* Top 3 Podium List */}
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-2xl border border-gray-700">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-100 mb-4 text-center">
+              Top 3 Managers
+            </h2>
+            <div className="space-y-4">
+              {data.slice(0, 3).map((manager, index) => (
+                <div key={manager.manager_name} className="flex items-center space-x-4 bg-gray-700 p-3 rounded-lg shadow-inner">
+                  <div className="text-2xl sm:text-3xl">
+                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-lg">{manager.manager_name}</p>
+                    <p className="text-xs text-gray-400">"{manager.team_name}"</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xl sm:text-2xl font-extrabold text-teal-400">{manager.total_points}</p>
+                    <p className="text-xs text-gray-500">Total Points</p>
+                  </div>
                 </div>
-                <div className="text-lg font-bold">{manager.total_points}</div>
-                <div className="text-sm text-center font-medium">{manager.displayName}</div>
-                <div className="text-xs text-gray-300 text-center">#{manager.rank}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Main Chart */}
-        <div className="bg-white/10 backdrop-blur rounded-xl p-6 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">
-            All Managers Performance
-          </h2>
-          
-          <div className="mb-4 flex justify-center">
-            <div className="flex items-center space-x-6 text-sm">
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
-                <span className="text-white">Regular Points</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-yellow-500 rounded mr-2"></div>
-                <span className="text-white">Captain Points (×2)</span>
-              </div>
+              ))}
             </div>
           </div>
-          
-          <ResponsiveContainer width="100%" height={500}>
-            <BarChart
-              data={data}
-              margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis 
-                dataKey="displayName"
-                stroke="#ffffff"
-                angle={-45}
-                textAnchor="end"
-                height={100}
-                fontSize={12}
-              />
-              <YAxis stroke="#ffffff" />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar 
-                dataKey="regular_points"
-                stackId="points"
-                fill="#3b82f6"
-                radius={[0, 0, 0, 0]}
-                name="Regular Points"
-              />
-              <Bar 
-                dataKey="captain_points"
-                stackId="points"
-                fill="#f59e0b"
-                radius={[4, 4, 0, 0]}
-                name="Captain Points"
-              />
-            </BarChart>
-          </ResponsiveContainer>
         </div>
 
-        {/* Players Remaining Analysis */}
-        <div className="mt-8 bg-white/10 backdrop-blur rounded-xl p-6 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-4 text-center">
-            ⏳ Starting XI Still To Play
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="text-white">
-              <h3 className="text-lg font-bold mb-3">Most Starting XI Remaining</h3>
-              <div className="space-y-2">
-                {data
-                  .slice()
-                  .sort((a, b) => b.remaining_players - a.remaining_players)
-                  .slice(0, 8)
-                  .map((manager) => (
-                  <div key={manager.manager_name} className="flex justify-between items-center bg-white/5 rounded p-2">
-                    <div>
-                      <div className="font-medium">{manager.manager_name}</div>
-                      <div className="text-sm text-gray-300">Current: {manager.total_points} pts</div>
-                    </div>
-                    <div className="text-purple-400 font-bold">{manager.remaining_players} left</div>
+        {/* Detailed Analysis Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-2xl border border-gray-700">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 text-center">
+              ⏳ Players Still To Play
+            </h2>
+            <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
+              {data.filter(manager => manager.remaining_players > 0).map((manager) => (
+                <li key={manager.manager_name} className="bg-gray-700 rounded p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-md text-teal-300">{manager.manager_name}</span>
+                    <span className="text-xl font-extrabold text-teal-400">{manager.remaining_players}</span>
                   </div>
-                ))}
-              </div>
-            </div>
-            
-            <div className="text-white">
-              <h3 className="text-lg font-bold mb-3">Starting XI Yet To Play</h3>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {data
-                  .filter(manager => manager.remaining_players > 0)
-                  .sort((a, b) => b.remaining_players - a.remaining_players)
-                  .map((manager) => (
-                  <div key={manager.manager_name} className="bg-white/5 rounded p-2">
-                    <div className="font-medium text-purple-400">{manager.manager_name}</div>
-                    <div className="text-sm text-gray-300">
-                      {manager.remaining_player_names.join(', ')}
-                    </div>
+                  <div className="text-sm text-gray-400 mt-1">
+                    {manager.remaining_player_names.join(', ')}
                   </div>
-                ))}
-              </div>
-            </div>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
 
-        {/* Captain Analysis */}
-        <div className="mt-8 bg-white/10 backdrop-blur rounded-xl p-6 shadow-2xl">
-          <h2 className="text-2xl font-bold text-white mb-4 text-center">
-            ⚡ Captain Choices Analysis
-          </h2>
-          
-          <div className="grid grid-cols-1 gap-6">
-            <div className="text-white">
-              <h3 className="text-lg font-bold mb-3">Most Popular Captains</h3>
-              <div className="space-y-2">
-                {popularCaptains.map(([captain, captainData]) => (
-                  <div key={captain} className="flex justify-between items-center bg-white/5 rounded p-2">
-                    <span>{captain}</span>
-                    <div className="text-right">
-                      <div className="text-yellow-400">{captainData.count} managers</div>
-                      <div className="text-sm text-gray-300">{captainData.points} pts (×2 = {captainData.points * 2})</div>
-                    </div>
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 shadow-2xl border border-gray-700">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 text-center">
+              ⚡ Captains Analysis
+            </h2>
+            <ul className="space-y-2">
+              {popularCaptains.map(([captain, captainData]) => (
+                <li key={captain} className="flex justify-between items-center bg-gray-700 p-3 rounded">
+                  <div>
+                    <span className="font-bold text-gray-300">{captain}</span>
+                    <p className="text-sm text-gray-400 mt-1">{captainData.count} managers captained</p>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Stats */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white/10 backdrop-blur rounded-lg p-6 text-center text-white">
-            <h3 className="text-xl font-bold mb-2">🏆 League Champion</h3>
-            <p className="text-lg">{topScorer?.manager_name}</p>
-            <p className="text-gray-300 text-sm">"{topScorer?.team_name}"</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur rounded-lg p-6 text-center text-white">
-            <h3 className="text-xl font-bold mb-2">📊 Points Range</h3>
-            <p className="text-lg">{data[data.length - 1]?.total_points} - {topScorer?.total_points}</p>
-            <p className="text-gray-300 text-sm">Lowest to Highest</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur rounded-lg p-6 text-center text-white">
-            <h3 className="text-xl font-bold mb-2">⏰ Starting XI Left</h3>
-            <p className="text-lg">{data.reduce((sum, m) => sum + m.remaining_players, 0)} total</p>
-            <p className="text-gray-300 text-sm">Across all managers</p>
+                  <div className="text-right">
+                    <span className="text-xl font-bold text-teal-400">{captainData.points} pts</span>
+                    <p className="text-xs text-gray-500">x2 = {captainData.points * 2}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </div>
