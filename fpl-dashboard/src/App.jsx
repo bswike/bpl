@@ -207,13 +207,7 @@ const FPLPointsChart = () => {
               Total: {data.total_points} points
             </p>
             <p className="text-gray-300 text-xxs">
-              Regular: {data.regular_points} pts
-            </p>
-            <p className="text-gray-300 text-xxs">
               Captain: {data.captain_points} pts ({captainLastName})
-            </p>
-            <p className="text-gray-300 text-xxs">
-              Bench: {data.bench_points} pts
             </p>
             <p className="text-gray-300 text-xxs">
               Starting XI Remaining: {data.remaining_players}
@@ -278,7 +272,7 @@ const FPLPointsChart = () => {
         {/* Top Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">🏆 Current Champion</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">🏆 Current League Champion</h3>
             <p className="text-2xl sm:text-3xl font-bold text-green-400">{topScorer?.manager_name || 'N/A'}</p>
             <p className="text-xs sm:text-sm text-gray-400 truncate">"{topScorer?.team_name || 'N/A'}"</p>
           </div>
