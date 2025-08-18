@@ -109,31 +109,18 @@ const FPLPointsChart = () => {
 
     loadData();
   }, []);
-
-  const getBarColor = (designation) => {
-    switch(designation) {
-      case 'Champions League':
-        return '#10B981'; // Emerald green
-      case 'Europa League':
-        return '#3B82F6'; // Blue
-      case 'Relegation':
-        return '#EF4444'; // Red
-      default:
-        return '#6B7280'; // Gray
-    }
-  };
-
+  
   const getGradientColor = (designation) => {
     switch(designation) {
       case 'Champions League':
         return {
-          start: '#10B981',
-          end: '#065F46'
+          start: '#3B82F6',
+          end: '#1E40AF'
         };
       case 'Europa League':
         return {
-          start: '#3B82F6',
-          end: '#1E40AF'
+          start: '#F47E01',
+          end: '#C1440E'
         };
       case 'Relegation':
         return {
@@ -151,8 +138,8 @@ const FPLPointsChart = () => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      const bgColor = data.designation === 'Champions League' ? 'bg-green-900' :
-                     data.designation === 'Europa League' ? 'bg-blue-900' :
+      const bgColor = data.designation === 'Champions League' ? 'bg-blue-900' :
+                     data.designation === 'Europa League' ? 'bg-orange-900' :
                      data.designation === 'Relegation' ? 'bg-red-900' : 'bg-gray-800';
       
       return (
@@ -207,7 +194,7 @@ const FPLPointsChart = () => {
   const popularCaptains = Object.entries(captainCounts)
     .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 5);
-
+  
   return (
     <div className="min-h-screen bg-slate-900 p-4 sm:p-6 font-sans text-gray-100">
       <div className="max-w-7xl mx-auto">
@@ -250,12 +237,12 @@ const FPLPointsChart = () => {
             {/* Legend for the chart colors */}
             <div className="flex justify-center flex-wrap gap-4 text-sm mb-6">
               <div className="flex items-center bg-slate-700/50 px-3 py-1 rounded-full">
-                <span className="w-4 h-4 rounded-full bg-green-500 mr-2"></span> 
-                <span className="text-green-300">Champions League</span>
+                <span className="w-4 h-4 rounded-full bg-blue-700 mr-2"></span> 
+                <span className="text-blue-300">Champions League</span>
               </div>
               <div className="flex items-center bg-slate-700/50 px-3 py-1 rounded-full">
-                <span className="w-4 h-4 rounded-full bg-blue-500 mr-2"></span> 
-                <span className="text-blue-300">Europa League</span>
+                <span className="w-4 h-4 rounded-full bg-orange-500 mr-2"></span> 
+                <span className="text-orange-300">Europa League</span>
               </div>
               <div className="flex items-center bg-slate-700/50 px-3 py-1 rounded-full">
                 <span className="w-4 h-4 rounded-full bg-gray-500 mr-2"></span> 
@@ -274,12 +261,12 @@ const FPLPointsChart = () => {
               >
                 <defs>
                   <linearGradient id="championsLeague" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.9}/>
-                    <stop offset="95%" stopColor="#065F46" stopOpacity={0.8}/>
-                  </linearGradient>
-                  <linearGradient id="europaLeague" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9}/>
                     <stop offset="95%" stopColor="#1E40AF" stopOpacity={0.8}/>
+                  </linearGradient>
+                  <linearGradient id="europaLeague" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#F47E01" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#C1440E" stopOpacity={0.8}/>
                   </linearGradient>
                   <linearGradient id="midTable" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#6B7280" stopOpacity={0.9}/>
@@ -357,11 +344,19 @@ const FPLPointsChart = () => {
               ⏳ Players Still To Play
             </h2>
             <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
-              {data.filter(manager => manager.remaining_players > 0).map((manager) => (
-                <li key={manager.manager_name} className="bg-gradient-to-r from-slate-700 to-slate-600 rounded p-3 border border-slate-500/30">
+              {data.map((manager, index) => (
+                <li key={index} className="bg-gradient-to-r from-slate-700 to-slate-600 rounded p-3 border border-slate-500/30">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-md text-cyan-300">{manager.manager_name}</span>
-                    <span className="text-xl font-extrabold text-cyan-400 bg-slate-800 px-2 py-1 rounded">{manager.remaining_players}</span>
+                    <div className="flex-1">
+                      <span className="font-bold text-md text-cyan-300">{manager.manager_name}</span>
+                      <p className="text-sm text-gray-400">
+                        {manager.total_points} pts | Rank #{manager.rank}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-bold text-xl text-cyan-400">{manager.remaining_players}</span>
+                      <p className="text-sm text-gray-500 mt-1">players left</p>
+                    </div>
                   </div>
                   <div className="text-sm text-gray-300 mt-1">
                     {manager.remaining_player_names.join(', ')}
@@ -383,8 +378,8 @@ const FPLPointsChart = () => {
                     <p className="text-sm text-gray-400 mt-1">{captainData.count} managers captained</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-xl font-bold text-cyan-400 bg-slate-800 px-2 py-1 rounded">{captainData.points} pts</span>
-                    <p className="text-xs text-gray-500">x2 = {captainData.points * 2}</p>
+                    <span className="font-bold text-xl text-cyan-400">{captainData.points * 2} pts</span>
+                    <p className="text-sm text-gray-500 mt-1">(Original: {captainData.points} pts)</p>
                   </div>
                 </li>
               ))}
