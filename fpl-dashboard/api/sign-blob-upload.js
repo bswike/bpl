@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     }
 
     // Decide filename (stable by default)
-    const name = (req.query?.name && String(req.query.name)) || "fpl_roster_points_gw1.csv";
+    const name = (req.query?.name && String(req.query.name)) || "fpl_rosters_points_gw1.csv";
 
     // Read the raw request body as text (CSV)
     const chunks = [];
