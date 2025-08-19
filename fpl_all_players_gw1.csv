@@ -1,0 +1,695 @@
+element_id,player,position,club,player_cost,value_ratio,global_ownership,global_captain_percent,league_ownership,league_captain_percent,league_owner_count,league_owners,points_gw,minutes,status,opponent_team,kickoff_time,fixture_started,fixture_finished
+1,David Raya Martín,GK,Arsenal,5.5,1.82,18.4,5.0,0,0,0,,10,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+2,Kepa Arrizabalaga Revuelta,GK,Arsenal,4.5,0.0,0.9,3.3,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+3,Karl Hein,GK,Arsenal,4.0,0.0,0.6,2.0,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+4,Tommy Setford,GK,Arsenal,4.0,0.0,0.2,2.0,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+5,Gabriel dos Santos Magalhães,DEF,Arsenal,6.0,1.0,19.0,5.0,25.0,0.0,5,Joe Curran; Evan Bagheri; Dean Maghsadi; Nate Cohen; Brett Swikle,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+6,William Saliba,DEF,Arsenal,6.0,1.5,15.2,5.0,5.0,0.0,1,Nate Cohen,9,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+7,Riccardo Calafiori,DEF,Arsenal,5.5,2.36,2.0,4.3,5.0,0.0,1,Andrew Vidal,13,71,played,Man Utd,2025-08-17T15:30:00Z,True,True
+8,Jurriën Timber,DEF,Arsenal,5.5,0.0,2.2,4.3,0,0,0,,0,19,played,Man Utd,2025-08-17T15:30:00Z,True,True
+9,Jakub Kiwior,DEF,Arsenal,5.5,0.0,0.1,4.3,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+10,Myles Lewis-Skelly,DEF,Arsenal,5.5,0.0,4.2,4.3,0,0,0,,0,18,played,Man Utd,2025-08-17T15:30:00Z,True,True
+11,Benjamin White,DEF,Arsenal,5.5,1.09,0.9,4.3,0,0,0,,6,70,played,Man Utd,2025-08-17T15:30:00Z,True,True
+12,Oleksandr Zinchenko,DEF,Arsenal,5.0,0.0,0.4,3.6,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+13,Brayden Clarke,DEF,Arsenal,4.0,0.0,0.6,2.0,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+14,Maldini Kacurri,DEF,Arsenal,4.0,0.0,0.2,2.0,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+15,Josh Nichols,DEF,Arsenal,4.0,0.0,0.2,2.0,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+16,Bukayo Saka,MID,Arsenal,10.0,0.3,16.8,4.0,25.0,0.0,5,Garrett Kunkel; JP Fischer; Adrian McLoughlin; John Matthew; Dean Maghsadi,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+17,Martin Ødegaard,MID,Arsenal,8.0,0.62,3.7,3.6,5.0,0.0,1,Nate Cohen,5,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+18,Noni Madueke,MID,Arsenal,7.0,0.14,1.1,3.3,0,0,0,,1,30,played,Man Utd,2025-08-17T15:30:00Z,True,True
+19,Gabriel Martinelli Silva,MID,Arsenal,7.0,0.14,1.5,3.3,5.0,0.0,1,JP Fischer,1,59,played,Man Utd,2025-08-17T15:30:00Z,True,True
+20,Leandro Trossard,MID,Arsenal,7.0,0.0,0.3,3.3,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+21,Declan Rice,MID,Arsenal,6.5,0.92,8.0,3.2,0,0,0,,6,82,played,Man Utd,2025-08-17T15:30:00Z,True,True
+22,Mikel Merino Zazón,MID,Arsenal,6.0,0.17,0.6,3.1,0,0,0,,1,7,played,Man Utd,2025-08-17T15:30:00Z,True,True
+23,Fábio Ferreira Vieira,MID,Arsenal,5.5,0.0,0.0,3.0,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+24,Christian Nørgaard,MID,Arsenal,5.5,0.0,0.6,2.3,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+25,Ethan Nwaneri,MID,Arsenal,5.5,0.0,0.3,3.0,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+26,Martín Zubimendi Ibáñez,MID,Arsenal,5.5,0.91,2.2,3.0,5.0,0.0,1,Andrew Vidal,5,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+27,Reiss Nelson,MID,Arsenal,5.0,0.0,0.1,2.5,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+28,Ismeal Kabia,MID,Arsenal,4.5,0.0,0.3,2.0,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+29,Albert Sambi Lokonga,MID,Arsenal,4.5,0.0,0.1,2.0,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+30,Kai Havertz,FWD,Arsenal,7.5,0.13,1.3,3.4,0,0,0,,1,30,played,Man Utd,2025-08-17T15:30:00Z,True,True
+31,Gabriel Fernando de Jesus,FWD,Arsenal,6.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+662,Cristhian Mosquera,DEF,Arsenal,5.5,0.0,0.1,4.3,0,0,0,,0,0,dnp,Man Utd,2025-08-17T15:30:00Z,True,True
+666,Viktor Gyökeres,FWD,Arsenal,9.0,0.11,25.3,3.8,15.0,0.0,3,Andrew Vidal; Max Maier; Kevin K,1,59,played,Man Utd,2025-08-17T15:30:00Z,True,True
+32,Emiliano Martínez Romero,GK,Aston Villa,5.0,0.0,0.9,3.1,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+33,Marco Bizot,GK,Aston Villa,4.5,1.56,0.7,2.3,0,0,0,,7,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+34,Joe Gauci,GK,Aston Villa,4.0,0.0,0.3,0.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+35,Filip Marschall,GK,Aston Villa,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+36,Matty Cash,DEF,Aston Villa,4.5,1.78,3.5,1.9,5.0,0.0,1,Max Maier,8,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+37,Lucas Digne,DEF,Aston Villa,4.5,1.33,2.1,1.9,0,0,0,,6,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+38,Ezri Konsa Ngoyo,DEF,Aston Villa,4.5,0.67,19.3,0.0,30.0,0.0,6,Andrew Vidal; John Matthew; Patrick McCleary; Joe Curran; Wes H; Kevin K,3,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
+39,Ian Maatsen,DEF,Aston Villa,4.5,0.0,0.9,1.9,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+40,Tyrone Mings,DEF,Aston Villa,4.5,1.33,1.1,1.9,0,0,0,,6,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+41,Pau Torres,DEF,Aston Villa,4.5,0.0,0.5,1.9,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+42,Andrés García,DEF,Aston Villa,4.0,0.0,0.3,0.2,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+43,Álex Moreno Lopera,DEF,Aston Villa,4.0,0.0,9.6,1.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+44,Lamare Bogarde,DEF,Aston Villa,4.0,0.0,0.3,1.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+45,Lino da Cruz Sousa,DEF,Aston Villa,4.0,0.0,0.4,1.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+46,Yasin Özcan,DEF,Aston Villa,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+47,Morgan Rogers,MID,Aston Villa,7.0,0.43,9.7,2.3,15.0,0.0,3,Garrett Kunkel; Brian Pleines; Tony Tharakan,3,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+48,Youri Tielemans,MID,Aston Villa,6.0,0.5,2.2,2.1,0,0,0,,3,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+49,Leon Bailey,MID,Aston Villa,5.5,0.0,0.5,2.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+50,Emiliano Buendía Stati,MID,Aston Villa,5.5,0.0,0.1,2.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+51,Samuel Iling-Junior,MID,Aston Villa,5.5,0.0,0.0,2.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+52,Jacob Ramsey,MID,Aston Villa,5.5,0.0,0.6,2.0,5.0,0.0,1,Garrett Kunkel,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+53,Donyell Malen,MID,Aston Villa,5.5,0.18,1.6,2.0,0,0,0,,1,6,played,Newcastle,2025-08-16T11:30:00Z,True,True
+54,John McGinn,MID,Aston Villa,5.5,0.55,0.7,2.0,5.0,0.0,1,Adrian McLoughlin,3,83,played,Newcastle,2025-08-16T11:30:00Z,True,True
+55,Ross Barkley,MID,Aston Villa,5.0,0.0,0.1,0.4,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+56,Enzo Barrenechea,MID,Aston Villa,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+57,Lewis Dobbin,MID,Aston Villa,5.0,0.0,0.1,1.5,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+58,Boubacar Kamara,MID,Aston Villa,5.0,0.4,0.2,1.5,0,0,0,,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+59,Amadou Onana,MID,Aston Villa,5.0,1.0,1.8,1.5,0,0,0,,5,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+60,Ben Broggio,MID,Aston Villa,4.5,0.0,0.3,1.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+61,Leander Dendoncker,MID,Aston Villa,4.5,0.0,0.4,1.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+62,Jamaldeen Jimoh-Aloba,MID,Aston Villa,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+63,Kadan Young,MID,Aston Villa,4.5,0.0,0.7,1.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,55.0,5.0,11,John Sebastian; John Matthew; Patrick McCleary; Kevin Tomek; Evan Bagheri; Brian Pleines; Wes H; Kevin K; Brett Swikle; Chris Munoz; Tony Tharakan,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+65,Zépiqueno Redmond,FWD,Aston Villa,4.5,0.0,0.9,1.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+677,Evann Guessand,MID,Aston Villa,6.5,0.0,0.1,2.2,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+688,James Wright,GK,Aston Villa,4.0,0.0,0.3,1.0,0,0,0,,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+183,Max Weiß,GK,Burnley,4.5,0.0,0.2,2.3,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+184,Etienne Green,GK,Burnley,4.0,0.0,0.4,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+185,Václav Hladký,GK,Burnley,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+186,Connor Roberts,DEF,Burnley,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+187,Kyle Walker,DEF,Burnley,4.5,0.22,1.9,1.9,0,0,0,,1,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+188,Hannes Delcroix,DEF,Burnley,4.0,0.0,0.3,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+189,Owen Dodgson,DEF,Burnley,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+190,Hjalmar Ekdal,DEF,Burnley,4.0,0.25,0.2,1.0,0,0,0,,1,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+191,Maxime Estève,DEF,Burnley,4.0,0.25,19.9,1.0,40.0,0.0,8,John Matthew; Jared Alexander; Kevin Tomek; Brian Pleines; Wes H; Kevin K; Brett Swikle; Tony Tharakan,1,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+192,Quilindschy Hartman,DEF,Burnley,4.0,0.25,0.5,1.0,5.0,0.0,1,Max Maier,1,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+193,Bashir Humphreys,DEF,Burnley,4.0,0.0,0.1,0.2,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+194,Jordan Beyer,DEF,Burnley,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+195,Lucas Pires Silva,DEF,Burnley,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+196,Shurandy Sambo,DEF,Burnley,4.0,0.0,0.1,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+197,Oliver Sonne,DEF,Burnley,4.0,0.25,0.1,1.0,5.0,0.0,1,JP Fischer,1,73,played,Spurs,2025-08-16T14:00:00Z,True,True
+198,Axel Tuanzebe,DEF,Burnley,4.0,0.0,2.4,1.0,5.0,0.0,1,Andrew Vidal,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+199,Joe Worrall,DEF,Burnley,4.0,0.0,0.1,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+200,Jaidon Anthony,MID,Burnley,5.5,0.36,0.1,2.0,0,0,0,,2,84,played,Spurs,2025-08-16T14:00:00Z,True,True
+201,Manuel Benson Hedilazio,MID,Burnley,5.5,0.0,0.0,2.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+202,Jacob Bruun Larsen,MID,Burnley,5.5,0.18,0.0,2.0,0,0,0,,1,27,played,Spurs,2025-08-16T14:00:00Z,True,True
+203,Enock Agyei,MID,Burnley,5.0,0.0,0.1,1.5,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+204,Darko Churlinov,MID,Burnley,5.0,0.0,0.0,1.5,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+205,Josh Cullen,MID,Burnley,5.0,0.8,0.1,1.5,0,0,0,,4,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+206,Marcus Edwards,MID,Burnley,5.0,0.2,0.1,1.5,0,0,0,,1,5,played,Spurs,2025-08-16T14:00:00Z,True,True
+207,Hannibal Mejbri,MID,Burnley,5.0,0.4,0.1,1.5,0,0,0,,2,62,played,Spurs,2025-08-16T14:00:00Z,True,True
+208,Luca Koleosho,MID,Burnley,5.0,0.0,0.0,1.5,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+209,Josh Laurent,MID,Burnley,5.0,0.4,0.0,1.5,0,0,0,,2,62,played,Spurs,2025-08-16T14:00:00Z,True,True
+210,Loum Tchaouna,MID,Burnley,5.0,0.2,0.0,1.5,0,0,0,,1,16,played,Spurs,2025-08-16T14:00:00Z,True,True
+211,Aaron Ramsey,MID,Burnley,4.5,0.0,9.5,1.0,20.0,0.0,4,Andrew Vidal; John Matthew; Patrick McCleary; Chris Munoz,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+212,Oluwaseun Adewumi,MID,Burnley,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+213,Jaydon Banel,MID,Burnley,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+214,Mike Trésor Ndayishimiye,MID,Burnley,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+215,Zian Flemming,FWD,Burnley,5.5,0.18,0.2,1.7,0,0,0,,1,16,played,Spurs,2025-08-16T14:00:00Z,True,True
+216,Zeki Amdouni,FWD,Burnley,5.0,0.0,0.1,0.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+217,Lyle Foster,FWD,Burnley,5.0,0.4,0.5,1.4,0,0,0,,2,73,played,Spurs,2025-08-16T14:00:00Z,True,True
+218,Ashley Barnes,FWD,Burnley,4.5,0.0,2.4,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+219,Michael Obafemi,FWD,Burnley,4.5,0.0,0.4,1.0,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,50.0,0.0,10,John Sebastian; Andrew Vidal; Adrian McLoughlin; John Matthew; Joe Curran; Evan Bagheri; Wes H; Dean Maghsadi; Kevin K; Tony Tharakan,2,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+676,Lesley Ugochukwu,MID,Burnley,5.0,0.2,0.0,1.5,0,0,0,,1,27,played,Spurs,2025-08-16T14:00:00Z,True,True
+680,Armando Broja,FWD,Burnley,5.5,0.0,0.3,1.7,0,0,0,,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+66,Norberto Murara Neto,GK,Bournemouth,4.5,0.0,0.2,0.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+67,Đorđe Petrović,GK,Bournemouth,4.5,0.44,3.4,2.3,0,0,0,,2,90,played,Liverpool,2025-08-15T19:00:00Z,True,True
+68,Will Dennis,GK,Bournemouth,4.0,0.0,1.0,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+69,Callan McKenna,GK,Bournemouth,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+70,Alex Paulsen,GK,Bournemouth,4.0,0.0,0.1,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+71,Illia Zabarnyi,DEF,Bournemouth,5.0,0.0,0.1,0.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+72,Marcos Senesi Barón,DEF,Bournemouth,4.5,0.44,1.0,1.9,0,0,0,,2,90,played,Liverpool,2025-08-15T19:00:00Z,True,True
+73,Adam Smith,DEF,Bournemouth,4.5,0.22,0.4,1.9,0,0,0,,1,89,played,Liverpool,2025-08-15T19:00:00Z,True,True
+74,Adrien Truffert,DEF,Bournemouth,4.5,0.0,0.8,1.9,0,0,0,,0,90,played,Liverpool,2025-08-15T19:00:00Z,True,True
+75,Matai Akinmboni,DEF,Bournemouth,4.0,0.0,0.3,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+76,Owen Bevan,DEF,Bournemouth,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+77,James Hill,DEF,Bournemouth,4.0,0.25,0.8,1.0,0,0,0,,1,1,played,Liverpool,2025-08-15T19:00:00Z,True,True
+78,Julián Araujo Zúñiga,DEF,Bournemouth,4.0,0.0,1.3,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+79,Chris Mepham,DEF,Bournemouth,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+80,Julio Soler Barreto,DEF,Bournemouth,4.0,0.0,0.3,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+81,Justin Kluivert,MID,Bournemouth,7.0,0.0,0.7,0.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+82,Antoine Semenyo,MID,Bournemouth,7.1,2.11,10.6,2.4,5.0,0.0,1,Kevin Tomek,15,90,played,Liverpool,2025-08-15T19:00:00Z,True,True
+84,Marcus Tavernier,MID,Bournemouth,5.5,0.73,0.5,2.0,0,0,0,,4,90,played,Liverpool,2025-08-15T19:00:00Z,True,True
+85,Tyler Adams,MID,Bournemouth,5.0,0.8,0.3,1.5,0,0,0,,4,90,played,Liverpool,2025-08-15T19:00:00Z,True,True
+86,David Brooks,MID,Bournemouth,5.0,0.8,0.2,1.5,0,0,0,,4,83,played,Liverpool,2025-08-15T19:00:00Z,True,True
+87,Ryan Christie,MID,Bournemouth,5.0,0.0,0.1,0.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+88,Lewis Cook,MID,Bournemouth,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+89,Philip Billing,MID,Bournemouth,5.0,0.0,0.1,1.5,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+90,Alex Scott,MID,Bournemouth,5.0,0.4,0.1,1.5,0,0,0,,2,73,played,Liverpool,2025-08-15T19:00:00Z,True,True
+91,Luis Sinisterra Lucumí,MID,Bournemouth,5.0,0.0,0.0,0.4,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+92,Romain Faivre,MID,Bournemouth,4.5,0.0,0.2,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+93,Hamed Traorè,MID,Bournemouth,4.5,0.89,0.8,1.0,0,0,0,,4,16,played,Liverpool,2025-08-15T19:00:00Z,True,True
+94,Dominic Sadi,MID,Bournemouth,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+95,Zain Silcott-Duberry,MID,Bournemouth,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+96,Ben Winterburn,MID,Bournemouth,4.5,0.22,0.1,1.0,0,0,0,,1,6,played,Liverpool,2025-08-15T19:00:00Z,True,True
+97,Francisco Evanilson de Lima Barbosa,FWD,Bournemouth,7.0,0.14,2.1,2.3,0,0,0,,1,90,played,Liverpool,2025-08-15T19:00:00Z,True,True
+98,Enes Ünal,FWD,Bournemouth,5.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+99,Daniel Adu-Adjei,FWD,Bournemouth,4.5,0.0,0.3,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+100,Eli Junior Kroupi,FWD,Bournemouth,4.5,0.22,1.1,1.0,0,0,0,,1,1,played,Liverpool,2025-08-15T19:00:00Z,True,True
+685,Bafodé Diakité,DEF,Bournemouth,4.5,0.0,0.2,1.9,0,0,0,,0,90,played,Liverpool,2025-08-15T19:00:00Z,True,True
+687,Remy Rees-Dottin,MID,Bournemouth,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Liverpool,2025-08-15T19:00:00Z,True,True
+83,Dango Ouattara,MID,Brentford,6.0,0.0,0.1,1.1,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+101,Caoimhín Kelleher,GK,Brentford,4.5,0.22,10.7,2.3,20.0,0.0,4,Garrett Kunkel; Adrian McLoughlin; Patrick McCleary; Brian Pleines,1,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+102,Ellery Balcombe,GK,Brentford,4.0,0.0,0.3,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+103,Matthew Cox,GK,Brentford,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+104,Julian Eyestone,GK,Brentford,4.0,0.0,0.1,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+105,Hákon Rafn Valdimarsson,GK,Brentford,4.0,0.0,1.0,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+106,Nathan Collins,DEF,Brentford,5.0,0.0,1.7,2.6,10.0,0.0,2,Adrian McLoughlin; Patrick McCleary,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+107,Keane Lewis-Potter,DEF,Brentford,5.0,0.2,0.4,2.6,5.0,0.0,1,Kevin Tomek,1,68,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+108,Kristoffer Ajer,DEF,Brentford,4.5,0.0,0.2,1.9,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+109,Rico Henry,DEF,Brentford,4.5,0.22,0.2,1.9,0,0,0,,1,87,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+110,Michael Kayode,DEF,Brentford,4.5,0.22,0.2,1.9,0,0,0,,1,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+111,Ethan Pinnock,DEF,Brentford,4.5,0.0,0.2,1.4,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+112,Mads Roerslev Rasmussen,DEF,Brentford,4.5,0.0,0.0,1.9,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+113,Sepp van den Berg,DEF,Brentford,4.5,0.67,0.4,1.9,0,0,0,,3,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+114,Benjamin Arthur,DEF,Brentford,4.0,0.0,0.3,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+115,Benjamin Fredrick,DEF,Brentford,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+116,Aaron Hickey,DEF,Brentford,4.0,0.0,0.5,1.0,0,0,0,,0,2,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+117,Kim Ji-soo,DEF,Brentford,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+118,Jayden Meghoma,DEF,Brentford,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+120,Kevin Schade,MID,Brentford,7.0,0.14,0.3,2.3,0,0,0,,1,45,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+121,Mikkel Damsgaard,MID,Brentford,6.0,0.0,1.0,2.1,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+122,Antoni Milambo,MID,Brentford,5.5,0.18,0.1,2.0,0,0,0,,1,45,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+123,Fábio Freitas Gouveia Carvalho,MID,Brentford,5.0,0.4,0.3,1.5,0,0,0,,2,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+124,Jordan Henderson,MID,Brentford,5.0,0.2,0.3,1.5,0,0,0,,1,21,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+125,Vitaly Janelt,MID,Brentford,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+126,Mathias Jensen,MID,Brentford,5.0,0.4,0.1,1.5,0,0,0,,2,68,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+127,Gustavo Nunes Fernandes Gomes,MID,Brentford,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+128,Frank Onyeka,MID,Brentford,5.0,0.8,0.1,1.5,0,0,0,,4,21,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+129,Yehor Yarmoliuk,MID,Brentford,5.0,0.4,0.0,1.5,0,0,0,,2,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+130,Romelle Donovan,MID,Brentford,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+131,Yunus Emre Konak,MID,Brentford,4.5,0.0,0.2,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+132,Paris Maghoma,MID,Brentford,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+133,Myles Peart-Harris,MID,Brentford,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+134,Ryan Trevitt,MID,Brentford,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+135,Yoane Wissa,FWD,Brentford,7.5,0.0,2.1,0.0,10.0,0.0,2,JP Fischer; Nate Cohen,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+136,Igor Thiago Nascimento Rodrigues,FWD,Brentford,6.0,1.0,0.9,2.0,0,0,0,,6,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+137,Iwan Morgan,FWD,Brentford,4.5,0.0,0.5,1.0,0,0,0,,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+138,Jason Steele,GK,Brighton,4.5,0.0,0.5,2.3,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+139,Bart Verbruggen,GK,Brighton,4.5,0.44,7.7,2.3,10.0,0.0,2,Garrett Kunkel; Patrick McCleary,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+140,Tom McGill,GK,Brighton,4.0,0.0,0.4,1.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+141,Carl Rushworth,GK,Brighton,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+142,Kjell Scherpen,GK,Brighton,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+143,Olivier Boscagli,DEF,Brighton,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+144,Diego Coppola,DEF,Brighton,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+145,Maxim De Cuyper,DEF,Brighton,4.5,0.44,6.3,1.9,20.0,0.0,4,Max Maier; Dean Maghsadi; Brett Swikle; Chris Munoz,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+146,Lewis Dunk,DEF,Brighton,4.5,0.44,1.3,1.9,0,0,0,,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+147,Pervis Estupiñán Tenorio,DEF,Brighton,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+148,Ferdi Kadıoğlu,DEF,Brighton,4.5,0.0,0.2,1.9,0,0,0,,0,21,played,Fulham,2025-08-16T14:00:00Z,True,True
+149,Igor Julio dos Santos de Paulo,DEF,Brighton,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+150,Tariq Lamptey,DEF,Brighton,4.5,0.0,0.4,1.9,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+151,Jan Paul van Hecke,DEF,Brighton,4.5,0.44,1.2,1.9,0,0,0,,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+152,Joël Veltman,DEF,Brighton,4.5,0.0,0.2,1.9,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+153,Adam Webster,DEF,Brighton,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+154,Eiran Cashin,DEF,Brighton,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+155,Jacob Slater,DEF,Brighton,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+156,Charlie Tasker,DEF,Brighton,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+157,Mitoma Kaoru,MID,Brighton,6.5,0.31,6.8,2.2,0,0,0,,2,82,played,Fulham,2025-08-16T14:00:00Z,True,True
+158,Georginio Rutter,MID,Brighton,6.0,1.0,1.4,2.1,0,0,0,,6,68,played,Fulham,2025-08-16T14:00:00Z,True,True
+159,Solly March,MID,Brighton,6.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+160,Yankuba Minteh,MID,Brighton,6.0,0.5,1.1,2.1,0,0,0,,3,68,played,Fulham,2025-08-16T14:00:00Z,True,True
+161,Julio Enciso Espínola,MID,Brighton,5.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+162,Brajan Gruda,MID,Brighton,5.5,0.18,0.0,2.0,0,0,0,,1,7,played,Fulham,2025-08-16T14:00:00Z,True,True
+163,Jack Hinshelwood,MID,Brighton,5.5,0.0,0.1,2.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+164,Matt O'Riley,MID,Brighton,5.5,1.82,0.9,2.0,0,0,0,,10,87,played,Fulham,2025-08-16T14:00:00Z,True,True
+165,Abdallah Sima,MID,Brighton,5.5,0.0,0.0,2.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+166,Yasin Ayari,MID,Brighton,5.0,0.6,0.2,1.5,0,0,0,,3,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+167,Carlos Baleba,MID,Brighton,5.0,0.6,4.7,1.5,20.0,0.0,4,John Matthew; Jared Alexander; Evan Bagheri; Kevin K,3,68,played,Fulham,2025-08-16T14:00:00Z,True,True
+168,Facundo Buonanotte,MID,Brighton,5.0,0.0,0.2,1.5,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+169,Diego Gómez Amarilla,MID,Brighton,5.0,0.0,0.1,1.5,0,0,0,,0,21,played,Fulham,2025-08-16T14:00:00Z,True,True
+170,James Milner,MID,Brighton,5.0,0.2,0.1,1.5,0,0,0,,1,2,played,Fulham,2025-08-16T14:00:00Z,True,True
+171,Jeremy Sarmiento Morante,MID,Brighton,5.0,0.0,0.0,1.5,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+172,Tom Watson,MID,Brighton,5.0,0.0,0.0,1.5,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+173,Mats Wieffer,MID,Brighton,5.0,0.8,0.1,1.5,5.0,0.0,1,JP Fischer,4,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+174,Malick Yalcouyé,MID,Brighton,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+175,Joe Knight,MID,Brighton,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+176,Adrian Mazilu,MID,Brighton,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+177,Andrew Moran,MID,Brighton,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+178,Danny Welbeck,FWD,Brighton,6.5,0.15,4.2,2.2,0,0,0,,1,21,played,Fulham,2025-08-16T14:00:00Z,True,True
+179,Evan Ferguson,FWD,Brighton,5.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+180,Stefanos Tzimas,FWD,Brighton,5.5,0.0,0.1,1.7,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+181,Charalampos Kostoulas,FWD,Brighton,5.0,0.0,0.4,1.4,0,0,0,,0,0,dnp,Fulham,2025-08-16T14:00:00Z,True,True
+220,Robert Lynch Sánchez,GK,Chelsea,5.0,1.6,25.3,3.6,35.0,0.0,7,John Matthew; Joe Curran; Evan Bagheri; Brian Pleines; Nate Cohen; Chris Munoz; Tony Tharakan,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+221,Filip Jörgensen,GK,Chelsea,4.5,0.0,0.2,2.8,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+222,Mike Penders,GK,Chelsea,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+223,Gabriel Słonina,GK,Chelsea,4.0,0.0,0.1,1.5,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+224,Marc Cucurella Saseta,DEF,Chelsea,6.0,1.33,19.9,4.5,10.0,0.0,2,Andrew Vidal; JP Fischer,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+225,Reece James,DEF,Chelsea,5.5,0.91,5.6,3.8,0,0,0,,5,78,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+226,Trevoh Chalobah,DEF,Chelsea,5.0,1.2,1.2,3.1,0,0,0,,6,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+227,Levi Samuels Colwill,DEF,Chelsea,5.0,0.0,0.3,0.0,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+228,Malo Gusto,DEF,Chelsea,5.0,0.2,1.7,3.1,0,0,0,,1,11,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+229,Benoît Badiashile Mukinayi,DEF,Chelsea,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+230,Wesley Fofana,DEF,Chelsea,4.5,0.0,0.2,2.4,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+231,Mamadou Sarr,DEF,Chelsea,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+232,Tosin Adarabioyo,DEF,Chelsea,4.5,0.0,1.2,1.8,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+233,Josh Acheampong,DEF,Chelsea,4.0,2.25,1.1,1.5,0,0,0,,9,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+234,Aarón Anselmino,DEF,Chelsea,4.0,0.0,0.1,1.5,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+235,Cole Palmer,MID,Chelsea,10.5,0.29,61.2,3.6,75.0,0.0,15,John Sebastian; Andrew Vidal; JP Fischer; John Matthew; Jared Alexander; Patrick McCleary; Joe Curran; Evan Bagheri; Brian Pleines; Max Maier; Wes H; Dean Maghsadi; Kevin K; Brett Swikle; Tony Tharakan,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+236,Pedro Lomba Neto,MID,Chelsea,7.0,0.43,3.7,2.8,5.0,0.0,1,Chris Munoz,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+237,Enzo Fernández,MID,Chelsea,6.5,0.46,3.5,2.7,10.0,0.0,2,Kevin Tomek; Chris Munoz,3,78,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+238,Estêvão Almeida de Oliveira Gonçalves,MID,Chelsea,6.5,0.0,1.6,2.7,0,0,0,,0,36,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+239,Jamie Bynoe-Gittens,MID,Chelsea,6.5,0.15,0.3,2.7,0,0,0,,1,53,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+240,Christopher Nkunku,MID,Chelsea,6.0,0.0,0.2,2.6,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+241,Moisés Caicedo Corozo,MID,Chelsea,5.5,0.91,5.4,2.5,5.0,0.0,1,Nate Cohen,5,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+243,Tyrique George,MID,Chelsea,5.0,0.0,0.1,2.0,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+244,Roméo Lavia,MID,Chelsea,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+245,Mykhailo Mudryk,MID,Chelsea,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+246,Andrey Nascimento dos Santos,MID,Chelsea,4.5,0.22,0.3,1.5,0,0,0,,1,11,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+247,Dário Luís Essugo,MID,Chelsea,4.5,0.0,0.1,1.5,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+248,Kendry Páez Andrade,MID,Chelsea,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.9,2.9,60.0,5.0,12,Garrett Kunkel; Andrew Vidal; John Matthew; Patrick McCleary; Kevin Tomek; Joe Curran; Evan Bagheri; Brian Pleines; Max Maier; Wes H; Nate Cohen; Tony Tharakan,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+250,Liam Delap,FWD,Chelsea,6.5,0.15,3.9,2.7,0,0,0,,1,17,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+251,Nicolas Jackson,FWD,Chelsea,6.5,0.0,0.1,2.7,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+672,Jorrel Hato,DEF,Chelsea,5.0,0.0,0.3,3.1,0,0,0,,0,0,dnp,Crystal Palace,2025-08-17T13:00:00Z,True,True
+253,Dean Henderson,GK,Crystal Palace,5.0,1.2,7.2,3.1,20.0,0.0,4,Jared Alexander; Kevin Tomek; Dean Maghsadi; Chris Munoz,6,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+254,Walter Benítez,GK,Crystal Palace,4.0,0.0,0.4,1.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+255,Remi Matthews,GK,Crystal Palace,4.0,0.0,0.1,1.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+256,Daniel Muñoz Mejía,DEF,Crystal Palace,5.5,0.91,8.6,3.3,20.0,0.0,4,Garrett Kunkel; Adrian McLoughlin; Jared Alexander; Chris Munoz,5,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+257,Maxence Lacroix,DEF,Crystal Palace,5.0,1.6,1.2,2.6,0,0,0,,8,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+258,Tyrick Mitchell,DEF,Crystal Palace,5.0,1.8,1.4,2.6,0,0,0,,9,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+259,Borna Sosa,DEF,Crystal Palace,5.0,0.0,0.1,2.6,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+260,Marc Guéhi,DEF,Crystal Palace,4.5,1.33,12.9,1.9,5.0,0.0,1,Garrett Kunkel,6,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+261,Chris Richards,DEF,Crystal Palace,4.5,1.33,1.5,1.9,10.0,0.0,2,Wes H; Kevin K,6,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+262,Chadi Riad Dnanou,DEF,Crystal Palace,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+263,Nathaniel Clyne,DEF,Crystal Palace,4.0,0.0,0.7,1.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+264,Rob Holding,DEF,Crystal Palace,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+265,Caleb Kporha,DEF,Crystal Palace,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+266,Eberechi Eze,MID,Crystal Palace,7.5,0.4,10.9,2.5,5.0,0.0,1,Nate Cohen,3,83,played,Chelsea,2025-08-17T13:00:00Z,True,True
+267,Ismaïla Sarr,MID,Crystal Palace,6.5,0.46,4.9,2.2,20.0,0.0,4,John Sebastian; Kevin Tomek; Brian Pleines; Kevin K,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+268,Cheick Doucouré,MID,Crystal Palace,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+269,Romain Esse,MID,Crystal Palace,5.0,0.0,0.2,1.5,5.0,0.0,1,Adrian McLoughlin,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+270,Will Hughes,MID,Crystal Palace,5.0,0.4,0.1,1.5,0,0,0,,2,69,played,Chelsea,2025-08-17T13:00:00Z,True,True
+271,Daichi Kamada,MID,Crystal Palace,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+272,Jefferson Lerma Solís,MID,Crystal Palace,5.0,0.2,0.1,1.5,0,0,0,,1,20,played,Chelsea,2025-08-17T13:00:00Z,True,True
+273,Adam Wharton,MID,Crystal Palace,5.0,0.6,0.6,1.5,0,0,0,,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+274,Asher Agbinone,MID,Crystal Palace,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+275,Naouirou Ahamada,MID,Crystal Palace,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+276,Justin Devenny,MID,Crystal Palace,4.5,0.22,1.8,1.0,0,0,0,,1,6,played,Chelsea,2025-08-17T13:00:00Z,True,True
+277,Malcolm Ebiowei,MID,Crystal Palace,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+278,Jesurun Rak-Sakyi,MID,Crystal Palace,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+279,Matheus França de Oliveira,MID,Crystal Palace,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+280,David Ozoh,MID,Crystal Palace,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+281,Kaden Rodney,MID,Crystal Palace,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+282,Franco Umeh-Chibueze,MID,Crystal Palace,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+283,Jean-Philippe Mateta,FWD,Crystal Palace,7.5,0.13,9.1,2.4,10.0,5.0,2,JP Fischer; Dean Maghsadi,1,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+284,Eddie Nketiah,FWD,Crystal Palace,5.5,0.0,0.3,0.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+285,Odsonne Édouard,FWD,Crystal Palace,5.0,0.0,0.9,1.4,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+286,Zach Marsh,FWD,Crystal Palace,4.5,0.0,0.3,1.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+690,Rio Cardines,MID,Crystal Palace,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+242,Kiernan Dewsbury-Hall,MID,Everton,5.0,0.4,4.7,1.5,15.0,0.0,3,John Sebastian; Evan Bagheri; Tony Tharakan,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+287,Jordan Pickford,GK,Everton,5.5,0.36,11.2,4.0,5.0,0.0,1,Nate Cohen,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+288,Mark Travers,GK,Everton,4.5,0.0,0.2,2.3,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+289,Harry Tyrer,GK,Everton,4.0,0.0,0.1,1.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+290,Jarrad Branthwaite,DEF,Everton,5.5,0.0,0.6,0.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+291,James Tarkowski,DEF,Everton,5.5,0.73,7.1,3.3,25.0,0.0,5,John Sebastian; JP Fischer; Jared Alexander; Nate Cohen; Tony Tharakan,4,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+292,Vitalii Mykolenko,DEF,Everton,5.0,0.0,0.9,2.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+293,Jake O'Brien,DEF,Everton,5.0,0.4,0.6,2.6,10.0,0.0,2,Adrian McLoughlin; Dean Maghsadi,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+294,Séamus Coleman,DEF,Everton,4.5,0.0,0.2,1.9,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+295,Michael Keane,DEF,Everton,4.5,0.44,0.4,1.9,0,0,0,,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+296,Nathan Patterson,DEF,Everton,4.5,0.0,0.0,1.4,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+297,Roman Dixon,DEF,Everton,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+298,Reece Welch,DEF,Everton,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+299,Iliman Ndiaye,MID,Everton,6.5,0.31,11.2,2.2,15.0,0.0,3,Joe Curran; Wes H; Brett Swikle,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+300,Dwight McNeil,MID,Everton,6.0,0.0,0.4,2.1,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+301,Carlos Alcaraz Durán,MID,Everton,5.5,0.18,0.2,2.0,0,0,0,,1,85,played,Leeds,2025-08-18T19:00:00Z,True,True
+302,Idrissa Gana Gueye,MID,Everton,5.5,0.36,0.1,2.0,0,0,0,,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+303,James Garner,MID,Everton,5.0,0.4,0.1,1.5,0,0,0,,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+304,Tim Iroegbunam,MID,Everton,5.0,0.4,0.0,1.5,0,0,0,,2,70,played,Leeds,2025-08-18T19:00:00Z,True,True
+305,Harrison Armstrong,MID,Everton,4.5,0.0,0.1,0.8,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+306,Callum Bates,MID,Everton,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+307,Coby Ebere,MID,Everton,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+308,Isaac Heath,MID,Everton,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+309,Jenson Metcalfe,MID,Everton,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+310,Thierno Barry,FWD,Everton,6.0,0.17,0.7,2.0,0,0,0,,1,4,played,Leeds,2025-08-18T19:00:00Z,True,True
+311,Norberto Bercique Gomes Betuncal,FWD,Everton,5.5,0.36,8.4,1.7,20.0,0.0,4,Adrian McLoughlin; Jared Alexander; Patrick McCleary; Brian Pleines,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+312,Youssef Ramalho Chermiti,FWD,Everton,5.0,0.0,0.2,1.4,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+313,Martin Sherif,FWD,Everton,4.5,0.0,0.2,1.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+419,Jack Grealish,MID,Everton,6.5,0.15,3.6,2.2,10.0,0.0,2,Patrick McCleary; Max Maier,1,19,played,Leeds,2025-08-18T19:00:00Z,True,True
+630,Tom King,GK,Everton,4.0,0.0,1.6,1.0,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+667,Adam Aznou,DEF,Everton,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Leeds,2025-08-18T19:00:00Z,True,True
+314,Bernd Leno,GK,Fulham,5.0,0.6,1.6,3.1,0,0,0,,3,90,played,Brighton,2025-08-16T14:00:00Z,True,True
+315,Steven Benda,GK,Fulham,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+316,Antonee Robinson,DEF,Fulham,5.0,0.0,0.8,0.0,5.0,0.0,1,Jared Alexander,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+317,Joachim Andersen,DEF,Fulham,4.5,0.44,3.0,1.9,5.0,0.0,1,Tony Tharakan,2,90,played,Brighton,2025-08-16T14:00:00Z,True,True
+318,Calvin Bassey,DEF,Fulham,4.5,0.22,0.5,1.9,0,0,0,,1,90,played,Brighton,2025-08-16T14:00:00Z,True,True
+319,Timothy Castagne,DEF,Fulham,4.5,0.22,0.1,1.9,0,0,0,,1,6,played,Brighton,2025-08-16T14:00:00Z,True,True
+320,Issa Diop,DEF,Fulham,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+321,Jorge Cuenca Barreno,DEF,Fulham,4.5,0.44,0.0,1.9,0,0,0,,2,83,played,Brighton,2025-08-16T14:00:00Z,True,True
+322,Kenny Tete,DEF,Fulham,4.5,0.44,0.2,1.9,0,0,0,,2,90,played,Brighton,2025-08-16T14:00:00Z,True,True
+323,Samuel Amissah,DEF,Fulham,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+324,Alex Iwobi,MID,Fulham,6.5,0.31,1.5,2.2,5.0,0.0,1,Kevin Tomek,2,65,played,Brighton,2025-08-16T14:00:00Z,True,True
+325,Emile Smith Rowe,MID,Fulham,6.0,0.17,0.9,2.1,0,0,0,,1,13,played,Brighton,2025-08-16T14:00:00Z,True,True
+326,Adama Traoré Diarra,MID,Fulham,5.5,0.18,0.3,2.0,5.0,0.0,1,Dean Maghsadi,1,24,played,Brighton,2025-08-16T14:00:00Z,True,True
+327,Andreas Hoelgebaum Pereira,MID,Fulham,5.5,0.0,0.3,2.0,0,0,0,,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+328,Ryan Sessegnon,MID,Fulham,5.5,0.0,0.0,1.5,0,0,0,,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+329,Harry Wilson,MID,Fulham,5.5,0.91,1.0,2.0,0,0,0,,5,90,played,Brighton,2025-08-16T14:00:00Z,True,True
+330,Sander Berge,MID,Fulham,5.0,0.4,0.1,1.5,0,0,0,,2,65,played,Brighton,2025-08-16T14:00:00Z,True,True
+331,Tom Cairney,MID,Fulham,5.0,0.0,0.0,1.5,0,0,0,,0,24,played,Brighton,2025-08-16T14:00:00Z,True,True
+332,Saša Lukić,MID,Fulham,5.0,0.4,0.1,1.5,0,0,0,,2,90,played,Brighton,2025-08-16T14:00:00Z,True,True
+333,Martial Godo,MID,Fulham,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+334,Luke Harris,MID,Fulham,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+335,Josh King,MID,Fulham,4.5,0.44,1.0,1.0,0,0,0,,2,76,played,Brighton,2025-08-16T14:00:00Z,True,True
+336,Harrison Reed,MID,Fulham,4.5,0.0,0.3,1.0,0,0,0,,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+337,Raúl Jiménez Rodríguez,FWD,Fulham,6.5,0.31,2.1,2.2,0,0,0,,2,65,played,Brighton,2025-08-16T14:00:00Z,True,True
+338,Rodrigo Muniz Carvalho,FWD,Fulham,5.5,1.27,2.2,1.7,0,0,0,,7,24,played,Brighton,2025-08-16T14:00:00Z,True,True
+664,Benjamin Lecomte,GK,Fulham,4.0,0.0,0.9,1.0,0,0,0,,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+339,Illan Meslier,GK,Leeds,4.5,0.0,0.8,1.3,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+340,Alex Cairns,GK,Leeds,4.0,0.0,0.2,0.0,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+341,Karl Darlow,GK,Leeds,4.0,0.0,3.1,0.0,5.0,0.0,1,Brett Swikle,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+342,Jayden Bogle,DEF,Leeds,4.5,1.33,0.2,0.7,0,0,0,,6,90,played,Everton,2025-08-18T19:00:00Z,True,True
+343,Pascal Struijk,DEF,Leeds,4.5,1.78,0.3,0.9,0,0,0,,8,90,played,Everton,2025-08-18T19:00:00Z,True,True
+344,Jaka Bijol,DEF,Leeds,4.0,0.0,0.2,0.0,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+345,Sebastiaan Bornauw,DEF,Leeds,4.0,0.0,0.1,0.0,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+346,Sam Byram,DEF,Leeds,4.0,0.0,0.3,0.0,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+347,Gabriel Gudmundsson,DEF,Leeds,4.0,2.25,2.8,0.0,0,0,0,,9,90,played,Everton,2025-08-18T19:00:00Z,True,True
+348,Joe Rodon,DEF,Leeds,4.0,1.75,2.2,0.0,5.0,0.0,1,Brian Pleines,7,90,played,Everton,2025-08-18T19:00:00Z,True,True
+349,Isaac Schmidt,DEF,Leeds,4.0,0.0,0.2,0.0,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+350,Brenden Aaronson,MID,Leeds,5.5,0.18,0.1,1.0,0,0,0,,1,23,played,Everton,2025-08-18T19:00:00Z,True,True
+351,Wilfried Gnonto,MID,Leeds,5.5,0.55,0.3,1.0,0,0,0,,3,66,played,Everton,2025-08-18T19:00:00Z,True,True
+352,Jack Harrison,MID,Leeds,5.5,0.18,0.1,1.0,0,0,0,,1,12,played,Everton,2025-08-18T19:00:00Z,True,True
+353,Daniel James,MID,Leeds,5.5,0.55,0.5,1.0,0,0,0,,3,77,played,Everton,2025-08-18T19:00:00Z,True,True
+354,Ethan Ampadu,MID,Leeds,5.0,0.6,0.1,0.5,0,0,0,,3,77,played,Everton,2025-08-18T19:00:00Z,True,True
+355,Sam Greenwood,MID,Leeds,5.0,0.0,0.1,0.5,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+356,Ilia Gruev,MID,Leeds,5.0,0.2,0.0,0.5,0,0,0,,1,12,played,Everton,2025-08-18T19:00:00Z,True,True
+357,Largie Ramazani,MID,Leeds,5.0,0.0,0.0,0.5,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+358,Tanaka Ao,MID,Leeds,5.0,0.6,0.2,0.5,0,0,0,,3,90,played,Everton,2025-08-18T19:00:00Z,True,True
+359,Charlie Crew,MID,Leeds,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+360,Joe Gelhardt,MID,Leeds,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+361,Darko Gyabi,MID,Leeds,4.5,0.0,0.1,0.0,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+362,Joël Piroe,FWD,Leeds,5.5,0.36,2.0,0.7,0,0,0,,2,77,played,Everton,2025-08-18T19:00:00Z,True,True
+363,Patrick Bamford,FWD,Leeds,5.0,0.0,2.0,0.4,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+364,Mateo Joseph Fernández-Regatillo,FWD,Leeds,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+365,Lukas Nmecha,FWD,Leeds,5.0,1.0,0.4,0.4,0,0,0,,5,12,played,Everton,2025-08-18T19:00:00Z,True,True
+493,Sean Longstaff,MID,Leeds,5.0,0.2,0.2,0.5,0,0,0,,1,1,played,Everton,2025-08-18T19:00:00Z,True,True
+660,Anton Stach,MID,Leeds,5.0,1.6,0.3,0.5,0,0,0,,8,90,played,Everton,2025-08-18T19:00:00Z,True,True
+665,Lucas Estella Perri,GK,Leeds,4.5,1.33,0.4,1.3,0,0,0,,6,90,played,Everton,2025-08-18T19:00:00Z,True,True
+691,Dominic Calvert-Lewin,FWD,Leeds,5.5,0.0,0.0,0.7,0,0,0,,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+366,Alisson Becker,GK,Liverpool,5.5,0.18,11.3,4.5,5.0,0.0,1,JP Fischer,1,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+367,Giorgi Mamardashvili,GK,Liverpool,4.5,0.0,0.4,2.8,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+368,Ármin Pécsi,GK,Liverpool,4.0,0.0,0.1,1.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+369,Freddie Woodman,GK,Liverpool,4.0,0.0,0.1,1.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+370,Jeremie Frimpong,DEF,Liverpool,6.0,0.17,29.8,4.5,25.0,0.0,5,Adrian McLoughlin; Patrick McCleary; Joe Curran; Nate Cohen; Chris Munoz,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+371,Milos Kerkez,DEF,Liverpool,6.0,0.0,6.3,4.5,15.0,0.0,3,JP Fischer; Kevin Tomek; Brian Pleines,0,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+372,Andrew Robertson,DEF,Liverpool,6.0,0.0,1.3,4.5,0,0,0,,0,30,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+373,Virgil van Dijk,DEF,Liverpool,6.0,0.5,23.9,4.5,15.0,0.0,3,John Sebastian; Brian Pleines; Chris Munoz,3,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+374,Ibrahima Konaté,DEF,Liverpool,5.5,0.18,3.0,3.8,0,0,0,,1,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+375,Conor Bradley,DEF,Liverpool,5.0,0.0,0.1,1.6,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+376,Joe Gomez,DEF,Liverpool,5.0,0.2,0.1,3.1,0,0,0,,1,18,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+377,Konstantinos Tsimikas,DEF,Liverpool,5.0,0.0,0.1,3.1,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+378,Amara Nallo,DEF,Liverpool,4.0,0.0,0.1,1.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+379,Rhys Williams,DEF,Liverpool,4.0,0.0,0.2,1.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+380,Calvin Ramsay,DEF,Liverpool,4.0,0.0,0.2,1.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+381,Mohamed Salah,MID,Liverpool,14.5,0.55,54.2,4.5,45.0,40.0,9,Jared Alexander; Patrick McCleary; Joe Curran; Evan Bagheri; Brian Pleines; Wes H; Kevin K; Chris Munoz; Tony Tharakan,8,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,55.0,0.0,11,John Sebastian; Andrew Vidal; JP Fischer; Adrian McLoughlin; Joe Curran; Max Maier; Dean Maghsadi; Nate Cohen; Kevin K; Brett Swikle; Tony Tharakan,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+383,Luis Díaz Marulanda,MID,Liverpool,8.0,0.0,0.1,0.0,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+384,Cody Gakpo,MID,Liverpool,7.5,0.93,8.0,3.0,10.0,0.0,2,Garrett Kunkel; Max Maier,7,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+385,Federico Chiesa,MID,Liverpool,6.5,0.92,0.3,2.7,0,0,0,,6,8,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+386,Alexis Mac Allister,MID,Liverpool,6.5,0.77,1.8,2.7,0,0,0,,5,71,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+387,Dominik Szoboszlai,MID,Liverpool,6.5,0.31,2.0,2.7,0,0,0,,2,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+388,Curtis Jones,MID,Liverpool,5.5,0.18,0.1,2.5,0,0,0,,1,18,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+389,Harvey Elliott,MID,Liverpool,5.5,0.0,0.2,2.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+390,Ryan Gravenberch,MID,Liverpool,5.5,0.0,0.1,2.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+391,Ben Doak,MID,Liverpool,5.0,0.0,0.0,2.0,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+392,Endo Wataru,MID,Liverpool,5.0,0.8,0.1,2.0,0,0,0,,4,30,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+393,Stefan Bajčetić Maquieira,MID,Liverpool,4.5,0.0,0.1,1.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+394,James McConnell,MID,Liverpool,4.5,0.0,0.0,1.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+395,Tyler Morton,MID,Liverpool,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+396,Trey Nyoni,MID,Liverpool,4.5,0.0,0.1,1.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+397,Darwin Núñez Ribeiro,FWD,Liverpool,6.5,0.0,0.2,0.0,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+398,Jayden Danns,FWD,Liverpool,4.5,0.0,0.1,1.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+661,Hugo Ekitiké,FWD,Liverpool,8.6,1.28,19.9,3.2,10.0,0.0,2,Adrian McLoughlin; Jared Alexander,11,71,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+686,Rio Ngumoha,MID,Liverpool,4.5,0.0,0.1,1.5,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+692,Giovanni Leoni,DEF,Liverpool,5.0,0.0,0.0,3.1,0,0,0,,0,0,dnp,Bournemouth,2025-08-15T19:00:00Z,True,True
+182,James Trafford,GK,Man City,5.0,1.4,2.4,3.6,0,0,0,,7,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+399,Ederson Santana de Moraes,GK,Man City,5.5,0.0,2.9,4.5,5.0,0.0,1,Jared Alexander,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+400,Stefan Ortega Moreno,GK,Man City,5.0,0.0,0.3,3.6,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+401,Marcus Bettinelli,GK,Man City,4.0,0.0,0.2,1.5,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+402,Rayan Aït-Nouri,DEF,Man City,6.0,1.5,21.8,4.5,10.0,0.0,2,John Sebastian; John Matthew,9,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+403,Joško Gvardiol,DEF,Man City,6.0,0.0,7.9,0.0,5.0,0.0,1,Kevin Tomek,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+404,Manuel Akanji,DEF,Man City,5.5,0.0,0.9,3.8,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+405,Nathan Aké,DEF,Man City,5.5,0.0,0.7,3.8,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+406,Abdukodir Khusanov,DEF,Man City,5.5,0.18,0.4,3.8,0,0,0,,1,8,played,Wolves,2025-08-16T16:30:00Z,True,True
+407,Matheus Nunes,DEF,Man City,5.5,0.18,0.5,3.8,0,0,0,,1,24,played,Wolves,2025-08-16T16:30:00Z,True,True
+408,Rúben dos Santos Gato Alves Dias,DEF,Man City,5.5,1.09,3.5,3.8,5.0,0.0,1,Kevin Tomek,6,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+409,John Stones,DEF,Man City,5.5,1.09,0.8,3.8,0,0,0,,6,81,played,Wolves,2025-08-16T16:30:00Z,True,True
+410,Rico Lewis,DEF,Man City,5.0,2.2,2.1,3.1,0,0,0,,11,65,played,Wolves,2025-08-16T16:30:00Z,True,True
+411,Nico O'Reilly,DEF,Man City,5.0,0.0,0.2,3.1,0,0,0,,0,24,played,Wolves,2025-08-16T16:30:00Z,True,True
+412,Vitor de Oliveira Nunes dos Reis,DEF,Man City,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+413,Omar Marmoush,MID,Man City,8.5,0.12,9.8,3.2,0,0,0,,1,24,played,Wolves,2025-08-16T16:30:00Z,True,True
+414,Phil Foden,MID,Man City,8.0,0.0,1.4,3.1,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+415,Sávio Moreira de Oliveira,MID,Man City,7.0,0.0,0.8,0.0,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+416,Bernardo Mota Veiga de Carvalho e Silva,MID,Man City,6.5,0.46,0.8,2.7,0,0,0,,3,65,played,Wolves,2025-08-16T16:30:00Z,True,True
+417,Rayan Cherki,MID,Man City,6.5,0.92,8.3,2.7,0,0,0,,6,17,played,Wolves,2025-08-16T16:30:00Z,True,True
+418,Jérémy Doku,MID,Man City,6.5,0.46,1.1,2.7,0,0,0,,3,65,played,Wolves,2025-08-16T16:30:00Z,True,True
+420,İlkay Gündoğan,MID,Man City,6.5,0.0,0.2,2.7,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+421,Rodrigo 'Rodri' Hernandez Cascante,MID,Man City,6.5,0.0,0.6,2.7,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+422,Mateo Kovačić,MID,Man City,6.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+423,Nico González Iglesias,MID,Man City,6.0,0.5,0.1,2.6,0,0,0,,3,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+424,Oscar Bobb,MID,Man City,5.5,1.09,0.3,2.5,0,0,0,,6,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+425,Claudio Echeverri,MID,Man City,5.5,0.0,0.0,2.5,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+427,Tijjani Reijnders,MID,Man City,5.6,1.79,26.1,2.5,25.0,0.0,5,Jared Alexander; Joe Curran; Evan Bagheri; Max Maier; Wes H,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+428,Sverre Nypan,MID,Man City,5.0,0.0,0.0,2.0,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+429,Kalvin Phillips,MID,Man City,5.0,0.0,0.1,2.0,0,0,0,,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+430,Erling Haaland,FWD,Man City,14.0,0.93,27.4,4.5,45.0,45.0,9,John Sebastian; Garrett Kunkel; Andrew Vidal; Adrian McLoughlin; John Matthew; Kevin Tomek; Max Maier; Dean Maghsadi; Brett Swikle,13,72,played,Wolves,2025-08-16T16:30:00Z,True,True
+119,Bryan Mbeumo,MID,Man Utd,8.0,0.25,13.9,2.6,15.0,0.0,3,Garrett Kunkel; Adrian McLoughlin; Patrick McCleary,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+431,Altay Bayındır,GK,Man Utd,5.0,0.4,0.4,3.1,0,0,0,,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+432,André Onana,GK,Man Utd,5.0,0.0,0.3,3.1,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+433,Elyh Harrison,GK,Man Utd,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+434,Tom Heaton,GK,Man Utd,4.0,0.0,0.3,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+435,Dermot Mee,GK,Man Utd,4.0,0.0,0.1,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+436,Matthijs de Ligt,DEF,Man Utd,5.0,0.8,1.9,2.6,0,0,0,,4,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+437,Lisandro Martínez,DEF,Man Utd,5.0,0.0,0.2,0.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+438,Noussair Mazraoui,DEF,Man Utd,5.0,0.0,0.2,0.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+439,Diego León Blanco,DEF,Man Utd,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+440,Diogo Dalot Teixeira,DEF,Man Utd,4.5,0.22,2.2,1.9,5.0,0.0,1,Garrett Kunkel,1,54,played,Arsenal,2025-08-17T15:30:00Z,True,True
+441,Patrick Dorgu,DEF,Man Utd,4.5,0.22,7.0,1.9,5.0,0.0,1,Tony Tharakan,1,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+442,Harry Maguire,DEF,Man Utd,4.5,0.22,0.7,1.9,0,0,0,,1,10,played,Arsenal,2025-08-17T15:30:00Z,True,True
+443,Luke Shaw,DEF,Man Utd,4.5,0.44,0.2,1.9,5.0,0.0,1,Dean Maghsadi,2,79,played,Arsenal,2025-08-17T15:30:00Z,True,True
+444,Leny Yoro,DEF,Man Utd,4.5,0.89,1.7,1.9,0,0,0,,4,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+445,Harry Amass,DEF,Man Utd,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+446,Tyler Fredricson,DEF,Man Utd,4.0,0.0,0.1,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+447,Ayden Heaven,DEF,Man Utd,4.0,0.0,1.6,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+448,Tyrell Malacia,DEF,Man Utd,4.0,0.0,0.3,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+449,Bruno Borges Fernandes,MID,Man Utd,9.0,0.22,21.8,2.8,10.0,0.0,2,Wes H; Chris Munoz,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+450,Matheus Santos Carneiro da Cunha,MID,Man Utd,8.0,0.25,8.3,2.6,0,0,0,,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+451,Marcus Rashford,MID,Man Utd,7.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+452,Amad Diallo,MID,Man Utd,6.5,0.15,2.9,2.2,5.0,0.0,1,Kevin Tomek,1,35,played,Arsenal,2025-08-17T15:30:00Z,True,True
+453,Alejandro Garnacho Ferreyra,MID,Man Utd,6.5,0.0,0.2,2.2,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+454,Antony dos Santos,MID,Man Utd,6.0,0.0,0.1,2.1,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+455,Mason Mount,MID,Man Utd,6.0,0.33,0.3,2.1,0,0,0,,2,64,played,Arsenal,2025-08-17T15:30:00Z,True,True
+456,Jadon Sancho,MID,Man Utd,6.0,0.0,0.1,2.1,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+457,Carlos Henrique Casimiro,MID,Man Utd,5.5,0.36,0.2,2.0,0,0,0,,2,64,played,Arsenal,2025-08-17T15:30:00Z,True,True
+458,Kobbie Mainoo,MID,Man Utd,5.0,0.0,0.7,1.5,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+459,Manuel Ugarte Ribeiro,MID,Man Utd,5.0,0.2,0.2,1.5,0,0,0,,1,25,played,Arsenal,2025-08-17T15:30:00Z,True,True
+460,Toby Collyer,MID,Man Utd,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+461,Jayce Fitzgerald,MID,Man Utd,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+462,Jack Fletcher,MID,Man Utd,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+463,Sékou Koné,MID,Man Utd,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+464,Jack Moorhouse,MID,Man Utd,4.5,0.0,0.0,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+465,Rasmus Højlund,FWD,Man Utd,6.5,0.0,0.6,2.2,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+466,Joshua Zirkzee,FWD,Man Utd,6.0,0.0,0.4,2.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+467,Chido Obi,FWD,Man Utd,4.5,0.0,2.2,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+468,Ethan Wheatley,FWD,Man Utd,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Arsenal,2025-08-17T15:30:00Z,True,True
+681,Benjamin Sesko,FWD,Man Utd,7.5,0.13,8.9,2.4,0,0,0,,1,25,played,Arsenal,2025-08-17T15:30:00Z,True,True
+469,Nick Pope,GK,Newcastle,5.0,1.8,3.9,2.6,0,0,0,,9,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+471,Mark Gillespie,GK,Newcastle,4.0,0.0,0.1,0.5,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+472,Odysseas Vlachodimos,GK,Newcastle,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+473,Lewis Hall,DEF,Newcastle,5.5,0.0,1.9,2.8,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+474,Fabian Schär,DEF,Newcastle,5.5,1.45,2.8,2.8,5.0,0.0,1,JP Fischer,8,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+475,Sven Botman,DEF,Newcastle,5.0,0.0,0.5,2.1,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+476,Dan Burn,DEF,Newcastle,5.0,1.8,3.9,2.1,0,0,0,,9,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+477,Tino Livramento,DEF,Newcastle,5.0,1.8,4.0,2.1,5.0,0.0,1,Garrett Kunkel,9,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+478,Kieran Trippier,DEF,Newcastle,5.0,1.2,2.2,2.1,0,0,0,,6,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+479,Emil Krafth,DEF,Newcastle,4.5,0.0,0.1,1.4,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+480,Jamaal Lascelles,DEF,Newcastle,4.5,0.0,0.1,1.4,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+481,Alex Murphy,DEF,Newcastle,4.0,0.0,0.8,0.5,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+482,Harrison Ashby,DEF,Newcastle,4.0,0.0,0.1,0.5,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+483,Miodrag Pivaš,DEF,Newcastle,4.0,0.0,0.1,0.5,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+484,Matt Targett,DEF,Newcastle,4.0,0.0,0.5,0.5,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+485,Anthony Gordon,MID,Newcastle,7.5,0.4,1.9,2.0,5.0,0.0,1,Nate Cohen,3,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+486,Anthony Elanga,MID,Newcastle,7.0,0.43,7.8,1.8,0,0,0,,3,77,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+487,Harvey Barnes,MID,Newcastle,6.5,0.46,0.6,1.7,0,0,0,,3,89,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+488,Bruno Guimarães Rodriguez Moura,MID,Newcastle,6.5,0.46,1.6,1.7,0,0,0,,3,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+489,Jacob Murphy,MID,Newcastle,6.5,0.15,2.1,1.7,0,0,0,,1,12,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+490,Joelinton Cássio Apolinário de Lira,MID,Newcastle,6.0,0.33,0.5,1.6,0,0,0,,2,82,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+491,Sandro Tonali,MID,Newcastle,5.5,0.55,1.9,1.5,5.0,0.0,1,Andrew Vidal,3,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+492,Antoñito Cordero Campillo,MID,Newcastle,5.0,0.0,0.0,1.0,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+494,Joe Willock,MID,Newcastle,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+495,Isaac Hayden,MID,Newcastle,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+496,Garang Kuol,MID,Newcastle,4.5,0.0,0.1,0.5,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+497,Lewis Miley,MID,Newcastle,4.5,0.22,2.6,0.5,5.0,0.0,1,Brett Swikle,1,7,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+498,Joe White,MID,Newcastle,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+499,Alexander Isak,FWD,Newcastle,10.5,0.0,5.9,0.0,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+500,William Osula,FWD,Newcastle,5.5,0.18,0.2,1.2,0,0,0,,1,1,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+501,Sean Neave,FWD,Newcastle,4.5,0.0,0.2,0.5,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+674,Aaron Ramsdale,GK,Newcastle,5.0,0.0,0.9,2.6,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+684,Malick Thiaw,DEF,Newcastle,5.0,0.0,0.2,2.1,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+689,Seung-Soo Park,MID,Newcastle,4.5,0.0,0.1,0.5,0,0,0,,0,0,dnp,Aston Villa,2025-08-16T11:30:00Z,True,True
+426,James McAtee,MID,Nott'm Forest,5.5,0.0,0.2,2.0,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+502,Matz Sels,GK,Nott'm Forest,5.0,0.4,20.0,3.1,25.0,0.0,5,John Sebastian; Kevin Tomek; Max Maier; Wes H; Brett Swikle,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+503,Carlos Miguel dos Santos Pereira,GK,Nott'm Forest,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+504,Matt Turner,GK,Nott'm Forest,4.0,0.0,0.2,0.0,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+505,Nikola Milenković,DEF,Nott'm Forest,5.5,0.36,10.0,3.3,5.0,0.0,1,Nate Cohen,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+506,Murillo Costa dos Santos,DEF,Nott'm Forest,5.5,0.36,6.9,3.3,5.0,0.0,1,Wes H,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+507,Ola Aina,DEF,Nott'm Forest,5.0,0.8,14.7,2.6,15.0,0.0,3,John Matthew; Patrick McCleary; Chris Munoz,4,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+508,Neco Williams,DEF,Nott'm Forest,5.0,0.2,10.3,2.6,10.0,0.0,2,Evan Bagheri; Tony Tharakan,1,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+509,David Mota Veiga Teixeira do Carmo,DEF,Nott'm Forest,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+510,Jair Paula da Cunha Filho,DEF,Nott'm Forest,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+511,Felipe Rodrigues da Silva,DEF,Nott'm Forest,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+512,Omar Richards,DEF,Nott'm Forest,4.5,0.0,0.0,1.9,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+513,Zach Abbott,DEF,Nott'm Forest,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+514,Willy Boly,DEF,Nott'm Forest,4.0,0.0,0.5,1.0,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+515,Morgan Gibbs-White,MID,Nott'm Forest,7.5,0.67,5.2,2.5,5.0,0.0,1,Jared Alexander,5,83,played,Brentford,2025-08-17T13:00:00Z,True,True
+516,Callum Hudson-Odoi,MID,Nott'm Forest,6.0,0.33,1.2,2.1,0,0,0,,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+517,Elliot Anderson,MID,Nott'm Forest,5.5,1.09,6.5,2.0,5.0,0.0,1,Brian Pleines,6,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+518,João Pedro Ferreira da Silva,MID,Nott'm Forest,5.5,0.18,0.1,2.0,0,0,0,,1,11,played,Brentford,2025-08-17T13:00:00Z,True,True
+519,Nicolás Domínguez,MID,Nott'm Forest,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+520,Lewis O'Brien,MID,Nott'm Forest,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+521,Ibrahim Sangaré,MID,Nott'm Forest,5.0,0.4,0.1,1.5,0,0,0,,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+522,Ryan Yates,MID,Nott'm Forest,5.0,0.2,0.1,1.5,0,0,0,,1,6,played,Brentford,2025-08-17T13:00:00Z,True,True
+523,Eric da Silva Moreira,MID,Nott'm Forest,4.5,0.0,0.2,1.0,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+524,Marko Stamenić,MID,Nott'm Forest,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+525,Chris Wood,FWD,Nott'm Forest,7.5,1.73,16.4,2.4,25.0,0.0,5,Garrett Kunkel; Joe Curran; Nate Cohen; Brett Swikle; Chris Munoz,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
+526,Igor Jesus Maciel da Cruz,FWD,Nott'm Forest,6.0,0.17,0.8,2.0,0,0,0,,1,11,played,Brentford,2025-08-17T13:00:00Z,True,True
+527,Taiwo Awoniyi,FWD,Nott'm Forest,5.5,0.0,0.7,1.7,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+669,Dan Ndoye,MID,Nott'm Forest,6.0,1.5,0.5,2.1,0,0,0,,9,78,played,Brentford,2025-08-17T13:00:00Z,True,True
+675,Angus Gunn,GK,Nott'm Forest,4.0,0.0,1.9,1.0,5.0,0.0,1,Max Maier,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+693,Omari Hutchinson,MID,Nott'm Forest,5.5,0.0,0.0,2.0,0,0,0,,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+252,Marc Guiu Paz,FWD,Sunderland,4.5,0.0,20.0,1.0,15.0,0.0,3,Joe Curran; Wes H; Tony Tharakan,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+528,Anthony Patterson,GK,Sunderland,4.5,0.0,0.3,2.3,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+529,Simon Moore,GK,Sunderland,4.0,0.0,0.5,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+530,Blondy Nna Noukeu,GK,Sunderland,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+531,Daniel Ballard,DEF,Sunderland,4.5,3.78,3.2,1.9,0,0,0,,17,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+532,Trai Hume,DEF,Sunderland,4.5,1.33,0.2,1.9,0,0,0,,6,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+533,Aji Alese,DEF,Sunderland,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+534,Joe Anderson,DEF,Sunderland,4.0,0.0,0.5,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+535,Dennis Cirkin,DEF,Sunderland,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+536,Leo Fuhr Hjelde,DEF,Sunderland,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+537,Niall Huggins,DEF,Sunderland,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+538,Zak Johnson,DEF,Sunderland,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+539,Luke O'Nien,DEF,Sunderland,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+540,Timothée Pembélé,DEF,Sunderland,4.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+541,Reinildo Mandava,DEF,Sunderland,4.0,1.5,7.8,1.0,15.0,0.0,3,John Sebastian; Dean Maghsadi; Brett Swikle,6,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+542,Jenson Seelt,DEF,Sunderland,4.0,0.25,0.3,0.8,0,0,0,,1,52,played,West Ham,2025-08-16T14:00:00Z,True,True
+543,Simon Adingra,MID,Sunderland,5.5,1.09,1.7,2.0,0,0,0,,6,75,played,West Ham,2025-08-16T14:00:00Z,True,True
+544,Habib Diarra,MID,Sunderland,5.5,0.55,0.1,2.0,0,0,0,,3,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+545,Patrick Roberts,MID,Sunderland,5.5,0.0,0.0,2.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+546,Milan Aleksić,MID,Sunderland,5.0,0.0,0.0,1.5,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+547,Enzo Le Fée,MID,Sunderland,5.0,0.2,0.3,1.5,0,0,0,,1,14,played,West Ham,2025-08-16T14:00:00Z,True,True
+548,Romaine Mundle,MID,Sunderland,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+549,Dan Neil,MID,Sunderland,5.0,0.0,0.0,1.5,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+550,Ian Poveda-Ocampo,MID,Sunderland,5.0,0.0,0.0,1.5,5.0,0.0,1,Dean Maghsadi,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+551,Chris Rigg,MID,Sunderland,5.0,0.2,0.1,1.5,0,0,0,,1,1,played,West Ham,2025-08-16T14:00:00Z,True,True
+552,Noah Sadiki,MID,Sunderland,5.0,0.6,0.0,1.5,0,0,0,,3,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+553,Chemsdine Talbi,MID,Sunderland,5.0,1.2,0.3,1.5,0,0,0,,6,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+554,Abdoullah Ba,MID,Sunderland,4.5,0.0,0.3,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+555,Alan Browne,MID,Sunderland,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+556,Pierre Ekwah Elimby,MID,Sunderland,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+557,Harrison Jones,MID,Sunderland,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+558,Jay Matete,MID,Sunderland,4.5,0.0,0.3,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+559,Nectarios Triantis,MID,Sunderland,4.5,0.0,0.1,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+560,Wilson Isidor,FWD,Sunderland,5.5,0.91,0.3,1.7,0,0,0,,5,14,played,West Ham,2025-08-16T14:00:00Z,True,True
+561,Eliezer Mayenda Dossou,FWD,Sunderland,5.5,1.45,1.1,1.7,0,0,0,,8,75,played,West Ham,2025-08-16T14:00:00Z,True,True
+562,Ahmed Abdullahi,FWD,Sunderland,4.5,0.0,0.6,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+563,Luís Hemir Silva Semedo,FWD,Sunderland,4.5,0.0,0.2,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+564,Nazarii Rusyn,FWD,Sunderland,4.5,0.0,0.2,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+668,Granit Xhaka,MID,Sunderland,5.0,0.6,2.9,1.5,0,0,0,,3,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+670,Robin Roefs,GK,Sunderland,4.5,1.78,0.7,2.3,0,0,0,,8,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+678,Arthur Masuaku,DEF,Sunderland,4.0,0.0,0.8,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+683,Omar Alderete,DEF,Sunderland,4.0,1.0,1.2,1.0,0,0,0,,4,37,played,West Ham,2025-08-16T14:00:00Z,True,True
+694,Nordi Mukiele,DEF,Sunderland,4.0,0.0,0.1,1.0,0,0,0,,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+565,Guglielmo Vicario,GK,Spurs,5.0,1.8,4.4,2.6,10.0,0.0,2,Andrew Vidal; JP Fischer,9,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+566,Brandon Austin,GK,Spurs,4.0,0.0,0.3,0.5,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+567,Antonín Kinský,GK,Spurs,4.0,0.0,2.1,0.5,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+568,Pedro Porro Sauceda,DEF,Spurs,5.5,1.09,22.4,2.8,15.0,0.0,3,Andrew Vidal; Evan Bagheri; Brett Swikle,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+569,Cristian Romero,DEF,Spurs,5.0,1.2,3.7,2.1,0,0,0,,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+570,Kevin Danso,DEF,Spurs,4.5,0.0,0.2,1.4,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+571,Ben Davies,DEF,Spurs,4.5,0.0,0.1,1.4,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+572,Radu Drăgușin,DEF,Spurs,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+573,Djed Spence,DEF,Spurs,4.5,1.33,1.3,1.4,0,0,0,,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+574,Destiny Udogie,DEF,Spurs,4.5,0.0,0.7,0.0,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,50.0,0.0,10,John Sebastian; Garrett Kunkel; John Matthew; Jared Alexander; Joe Curran; Evan Bagheri; Brian Pleines; Max Maier; Wes H; Kevin K,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+576,Ashley Phillips,DEF,Spurs,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+577,Takai Kōta,DEF,Spurs,4.0,0.0,0.1,0.1,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+578,Luka Vušković,DEF,Spurs,4.0,0.0,1.1,0.5,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+579,Son Heung-min,MID,Spurs,8.5,0.0,0.3,0.0,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+580,Brennan Johnson,MID,Spurs,7.0,1.14,3.1,1.8,0,0,0,,8,79,played,Burnley,2025-08-16T14:00:00Z,True,True
+581,James Maddison,MID,Spurs,7.0,0.0,0.3,0.0,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+582,Mohammed Kudus,MID,Spurs,6.5,1.54,26.7,1.7,10.0,0.0,2,John Matthew; Brett Swikle,10,84,played,Burnley,2025-08-16T14:00:00Z,True,True
+583,Dejan Kulusevski,MID,Spurs,6.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+584,Mathys Tel,MID,Spurs,6.5,0.15,0.1,1.7,0,0,0,,1,5,played,Burnley,2025-08-16T14:00:00Z,True,True
+585,Rodrigo Bentancur,MID,Spurs,5.5,0.18,0.2,1.5,0,0,0,,1,19,played,Burnley,2025-08-16T14:00:00Z,True,True
+586,Lucas Bergvall,MID,Spurs,5.5,0.55,0.2,1.5,0,0,0,,3,79,played,Burnley,2025-08-16T14:00:00Z,True,True
+587,Yves Bissouma,MID,Spurs,5.5,0.0,0.1,1.5,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+588,Wilson Odobert,MID,Spurs,5.5,0.18,0.0,1.5,0,0,0,,1,10,played,Burnley,2025-08-16T14:00:00Z,True,True
+589,Manor Solomon,MID,Spurs,5.5,0.0,0.0,0.4,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+590,Bryan Gil Salvatierra,MID,Spurs,5.0,0.0,0.1,1.0,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+591,Archie Gray,MID,Spurs,5.0,0.6,0.2,1.0,0,0,0,,3,70,played,Burnley,2025-08-16T14:00:00Z,True,True
+592,Mikey Moore,MID,Spurs,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+593,Pape Matar Sarr,MID,Spurs,5.0,1.2,2.8,1.0,0,0,0,,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+594,Yang Min-hyeok,MID,Spurs,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+595,Callum Olusesi,MID,Spurs,4.5,0.0,0.2,0.5,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+596,Dominic Solanke-Mitchell,FWD,Spurs,7.5,0.13,4.1,1.9,0,0,0,,1,19,played,Burnley,2025-08-16T14:00:00Z,True,True
+597,Richarlison de Andrade,FWD,Spurs,6.5,2.0,4.6,1.7,0,0,0,,13,71,played,Burnley,2025-08-16T14:00:00Z,True,True
+598,Will Lankshear,FWD,Spurs,4.5,0.0,0.1,0.0,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+599,Dane Scarlett,FWD,Spurs,4.5,0.0,0.8,0.5,0,0,0,,0,0,dnp,Burnley,2025-08-16T14:00:00Z,True,True
+673,João Maria Lobo Alves Palhares Costa Palhinha Gonçalves,MID,Spurs,5.5,0.18,0.4,1.5,0,0,0,,1,10,played,Burnley,2025-08-16T14:00:00Z,True,True
+600,Alphonse Areola,GK,West Ham,4.5,0.0,4.4,1.8,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+601,Wes Foderingham,GK,West Ham,4.0,0.0,0.6,0.5,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+602,Krisztián Hegyi,GK,West Ham,4.0,0.0,0.3,0.5,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+603,El Hadji Malick Diouf,DEF,West Ham,4.5,0.22,7.2,1.4,0,0,0,,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+604,Emerson Palmieri dos Santos,DEF,West Ham,4.5,0.0,0.2,1.4,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+605,Maximilian Kilman,DEF,West Ham,4.5,0.0,0.3,1.4,0,0,0,,0,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+606,Konstantinos Mavropanos,DEF,West Ham,4.5,0.0,0.1,1.4,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+607,Nayef Aguerd,DEF,West Ham,4.5,0.22,0.1,1.4,0,0,0,,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+608,Ollie Scarles,DEF,West Ham,4.5,0.0,0.0,1.4,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+609,Jean-Clair Todibo,DEF,West Ham,4.5,0.22,0.1,1.4,0,0,0,,1,81,played,Sunderland,2025-08-16T14:00:00Z,True,True
+610,Aaron Wan-Bissaka,DEF,West Ham,4.5,0.22,23.6,1.4,30.0,0.0,6,Adrian McLoughlin; Patrick McCleary; Joe Curran; Evan Bagheri; Max Maier; Kevin K,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+611,Kaelan Casey,DEF,West Ham,4.0,0.0,0.2,0.0,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+612,Lucas Tolentino Coelho de Lima,MID,West Ham,6.0,0.33,1.0,1.6,0,0,0,,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+613,Tomáš Souček,MID,West Ham,6.0,0.17,0.8,1.6,0,0,0,,1,19,played,Sunderland,2025-08-16T14:00:00Z,True,True
+614,James Ward-Prowse,MID,West Ham,6.0,0.33,0.4,1.6,0,0,0,,2,70,played,Sunderland,2025-08-16T14:00:00Z,True,True
+615,Crysencio Summerville,MID,West Ham,5.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+616,Edson Álvarez Velázquez,MID,West Ham,5.0,0.0,0.2,1.0,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+617,Maxwel Cornet,MID,West Ham,5.0,0.0,0.0,1.0,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+618,Guido Rodríguez,MID,West Ham,5.0,0.4,0.1,1.0,0,0,0,,2,70,played,Sunderland,2025-08-16T14:00:00Z,True,True
+619,Luis Guilherme Lira dos Santos,MID,West Ham,5.0,0.0,0.0,1.0,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+620,George Earthy,MID,West Ham,4.5,0.0,0.1,0.0,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+621,Andy Irving,MID,West Ham,4.5,0.22,0.3,0.5,0,0,0,,1,8,played,Sunderland,2025-08-16T14:00:00Z,True,True
+622,Lewis Orford,MID,West Ham,4.5,0.0,0.2,0.5,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+623,Freddie Potts,MID,West Ham,4.5,0.0,0.7,0.5,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+624,Jarrod Bowen,FWD,West Ham,8.0,0.25,15.1,2.0,10.0,0.0,2,Jared Alexander; Evan Bagheri,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+625,Niclas Füllkrug,FWD,West Ham,6.0,0.33,3.5,1.5,10.0,0.0,2,John Sebastian; Dean Maghsadi,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+626,Callum Marshall,FWD,West Ham,4.5,0.0,0.7,0.5,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+659,Kyle Walker-Peters,DEF,West Ham,4.5,0.0,0.4,1.4,0,0,0,,0,0,dnp,Sunderland,2025-08-16T14:00:00Z,True,True
+671,Callum Wilson,FWD,West Ham,6.0,0.17,0.5,1.5,0,0,0,,1,19,played,Sunderland,2025-08-16T14:00:00Z,True,True
+679,Mads Hermansen,GK,West Ham,4.5,0.22,0.3,1.8,0,0,0,,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+627,Sam Johnstone,GK,Wolves,4.5,0.0,0.1,2.3,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+628,José Malheiro de Sá,GK,Wolves,4.5,0.0,2.0,2.3,5.0,0.0,1,Kevin K,0,90,played,Man City,2025-08-16T16:30:00Z,True,True
+629,Daniel Bentley,GK,Wolves,4.0,0.0,0.8,1.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+631,Emmanuel Agbadou,DEF,Wolves,4.5,0.0,0.4,1.9,0,0,0,,0,90,played,Man City,2025-08-16T16:30:00Z,True,True
+632,Matt Doherty,DEF,Wolves,4.5,-0.22,0.2,1.9,0,0,0,,-1,90,played,Man City,2025-08-16T16:30:00Z,True,True
+633,Hugo Bueno López,DEF,Wolves,4.5,0.22,0.1,1.9,0,0,0,,1,18,played,Man City,2025-08-16T16:30:00Z,True,True
+634,Yerson Mosquera Valdelamar,DEF,Wolves,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+635,Rodrigo Martins Gomes,DEF,Wolves,4.5,0.22,0.1,1.9,0,0,0,,1,17,played,Man City,2025-08-16T16:30:00Z,True,True
+636,Santiago Ignacio Bueno,DEF,Wolves,4.5,0.0,0.1,1.9,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+637,Toti Gomes,DEF,Wolves,4.5,0.0,0.2,1.9,0,0,0,,0,90,played,Man City,2025-08-16T16:30:00Z,True,True
+638,Ki-Jana Hoever,DEF,Wolves,4.0,0.25,2.4,1.0,0,0,0,,1,72,played,Man City,2025-08-16T16:30:00Z,True,True
+639,Bastien Meupiyou Menadjou,DEF,Wolves,4.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+640,Pedro Cardoso de Lima,DEF,Wolves,4.0,0.0,1.1,1.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+641,Alfie Pond,DEF,Wolves,4.0,0.0,1.5,1.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+642,Hwang Hee-chan,MID,Wolves,6.0,0.17,0.2,2.1,0,0,0,,1,8,played,Man City,2025-08-16T16:30:00Z,True,True
+643,André Trindade da Costa Neto,MID,Wolves,5.5,0.73,0.1,2.0,0,0,0,,4,71,played,Man City,2025-08-16T16:30:00Z,True,True
+644,Jean-Ricner Bellegarde,MID,Wolves,5.5,0.36,0.1,2.0,0,0,0,,2,72,played,Man City,2025-08-16T16:30:00Z,True,True
+645,Fer López González,MID,Wolves,5.5,0.18,0.0,2.0,0,0,0,,1,18,played,Man City,2025-08-16T16:30:00Z,True,True
+646,João Victor Gomes da Silva,MID,Wolves,5.5,0.36,0.1,2.0,0,0,0,,2,90,played,Man City,2025-08-16T16:30:00Z,True,True
+647,Gonçalo Manuel Ganchinho Guedes,MID,Wolves,5.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+648,Marshall Munetsi,MID,Wolves,5.5,0.36,0.0,2.0,0,0,0,,2,90,played,Man City,2025-08-16T16:30:00Z,True,True
+649,Boubacar Traoré,MID,Wolves,5.0,0.0,0.0,0.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+650,Tawanda Chirewa,MID,Wolves,4.5,0.0,0.3,1.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+651,Tom Edozie,MID,Wolves,4.5,0.0,0.4,1.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+652,Enso González Medina,MID,Wolves,4.5,0.0,1.6,1.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+653,Joe Hodge,MID,Wolves,4.5,0.0,0.1,0.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+654,Jørgen Strand Larsen,FWD,Wolves,6.5,0.31,4.7,2.2,10.0,0.0,2,JP Fischer; Kevin K,2,81,played,Man City,2025-08-16T16:30:00Z,True,True
+655,Fábio Soares Silva,FWD,Wolves,5.0,0.0,0.6,1.4,5.0,0.0,1,Chris Munoz,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+656,Saša Kalajdžić,FWD,Wolves,5.0,0.0,0.1,1.4,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+657,Leon Chiwome,FWD,Wolves,4.5,0.0,0.0,0.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+658,Nathan Fraser,FWD,Wolves,4.5,0.0,2.5,1.0,0,0,0,,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+663,Jhon Arias,MID,Wolves,5.5,0.18,0.6,2.0,5.0,0.0,1,John Sebastian,1,17,played,Man City,2025-08-16T16:30:00Z,True,True
+682,David Møller Wolfe,DEF,Wolves,4.5,0.22,0.1,1.9,0,0,0,,1,71,played,Man City,2025-08-16T16:30:00Z,True,True

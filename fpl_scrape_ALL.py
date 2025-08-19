@@ -2,22 +2,23 @@
 # -*- coding: utf-8 -*-
 
 """
-Fetch FPL rosters + weekly points + live status + player costs + global ownership into a single CSV.
+Fetch FPL rosters + weekly points + live status + player costs + global ownership + ALL players into a single CSV.
+
+This version includes ALL FPL players (not just league picks) so we can find true "Global Misses"
 
 Usage examples:
-  python3 fpl_scrape_rosters_with_points.py --gw 1 --entries 394273
-  python3 fpl_scrape_rosters_with_points.py --gw 1 --entries 394273 123456 999999
-  python3 fpl_scrape_rosters_with_points.py --gw 1 --entries-file league_ids.txt
-  python3 fpl_scrape_rosters_with_points.py --gw 1 --entries 394273 --cookie "pl_profile=...; pl_user=...; ..."
+  python3 fpl_scrape_all_players.py --gw 1 --entries 394273
+  python3 fpl_scrape_all_players.py --gw 1 --entries 394273 123456 999999
+  python3 fpl_scrape_all_players.py --gw 1 --entries-file league_ids.txt
 
 Output:
-  fpl_rosters_points_gw{gw}.csv (with global ownership data)
+  fpl_all_players_gw{gw}.csv (with ALL players + league ownership data)
 """
 
 import argparse
 import csv
 import sys
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Set
 import requests
 
 BOOTSTRAP_URL = "https://fantasy.premierleague.com/api/bootstrap-static/"
@@ -44,7 +45,7 @@ def get_bootstrap(session: requests.Session) -> Dict[str, Any]:
     r.raise_for_status()
     data = r.json()
     
-    # Enhanced to include global ownership data
+    # Enhanced to include global ownership data for ALL players
     elements = {}
     for e in data["elements"]:
         player_name = f'{e["first_name"]} {e["second_name"]}'
@@ -53,7 +54,7 @@ def get_bootstrap(session: requests.Session) -> Dict[str, Any]:
             "cost": e["now_cost"] / 10.0,
             "player_name": player_name,
             "global_ownership": float(e["selected_by_percent"]),
-            "global_captain_percent": float(e.get("ep_next", 0)),  # Expected points next (proxy for captain popularity)
+            "global_captain_percent": float(e.get("ep_next", 0)),
         }
     
     return {
@@ -161,56 +162,103 @@ def derive_status(minutes: int, fstat: Dict[str, Any]) -> str:
         return "in_progress"
     return "not_started"
 
-def rows_from_picks(entry: Dict[str, Any],
-                    picks: Dict[str, Any],
-                    dicts: Dict[str, Any],
-                    live_snap: Dict[int, Dict[str, int]],
-                    team_fixtures: Dict[int, List[Dict[str, Any]]],
-                    gw: int) -> List[Dict[str, Any]]:
+def collect_league_picks(entry_ids: List[int], session: requests.Session, gw: int) -> Set[int]:
+    """
+    Collect all element_ids that appear in the league
+    """
+    league_picks: Set[int] = set()
+    
+    for eid in entry_ids:
+        try:
+            picks = get_picks(session, eid, gw)
+            for p in picks.get("picks", []):
+                league_picks.add(p["element"])
+        except requests.HTTPError as e:
+            print(f"[entry {eid}] picks fetch failed: {e}", file=sys.stderr)
+            continue
+    
+    return league_picks
+
+def calculate_league_ownership(entry_ids: List[int], session: requests.Session, gw: int) -> Dict[int, Dict[str, Any]]:
+    """
+    Calculate ownership stats for each player in the league
+    """
+    player_ownership: Dict[int, Dict[str, Any]] = {}
+    
+    for eid in entry_ids:
+        try:
+            entry = get_entry(session, eid)
+            picks = get_picks(session, eid, gw)
+            
+            manager_name = (entry.get("player_first_name", "") + " " + entry.get("player_last_name", "")).strip()
+            
+            for p in picks.get("picks", []):
+                element_id = p["element"]
+                if element_id not in player_ownership:
+                    player_ownership[element_id] = {
+                        "owner_count": 0,
+                        "captain_count": 0,
+                        "managers": []
+                    }
+                
+                player_ownership[element_id]["owner_count"] += 1
+                player_ownership[element_id]["managers"].append(manager_name)
+                
+                if p["is_captain"]:
+                    player_ownership[element_id]["captain_count"] += 1
+                    
+        except requests.HTTPError as e:
+            print(f"[entry {eid}] fetch failed: {e}", file=sys.stderr)
+            continue
+    
+    # Calculate percentages
+    total_managers = len(entry_ids)
+    for element_id in player_ownership:
+        ownership = player_ownership[element_id]
+        ownership["league_ownership_percent"] = round((ownership["owner_count"] / total_managers) * 100, 1)
+        ownership["league_captain_percent"] = round((ownership["captain_count"] / total_managers) * 100, 1)
+    
+    return player_ownership
+
+def create_all_players_data(dicts: Dict[str, Any], 
+                          live_snap: Dict[int, Dict[str, int]],
+                          team_fixtures: Dict[int, List[Dict[str, Any]]],
+                          league_ownership: Dict[int, Dict[str, Any]],
+                          gw: int) -> List[Dict[str, Any]]:
+    """
+    Create rows for ALL FPL players, not just league picks
+    """
     elements = dicts["elements"]
     teams = dicts["teams"]
-
-    entry_id = entry.get("id") or picks.get("entry")
-    team_name = entry.get("name")
-    manager_name = (entry.get("player_first_name", "") + " " + entry.get("player_last_name", "")).strip()
-
+    
     rows: List[Dict[str, Any]] = []
-    team_total = 0
-    team_value = 0  # Track total team value
-
-    for p in picks.get("picks", []):
-        el = elements.get(p["element"])
-        if not el:
-            continue
-
+    
+    for element_id, el in elements.items():
         club_id = el["team"]
         club = teams.get(club_id, {}).get("name", club_id)
-
-        snap = live_snap.get(el["id"], {"points": 0, "minutes": 0})
+        
+        snap = live_snap.get(element_id, {"points": 0, "minutes": 0})
         raw_pts = snap["points"]
         minutes = snap["minutes"]
-
-        applied = raw_pts * p["multiplier"]
-        team_total += applied
         
-        # Add player cost to team value
         player_cost = el.get("cost", 0)
-        team_value += player_cost
-
+        value_ratio = raw_pts / player_cost if player_cost > 0 else 0
+        
         fstat = choose_fixture_status(club_id, team_fixtures)
         opp_name = teams.get(fstat.get("opponent_team"), {}).get("name")
-
         status = derive_status(minutes, fstat)
-
-        # Calculate value ratio (points per million)
-        value_ratio = raw_pts / player_cost if player_cost > 0 else 0
-
+        
+        # Get league ownership data (0 if not owned)
+        ownership_data = league_ownership.get(element_id, {
+            "owner_count": 0,
+            "captain_count": 0,
+            "league_ownership_percent": 0,
+            "league_captain_percent": 0,
+            "managers": []
+        })
+        
         rows.append({
-            "entry_id": entry_id,
-            "entry_team_name": team_name,
-            "manager_name": manager_name,
-            "gameweek": gw,
-            "element_id": el["id"],
+            "element_id": element_id,
             "player": el["player_name"],
             "position": ELEMENT_TYPE.get(el["element_type"], str(el["element_type"])),
             "club": club,
@@ -218,11 +266,11 @@ def rows_from_picks(entry: Dict[str, Any],
             "value_ratio": round(value_ratio, 2),
             "global_ownership": el["global_ownership"],
             "global_captain_percent": el["global_captain_percent"],
-            "multiplier": p["multiplier"],
-            "is_captain": p["is_captain"],
-            "is_vice_captain": p["is_vice_captain"],
+            "league_ownership": ownership_data["league_ownership_percent"],
+            "league_captain_percent": ownership_data["league_captain_percent"],
+            "league_owner_count": ownership_data["owner_count"],
+            "league_owners": "; ".join(ownership_data["managers"]) if ownership_data["managers"] else "",
             "points_gw": raw_pts,
-            "points_applied": applied,
             "minutes": minutes,
             "status": status,
             "opponent_team": opp_name,
@@ -230,44 +278,16 @@ def rows_from_picks(entry: Dict[str, Any],
             "fixture_started": fstat.get("started"),
             "fixture_finished": fstat.get("finished"),
         })
-
-    # Summary row with team value
-    team_value_ratio = team_total / team_value if team_value > 0 else 0
-    rows.append({
-        "entry_id": entry_id,
-        "entry_team_name": team_name,
-        "manager_name": manager_name,
-        "gameweek": gw,
-        "element_id": "",
-        "player": "TOTAL",
-        "position": "",
-        "club": "",
-        "player_cost": team_value,
-        "value_ratio": round(team_value_ratio, 2),
-        "global_ownership": "",
-        "global_captain_percent": "",
-        "multiplier": "",
-        "is_captain": "",
-        "is_vice_captain": "",
-        "points_gw": "",
-        "points_applied": team_total,
-        "minutes": "",
-        "status": "",
-        "opponent_team": "",
-        "kickoff_time": "",
-        "fixture_started": "",
-        "fixture_finished": "",
-    })
-
+    
     return rows
 
 def parse_args():
-    ap = argparse.ArgumentParser(description="Scrape FPL rosters + GW points + live status + player costs + global ownership to CSV.")
+    ap = argparse.ArgumentParser(description="Scrape ALL FPL players + league ownership data to CSV.")
     ap.add_argument("--gw", type=int, required=True, help="Gameweek number (e.g., 1)")
     ap.add_argument("--entries", type=int, nargs="*", help="List of entry IDs")
     ap.add_argument("--entries-file", type=str, help="Path to text file with one entry ID per line")
     ap.add_argument("--cookie", type=str, default=None, help="Optional Cookie header for private teams")
-    ap.add_argument("--out", type=str, default=None, help="Output CSV (default: fpl_rosters_points_gw{gw}.csv)")
+    ap.add_argument("--out", type=str, default=None, help="Output CSV (default: fpl_all_players_gw{gw}.csv)")
     return ap.parse_args()
 
 def load_entries(args) -> List[int]:
@@ -291,20 +311,20 @@ def load_entries(args) -> List[int]:
 
 def main():
     args = parse_args()
-    out_path = args.out or f"fpl_rosters_points_gw{args.gw}.csv"
+    out_path = args.out or f"fpl_all_players_gw{args.gw}.csv"
     entry_ids = load_entries(args)
 
     session = make_session(args.cookie)
 
-    # Reference data (now includes global ownership)
+    # Get ALL FPL player data
     try:
         dicts = get_bootstrap(session)
-        print(f"✅ Fetched global ownership data for {len(dicts['elements'])} players")
+        print(f"✅ Fetched data for {len(dicts['elements'])} total FPL players")
     except requests.HTTPError as e:
         print(f"Failed to fetch bootstrap-static: {e}", file=sys.stderr)
         sys.exit(2)
 
-    # Live points + minutes
+    # Live points + minutes for all players
     try:
         live_snap = get_live_snap(session, args.gw)
         print(f"✅ Fetched live gameweek data")
@@ -321,43 +341,38 @@ def main():
         print(f"Failed to fetch fixtures for GW{args.gw}: {e}", file=sys.stderr)
         sys.exit(2)
 
-    all_rows: List[Dict[str, Any]] = []
-    for eid in entry_ids:
-        try:
-            entry = get_entry(session, eid)
-        except requests.HTTPError as e:
-            print(f"[entry {eid}] entry fetch failed: {e}", file=sys.stderr)
-            continue
+    # Calculate league ownership for all players
+    print(f"🔍 Calculating league ownership across {len(entry_ids)} managers...")
+    league_ownership = calculate_league_ownership(entry_ids, session, args.gw)
+    league_picks_count = len([p for p in league_ownership.values() if p["owner_count"] > 0])
+    print(f"✅ Your league drafted {league_picks_count} unique players")
 
-        try:
-            picks = get_picks(session, eid, args.gw)
-        except requests.HTTPError as e:
-            print(f"[entry {eid}] picks fetch failed: {e}", file=sys.stderr)
-            continue
-
-        all_rows.extend(rows_from_picks(entry, picks, dicts, live_snap, team_fixtures, args.gw))
-
-    if not all_rows:
-        print("No rows collected. Check entry IDs, GW, or cookie auth.", file=sys.stderr)
-        sys.exit(3)
+    # Create data for ALL FPL players
+    all_rows = create_all_players_data(dicts, live_snap, team_fixtures, league_ownership, args.gw)
 
     fieldnames = [
-        "entry_id", "entry_team_name", "manager_name", "gameweek",
         "element_id", "player", "position", "club",
         "player_cost", "value_ratio", "global_ownership", "global_captain_percent",
-        "multiplier", "is_captain", "is_vice_captain",
-        "points_gw", "points_applied",
-        "minutes", "status", "opponent_team", "kickoff_time",
+        "league_ownership", "league_captain_percent", "league_owner_count", "league_owners",
+        "points_gw", "minutes", "status", "opponent_team", "kickoff_time",
         "fixture_started", "fixture_finished",
     ]
+    
     with open(out_path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
         for r in all_rows:
             w.writerow(r)
 
-    print(f"✅ Wrote {len(all_rows)} rows to {out_path}")
-    print(f"📊 Enhanced with global ownership data for league analysis!")
+    # Summary stats
+    total_players = len(all_rows)
+    league_owned = len([r for r in all_rows if r["league_ownership"] > 0])
+    global_misses = len([r for r in all_rows if r["league_ownership"] == 0 and r["global_ownership"] >= 15 and r["points_gw"] >= 5])
+    
+    print(f"✅ Wrote {total_players} total FPL players to {out_path}")
+    print(f"📊 League owned: {league_owned} players")
+    print(f"😬 Potential global misses: {global_misses} players")
+    print(f"🧠 Perfect for League Intelligence analysis!")
 
 if __name__ == "__main__":
     main()

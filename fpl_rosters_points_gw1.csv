@@ -1,321 +1,321 @@
-entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,multiplier,is_captain,is_vice_captain,points_gw,points_applied,minutes,status,opponent_team,kickoff_time,fixture_started,fixture_finished
-62221,Wirtz Case Scenario,John Sebastian,1,502,Matz Sels,GK,Nott'm Forest,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,402,Rayan Aït-Nouri,DEF,Man City,1,False,False,9,9,90,played,Wolves,2025-08-16T16:30:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,373,Virgil van Dijk,DEF,Liverpool,1,False,False,3,3,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,291,James Tarkowski,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-62221,Wirtz Case Scenario,John Sebastian,1,267,Ismaïla Sarr,MID,Crystal Palace,1,False,False,3,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,235,Cole Palmer,MID,Chelsea,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,625,Niclas Füllkrug,FWD,West Ham,1,False,False,2,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,64,Ollie Watkins,FWD,Aston Villa,1,False,True,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,242,Kiernan Dewsbury-Hall,MID,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-62221,Wirtz Case Scenario,John Sebastian,1,541,Reinildo Mandava,DEF,Sunderland,0,False,False,6,0,90,played,West Ham,2025-08-16T14:00:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,663,Jhon Arias,MID,Wolves,0,False,False,1,0,17,played,Man City,2025-08-16T16:30:00Z,True,True
-62221,Wirtz Case Scenario,John Sebastian,1,,TOTAL,,,,,,,58,,,,,,
-373574,McGinn & Tonic,Garrett Kunkel,1,139,Bart Verbruggen,GK,Brighton,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,477,Tino Livramento,DEF,Newcastle,1,False,False,9,9,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,256,Daniel Muñoz Mejía,DEF,Crystal Palace,1,False,False,5,5,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,47,Morgan Rogers,MID,Aston Villa,1,False,False,3,3,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,384,Cody Gakpo,MID,Liverpool,1,False,False,7,7,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,119,Bryan Mbeumo,MID,Man Utd,1,False,False,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,16,Bukayo Saka,MID,Arsenal,1,False,True,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,525,Chris Wood,FWD,Nott'm Forest,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,101,Caoimhín Kelleher,GK,Brentford,0,False,False,1,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,52,Jacob Ramsey,MID,Aston Villa,0,False,False,0,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,440,Diogo Dalot Teixeira,DEF,Man Utd,0,False,False,1,0,54,played,Arsenal,2025-08-17T15:30:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,260,Marc Guéhi,DEF,Crystal Palace,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-373574,McGinn & Tonic,Garrett Kunkel,1,,TOTAL,,,,,,,78,,,,,,
-394273,Tonali Fan Club,Andrew Vidal,1,565,Guglielmo Vicario,GK,Spurs,1,False,False,9,9,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,7,Riccardo Calafiori,DEF,Arsenal,1,False,False,13,13,71,played,Man Utd,2025-08-17T15:30:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,224,Marc Cucurella Saseta,DEF,Chelsea,1,False,False,9,9,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,568,Pedro Porro Sauceda,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,491,Sandro Tonali,MID,Newcastle,1,False,False,3,3,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,211,Aaron Ramsey,MID,Burnley,1,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,235,Cole Palmer,MID,Chelsea,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,True,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,666,Viktor Gyökeres,FWD,Arsenal,1,False,False,1,1,59,played,Man Utd,2025-08-17T15:30:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,0,False,False,3,0,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,26,Martín Zubimendi Ibáñez,MID,Arsenal,0,False,False,5,0,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,198,Axel Tuanzebe,DEF,Burnley,0,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
-394273,Tonali Fan Club,Andrew Vidal,1,,TOTAL,,,,,,,74,,,,,,
-468791,Blue is the Colour,JP Fischer,1,565,Guglielmo Vicario,GK,Spurs,1,False,True,9,9,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,224,Marc Cucurella Saseta,DEF,Chelsea,1,False,False,9,9,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,371,Milos Kerkez,DEF,Liverpool,1,False,False,0,0,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,197,Oliver Sonne,DEF,Burnley,1,False,False,1,1,73,played,Spurs,2025-08-16T14:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,291,James Tarkowski,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-468791,Blue is the Colour,JP Fischer,1,16,Bukayo Saka,MID,Arsenal,1,False,False,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,235,Cole Palmer,MID,Chelsea,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,19,Gabriel Martinelli Silva,MID,Arsenal,1,False,False,1,1,59,played,Man Utd,2025-08-17T15:30:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,283,Jean-Philippe Mateta,FWD,Crystal Palace,2,True,False,1,2,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,654,Jørgen Strand Larsen,FWD,Wolves,1,False,False,2,2,81,played,Man City,2025-08-16T16:30:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,366,Alisson Becker,GK,Liverpool,0,False,False,1,0,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,474,Fabian Schär,DEF,Newcastle,0,False,False,8,0,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,173,Mats Wieffer,MID,Brighton,0,False,False,4,0,90,played,Fulham,2025-08-16T14:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,135,Yoane Wissa,FWD,Brentford,0,False,False,0,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-468791,Blue is the Colour,JP Fischer,1,,TOTAL,,,,,,,32,,,,,,
-581156,etown,Adrian McLoughlin,1,101,Caoimhín Kelleher,GK,Brentford,1,False,False,1,1,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,293,Jake O'Brien,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-581156,etown,Adrian McLoughlin,1,370,Jeremie Frimpong,DEF,Liverpool,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,106,Nathan Collins,DEF,Brentford,1,False,False,0,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,269,Romain Esse,MID,Crystal Palace,1,False,False,0,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,119,Bryan Mbeumo,MID,Man Utd,1,False,False,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
-581156,etown,Adrian McLoughlin,1,54,John McGinn,MID,Aston Villa,1,False,False,3,3,83,played,Newcastle,2025-08-16T11:30:00Z,True,True
-581156,etown,Adrian McLoughlin,1,16,Bukayo Saka,MID,Arsenal,1,False,False,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-581156,etown,Adrian McLoughlin,1,382,Florian Wirtz,MID,Liverpool,1,False,True,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
-581156,etown,Adrian McLoughlin,1,661,Hugo Ekitiké,FWD,Liverpool,1,False,False,11,11,71,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,610,Aaron Wan-Bissaka,DEF,West Ham,0,False,False,1,0,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-581156,etown,Adrian McLoughlin,1,256,Daniel Muñoz Mejía,DEF,Crystal Palace,0,False,False,5,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-581156,etown,Adrian McLoughlin,1,,TOTAL,,,,,,,49,,,,,,
-650881,Pep in your step,John Matthew,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,False,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-650881,Pep in your step,John Matthew,1,402,Rayan Aït-Nouri,DEF,Man City,1,False,False,9,9,90,played,Wolves,2025-08-16T16:30:00Z,True,True
-650881,Pep in your step,John Matthew,1,507,Ola Aina,DEF,Nott'm Forest,1,False,False,4,4,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-650881,Pep in your step,John Matthew,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,1,False,False,3,3,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
-650881,Pep in your step,John Matthew,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-650881,Pep in your step,John Matthew,1,582,Mohammed Kudus,MID,Spurs,1,False,False,10,10,84,played,Burnley,2025-08-16T14:00:00Z,True,True
-650881,Pep in your step,John Matthew,1,167,Carlos Baleba,MID,Brighton,1,False,False,3,3,68,played,Fulham,2025-08-16T14:00:00Z,True,True
-650881,Pep in your step,John Matthew,1,16,Bukayo Saka,MID,Arsenal,1,False,False,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-650881,Pep in your step,John Matthew,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-650881,Pep in your step,John Matthew,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-650881,Pep in your step,John Matthew,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
-650881,Pep in your step,John Matthew,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-650881,Pep in your step,John Matthew,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-650881,Pep in your step,John Matthew,1,211,Aaron Ramsey,MID,Burnley,0,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
-650881,Pep in your step,John Matthew,1,575,Micky van de Ven,DEF,Spurs,0,False,False,6,0,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-650881,Pep in your step,John Matthew,1,,TOTAL,,,,,,,72,,,,,,
-701623,Astoria,Jared Alexander,1,399,Ederson Santana de Moraes,GK,Man City,1,False,False,0,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
-701623,Astoria,Jared Alexander,1,291,James Tarkowski,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-701623,Astoria,Jared Alexander,1,191,Maxime Estève,DEF,Burnley,1,False,False,1,1,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,167,Carlos Baleba,MID,Brighton,1,False,False,3,3,68,played,Fulham,2025-08-16T14:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,515,Morgan Gibbs-White,MID,Nott'm Forest,1,False,False,5,5,83,played,Brentford,2025-08-17T13:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,427,Tijjani Reijnders,MID,Man City,1,False,False,10,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
-701623,Astoria,Jared Alexander,1,624,Jarrod Bowen,FWD,West Ham,1,False,False,2,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,661,Hugo Ekitiké,FWD,Liverpool,1,False,False,11,11,71,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,253,Dean Henderson,GK,Crystal Palace,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,316,Antonee Robinson,DEF,Fulham,0,False,False,0,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,256,Daniel Muñoz Mejía,DEF,Crystal Palace,0,False,False,5,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-701623,Astoria,Jared Alexander,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-701623,Astoria,Jared Alexander,1,,TOTAL,,,,,,,57,,,,,,
-872442,Mostly Guessing,Patrick McCleary,1,139,Bart Verbruggen,GK,Brighton,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,610,Aaron Wan-Bissaka,DEF,West Ham,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,507,Ola Aina,DEF,Nott'm Forest,1,False,False,4,4,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,106,Nathan Collins,DEF,Brentford,1,False,False,0,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,370,Jeremie Frimpong,DEF,Liverpool,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,119,Bryan Mbeumo,MID,Man Utd,1,False,False,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,419,Jack Grealish,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-872442,Mostly Guessing,Patrick McCleary,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,101,Caoimhín Kelleher,GK,Brentford,0,False,False,1,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,0,False,False,3,0,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,211,Aaron Ramsey,MID,Burnley,0,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
-872442,Mostly Guessing,Patrick McCleary,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-872442,Mostly Guessing,Patrick McCleary,1,,TOTAL,,,,,,,33,,,,,,
-876871,Beef Cherki,Kevin Tomek,1,502,Matz Sels,GK,Nott'm Forest,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,371,Milos Kerkez,DEF,Liverpool,1,False,False,0,0,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,408,Rúben dos Santos Gato Alves Dias,DEF,Man City,1,False,False,6,6,90,played,Wolves,2025-08-16T16:30:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,403,Joško Gvardiol,DEF,Man City,1,False,False,0,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,324,Alex Iwobi,MID,Fulham,1,False,False,2,2,65,played,Brighton,2025-08-16T14:00:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,267,Ismaïla Sarr,MID,Crystal Palace,1,False,False,3,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,237,Enzo Fernández,MID,Chelsea,1,False,False,3,3,78,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,452,Amad Diallo,MID,Man Utd,1,False,False,1,1,35,played,Arsenal,2025-08-17T15:30:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,True,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,253,Dean Henderson,GK,Crystal Palace,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,82,Antoine Semenyo,MID,Bournemouth,0,False,False,15,0,90,played,Liverpool,2025-08-15T19:00:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,107,Keane Lewis-Potter,DEF,Brentford,0,False,False,1,0,68,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-876871,Beef Cherki,Kevin Tomek,1,,TOTAL,,,,,,,47,,,,,,
-1094601,Magpie Your Face,Joe Curran,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,False,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,370,Jeremie Frimpong,DEF,Liverpool,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,610,Aaron Wan-Bissaka,DEF,West Ham,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,299,Iliman Ndiaye,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-1094601,Magpie Your Face,Joe Curran,1,427,Tijjani Reijnders,MID,Man City,1,False,False,10,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,235,Cole Palmer,MID,Chelsea,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,525,Chris Wood,FWD,Nott'm Forest,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,True,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,0,False,False,3,0,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,252,Marc Guiu Paz,FWD,Sunderland,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,575,Micky van de Ven,DEF,Spurs,0,False,False,6,0,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-1094601,Magpie Your Face,Joe Curran,1,,TOTAL,,,,,,,61,,,,,,
-3405299,Cole Train,Evan Bagheri,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,False,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,568,Pedro Porro Sauceda,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,508,Neco Williams,DEF,Nott'm Forest,1,False,False,1,1,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,610,Aaron Wan-Bissaka,DEF,West Ham,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,427,Tijjani Reijnders,MID,Man City,1,False,False,10,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,624,Jarrod Bowen,FWD,West Ham,1,False,False,2,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,575,Micky van de Ven,DEF,Spurs,0,False,False,6,0,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,167,Carlos Baleba,MID,Brighton,0,False,False,3,0,68,played,Fulham,2025-08-16T14:00:00Z,True,True
-3405299,Cole Train,Evan Bagheri,1,242,Kiernan Dewsbury-Hall,MID,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-3405299,Cole Train,Evan Bagheri,1,,TOTAL,,,,,,,56,,,,,,
-4070923,The Masterplan,Brian Pleines,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,False,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,348,Joe Rodon,DEF,Leeds,1,False,False,0,0,0,not_started,Everton,2025-08-18T19:00:00Z,False,False
-4070923,The Masterplan,Brian Pleines,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,371,Milos Kerkez,DEF,Liverpool,1,False,False,0,0,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,373,Virgil van Dijk,DEF,Liverpool,1,False,False,3,3,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,267,Ismaïla Sarr,MID,Crystal Palace,1,False,False,3,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,47,Morgan Rogers,MID,Aston Villa,1,False,False,3,3,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,101,Caoimhín Kelleher,GK,Brentford,0,False,False,1,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,517,Elliot Anderson,MID,Nott'm Forest,0,False,False,6,0,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-4070923,The Masterplan,Brian Pleines,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-4070923,The Masterplan,Brian Pleines,1,,TOTAL,,,,,,,45,,,,,,
-4807443,Dune: Moyesiah,Max Maier,1,502,Matz Sels,GK,Nott'm Forest,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,145,Maxim De Cuyper,DEF,Brighton,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,610,Aaron Wan-Bissaka,DEF,West Ham,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,384,Cody Gakpo,MID,Liverpool,1,False,False,7,7,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,419,Jack Grealish,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-4807443,Dune: Moyesiah,Max Maier,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,666,Viktor Gyökeres,FWD,Arsenal,1,False,False,1,1,59,played,Man Utd,2025-08-17T15:30:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,675,Angus Gunn,GK,Nott'm Forest,0,False,False,0,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,427,Tijjani Reijnders,MID,Man City,0,False,False,10,0,90,played,Wolves,2025-08-16T16:30:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,192,Quilindschy Hartman,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,36,Matty Cash,DEF,Aston Villa,0,False,False,8,0,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-4807443,Dune: Moyesiah,Max Maier,1,,TOTAL,,,,,,,52,,,,,,
-4912819,Vote for Pedro,Wes H,1,502,Matz Sels,GK,Nott'm Forest,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,506,Murillo Costa dos Santos,DEF,Nott'm Forest,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,1,False,False,3,3,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,427,Tijjani Reijnders,MID,Man City,1,False,False,10,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,299,Iliman Ndiaye,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-4912819,Vote for Pedro,Wes H,1,449,Bruno Borges Fernandes,MID,Man Utd,1,False,False,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,261,Chris Richards,DEF,Crystal Palace,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,252,Marc Guiu Paz,FWD,Sunderland,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
-4912819,Vote for Pedro,Wes H,1,,TOTAL,,,,,,,48,,,,,,
-5423005,Deaner,Dean Maghsadi,1,253,Dean Henderson,GK,Crystal Palace,1,False,False,6,6,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,145,Maxim De Cuyper,DEF,Brighton,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,293,Jake O'Brien,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-5423005,Deaner,Dean Maghsadi,1,443,Luke Shaw,DEF,Man Utd,1,False,False,2,2,79,played,Arsenal,2025-08-17T15:30:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,16,Bukayo Saka,MID,Arsenal,1,False,False,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,625,Niclas Füllkrug,FWD,West Ham,1,False,False,2,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,283,Jean-Philippe Mateta,FWD,Crystal Palace,1,False,False,1,1,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,541,Reinildo Mandava,DEF,Sunderland,0,False,False,6,0,90,played,West Ham,2025-08-16T14:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,550,Ian Poveda-Ocampo,MID,Sunderland,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,326,Adama Traoré Diarra,MID,Fulham,0,False,False,1,0,24,played,Brighton,2025-08-16T14:00:00Z,True,True
-5423005,Deaner,Dean Maghsadi,1,,TOTAL,,,,,,,53,,,,,,
-5438502,Angry Boys,Nate Cohen,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,True,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,370,Jeremie Frimpong,DEF,Liverpool,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,6,William Saliba,DEF,Arsenal,1,False,False,9,9,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,291,James Tarkowski,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-5438502,Angry Boys,Nate Cohen,1,17,Martin Ødegaard,MID,Arsenal,1,False,False,5,5,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,266,Eberechi Eze,MID,Crystal Palace,1,False,False,3,3,83,played,Chelsea,2025-08-17T13:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,241,Moisés Caicedo Corozo,MID,Chelsea,1,False,False,5,5,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,2,True,False,2,4,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,525,Chris Wood,FWD,Nott'm Forest,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,287,Jordan Pickford,GK,Everton,0,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-5438502,Angry Boys,Nate Cohen,1,505,Nikola Milenković,DEF,Nott'm Forest,0,False,False,2,0,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,485,Anthony Gordon,MID,Newcastle,0,False,False,3,0,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,135,Yoane Wissa,FWD,Brentford,0,False,False,0,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
-5438502,Angry Boys,Nate Cohen,1,,TOTAL,,,,,,,55,,,,,,
-5898648,Pukandi FC,Kevin K,1,470,Martin Dúbravka,GK,Burnley,1,False,False,2,2,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,1,False,False,3,3,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,610,Aaron Wan-Bissaka,DEF,West Ham,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,575,Micky van de Ven,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,267,Ismaïla Sarr,MID,Crystal Palace,1,False,False,3,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,654,Jørgen Strand Larsen,FWD,Wolves,1,False,False,2,2,81,played,Man City,2025-08-16T16:30:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,666,Viktor Gyökeres,FWD,Arsenal,1,False,False,1,1,59,played,Man Utd,2025-08-17T15:30:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,628,José Malheiro de Sá,GK,Wolves,0,False,False,0,0,90,played,Man City,2025-08-16T16:30:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,167,Carlos Baleba,MID,Brighton,0,False,False,3,0,68,played,Fulham,2025-08-16T14:00:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,261,Chris Richards,DEF,Crystal Palace,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-5898648,Pukandi FC,Kevin K,1,,TOTAL,,,,,,,41,,,,,,
-6197529,lads and pitches,Brett Swikle,1,502,Matz Sels,GK,Nott'm Forest,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,568,Pedro Porro Sauceda,DEF,Spurs,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,145,Maxim De Cuyper,DEF,Brighton,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,235,Cole Palmer,MID,Chelsea,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,582,Mohammed Kudus,MID,Spurs,1,False,False,10,10,84,played,Burnley,2025-08-16T14:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,299,Iliman Ndiaye,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-6197529,lads and pitches,Brett Swikle,1,525,Chris Wood,FWD,Nott'm Forest,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,430,Erling Haaland,FWD,Man City,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,341,Karl Darlow,GK,Leeds,0,False,False,0,0,0,not_started,Everton,2025-08-18T19:00:00Z,False,False
-6197529,lads and pitches,Brett Swikle,1,541,Reinildo Mandava,DEF,Sunderland,0,False,False,6,0,90,played,West Ham,2025-08-16T14:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,497,Lewis Miley,MID,Newcastle,0,False,False,1,0,7,played,Aston Villa,2025-08-16T11:30:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-6197529,lads and pitches,Brett Swikle,1,,TOTAL,,,,,,,72,,,,,,
-6256408,The Blind Squirrels,Chris Munoz,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,False,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,373,Virgil van Dijk,DEF,Liverpool,1,False,False,3,3,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,370,Jeremie Frimpong,DEF,Liverpool,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,507,Ola Aina,DEF,Nott'm Forest,1,False,False,4,4,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,256,Daniel Muñoz Mejía,DEF,Crystal Palace,1,False,False,5,5,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,237,Enzo Fernández,MID,Chelsea,1,False,False,3,3,78,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,449,Bruno Borges Fernandes,MID,Man Utd,1,False,True,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,381,Mohamed Salah,MID,Liverpool,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,236,Pedro Lomba Neto,MID,Chelsea,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,525,Chris Wood,FWD,Nott'm Forest,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,64,Ollie Watkins,FWD,Aston Villa,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,253,Dean Henderson,GK,Crystal Palace,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,145,Maxim De Cuyper,DEF,Brighton,0,False,False,2,0,90,played,Fulham,2025-08-16T14:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,211,Aaron Ramsey,MID,Burnley,0,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,655,Fábio Soares Silva,FWD,Wolves,0,False,False,0,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
-6256408,The Blind Squirrels,Chris Munoz,1,,TOTAL,,,,,,,59,,,,,,
-8592148,tonyt,Tony Tharakan,1,220,Robert Lynch Sánchez,GK,Chelsea,1,False,True,7,7,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,317,Joachim Andersen,DEF,Fulham,1,False,False,2,2,90,played,Brighton,2025-08-16T14:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,291,James Tarkowski,DEF,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-8592148,tonyt,Tony Tharakan,1,508,Neco Williams,DEF,Nott'm Forest,1,False,False,1,1,90,played,Brentford,2025-08-17T13:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,382,Florian Wirtz,MID,Liverpool,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,381,Mohamed Salah,MID,Liverpool,1,False,False,8,8,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,235,Cole Palmer,MID,Chelsea,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,47,Morgan Rogers,MID,Aston Villa,1,False,False,3,3,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,242,Kiernan Dewsbury-Hall,MID,Everton,1,False,False,0,0,0,not_started,Leeds,2025-08-18T19:00:00Z,False,False
-8592148,tonyt,Tony Tharakan,1,64,Ollie Watkins,FWD,Aston Villa,2,True,False,2,4,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,470,Martin Dúbravka,GK,Burnley,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,441,Patrick Dorgu,DEF,Man Utd,0,False,False,1,0,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,191,Maxime Estève,DEF,Burnley,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,252,Marc Guiu Paz,FWD,Sunderland,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
-8592148,tonyt,Tony Tharakan,1,,TOTAL,,,,,,,32,,,,,,
+entry_id,entry_team_name,manager_name,gameweek,element_id,player,position,club,player_cost,value_ratio,global_ownership,global_captain_percent,multiplier,is_captain,is_vice_captain,points_gw,points_applied,minutes,status,opponent_team,kickoff_time,fixture_started,fixture_finished
+62221,Wirtz Case Scenario,John Sebastian,1,502,Matz Sels,GK,Nott'm Forest,5.0,0.4,20.0,3.1,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,402,Rayan Aït-Nouri,DEF,Man City,6.0,1.5,21.9,4.5,1,False,False,9,9,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,373,Virgil van Dijk,DEF,Liverpool,6.0,0.5,23.9,4.5,1,False,False,3,3,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,291,James Tarkowski,DEF,Everton,5.5,0.73,7.1,3.3,1,False,False,4,4,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,267,Ismaïla Sarr,MID,Crystal Palace,6.5,0.46,4.9,2.2,1,False,False,3,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,625,Niclas Füllkrug,FWD,West Ham,6.0,0.33,3.5,1.5,1,False,False,2,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,1,False,True,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,430,Erling Haaland,FWD,Man City,14.0,0.93,27.4,4.5,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,242,Kiernan Dewsbury-Hall,MID,Everton,5.0,0.4,4.7,1.5,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,541,Reinildo Mandava,DEF,Sunderland,4.0,1.5,7.8,1.0,0,False,False,6,0,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,663,Jhon Arias,MID,Wolves,5.5,0.18,0.6,2.0,0,False,False,1,0,17,played,Man City,2025-08-16T16:30:00Z,True,True
+62221,Wirtz Case Scenario,John Sebastian,1,,TOTAL,,,100.0,0.62,,,,,,,62,,,,,,
+373574,McGinn & Tonic,Garrett Kunkel,1,139,Bart Verbruggen,GK,Brighton,4.5,0.44,7.7,2.3,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,477,Tino Livramento,DEF,Newcastle,5.0,1.8,4.0,2.1,1,False,False,9,9,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,256,Daniel Muñoz Mejía,DEF,Crystal Palace,5.5,0.91,8.6,3.3,1,False,False,5,5,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,47,Morgan Rogers,MID,Aston Villa,7.0,0.43,9.7,2.3,1,False,False,3,3,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,384,Cody Gakpo,MID,Liverpool,7.5,0.93,8.0,3.0,1,False,False,7,7,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,119,Bryan Mbeumo,MID,Man Utd,8.0,0.25,13.9,2.6,1,False,False,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,16,Bukayo Saka,MID,Arsenal,10.0,0.3,16.8,4.0,1,False,True,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,430,Erling Haaland,FWD,Man City,14.0,0.93,27.4,4.5,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,525,Chris Wood,FWD,Nott'm Forest,7.5,1.73,16.5,2.4,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,101,Caoimhín Kelleher,GK,Brentford,4.5,0.22,10.7,2.3,0,False,False,1,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,52,Jacob Ramsey,MID,Aston Villa,5.5,0.0,0.6,2.0,0,False,False,0,0,0,dnp,Newcastle,2025-08-16T11:30:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,440,Diogo Dalot Teixeira,DEF,Man Utd,4.5,0.22,2.2,1.9,0,False,False,1,0,54,played,Arsenal,2025-08-17T15:30:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,260,Marc Guéhi,DEF,Crystal Palace,4.5,1.33,12.9,1.9,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+373574,McGinn & Tonic,Garrett Kunkel,1,,TOTAL,,,100.0,0.78,,,,,,,78,,,,,,
+394273,Tonali Fan Club,Andrew Vidal,1,565,Guglielmo Vicario,GK,Spurs,5.0,1.8,4.4,2.6,1,False,False,9,9,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,7,Riccardo Calafiori,DEF,Arsenal,5.5,2.36,2.0,4.3,1,False,False,13,13,71,played,Man Utd,2025-08-17T15:30:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,224,Marc Cucurella Saseta,DEF,Chelsea,6.0,1.33,19.9,4.5,1,False,False,8,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,568,Pedro Porro Sauceda,DEF,Spurs,5.5,1.09,22.4,2.8,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,4.5,0.67,19.2,0.0,1,False,False,3,3,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,491,Sandro Tonali,MID,Newcastle,5.5,0.55,1.9,1.5,1,False,False,3,3,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,True,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,430,Erling Haaland,FWD,Man City,14.0,0.93,27.4,4.5,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,666,Viktor Gyökeres,FWD,Arsenal,9.0,0.11,25.3,3.8,1,False,False,1,1,59,played,Man Utd,2025-08-17T15:30:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,211,Aaron Ramsey,MID,Burnley,4.5,0.0,9.5,1.0,0,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,26,Martín Zubimendi Ibáñez,MID,Arsenal,5.5,0.91,2.2,3.0,0,False,False,5,0,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,198,Axel Tuanzebe,DEF,Burnley,4.0,0.0,2.4,1.0,0,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+394273,Tonali Fan Club,Andrew Vidal,1,,TOTAL,,,99.5,0.76,,,,,,,76,,,,,,
+468791,Blue is the Colour,JP Fischer,1,565,Guglielmo Vicario,GK,Spurs,5.0,1.8,4.4,2.6,1,False,True,9,9,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,224,Marc Cucurella Saseta,DEF,Chelsea,6.0,1.33,19.9,4.5,1,False,False,8,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,371,Milos Kerkez,DEF,Liverpool,6.0,0.0,6.3,4.5,1,False,False,0,0,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,197,Oliver Sonne,DEF,Burnley,4.0,0.25,0.1,1.0,1,False,False,1,1,73,played,Spurs,2025-08-16T14:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,291,James Tarkowski,DEF,Everton,5.5,0.73,7.1,3.3,1,False,False,4,4,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,16,Bukayo Saka,MID,Arsenal,10.0,0.3,16.8,4.0,1,False,False,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,19,Gabriel Martinelli Silva,MID,Arsenal,7.0,0.14,1.5,3.3,1,False,False,1,1,59,played,Man Utd,2025-08-17T15:30:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,283,Jean-Philippe Mateta,FWD,Crystal Palace,7.5,0.13,9.1,2.4,2,True,False,1,2,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,654,Jørgen Strand Larsen,FWD,Wolves,6.5,0.31,4.7,2.2,1,False,False,2,2,81,played,Man City,2025-08-16T16:30:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,366,Alisson Becker,GK,Liverpool,5.5,0.18,11.3,4.5,0,False,False,1,0,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,474,Fabian Schär,DEF,Newcastle,5.5,1.45,2.8,2.8,0,False,False,8,0,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,173,Mats Wieffer,MID,Brighton,5.0,0.8,0.1,1.5,0,False,False,4,0,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,135,Yoane Wissa,FWD,Brentford,7.5,0.0,2.1,0.0,0,False,False,0,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+468791,Blue is the Colour,JP Fischer,1,,TOTAL,,,100.0,0.35,,,,,,,35,,,,,,
+581156,etown,Adrian McLoughlin,1,101,Caoimhín Kelleher,GK,Brentford,4.5,0.22,10.7,2.3,1,False,False,1,1,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,293,Jake O'Brien,DEF,Everton,5.0,0.4,0.6,2.6,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,106,Nathan Collins,DEF,Brentford,5.0,0.0,1.7,2.6,1,False,False,0,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,370,Jeremie Frimpong,DEF,Liverpool,6.0,0.17,29.8,4.5,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,610,Aaron Wan-Bissaka,DEF,West Ham,4.5,0.22,23.5,1.4,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,119,Bryan Mbeumo,MID,Man Utd,8.0,0.25,13.9,2.6,1,False,False,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+581156,etown,Adrian McLoughlin,1,54,John McGinn,MID,Aston Villa,5.5,0.55,0.7,2.0,1,False,False,3,3,83,played,Newcastle,2025-08-16T11:30:00Z,True,True
+581156,etown,Adrian McLoughlin,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,True,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,16,Bukayo Saka,MID,Arsenal,10.0,0.3,16.8,4.0,1,False,False,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+581156,etown,Adrian McLoughlin,1,661,Hugo Ekitiké,FWD,Liverpool,8.6,1.28,19.9,3.2,1,False,False,11,11,71,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,430,Erling Haaland,FWD,Man City,14.0,0.93,27.4,4.5,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
+581156,etown,Adrian McLoughlin,1,470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,269,Romain Esse,MID,Crystal Palace,5.0,0.0,0.2,1.5,0,False,False,0,0,0,dnp,Chelsea,2025-08-17T13:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,5.5,0.36,8.4,1.7,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,256,Daniel Muñoz Mejía,DEF,Crystal Palace,5.5,0.91,8.6,3.3,0,False,False,5,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+581156,etown,Adrian McLoughlin,1,,TOTAL,,,99.6,0.52,,,,,,,52,,,,,,
+650881,Pep in your step,John Matthew,1,220,Robert Lynch Sánchez,GK,Chelsea,5.0,1.6,25.3,3.6,1,False,False,8,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+650881,Pep in your step,John Matthew,1,402,Rayan Aït-Nouri,DEF,Man City,6.0,1.5,21.9,4.5,1,False,False,9,9,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+650881,Pep in your step,John Matthew,1,507,Ola Aina,DEF,Nott'm Forest,5.0,0.8,14.7,2.6,1,False,False,4,4,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+650881,Pep in your step,John Matthew,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,4.5,0.67,19.2,0.0,1,False,False,3,3,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
+650881,Pep in your step,John Matthew,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+650881,Pep in your step,John Matthew,1,582,Mohammed Kudus,MID,Spurs,6.5,1.54,26.8,1.7,1,False,False,10,10,84,played,Burnley,2025-08-16T14:00:00Z,True,True
+650881,Pep in your step,John Matthew,1,167,Carlos Baleba,MID,Brighton,5.0,0.6,4.7,1.5,1,False,False,3,3,68,played,Fulham,2025-08-16T14:00:00Z,True,True
+650881,Pep in your step,John Matthew,1,16,Bukayo Saka,MID,Arsenal,10.0,0.3,16.8,4.0,1,False,False,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+650881,Pep in your step,John Matthew,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+650881,Pep in your step,John Matthew,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+650881,Pep in your step,John Matthew,1,430,Erling Haaland,FWD,Man City,14.0,0.93,27.4,4.5,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
+650881,Pep in your step,John Matthew,1,470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+650881,Pep in your step,John Matthew,1,191,Maxime Estève,DEF,Burnley,4.0,0.25,19.9,1.0,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+650881,Pep in your step,John Matthew,1,211,Aaron Ramsey,MID,Burnley,4.5,0.0,9.5,1.0,0,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+650881,Pep in your step,John Matthew,1,575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,0,False,False,6,0,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+650881,Pep in your step,John Matthew,1,,TOTAL,,,100.0,0.73,,,,,,,73,,,,,,
+701623,Astoria,Jared Alexander,1,253,Dean Henderson,GK,Crystal Palace,5.0,1.2,7.2,3.1,1,False,False,6,6,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,291,James Tarkowski,DEF,Everton,5.5,0.73,7.1,3.3,1,False,False,4,4,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,191,Maxime Estève,DEF,Burnley,4.0,0.25,19.9,1.0,1,False,False,1,1,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,167,Carlos Baleba,MID,Brighton,5.0,0.6,4.7,1.5,1,False,False,3,3,68,played,Fulham,2025-08-16T14:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,515,Morgan Gibbs-White,MID,Nott'm Forest,7.5,0.67,5.2,2.5,1,False,False,5,5,83,played,Brentford,2025-08-17T13:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,427,Tijjani Reijnders,MID,Man City,5.6,1.79,26.2,2.5,1,False,False,10,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+701623,Astoria,Jared Alexander,1,381,Mohamed Salah,MID,Liverpool,14.5,0.55,54.2,4.5,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,624,Jarrod Bowen,FWD,West Ham,8.0,0.25,15.0,2.0,1,False,False,2,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,661,Hugo Ekitiké,FWD,Liverpool,8.6,1.28,19.9,3.2,1,False,False,11,11,71,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,399,Ederson Santana de Moraes,GK,Man City,5.5,0.0,2.9,4.5,0,False,False,0,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+701623,Astoria,Jared Alexander,1,316,Antonee Robinson,DEF,Fulham,5.0,0.0,0.8,0.0,0,False,False,0,0,0,dnp,Brighton,2025-08-16T14:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,256,Daniel Muñoz Mejía,DEF,Crystal Palace,5.5,0.91,8.6,3.3,0,False,False,5,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,5.5,0.36,8.4,1.7,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+701623,Astoria,Jared Alexander,1,,TOTAL,,,100.19999999999999,0.67,,,,,,,67,,,,,,
+872442,Mostly Guessing,Patrick McCleary,1,139,Bart Verbruggen,GK,Brighton,4.5,0.44,7.7,2.3,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,610,Aaron Wan-Bissaka,DEF,West Ham,4.5,0.22,23.5,1.4,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,507,Ola Aina,DEF,Nott'm Forest,5.0,0.8,14.7,2.6,1,False,False,4,4,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,106,Nathan Collins,DEF,Brentford,5.0,0.0,1.7,2.6,1,False,False,0,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,370,Jeremie Frimpong,DEF,Liverpool,6.0,0.17,29.8,4.5,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,119,Bryan Mbeumo,MID,Man Utd,8.0,0.25,13.9,2.6,1,False,False,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,381,Mohamed Salah,MID,Liverpool,14.5,0.55,54.2,4.5,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,419,Jack Grealish,MID,Everton,6.5,0.15,3.6,2.2,1,False,False,1,1,19,played,Leeds,2025-08-18T19:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,101,Caoimhín Kelleher,GK,Brentford,4.5,0.22,10.7,2.3,0,False,False,1,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,4.5,0.67,19.2,0.0,0,False,False,3,0,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,211,Aaron Ramsey,MID,Burnley,4.5,0.0,9.5,1.0,0,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,5.5,0.36,8.4,1.7,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+872442,Mostly Guessing,Patrick McCleary,1,,TOTAL,,,100.0,0.34,,,,,,,34,,,,,,
+876871,Beef Cherki,Kevin Tomek,1,502,Matz Sels,GK,Nott'm Forest,5.0,0.4,20.0,3.1,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,371,Milos Kerkez,DEF,Liverpool,6.0,0.0,6.3,4.5,1,False,False,0,0,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,408,Rúben dos Santos Gato Alves Dias,DEF,Man City,5.5,1.09,3.5,3.8,1,False,False,6,6,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,107,Keane Lewis-Potter,DEF,Brentford,5.0,0.2,0.4,2.6,1,False,False,1,1,68,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,324,Alex Iwobi,MID,Fulham,6.5,0.31,1.5,2.2,1,False,False,2,2,65,played,Brighton,2025-08-16T14:00:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,267,Ismaïla Sarr,MID,Crystal Palace,6.5,0.46,4.9,2.2,1,False,False,3,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,452,Amad Diallo,MID,Man Utd,6.5,0.15,2.9,2.2,1,False,False,1,1,35,played,Arsenal,2025-08-17T15:30:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,237,Enzo Fernández,MID,Chelsea,6.5,0.46,3.5,2.7,1,False,False,3,3,78,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,430,Erling Haaland,FWD,Man City,14.0,0.93,27.4,4.5,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,True,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,253,Dean Henderson,GK,Crystal Palace,5.0,1.2,7.2,3.1,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,82,Antoine Semenyo,MID,Bournemouth,7.1,2.11,10.7,2.4,0,False,False,15,0,90,played,Liverpool,2025-08-15T19:00:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,403,Joško Gvardiol,DEF,Man City,6.0,0.0,7.9,0.0,0,False,False,0,0,0,dnp,Wolves,2025-08-16T16:30:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,191,Maxime Estève,DEF,Burnley,4.0,0.25,19.9,1.0,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+876871,Beef Cherki,Kevin Tomek,1,,TOTAL,,,100.1,0.48,,,,,,,48,,,,,,
+1094601,Magpie Your Face,Joe Curran,1,220,Robert Lynch Sánchez,GK,Chelsea,5.0,1.6,25.3,3.6,1,False,False,8,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,370,Jeremie Frimpong,DEF,Liverpool,6.0,0.17,29.8,4.5,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,6.0,1.0,19.0,5.0,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,610,Aaron Wan-Bissaka,DEF,West Ham,4.5,0.22,23.5,1.4,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,299,Iliman Ndiaye,MID,Everton,6.5,0.31,11.2,2.2,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,427,Tijjani Reijnders,MID,Man City,5.6,1.79,26.2,2.5,1,False,False,10,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,381,Mohamed Salah,MID,Liverpool,14.5,0.55,54.2,4.5,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,525,Chris Wood,FWD,Nott'm Forest,7.5,1.73,16.5,2.4,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,True,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,4.5,0.67,19.2,0.0,0,False,False,3,0,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,252,Marc Guiu Paz,FWD,Sunderland,4.5,0.0,20.0,1.0,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,0,False,False,6,0,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+1094601,Magpie Your Face,Joe Curran,1,,TOTAL,,,99.6,0.64,,,,,,,64,,,,,,
+3405299,Cole Train,Evan Bagheri,1,220,Robert Lynch Sánchez,GK,Chelsea,5.0,1.6,25.3,3.6,1,False,False,8,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,568,Pedro Porro Sauceda,DEF,Spurs,5.5,1.09,22.4,2.8,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,508,Neco Williams,DEF,Nott'm Forest,5.0,0.2,10.3,2.6,1,False,False,1,1,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,6.0,1.0,19.0,5.0,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,610,Aaron Wan-Bissaka,DEF,West Ham,4.5,0.22,23.5,1.4,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,381,Mohamed Salah,MID,Liverpool,14.5,0.55,54.2,4.5,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,427,Tijjani Reijnders,MID,Man City,5.6,1.79,26.2,2.5,1,False,False,10,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,624,Jarrod Bowen,FWD,West Ham,8.0,0.25,15.0,2.0,1,False,False,2,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,0,False,False,6,0,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,167,Carlos Baleba,MID,Brighton,5.0,0.6,4.7,1.5,0,False,False,3,0,68,played,Fulham,2025-08-16T14:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,242,Kiernan Dewsbury-Hall,MID,Everton,5.0,0.4,4.7,1.5,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+3405299,Cole Train,Evan Bagheri,1,,TOTAL,,,99.6,0.57,,,,,,,57,,,,,,
+4070923,The Masterplan,Brian Pleines,1,220,Robert Lynch Sánchez,GK,Chelsea,5.0,1.6,25.3,3.6,1,False,False,8,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,348,Joe Rodon,DEF,Leeds,4.0,1.75,2.2,0.0,1,False,False,7,7,90,played,Everton,2025-08-18T19:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,371,Milos Kerkez,DEF,Liverpool,6.0,0.0,6.3,4.5,1,False,False,0,0,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,373,Virgil van Dijk,DEF,Liverpool,6.0,0.5,23.9,4.5,1,False,False,3,3,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,381,Mohamed Salah,MID,Liverpool,14.5,0.55,54.2,4.5,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,267,Ismaïla Sarr,MID,Crystal Palace,6.5,0.46,4.9,2.2,1,False,False,3,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,47,Morgan Rogers,MID,Aston Villa,7.0,0.43,9.7,2.3,1,False,False,3,3,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,101,Caoimhín Kelleher,GK,Brentford,4.5,0.22,10.7,2.3,0,False,False,1,0,90,played,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,191,Maxime Estève,DEF,Burnley,4.0,0.25,19.9,1.0,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,517,Elliot Anderson,MID,Nott'm Forest,5.5,1.09,6.5,2.0,0,False,False,6,0,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,311,Norberto Bercique Gomes Betuncal,FWD,Everton,5.5,0.36,8.4,1.7,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+4070923,The Masterplan,Brian Pleines,1,,TOTAL,,,100.0,0.53,,,,,,,53,,,,,,
+4807443,Dune: Moyesiah,Max Maier,1,502,Matz Sels,GK,Nott'm Forest,5.0,0.4,20.0,3.1,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,145,Maxim De Cuyper,DEF,Brighton,4.5,0.44,6.3,1.9,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,610,Aaron Wan-Bissaka,DEF,West Ham,4.5,0.22,23.5,1.4,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,384,Cody Gakpo,MID,Liverpool,7.5,0.93,8.0,3.0,1,False,False,7,7,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,419,Jack Grealish,MID,Everton,6.5,0.15,3.6,2.2,1,False,False,1,1,19,played,Leeds,2025-08-18T19:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,430,Erling Haaland,FWD,Man City,14.0,0.93,27.4,4.5,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,666,Viktor Gyökeres,FWD,Arsenal,9.0,0.11,25.3,3.8,1,False,False,1,1,59,played,Man Utd,2025-08-17T15:30:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,675,Angus Gunn,GK,Nott'm Forest,4.0,0.0,1.9,1.0,0,False,False,0,0,0,dnp,Brentford,2025-08-17T13:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,427,Tijjani Reijnders,MID,Man City,5.6,1.79,26.2,2.5,0,False,False,10,0,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,192,Quilindschy Hartman,DEF,Burnley,4.0,0.25,0.5,1.0,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,36,Matty Cash,DEF,Aston Villa,4.5,1.78,3.5,1.9,0,False,False,8,0,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+4807443,Dune: Moyesiah,Max Maier,1,,TOTAL,,,100.1,0.53,,,,,,,53,,,,,,
+4912819,Vote for Pedro,Wes H,1,502,Matz Sels,GK,Nott'm Forest,5.0,0.4,20.0,3.1,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,506,Murillo Costa dos Santos,DEF,Nott'm Forest,5.5,0.36,6.9,3.3,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,4.5,0.67,19.2,0.0,1,False,False,3,3,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,427,Tijjani Reijnders,MID,Man City,5.6,1.79,26.2,2.5,1,False,False,10,10,90,played,Wolves,2025-08-16T16:30:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,381,Mohamed Salah,MID,Liverpool,14.5,0.55,54.2,4.5,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,299,Iliman Ndiaye,MID,Everton,6.5,0.31,11.2,2.2,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,449,Bruno Borges Fernandes,MID,Man Utd,9.0,0.22,21.8,2.8,1,False,False,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,261,Chris Richards,DEF,Crystal Palace,4.5,1.33,1.5,1.9,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,191,Maxime Estève,DEF,Burnley,4.0,0.25,19.9,1.0,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,252,Marc Guiu Paz,FWD,Sunderland,4.5,0.0,20.0,1.0,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+4912819,Vote for Pedro,Wes H,1,,TOTAL,,,99.1,0.5,,,,,,,50,,,,,,
+5423005,Deaner,Dean Maghsadi,1,253,Dean Henderson,GK,Crystal Palace,5.0,1.2,7.2,3.1,1,False,False,6,6,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,145,Maxim De Cuyper,DEF,Brighton,4.5,0.44,6.3,1.9,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,6.0,1.0,19.0,5.0,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,293,Jake O'Brien,DEF,Everton,5.0,0.4,0.6,2.6,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,443,Luke Shaw,DEF,Man Utd,4.5,0.44,0.2,1.9,1,False,False,2,2,79,played,Arsenal,2025-08-17T15:30:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,16,Bukayo Saka,MID,Arsenal,10.0,0.3,16.8,4.0,1,False,False,3,3,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,430,Erling Haaland,FWD,Man City,14.0,0.93,27.4,4.5,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,625,Niclas Füllkrug,FWD,West Ham,6.0,0.33,3.5,1.5,1,False,False,2,2,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,283,Jean-Philippe Mateta,FWD,Crystal Palace,7.5,0.13,9.1,2.4,1,False,False,1,1,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,541,Reinildo Mandava,DEF,Sunderland,4.0,1.5,7.8,1.0,0,False,False,6,0,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,550,Ian Poveda-Ocampo,MID,Sunderland,5.0,0.0,0.0,1.5,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,326,Adama Traoré Diarra,MID,Fulham,5.5,0.18,0.3,2.0,0,False,False,1,0,24,played,Brighton,2025-08-16T14:00:00Z,True,True
+5423005,Deaner,Dean Maghsadi,1,,TOTAL,,,100.0,0.55,,,,,,,55,,,,,,
+5438502,Angry Boys,Nate Cohen,1,220,Robert Lynch Sánchez,GK,Chelsea,5.0,1.6,25.3,3.6,1,False,True,8,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,370,Jeremie Frimpong,DEF,Liverpool,6.0,0.17,29.8,4.5,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,6,William Saliba,DEF,Arsenal,6.0,1.5,15.3,5.0,1,False,False,9,9,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,6.0,1.0,19.0,5.0,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,291,James Tarkowski,DEF,Everton,5.5,0.73,7.1,3.3,1,False,False,4,4,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,17,Martin Ødegaard,MID,Arsenal,8.0,0.62,3.7,3.6,1,False,False,5,5,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,266,Eberechi Eze,MID,Crystal Palace,7.5,0.4,10.9,2.5,1,False,False,3,3,83,played,Chelsea,2025-08-17T13:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,241,Moisés Caicedo Corozo,MID,Chelsea,5.5,0.91,5.4,2.5,1,False,False,5,5,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,2,True,False,2,4,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,525,Chris Wood,FWD,Nott'm Forest,7.5,1.73,16.5,2.4,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,287,Jordan Pickford,GK,Everton,5.5,0.36,11.2,4.0,0,False,False,2,0,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,505,Nikola Milenković,DEF,Nott'm Forest,5.5,0.36,9.9,3.3,0,False,False,2,0,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,485,Anthony Gordon,MID,Newcastle,7.5,0.4,1.9,2.0,0,False,False,3,0,90,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,135,Yoane Wissa,FWD,Brentford,7.5,0.0,2.1,0.0,0,False,False,0,0,0,dnp,Nott'm Forest,2025-08-17T13:00:00Z,True,True
+5438502,Angry Boys,Nate Cohen,1,,TOTAL,,,99.0,0.61,,,,,,,60,,,,,,
+5898648,Pukandi FC,Kevin K,1,470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,1,False,False,2,2,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,38,Ezri Konsa Ngoyo,DEF,Aston Villa,4.5,0.67,19.2,0.0,1,False,False,3,3,65,played,Newcastle,2025-08-16T11:30:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,610,Aaron Wan-Bissaka,DEF,West Ham,4.5,0.22,23.5,1.4,1,False,False,1,1,90,played,Sunderland,2025-08-16T14:00:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,575,Micky van de Ven,DEF,Spurs,4.5,1.33,27.6,1.4,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,381,Mohamed Salah,MID,Liverpool,14.5,0.55,54.2,4.5,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,267,Ismaïla Sarr,MID,Crystal Palace,6.5,0.46,4.9,2.2,1,False,False,3,3,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,654,Jørgen Strand Larsen,FWD,Wolves,6.5,0.31,4.7,2.2,1,False,False,2,2,81,played,Man City,2025-08-16T16:30:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,666,Viktor Gyökeres,FWD,Arsenal,9.0,0.11,25.3,3.8,1,False,False,1,1,59,played,Man Utd,2025-08-17T15:30:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,628,José Malheiro de Sá,GK,Wolves,4.5,0.0,2.0,2.3,0,False,False,0,0,90,played,Man City,2025-08-16T16:30:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,167,Carlos Baleba,MID,Brighton,5.0,0.6,4.7,1.5,0,False,False,3,0,68,played,Fulham,2025-08-16T14:00:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,261,Chris Richards,DEF,Crystal Palace,4.5,1.33,1.5,1.9,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,191,Maxime Estève,DEF,Burnley,4.0,0.25,19.9,1.0,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+5898648,Pukandi FC,Kevin K,1,,TOTAL,,,100.0,0.41,,,,,,,41,,,,,,
+6197529,lads and pitches,Brett Swikle,1,502,Matz Sels,GK,Nott'm Forest,5.0,0.4,20.0,3.1,1,False,False,2,2,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,5,Gabriel dos Santos Magalhães,DEF,Arsenal,6.0,1.0,19.0,5.0,1,False,False,6,6,90,played,Man Utd,2025-08-17T15:30:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,568,Pedro Porro Sauceda,DEF,Spurs,5.5,1.09,22.4,2.8,1,False,False,6,6,90,played,Burnley,2025-08-16T14:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,145,Maxim De Cuyper,DEF,Brighton,4.5,0.44,6.3,1.9,1,False,False,2,2,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,True,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,582,Mohammed Kudus,MID,Spurs,6.5,1.54,26.8,1.7,1,False,False,10,10,84,played,Burnley,2025-08-16T14:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,299,Iliman Ndiaye,MID,Everton,6.5,0.31,11.2,2.2,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,525,Chris Wood,FWD,Nott'm Forest,7.5,1.73,16.5,2.4,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,430,Erling Haaland,FWD,Man City,14.0,0.93,27.4,4.5,2,True,False,13,26,72,played,Wolves,2025-08-16T16:30:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,341,Karl Darlow,GK,Leeds,4.0,0.0,3.1,0.0,0,False,False,0,0,0,dnp,Everton,2025-08-18T19:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,541,Reinildo Mandava,DEF,Sunderland,4.0,1.5,7.8,1.0,0,False,False,6,0,90,played,West Ham,2025-08-16T14:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,497,Lewis Miley,MID,Newcastle,4.5,0.22,2.6,0.5,0,False,False,1,0,7,played,Aston Villa,2025-08-16T11:30:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,191,Maxime Estève,DEF,Burnley,4.0,0.25,19.9,1.0,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+6197529,lads and pitches,Brett Swikle,1,,TOTAL,,,100.0,0.74,,,,,,,74,,,,,,
+6256408,The Blind Squirrels,Chris Munoz,1,220,Robert Lynch Sánchez,GK,Chelsea,5.0,1.6,25.3,3.6,1,False,False,8,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,373,Virgil van Dijk,DEF,Liverpool,6.0,0.5,23.9,4.5,1,False,False,3,3,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,370,Jeremie Frimpong,DEF,Liverpool,6.0,0.17,29.8,4.5,1,False,False,1,1,59,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,507,Ola Aina,DEF,Nott'm Forest,5.0,0.8,14.7,2.6,1,False,False,4,4,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,256,Daniel Muñoz Mejía,DEF,Crystal Palace,5.5,0.91,8.6,3.3,1,False,False,5,5,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,237,Enzo Fernández,MID,Chelsea,6.5,0.46,3.5,2.7,1,False,False,3,3,78,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,449,Bruno Borges Fernandes,MID,Man Utd,9.0,0.22,21.8,2.8,1,False,True,2,2,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,381,Mohamed Salah,MID,Liverpool,14.5,0.55,54.2,4.5,2,True,False,8,16,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,236,Pedro Lomba Neto,MID,Chelsea,7.0,0.43,3.7,2.8,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,525,Chris Wood,FWD,Nott'm Forest,7.5,1.73,16.5,2.4,1,False,False,13,13,78,played,Brentford,2025-08-17T13:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,1,False,False,2,2,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,253,Dean Henderson,GK,Crystal Palace,5.0,1.2,7.2,3.1,0,False,False,6,0,90,played,Chelsea,2025-08-17T13:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,145,Maxim De Cuyper,DEF,Brighton,4.5,0.44,6.3,1.9,0,False,False,2,0,90,played,Fulham,2025-08-16T14:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,211,Aaron Ramsey,MID,Burnley,4.5,0.0,9.5,1.0,0,False,False,0,0,0,dnp,Spurs,2025-08-16T14:00:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,655,Fábio Soares Silva,FWD,Wolves,5.0,0.0,0.6,1.4,0,False,False,0,0,0,dnp,Man City,2025-08-16T16:30:00Z,True,True
+6256408,The Blind Squirrels,Chris Munoz,1,,TOTAL,,,100.0,0.6,,,,,,,60,,,,,,
+8592148,tonyt,Tony Tharakan,1,220,Robert Lynch Sánchez,GK,Chelsea,5.0,1.6,25.3,3.6,1,False,True,8,8,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,317,Joachim Andersen,DEF,Fulham,4.5,0.44,3.0,1.9,1,False,False,2,2,90,played,Brighton,2025-08-16T14:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,291,James Tarkowski,DEF,Everton,5.5,0.73,7.1,3.3,1,False,False,4,4,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,508,Neco Williams,DEF,Nott'm Forest,5.0,0.2,10.3,2.6,1,False,False,1,1,90,played,Brentford,2025-08-17T13:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,382,Florian Wirtz,MID,Liverpool,8.5,0.24,30.7,3.2,1,False,False,2,2,81,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,381,Mohamed Salah,MID,Liverpool,14.5,0.55,54.2,4.5,1,False,False,8,8,90,played,Bournemouth,2025-08-15T19:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,235,Cole Palmer,MID,Chelsea,10.5,0.29,61.1,3.6,1,False,False,3,3,90,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,47,Morgan Rogers,MID,Aston Villa,7.0,0.43,9.7,2.3,1,False,False,3,3,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,242,Kiernan Dewsbury-Hall,MID,Everton,5.0,0.4,4.7,1.5,1,False,False,2,2,90,played,Leeds,2025-08-18T19:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,64,Ollie Watkins,FWD,Aston Villa,9.0,0.22,26.2,2.8,2,True,False,2,4,90,played,Newcastle,2025-08-16T11:30:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,249,João Pedro Junqueira de Jesus,FWD,Chelsea,7.5,0.27,53.8,2.9,1,False,False,2,2,72,played,Crystal Palace,2025-08-17T13:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,470,Martin Dúbravka,GK,Burnley,4.0,0.5,34.6,1.0,0,False,False,2,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,441,Patrick Dorgu,DEF,Man Utd,4.5,0.22,7.0,1.9,0,False,False,1,0,90,played,Arsenal,2025-08-17T15:30:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,191,Maxime Estève,DEF,Burnley,4.0,0.25,19.9,1.0,0,False,False,1,0,90,played,Spurs,2025-08-16T14:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,252,Marc Guiu Paz,FWD,Sunderland,4.5,0.0,20.0,1.0,0,False,False,0,0,0,dnp,West Ham,2025-08-16T14:00:00Z,True,True
+8592148,tonyt,Tony Tharakan,1,,TOTAL,,,99.0,0.39,,,,,,,39,,,,,,
