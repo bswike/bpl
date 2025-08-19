@@ -19,13 +19,12 @@ export default async function handler(req, res) {
     // IMPORTANT: give put() a real (even empty) body
     const emptyBody = Buffer.alloc(0); // Node global Buffer works in serverless functions
 
-    const { url } = await put(name, emptyBody, {
-      access: "public",
-      addRandomSuffix: false,
-      contentType: "text/csv",
-      // cache control optional:
-      // cacheControlMaxAge: 10,
-    });
+    const { url } = await put(name, "init", {
+  access: "public",
+  addRandomSuffix: false,
+  contentType: "text/csv",
+});
+
 
     return res.status(200).json({ uploadUrl: url });
   } catch (err) {
