@@ -1,20 +1,32 @@
-import { put } from "@vercel/blob";
+// api/sign-blob-upload.js
+const { put } = require("@vercel/blob");
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   try {
-    // Stable filename — the Blob URL will stay the same
-    const filename = "fpl_rosters_points_gw1.csv";
+    if (req.method !== "GET") {
+      return res.status(405).json({ error: "Method not allowed. Use GET." });
+    }
 
-    // Create or overwrite the blob (empty body just creates signed URL)
-    const { url } = await put(filename, Buffer.alloc(0), {
-      access: "public",           // make it publicly readable
-      addRandomSuffix: false,     // keep filename stable
+    // Helpful diagnostics if Blob isn’t configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return res.status(500).json({
+        error:
+          "Missing Blob credentials. In Vercel, go to Project → Storage → Add Blob for this project.",
+      });
+    }
+
+    // Optional: allow ?name=myfile.csv
+    const nameFromQuery = (req.query && req.query.name) || "fpl_rosters_points_gw1.csv";
+
+    const { url } = await put(nameFromQuery, Buffer.alloc(0), {
+      access: "public",
+      addRandomSuffix: false, // keep a stable URL
       contentType: "text/csv",
     });
 
-    res.status(200).json({ uploadUrl: url });
+    return res.status(200).json({ uploadUrl: url });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to sign upload" });
+    console.error("sign-blob-upload error:", err);
+    return res.status(500).json({ error: String(err && err.message ? err.message : err) });
   }
-}
+};
