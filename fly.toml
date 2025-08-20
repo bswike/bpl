@@ -1,0 +1,12 @@
+app = "bpl-red-sun-894"
+primary_region = "mia"
+
+[build]
+  dockerfile = "Dockerfile"   # ensure we build your Dockerfile
+
+# No [http_service] or [[services]] blocks for a background job
+
+[vm]
+  memory = "512mb"            # 512MB is plenty for Python+requests; bump if needed
+  cpu_kind = "shared"
+  cpus = 1

@@ -18,49 +18,47 @@ const LeagueAnalysis = () => {
   }, []);
 
   const analyzeAllPlayersData = async () => {
-    try {
-      // Read the new all-players CSV
-      let csvData;
-      try {
-        csvData = await window.fs.readFile('fpl_all_players_gw1.csv', { encoding: 'utf8' });
-      } catch (fileError) {
-        const response = await fetch('/fpl_all_players_gw1.csv');
-        csvData = await response.text();
-      }
-      
-      const parsedData = Papa.parse(csvData, {
-        header: true,
-        dynamicTyping: true,
-        skipEmptyLines: true
-      });
+  try {
+    const CSV_URL =
+      import.meta.env.VITE_ALL_PLAYERS_CSV_URL ||
+      "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_all_players_gw1.csv";
 
-      // Now we have ALL FPL players with league ownership data
-      const allPlayers = parsedData.data.filter(row => 
-        row && row.player && typeof row.points_gw === 'number'
-      );
+    // cache-buster (30s)
+    const url = `${CSV_URL}?t=${Math.floor(Date.now() / 30000)}`;
 
-      console.log(`Loaded ${allPlayers.length} total FPL players`);
-      console.log(`Players owned by league: ${allPlayers.filter(p => p.league_ownership > 0).length}`);
-      console.log(`Players NOT owned by league: ${allPlayers.filter(p => p.league_ownership === 0).length}`);
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Failed to fetch CSV: ${response.status}`);
 
-      // Perform analyses with the new data structure
-      const results = {
-        leagueHits: analyzeLeagueHits(allPlayers),
-        globalMisses: analyzeGlobalMisses(allPlayers),
-        crowdDisasters: analyzeCrowdDisasters(allPlayers),
-        hiddenGems: analyzeHiddenGems(allPlayers),
-        bestDifferentials: analyzeBestDifferentials(allPlayers),
-        worstConsensus: analyzeWorstConsensus(allPlayers),
-        captainAnalysis: analyzeCaptainChoices(allPlayers)
-      };
+    const csvData = await response.text();
 
-      setAnalysisData(results);
-    } catch (error) {
-      console.error('Error analyzing all players data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const parsedData = Papa.parse(csvData, {
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+    });
+
+    const allPlayers = parsedData.data.filter(
+      (row) => row && row.player && typeof row.points_gw === "number"
+    );
+
+    const results = {
+      leagueHits: analyzeLeagueHits(allPlayers),
+      globalMisses: analyzeGlobalMisses(allPlayers),
+      crowdDisasters: analyzeCrowdDisasters(allPlayers),
+      hiddenGems: analyzeHiddenGems(allPlayers),
+      bestDifferentials: analyzeBestDifferentials(allPlayers),
+      worstConsensus: analyzeWorstConsensus(allPlayers),
+      captainAnalysis: analyzeCaptainChoices(allPlayers),
+    };
+
+    setAnalysisData(results);
+  } catch (error) {
+    console.error("Error analyzing all players data:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const analyzeLeagueHits = (players) => {
     // Players with high league ownership who performed well

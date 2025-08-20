@@ -7,23 +7,25 @@ const FPLPointsChart = () => {
   const [parsedData, setParsedData] = useState({ data: [] });
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
-    try {
-      let csvData;
-      try {
-        csvData = await window.fs.readFile('fpl_rosters_points_gw1.csv', { encoding: 'utf8' });
-      } catch (fileError) {
-        const response = await fetch('/fpl_rosters_points_gw1.csv');
-        csvData = await response.text();
-      }
-      
-      const parsedData = Papa.parse(csvData, {
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true
-        });
+const fetchData = async () => {
+  try {
+    // Fetch from Vercel Blob (your Fly worker overwrites this file every 30s)
+    const CSV_URL = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw1.csv';
+    // tiny cache-buster tied to 30s intervals
+    const url = `${CSV_URL}?t=${Math.floor(Date.now() / 30000)}`;
 
-      setParsedData(parsedData);
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Failed to fetch CSV: ${response.status}`);
+
+    const csvData = await response.text();
+
+    const parsed = Papa.parse(csvData, {
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true
+    });
+
+    setParsedData(parsed);
 
       parsedData.data.forEach(row => {
         if (row.player === 'João Pedro Junqueira de Jesus') {
