@@ -12,7 +12,7 @@ def _int_env(name, default):
     except Exception:
         return default
 
-INTERVAL = _int_env("INTERVAL_SECONDS", 30)
+INTERVAL = _int_env("INTERVAL_SECONDS", 3600)
 ACTIVE   = os.getenv("ACTIVE", "1")
 
 # Output CSV filenames your scripts produce

@@ -27,134 +27,138 @@ const fetchData = async () => {
 
     setParsedData(parsed);
 
-      parsedData.data.forEach(row => {
-        if (row.player === 'João Pedro Junqueira de Jesus') {
-          row.player = 'João Pedro';
+    // Fix the name formatting
+    parsed.data.forEach(row => {
+      if (row.player === 'JoÃ£o Pedro Junqueira de Jesus') {
+        row.player = 'JoÃ£o Pedro';
+      }
+    });
+
+    const managerRemainingPlayers = {};
+    const managerBenchPoints = {};
+    
+    // Use parsed.data instead of parsedData.data
+    parsed.data
+      .filter(row => row.player !== "TOTAL")
+      .forEach(row => {
+        const manager = row.manager_name;
+        if (!managerRemainingPlayers[manager]) {
+          managerRemainingPlayers[manager] = {
+            total_players: 0,
+            finished_players: 0,
+            remaining_players: 0,
+            remaining_player_names: []
+          };
+        }
+        if (!managerBenchPoints[manager]) {
+            managerBenchPoints[manager] = {
+                bench_points: 0,
+                bench_players: []
+            }
+        }
+        
+        if (row.multiplier >= 1) {
+          managerRemainingPlayers[manager].total_players++;
+          
+          if (row.fixture_finished === "True" || row.status === "dnp") {
+            managerRemainingPlayers[manager].finished_players++;
+          } else {
+            managerRemainingPlayers[manager].remaining_players++;
+            
+            let kickoffString = 'Time TBD';
+            if (row.kickoff_time) {
+                const kickoffTimeUTC = new Date(row.kickoff_time);
+                if (!isNaN(kickoffTimeUTC.getTime())) {
+                  const dateOptions = { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' };
+                  const timeOptions = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' };
+                  const datePart = kickoffTimeUTC.toLocaleDateString('en-US', dateOptions);
+                  const timePart = kickoffTimeUTC.toLocaleTimeString('en-US', timeOptions);
+                  kickoffString = `${datePart} - ${timePart}`;
+                }
+            }
+
+            const formattedPlayerName = `${row.player} (${row.club} - ${kickoffString})`;
+            managerRemainingPlayers[manager].remaining_player_names.push(formattedPlayerName);
+          }
+        } else if (row.multiplier === 0) {
+            const benchPoints = parseFloat(row.points_gw) || 0;
+            managerBenchPoints[manager].bench_points += benchPoints;
+            managerBenchPoints[manager].bench_players.push({
+                name: row.player,
+                points: benchPoints,
+                club: row.club
+            });
         }
       });
 
-      const managerRemainingPlayers = {};
-      const managerBenchPoints = {};
-      
-      parsedData.data
-        .filter(row => row.player !== "TOTAL")
-        .forEach(row => {
-          const manager = row.manager_name;
-          if (!managerRemainingPlayers[manager]) {
-            managerRemainingPlayers[manager] = {
-              total_players: 0,
-              finished_players: 0,
-              remaining_players: 0,
-              remaining_player_names: []
-            };
-          }
-          if (!managerBenchPoints[manager]) {
-              managerBenchPoints[manager] = {
-                  bench_points: 0,
-                  bench_players: []
-              }
-          }
-          
-          if (row.multiplier >= 1) {
-            managerRemainingPlayers[manager].total_players++;
-            
-            if (row.fixture_finished === "True" || row.status === "dnp") {
-              managerRemainingPlayers[manager].finished_players++;
-            } else {
-              managerRemainingPlayers[manager].remaining_players++;
-              
-              let kickoffString = 'Time TBD';
-              if (row.kickoff_time) {
-                  const kickoffTimeUTC = new Date(row.kickoff_time);
-                  if (!isNaN(kickoffTimeUTC.getTime())) {
-                    const dateOptions = { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' };
-                    const timeOptions = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' };
-                    const datePart = kickoffTimeUTC.toLocaleDateString('en-US', dateOptions);
-                    const timePart = kickoffTimeUTC.toLocaleTimeString('en-US', timeOptions);
-                    kickoffString = `${datePart} - ${timePart}`;
-                  }
-              }
-
-              const formattedPlayerName = `${row.player} (${row.club} - ${kickoffString})`;
-              managerRemainingPlayers[manager].remaining_player_names.push(formattedPlayerName);
-            }
-          } else if (row.multiplier === 0) {
-              const benchPoints = parseFloat(row.points_gw) || 0;
-              managerBenchPoints[manager].bench_points += benchPoints;
-              managerBenchPoints[manager].bench_players.push({
-                  name: row.player,
-                  points: benchPoints,
-                  club: row.club
-              });
-          }
-        });
-
-      const captainData = {};
-      
-      parsedData.data
-        .filter(row => row.is_captain === "True")
-        .forEach(row => {
-          captainData[row.manager_name] = {
-            captain_player: row.player,
-            captain_points: row.points_applied,
-            captain_base_points: row.points_gw
-          };
-        });
-
-      const totalRows = parsedData.data.filter(row => row.player === "TOTAL");
-      
-      const managerTotals = totalRows.map(row => {
-        const captainInfo = captainData[row.manager_name];
-        const captainPoints = captainInfo?.captain_points || 0;
-        const regularPoints = row.points_applied - captainPoints;
-        const benchInfo = managerBenchPoints[row.manager_name];
-        
-        return {
-          manager_name: row.manager_name,
-          team_name: row.entry_team_name,
-          total_points: row.points_applied,
-          regular_points: regularPoints,
-          captain_points: captainPoints,
-          captain_player: captainInfo?.captain_player || 'Unknown',
-          captain_base_points: captainInfo?.captain_base_points || 0,
-          remaining_players: managerRemainingPlayers[row.manager_name]?.remaining_players || 0,
-          remaining_player_names: managerRemainingPlayers[row.manager_name]?.remaining_player_names || [],
-          bench_points: benchInfo?.bench_points || 0,
-          bench_players: benchInfo?.bench_players || []
+    const captainData = {};
+    
+    // Use parsed.data instead of parsedData.data
+    parsed.data
+      .filter(row => row.is_captain === "True")
+      .forEach(row => {
+        captainData[row.manager_name] = {
+          captain_player: row.player,
+          captain_points: row.points_applied,
+          captain_base_points: row.points_gw
         };
       });
 
-      const sortedData = managerTotals
-        .sort((a, b) => b.total_points - a.total_points)
-        .map((item, index) => {
-          const totalManagers = managerTotals.length;
-          let designation = 'Mid-table';
-          
-          if (index < 4) {
-            designation = 'Champions League';
-          } else if (index === 4) {
-            designation = 'Europa League';
-          } else if (index >= totalManagers - 3) {
-            designation = 'Relegation';
-          }
+    // Use parsed.data instead of parsedData.data
+    const totalRows = parsed.data.filter(row => row.player === "TOTAL");
+    
+    const managerTotals = totalRows.map(row => {
+      const captainInfo = captainData[row.manager_name];
+      const captainPoints = captainInfo?.captain_points || 0;
+      const regularPoints = row.points_applied - captainPoints;
+      const benchInfo = managerBenchPoints[row.manager_name];
+      
+      return {
+        manager_name: row.manager_name,
+        team_name: row.entry_team_name,
+        total_points: row.points_applied,
+        regular_points: regularPoints,
+        captain_points: captainPoints,
+        captain_player: captainInfo?.captain_player || 'Unknown',
+        captain_base_points: captainInfo?.captain_base_points || 0,
+        remaining_players: managerRemainingPlayers[row.manager_name]?.remaining_players || 0,
+        remaining_player_names: managerRemainingPlayers[row.manager_name]?.remaining_player_names || [],
+        bench_points: benchInfo?.bench_points || 0,
+        bench_players: benchInfo?.bench_players || []
+      };
+    });
 
-          return {
-            ...item,
-            rank: index + 1,
-            designation,
-            displayName: item.manager_name.length > 12 ?
-              item.manager_name.substring(0, 12) + '...' :
-              item.manager_name
-          };
-        });
+    const sortedData = managerTotals
+      .sort((a, b) => b.total_points - a.total_points)
+      .map((item, index) => {
+        const totalManagers = managerTotals.length;
+        let designation = 'Mid-table';
+        
+        if (index < 4) {
+          designation = 'Champions League';
+        } else if (index === 4) {
+          designation = 'Europa League';
+        } else if (index >= totalManagers - 3) {
+          designation = 'Relegation';
+        }
 
-      setData(sortedData);
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        return {
+          ...item,
+          rank: index + 1,
+          designation,
+          displayName: item.manager_name.length > 12 ?
+            item.manager_name.substring(0, 12) + '...' :
+            item.manager_name
+        };
+      });
+
+    setData(sortedData);
+  } catch (error) {
+    console.error('Error loading data:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchData();
