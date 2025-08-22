@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import FPLDashboard from './components/FPLDashboard';
 import LeagueAnalysis from './components/LeagueAnalysis';
-import FPLMultiGameweekDashboard from './components/FPLMultiGameweekDashboard'; // Add this import
+import FPLMultiGameweekDashboard from './components/FPLMultiGameweekDashboard';
 import './App.css';
 
 const Navigation = ({ currentPage, setCurrentPage }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '⚽' },
     { id: 'analysis', label: 'League Analysis', icon: '🧠' },
-    { id: 'multi-gw', label: 'Multi-GW', icon: '📊' }, // Add this new tab
+    { id: 'multi-gw', label: 'Multi-GW', icon: '📊' },
   ];
 
   return (
@@ -41,7 +41,7 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
 };
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState('multi-gw'); // Changed from 'dashboard' to 'multi-gw'
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -49,10 +49,10 @@ function App() {
         return <FPLDashboard />;
       case 'analysis':
         return <LeagueAnalysis />;
-      case 'multi-gw': // Add this new case
+      case 'multi-gw':
         return <FPLMultiGameweekDashboard />;
       default:
-        return <FPLDashboard />;
+        return <FPLMultiGameweekDashboard />; // Also changed default to multi-gw
     }
   };
 
