@@ -53,7 +53,7 @@ const LeagueAnalysis = () => {
 
     setAnalysisData(results);
   } catch (error) {
-    console.error("Error analyzing all players data:", error);
+    console.error("Error analyzing alll players data:", error);
   } finally {
     setLoading(false);
   }
