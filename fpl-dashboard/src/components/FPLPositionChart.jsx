@@ -17,7 +17,7 @@ const FPLPositionChart = () => {
   ];
 
   const processGameweekData = async (gameweek) => {
-    try {
+try {
       // Fetch from Vercel Blob (your Fly worker overwrites this file every 5 minutes)
       const CSV_URL = `https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw${gameweek}.csv`;
       // tiny cache-buster tied to 5min intervals
