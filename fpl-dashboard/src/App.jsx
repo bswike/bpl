@@ -8,7 +8,7 @@ import './App.css';
 const Navigation = ({ currentPage, setCurrentPage }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '⚽' },
-    { id: 'analysis', label: 'Analysis', icon: '🧠' },
+   // { id: 'analysis', label: 'Analysis', icon: '🧠' },
     { id: 'multi-gw', label: 'Multi-GW', icon: '📊' },
     { id: 'position-chart', label: 'Positions', icon: '📈' },
   ];
@@ -52,8 +52,8 @@ function App() {
     switch (currentPage) {
       case 'dashboard':
         return <FPLDashboard />;
-      case 'analysis':
-        return <LeagueAnalysis />;
+      /*case 'analysis':
+        return <LeagueAnalysis />;*/
       case 'multi-gw':
         return <FPLMultiGameweekDashboard />;
       case 'position-chart':

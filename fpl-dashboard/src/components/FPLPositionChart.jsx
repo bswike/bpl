@@ -5,8 +5,10 @@ import Papa from 'papaparse';
 const FPLPositionChart = () => {
   const [chartData, setChartData] = useState([]);
   const [managers, setManagers] = useState([]);
+  const [managerStats, setManagerStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedManager, setSelectedManager] = useState(null);
 
   // Color palette for different managers
   const colors = [
@@ -17,17 +19,36 @@ const FPLPositionChart = () => {
   ];
 
   const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-gray-900 text-white p-3 rounded border border-gray-600 shadow-xl">
-          <p className="font-bold text-cyan-300">Gameweek {label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} style={{ color: entry.color }} className="text-sm">
-              {entry.dataKey}: Position {entry.value}
+    if (active && payload && payload.length && selectedManager) {
+      // Only show the selected manager's data
+      const managerData = payload.find(entry => entry.dataKey === selectedManager);
+      if (managerData && managerStats[selectedManager]) {
+        const stats = managerStats[selectedManager];
+        const currentGW = parseInt(label);
+        const currentRank = managerData.value;
+        const previousRank = currentGW === 1 ? null : stats.gw1_position;
+        const totalPoints = currentGW === 1 ? stats.gw1_cumulative : stats.gw2_cumulative;
+        
+        const rankChange = previousRank ? currentRank - previousRank : null;
+        const rankChangeText = rankChange === null ? '' : 
+          rankChange === 0 ? ' (No change)' :
+          rankChange > 0 ? ` (↓${rankChange})` : 
+          ` (↑${Math.abs(rankChange)})`;
+        
+        return (
+          <div className="bg-gray-900 text-white p-3 rounded border border-gray-600 shadow-xl min-w-48">
+            <p className="font-bold text-cyan-300 mb-2">{selectedManager}</p>
+            <p className="text-sm mb-1">Gameweek: {label}</p>
+            <p className="text-sm mb-1">Current Rank: #{currentRank}{rankChangeText}</p>
+            {previousRank && (
+              <p className="text-sm mb-1">Previous Rank: #{previousRank}</p>
+            )}
+            <p className="text-sm font-semibold" style={{ color: managerData.color }}>
+              Total Points: {totalPoints}
             </p>
-          ))}
-        </div>
-      );
+          </div>
+        );
+      }
     }
     return null;
   };
@@ -44,24 +65,28 @@ const FPLPositionChart = () => {
       };
       
       const textColor = isLightColor(fill) ? '#000000' : '#FFFFFF';
+      const isSelected = selectedManager === dataKey;
       
       return (
         <g>
           <circle 
             cx={cx} 
             cy={cy} 
-            r={12} 
+            r={isSelected ? 16 : 12} 
             fill={fill} 
-            stroke="#333333" 
-            strokeWidth={2}
+            stroke={isSelected ? "#FFD700" : "#333333"} 
+            strokeWidth={isSelected ? 3 : 2}
+            style={{ cursor: 'pointer' }}
+            onClick={() => setSelectedManager(dataKey)}
           />
           <text 
             x={cx} 
             y={cy + 2} 
             textAnchor="middle" 
             fill={textColor}
-            fontSize="9" 
+            fontSize={isSelected ? "10" : "9"}
             fontWeight="bold"
+            style={{ cursor: 'pointer', pointerEvents: 'none' }}
           >
             {initials}
           </text>
@@ -72,7 +97,7 @@ const FPLPositionChart = () => {
   };
 
   const processGameweekData = async (gameweek) => {
-try {
+    try {
       // Fetch from Vercel Blob (your Fly worker overwrites this file every 5 minutes)
       const CSV_URL = `https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw${gameweek}.csv`;
       // tiny cache-buster tied to 5min intervals
@@ -160,10 +185,23 @@ try {
 
       console.log('Ranked by cumulative points - GW1:', gw1Ranked.length, 'GW2:', gw2Ranked.length);
 
-      // Create chart data structure
+      // Create chart data structure and manager stats
       const allManagers = gw1Ranked.map(m => m.manager_name);
       setManagers(allManagers);
       console.log('All managers:', allManagers);
+
+      // Store manager stats for tooltip use
+      const statsLookup = {};
+      gw1Ranked.forEach(manager => {
+        const gw2Manager = gw2Ranked.find(m => m.manager_name === manager.manager_name);
+        statsLookup[manager.manager_name] = {
+          gw1_position: manager.gw1_position,
+          gw1_cumulative: manager.gw1_cumulative,
+          gw2_position: gw2Manager ? gw2Manager.gw2_position : null,
+          gw2_cumulative: gw2Manager ? gw2Manager.gw2_cumulative : manager.gw1_cumulative
+        };
+      });
+      setManagerStats(statsLookup);
 
       const chartPoints = [];
 
@@ -227,6 +265,19 @@ try {
           <span>GAMEWEEK: 1-2</span>
           <span>MANAGERS: {managers.length}</span>
         </div>
+        {selectedManager && (
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-cyan-300 text-sm">
+              Selected: {selectedManager}
+            </span>
+            <button 
+              onClick={() => setSelectedManager(null)}
+              className="text-red-400 hover:text-red-300 text-sm"
+            >
+              Clear
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mobile Layout */}
@@ -311,8 +362,9 @@ try {
         </ResponsiveContainer>
       </div>
 
-      {/* Legend */}
-      <div className="mt-4 text-xs text-gray-400">
+      {/* Instructions and Legend */}
+      <div className="mt-4 text-xs text-gray-400 space-y-2">
+        <p className="text-cyan-300">💡 Click on any dot to see only that manager's details</p>
         <p>Positions based on cumulative points: GW1 shows total after 1 gameweek, GW2 shows total after 2 gameweeks.</p>
         {chartData.length < 2 && (
           <p className="text-yellow-400">GW2 data not yet available - showing GW1 positions only</p>
