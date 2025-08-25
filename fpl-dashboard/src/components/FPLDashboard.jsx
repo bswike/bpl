@@ -4,165 +4,176 @@ import Papa from 'papaparse';
 
 const FPLPointsChart = () => {
   const [data, setData] = useState([]);
-  const [parsedData, setParsedData] = useState({ data: [] });
+  const [parsedDataGW1, setParsedDataGW1] = useState({ data: [] });
+  const [parsedDataGW2, setParsedDataGW2] = useState({ data: [] });
   const [loading, setLoading] = useState(true);
 
-const fetchData = async () => {
-  try {
-    // Fetch from Vercel Blob (your Fly worker overwrites this file every 30s)
-    const CSV_URL = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw1.csv';
-    // tiny cache-buster tied to 30s intervals
-    const url = `${CSV_URL}?t=${Math.floor(Date.now() / 30000)}`;
+  const fetchGameweekData = async (gameweek) => {
+    try {
+      const CSV_URL = `https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw${gameweek}.csv`;
+      const url = `${CSV_URL}?t=${Math.floor(Date.now() / 300000)}`;
 
-    const response = await fetch(url, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`Failed to fetch CSV: ${response.status}`);
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to fetch GW${gameweek} CSV: ${response.status}`);
 
-    const csvData = await response.text();
-
-    const parsed = Papa.parse(csvData, {
-      header: true,
-      dynamicTyping: true,
-      skipEmptyLines: true
-    });
-
-    setParsedData(parsed);
-
-    // Fix the name formatting
-    parsed.data.forEach(row => {
-      if (row.player === 'JoÃ£o Pedro Junqueira de Jesus') {
-        row.player = 'JoÃ£o Pedro';
-      }
-    });
-
-    const managerRemainingPlayers = {};
-    const managerBenchPoints = {};
-    
-    // Use parsed.data instead of parsedData.data
-    parsed.data
-      .filter(row => row.player !== "TOTAL")
-      .forEach(row => {
-        const manager = row.manager_name;
-        if (!managerRemainingPlayers[manager]) {
-          managerRemainingPlayers[manager] = {
-            total_players: 0,
-            finished_players: 0,
-            remaining_players: 0,
-            remaining_player_names: []
-          };
-        }
-        if (!managerBenchPoints[manager]) {
-            managerBenchPoints[manager] = {
-                bench_points: 0,
-                bench_players: []
-            }
-        }
-        
-        if (row.multiplier >= 1) {
-          managerRemainingPlayers[manager].total_players++;
-          
-          if (row.fixture_finished === "True" || row.status === "dnp") {
-            managerRemainingPlayers[manager].finished_players++;
-          } else {
-            managerRemainingPlayers[manager].remaining_players++;
-            
-            let kickoffString = 'Time TBD';
-            if (row.kickoff_time) {
-                const kickoffTimeUTC = new Date(row.kickoff_time);
-                if (!isNaN(kickoffTimeUTC.getTime())) {
-                  const dateOptions = { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' };
-                  const timeOptions = { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' };
-                  const datePart = kickoffTimeUTC.toLocaleDateString('en-US', dateOptions);
-                  const timePart = kickoffTimeUTC.toLocaleTimeString('en-US', timeOptions);
-                  kickoffString = `${datePart} - ${timePart}`;
-                }
-            }
-
-            const formattedPlayerName = `${row.player} (${row.club} - ${kickoffString})`;
-            managerRemainingPlayers[manager].remaining_player_names.push(formattedPlayerName);
-          }
-        } else if (row.multiplier === 0) {
-            const benchPoints = parseFloat(row.points_gw) || 0;
-            managerBenchPoints[manager].bench_points += benchPoints;
-            managerBenchPoints[manager].bench_players.push({
-                name: row.player,
-                points: benchPoints,
-                club: row.club
-            });
-        }
-      });
-
-    const captainData = {};
-    
-    // Use parsed.data instead of parsedData.data
-    parsed.data
-      .filter(row => row.is_captain === "True")
-      .forEach(row => {
-        captainData[row.manager_name] = {
-          captain_player: row.player,
-          captain_points: row.points_applied,
-          captain_base_points: row.points_gw
-        };
-      });
-
-    // Use parsed.data instead of parsedData.data
-    const totalRows = parsed.data.filter(row => row.player === "TOTAL");
-    
-    const managerTotals = totalRows.map(row => {
-      const captainInfo = captainData[row.manager_name];
-      const captainPoints = captainInfo?.captain_points || 0;
-      const regularPoints = row.points_applied - captainPoints;
-      const benchInfo = managerBenchPoints[row.manager_name];
+      const csvData = await response.text();
       
-      return {
-        manager_name: row.manager_name,
-        team_name: row.entry_team_name,
-        total_points: row.points_applied,
-        regular_points: regularPoints,
-        captain_points: captainPoints,
-        captain_player: captainInfo?.captain_player || 'Unknown',
-        captain_base_points: captainInfo?.captain_base_points || 0,
-        remaining_players: managerRemainingPlayers[row.manager_name]?.remaining_players || 0,
-        remaining_player_names: managerRemainingPlayers[row.manager_name]?.remaining_player_names || [],
-        bench_points: benchInfo?.bench_points || 0,
-        bench_players: benchInfo?.bench_players || []
-      };
-    });
+      if (csvData.trim() === "The game is being updated.") {
+        console.log(`GW${gameweek} is being updated`);
+        return { data: [] };
+      }
 
-    const sortedData = managerTotals
-      .sort((a, b) => b.total_points - a.total_points)
-      .map((item, index) => {
-        const totalManagers = managerTotals.length;
-        let designation = 'Mid-table';
-        
-        if (index < 4) {
-          designation = 'Champions League';
-        } else if (index === 4) {
-          designation = 'Europa League';
-        } else if (index >= totalManagers - 3) {
-          designation = 'Relegation';
+      const parsed = Papa.parse(csvData, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true
+      });
+
+      // Fix name formatting
+      parsed.data.forEach(row => {
+        if (row.player === 'JoÃ£o Pedro Junqueira de Jesus') {
+          row.player = 'JoÃ£o Pedro';
         }
+      });
 
+      return parsed;
+    } catch (error) {
+      console.error(`Error loading GW${gameweek} data:`, error);
+      return { data: [] };
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      // Fetch both gameweeks
+      const [gw1Parsed, gw2Parsed] = await Promise.all([
+        fetchGameweekData(1),
+        fetchGameweekData(2)
+      ]);
+
+      setParsedDataGW1(gw1Parsed);
+      setParsedDataGW2(gw2Parsed);
+
+      // Process manager data for both gameweeks
+      const processManagerData = (parsedData, gameweek) => {
+        const managerBenchPoints = {};
+        
+        parsedData.data
+          .filter(row => row.player !== "TOTAL")
+          .forEach(row => {
+            const manager = row.manager_name;
+            if (!managerBenchPoints[manager]) {
+                managerBenchPoints[manager] = {
+                    bench_points: 0,
+                    bench_players: []
+                };
+            }
+            
+            if (row.multiplier === 0) {
+                const benchPoints = parseFloat(row.points_gw) || 0;
+                managerBenchPoints[manager].bench_points += benchPoints;
+                managerBenchPoints[manager].bench_players.push({
+                    name: row.player,
+                    points: benchPoints,
+                    club: row.club
+                });
+            }
+          });
+
+        const captainData = {};
+        
+        parsedData.data
+          .filter(row => row.is_captain === "True")
+          .forEach(row => {
+            captainData[row.manager_name] = {
+              captain_player: row.player,
+              captain_points: row.points_applied,
+              captain_base_points: row.points_gw
+            };
+          });
+
+        const totalRows = parsedData.data.filter(row => row.player === "TOTAL");
+        
+        return totalRows.map(row => {
+          const captainInfo = captainData[row.manager_name];
+          const captainPoints = captainInfo?.captain_points || 0;
+          const regularPoints = row.points_applied - captainPoints;
+          const benchInfo = managerBenchPoints[row.manager_name];
+          
+          return {
+            manager_name: row.manager_name,
+            team_name: row.entry_team_name,
+            total_points: row.points_applied,
+            regular_points: regularPoints,
+            captain_points: captainPoints,
+            captain_player: captainInfo?.captain_player || 'Unknown',
+            captain_base_points: captainInfo?.captain_base_points || 0,
+            bench_points: benchInfo?.bench_points || 0,
+            bench_players: benchInfo?.bench_players || [],
+            gameweek: gameweek
+          };
+        });
+      };
+
+      // Process both gameweeks
+      const gw1Data = gw1Parsed.data.length > 0 ? processManagerData(gw1Parsed, 1) : [];
+      const gw2Data = gw2Parsed.data.length > 0 ? processManagerData(gw2Parsed, 2) : [];
+
+      // Combine data for cumulative totals
+      const combinedData = gw1Data.map(gw1Manager => {
+        const gw2Manager = gw2Data.find(m => m.manager_name === gw1Manager.manager_name);
+        
         return {
-          ...item,
-          rank: index + 1,
-          designation,
-          displayName: item.manager_name.length > 12 ?
-            item.manager_name.substring(0, 12) + '...' :
-            item.manager_name
+          manager_name: gw1Manager.manager_name,
+          team_name: gw1Manager.team_name,
+          gw1_points: gw1Manager.total_points,
+          gw2_points: gw2Manager ? gw2Manager.total_points : 0,
+          total_points: gw1Manager.total_points + (gw2Manager ? gw2Manager.total_points : 0),
+          gw1_captain: gw1Manager.captain_player,
+          gw2_captain: gw2Manager ? gw2Manager.captain_player : 'N/A',
+          captain_player: gw2Manager ? gw2Manager.captain_player : gw1Manager.captain_player,
+          captain_points: (gw1Manager.captain_points || 0) + (gw2Manager ? gw2Manager.captain_points : 0),
+          captain_base_points: (gw1Manager.captain_base_points || 0) + (gw2Manager ? gw2Manager.captain_base_points : 0),
+          bench_points: (gw1Manager.bench_points || 0) + (gw2Manager ? gw2Manager.bench_points : 0),
+          bench_players: [...(gw1Manager.bench_players || []), ...(gw2Manager ? gw2Manager.bench_players : [])]
         };
       });
 
-    setData(sortedData);
-  } catch (error) {
-    console.error('Error loading data:', error);
-  } finally {
-    setLoading(false);
-  }
-};
+      const sortedData = combinedData
+        .sort((a, b) => b.total_points - a.total_points)
+        .map((item, index) => {
+          const totalManagers = combinedData.length;
+          let designation = 'Mid-table';
+          
+          if (index < 4) {
+            designation = 'Champions League';
+          } else if (index === 4) {
+            designation = 'Europa League';
+          } else if (index >= totalManagers - 3) {
+            designation = 'Relegation';
+          }
+
+          return {
+            ...item,
+            rank: index + 1,
+            designation,
+            displayName: item.manager_name.length > 12 ?
+              item.manager_name.substring(0, 12) + '...' :
+              item.manager_name
+          };
+        });
+
+      setData(sortedData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
-    const intervalId = setInterval(fetchData, 30000);
+    const intervalId = setInterval(fetchData, 300000);
     return () => clearInterval(intervalId);
   }, []);
 
@@ -183,10 +194,10 @@ const fetchData = async () => {
               Total: {data.total_points} points
             </p>
             <p className="text-gray-300 text-xxs">
-              Captain: {data.captain_points} pts ({captainLastName})
+              GW1: {data.gw1_points} | GW2: {data.gw2_points}
             </p>
             <p className="text-gray-300 text-xxs">
-              Starting XI Remaining: {data.remaining_players}
+              Captain: {data.captain_points} pts ({captainLastName})
             </p>
           </div>
           <p className="text-cyan-200 text-xxs mt-1 font-medium">
@@ -211,117 +222,21 @@ const fetchData = async () => {
   const highPoints = data.length > 0 ? Math.max(...data.map(item => item.total_points)) : 0;
   const lowPoints = data.length > 0 ? Math.min(...data.map(item => item.total_points)) : 0;
   const avgBenchPoints = data.length > 0 ? Math.round(data.reduce((sum, item) => sum + item.bench_points, 0) / data.length) : 0;
-  
-  const uniquePlayersRemaining = [...new Set(data.flatMap(manager => manager.remaining_player_names))].length;
-
-  // Value analysis
-  let valueHeroes = [];
-  let premiumFlops = [];
-  let differentials = [];
-  let bestManagerPicks = [];
-  let worstManagerPicks = [];
-
-  if (parsedData && parsedData.data && parsedData.data.length > 0) {
-    const allPlayers = parsedData.data.filter(row => 
-      row && row.player && row.player !== "TOTAL" && row.points_gw > 0
-    );
-    
-    const totalManagers = data.length;
-    
-    const uniquePlayers = {};
-    allPlayers.forEach(player => {
-      if (player && player.player && !uniquePlayers[player.player]) {
-        uniquePlayers[player.player] = player;
-      }
-    });
-    const uniquePlayersList = Object.values(uniquePlayers);
-    
-    const playerOwnership = {};
-    allPlayers.forEach(p => {
-      if (p && p.player) {
-        if (!playerOwnership[p.player]) {
-          playerOwnership[p.player] = { count: 0, playerData: p };
-        }
-        playerOwnership[p.player].count++;
-      }
-    });
-
-    const playersWithOwnership = uniquePlayersList
-      .filter(player => player && player.player)
-      .map(player => {
-        const ownership = playerOwnership[player.player];
-        return {
-          ...player,
-          ownershipCount: ownership?.count || 0,
-          ownershipPercentage: Math.round(((ownership?.count || 0) / totalManagers) * 100)
-        };
-      });
-    
-    valueHeroes = playersWithOwnership
-      .filter(p => p && p.points_gw >= 3 && p.value_ratio)
-      .sort((a, b) => b.value_ratio - a.value_ratio)
-      .slice(0, 15);
-
-    premiumFlops = playersWithOwnership
-      .filter(p => p && p.player_cost >= 8.0 && p.points_gw <= 3 && p.value_ratio)
-      .sort((a, b) => a.value_ratio - b.value_ratio)
-      .slice(0, 15);
-
-    differentials = Object.values(playerOwnership)
-      .filter(p => p && p.playerData && p.playerData.player && p.count <= 2 && p.playerData.points_gw >= 6)
-      .map(p => ({
-        ...p.playerData,
-        ownershipCount: p.count,
-        ownershipPercentage: Math.round((p.count / totalManagers) * 100)
-      }))
-      .sort((a, b) => b.points_gw - a.points_gw)
-      .slice(0, 15);
-
-    bestManagerPicks = data.map(manager => {
-      const managerPlayers = allPlayers.filter(p => 
-        p && p.manager_name === manager.manager_name && p.multiplier >= 1
-      );
-      const bestPick = managerPlayers
-        .filter(p => p && p.value_ratio)
-        .sort((a, b) => b.value_ratio - a.value_ratio)[0];
-      return bestPick ? {
-        manager_name: manager.manager_name,
-        rank: manager.rank,
-        total_points: manager.total_points,
-        bestPlayer: bestPick.player,
-        bestCost: bestPick.player_cost,
-        bestPoints: bestPick.points_gw,
-        bestValue: bestPick.value_ratio
-      } : null;
-    }).filter(Boolean).sort((a, b) => b.bestValue - a.bestValue);
-
-    worstManagerPicks = data.map(manager => {
-      const managerPlayers = allPlayers.filter(p => 
-        p && p.manager_name === manager.manager_name && p.multiplier >= 1 && p.player_cost >= 6.0
-      );
-      const worstPick = managerPlayers
-        .filter(p => p && p.value_ratio)
-        .sort((a, b) => a.value_ratio - b.value_ratio)[0];
-      return worstPick ? {
-        manager_name: manager.manager_name,
-        rank: manager.rank,
-        total_points: manager.total_points,
-        worstPlayer: worstPick.player,
-        worstCost: worstPick.player_cost,
-        worstPoints: worstPick.points_gw,
-        worstValue: worstPick.value_ratio
-      } : null;
-    }).filter(Boolean).sort((a, b) => a.worstValue - b.worstValue);
-  }
 
   const captainCounts = {};
   data.forEach(manager => {
-    const captain = manager.captain_player;
-    if (captain && !captainCounts[captain]) {
-      captainCounts[captain] = { count: 0, points: manager.captain_base_points };
+    if (manager.gw1_captain && !captainCounts[manager.gw1_captain]) {
+      captainCounts[manager.gw1_captain] = { count: 0, points: 0 };
     }
-    if (captain) {
-      captainCounts[captain].count++;
+    if (manager.gw1_captain) {
+      captainCounts[manager.gw1_captain].count++;
+    }
+    
+    if (manager.gw2_captain && manager.gw2_captain !== 'N/A' && !captainCounts[manager.gw2_captain]) {
+      captainCounts[manager.gw2_captain] = { count: 0, points: 0 };
+    }
+    if (manager.gw2_captain && manager.gw2_captain !== 'N/A') {
+      captainCounts[manager.gw2_captain].count++;
     }
   });
 
@@ -338,20 +253,23 @@ const fetchData = async () => {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-cyan-400 mb-2 drop-shadow-lg">
-            ⚽ BPL Gameweek 1 Leaderboard
+            BPL Season Leaderboard (GW1 + GW2)
           </h1>
-          <p className="text-md sm:text-lg text-gray-400">A quick look at the league standings and key stats.</p>
+          <p className="text-md sm:text-lg text-gray-400">Combined points from gameweeks 1 and 2</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">🏆 Current League Champion</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">Season Leader</h3>
             <p className="text-2xl sm:text-3xl font-bold text-green-400">{topScorer?.manager_name || 'N/A'}</p>
             <p className="text-xs sm:text-sm text-gray-400 truncate">"{topScorer?.team_name || 'N/A'}"</p>
+            <p className="text-xs text-gray-500 mt-1">
+              GW1: {topScorer?.gw1_points || 0} | GW2: {topScorer?.gw2_points || 0}
+            </p>
           </div>
           
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-3">📊 Points Distribution</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-3">Points Distribution</h3>
             <div className="space-y-2">
               <div className="text-center">
                 <span className="text-sm text-gray-400">High: </span>
@@ -369,22 +287,22 @@ const fetchData = async () => {
           </div>
           
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">🪑 Avg Bench Points</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">Avg Bench Points</h3>
             <p className="text-2xl sm:text-3xl font-bold text-yellow-400">{avgBenchPoints}</p>
             <p className="text-xs sm:text-sm text-gray-400">Points left on bench</p>
           </div>
           
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">⏰ Unique Players Left</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-cyan-400">{uniquePlayersRemaining}</p>
-            <p className="text-xs sm:text-sm text-gray-400">Still to play</p>
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">Total Managers</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-cyan-400">{data.length}</p>
+            <p className="text-xs sm:text-sm text-gray-400">In League</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 sm:mb-12">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl lg:col-span-2 border border-slate-700">
             <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 sm:mb-6 text-center">
-              All Managers Performance
+              Season Performance (GW1 + GW2)
             </h2>
 
             <div className="flex justify-center flex-wrap gap-4 text-sm mb-6">
@@ -474,6 +392,9 @@ const fetchData = async () => {
                   <div className="flex-1">
                     <p className="font-bold text-lg text-cyan-200">{manager.manager_name}</p>
                     <p className="text-xs text-gray-400">"{manager.team_name}"</p>
+                    <p className="text-xs text-gray-500">
+                      GW1: {manager.gw1_points} | GW2: {manager.gw2_points}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-xl sm:text-2xl font-extrabold text-green-400">{manager.total_points}</p>
@@ -485,48 +406,21 @@ const fetchData = async () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
             <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
-              ⏳ XI Remaining
-            </h2>
-            <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
-              {data.map((manager, index) => (
-                <li key={index} className="bg-gradient-to-r from-slate-700 to-slate-600 rounded p-3 border border-slate-500/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <span className="font-bold text-md text-cyan-300">{manager.manager_name}</span>
-                      <p className="text-sm text-gray-400">
-                        {manager.total_points} pts | Rank #{manager.rank}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold text-xl text-cyan-400">{manager.remaining_players}</span>
-                      <p className="text-sm text-gray-500 mt-1">players left</p>
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-300 mt-1">
-                    {manager.remaining_player_names.join(', ')}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
-            <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
-              ⚡ Captains Analysis
+              Popular Captains
             </h2>
             <ul className="space-y-2">
               {popularCaptains.map(([captain, captainData]) => (
                 <li key={captain} className="flex justify-between items-center bg-gradient-to-r from-slate-700 to-slate-600 p-3 rounded border border-slate-500/30">
                   <div>
                     <span className="font-bold text-cyan-200">{captain}</span>
-                    <p className="text-sm text-gray-400 mt-1">{captainData.count} managers captained</p>
+                    <p className="text-sm text-gray-400 mt-1">{captainData.count} times captained</p>
                   </div>
                   <div className="text-right">
-                    <span className="font-bold text-xl text-cyan-400">{captainData.points * 2} pts</span>
-                    <p className="text-xs text-gray-500 mt-1">(Original: {captainData.points} pts)</p>
+                    <span className="font-bold text-xl text-cyan-400">{captainData.count}</span>
+                    <p className="text-xs text-gray-500 mt-1">selections</p>
                   </div>
                 </li>
               ))}
@@ -535,7 +429,7 @@ const fetchData = async () => {
 
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
             <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
-              🪑 Bench Points Leaders
+              Bench Points Leaders
             </h2>
             <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
               {sortedBenchPoints.map((manager, index) => (
@@ -546,172 +440,18 @@ const fetchData = async () => {
                       <p className="text-sm text-gray-400">
                         Rank #{manager.rank} ({manager.total_points} pts)
                       </p>
+                      <p className="text-xs text-gray-500">
+                        GW1: {manager.gw1_points} | GW2: {manager.gw2_points}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <span className="font-bold text-xl text-yellow-400">{manager.bench_points}</span>
+                      <span className="font-bold text-xl text-yellow-400">{Math.round(manager.bench_points)}</span>
                       <p className="text-sm text-gray-500 mt-1">bench pts</p>
                     </div>
-                  </div>
-                  <div className="text-sm text-gray-300 mt-1">
-                    {manager.bench_players.map(player => 
-                      `${player.name} (${player.club}): ${player.points}pts`
-                    ).join(', ')}
                   </div>
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-yellow-400 mb-6 text-center">
-            💰 GW1 VALUE ANALYSIS
-          </h1>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="bg-gradient-to-br from-green-900/20 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-green-700/30">
-              <h2 className="text-xl sm:text-2xl font-bold text-green-300 mb-4 text-center">
-                🔥 Value Heroes (Best Points per £)
-              </h2>
-              <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                {valueHeroes && valueHeroes.length > 0 ? valueHeroes.map((player, index) => (
-                  player && player.player ? (
-                    <li key={index} className="bg-gradient-to-r from-green-800/30 to-slate-700 rounded p-3 border border-green-600/30">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <span className="font-bold text-md text-green-200">{player.player}</span>
-                          <p className="text-sm text-gray-400">
-                            {player.club} | £{player.player_cost}m | {player.points_gw} pts | {player.ownershipPercentage}% owned
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-xl text-green-400">{player.value_ratio}</span>
-                          <p className="text-sm text-gray-500 mt-1">pts/£</p>
-                        </div>
-                      </div>
-                    </li>
-                  ) : null
-                )) : (
-                  <li className="text-gray-400 text-center py-4">Loading value heroes...</li>
-                )}
-              </ul>
-            </div>
-
-            <div className="bg-gradient-to-br from-red-900/20 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-red-700/30">
-              <h2 className="text-xl sm:text-2xl font-bold text-red-300 mb-4 text-center">
-                💸 Premium Flops (8m+ & ≤3 pts)
-              </h2>
-              <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                {premiumFlops && premiumFlops.length > 0 ? premiumFlops.map((player, index) => (
-                  player && player.player ? (
-                    <li key={index} className="bg-gradient-to-r from-red-800/30 to-slate-700 rounded p-3 border border-red-600/30">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <span className="font-bold text-md text-red-200">{player.player}</span>
-                          <p className="text-sm text-gray-400">
-                            {player.club} | £{player.player_cost}m | {player.points_gw} pts | {player.ownershipPercentage}% owned
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-xl text-red-400">{player.value_ratio}</span>
-                          <p className="text-sm text-gray-500 mt-1">pts/£</p>
-                        </div>
-                      </div>
-                    </li>
-                  ) : null
-                )) : (
-                  <li className="text-gray-400 text-center py-4">Loading premium flops...</li>
-                )}
-              </ul>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className="bg-gradient-to-br from-purple-900/20 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-purple-700/30">
-              <h2 className="text-xl sm:text-2xl font-bold text-purple-300 mb-4 text-center">
-                💎 Differential Gold (≤2 owners, 6+ pts)
-              </h2>
-              <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                {differentials && differentials.length > 0 ? differentials.map((player, index) => (
-                  player && player.player ? (
-                    <li key={index} className="bg-gradient-to-r from-purple-800/30 to-slate-700 rounded p-3 border border-purple-600/30">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <span className="font-bold text-md text-purple-200">{player.player}</span>
-                          <p className="text-sm text-gray-400">
-                            {player.club} | £{player.player_cost}m | {player.ownershipPercentage}% owned
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-xl text-purple-400">{player.points_gw}</span>
-                          <p className="text-sm text-gray-500 mt-1">points</p>
-                        </div>
-                      </div>
-                    </li>
-                  ) : null
-                )) : (
-                  <li className="text-gray-400 text-center py-4">Loading differentials...</li>
-                )}
-              </ul>
-            </div>
-
-            <div className="bg-gradient-to-br from-blue-900/20 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-blue-700/30">
-              <h2 className="text-xl sm:text-2xl font-bold text-blue-300 mb-4 text-center">
-                🎯 Best Manager Picks (Best XI Value)
-              </h2>
-              <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                {bestManagerPicks && bestManagerPicks.length > 0 ? bestManagerPicks.slice(0, 15).map((pick, index) => (
-                  pick && pick.bestPlayer ? (
-                    <li key={index} className="bg-gradient-to-r from-blue-800/30 to-slate-700 rounded p-3 border border-blue-600/30">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <span className="font-bold text-md text-blue-200">{pick.manager_name}</span>
-                          <p className="text-sm text-gray-400">
-                            {pick.bestPlayer} | £{pick.bestCost}m | {pick.bestPoints} pts
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-xl text-blue-400">{pick.bestValue}</span>
-                          <p className="text-sm text-gray-500 mt-1">pts/£</p>
-                        </div>
-                      </div>
-                    </li>
-                  ) : null
-                )) : (
-                  <li className="text-gray-400 text-center py-4">Loading best picks...</li>
-                )}
-              </ul>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6">
-            <div className="bg-gradient-to-br from-orange-900/20 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-orange-700/30">
-              <h2 className="text-xl sm:text-2xl font-bold text-orange-300 mb-4 text-center">
-                📉 Manager's Worst Picks (Worst XI Value, 6m+ only)
-              </h2>
-              <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                {worstManagerPicks && worstManagerPicks.length > 0 ? worstManagerPicks.slice(0, 15).map((pick, index) => (
-                  pick && pick.worstPlayer ? (
-                    <li key={index} className="bg-gradient-to-r from-orange-800/30 to-slate-700 rounded p-3 border border-orange-600/30">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <span className="font-bold text-md text-orange-200">{pick.manager_name}</span>
-                          <p className="text-sm text-gray-400">
-                            {pick.worstPlayer} | £{pick.worstCost}m | {pick.worstPoints} pts | Rank #{pick.rank}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-xl text-orange-400">{pick.worstValue}</span>
-                          <p className="text-sm text-gray-500 mt-1">pts/£</p>
-                        </div>
-                      </div>
-                    </li>
-                  ) : null
-                )) : (
-                  <li className="text-gray-400 text-center py-4">Loading worst picks...</li>
-                )}
-              </ul>
-            </div>
           </div>
         </div>
       </div>
