@@ -357,7 +357,7 @@ const FPLPositionChart = () => {
         <ResponsiveContainer width="100%" height={400}>
           <LineChart
             data={chartData}
-            margin={{ top: 20, right: 15, left: 15, bottom: 20 }}
+            margin={{ top: 20, right: 15, left: 5, bottom: 20 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
             
@@ -393,8 +393,8 @@ const FPLPositionChart = () => {
               tick={{ fill: '#9CA3AF', fontSize: 12 }}
               domain={[1, managers.length]}
               reversed={true}
-              tickMargin={8}
-              width={35}
+              tickMargin={4}
+              width={20}
               ticks={[1, 5, 10, 15, 20]}
             />
             <Tooltip content={<CustomTooltip />} />
