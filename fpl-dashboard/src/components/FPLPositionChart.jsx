@@ -357,7 +357,7 @@ const FPLPositionChart = () => {
         <ResponsiveContainer width="100%" height={400}>
           <LineChart
             data={chartData}
-            margin={{ top: 20, right: 20, left: 40, bottom: 20 }}
+            margin={{ top: 20, right: 15, left: 15, bottom: 20 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
             
