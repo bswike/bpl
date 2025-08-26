@@ -390,11 +390,11 @@ const FPLPositionChart = () => {
             />
             <YAxis 
               stroke="#9CA3AF"
-              tick={{ fill: '#9CA3AF', fontSize: 12 }}
+              tick={{ fill: '#9CA3AF', fontSize: 6 }}
               domain={[1, managers.length]}
               reversed={true}
               tickMargin={4}
-              width={100}
+              width={20}
               ticks={[1, 5, 10, 15, 20]}
             />
             <Tooltip content={<CustomTooltip />} />
