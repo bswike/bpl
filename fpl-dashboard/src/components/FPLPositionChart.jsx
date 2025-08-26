@@ -489,14 +489,14 @@ const FPLPositionChart = () => {
 
       {/* Bench Points Leaderboard */}
       {benchData.length > 0 && (
-        <div className="mt-8 bg-gradient-to-br from-red-900/30 to-orange-900/30 rounded-lg p-4 border border-red-500/20">
-          <div className="text-center mb-4">
-            <h2 className="text-xl font-bold text-red-400 mb-1">
-              The Bench Point Champions
+        <div className="mt-8 bg-gradient-to-br from-red-900/30 to-orange-900/30 rounded-lg p-3 md:p-4 border border-red-500/20">
+          <div className="text-center mb-3 md:mb-4">
+            <h2 className="text-lg md:text-xl font-bold text-red-400 mb-1">
+              BENCH CHAMPION
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
             {benchData.map((manager, index) => {
               const trophies = ['🏆', '🥈', '🥉'];
               const trophy = index < 3 ? trophies[index] : '';
@@ -507,15 +507,15 @@ const FPLPositionChart = () => {
               return (
                 <div 
                   key={manager.manager_name} 
-                  className={`${bgColor} border border-red-400/30 rounded-lg p-3 flex items-center justify-between`}
+                  className={`${bgColor} border border-red-400/30 rounded-lg p-2 md:p-3 flex items-center justify-between`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{trophy}</span>
-                    <span className="font-mono text-sm text-gray-400">#{index + 1}</span>
-                    <span className="text-white font-medium text-sm">{manager.manager_name}</span>
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="text-sm md:text-lg flex-shrink-0">{trophy}</span>
+                    <span className="font-mono text-xs md:text-sm text-gray-400 flex-shrink-0">#{index + 1}</span>
+                    <span className="text-white font-medium text-xs md:text-sm truncate">{manager.manager_name}</span>
                   </div>
-                  <div className="text-right">
-                    <div className="text-red-300 font-bold text-lg">
+                  <div className="text-right flex-shrink-0 ml-2">
+                    <div className="text-red-300 font-bold text-sm md:text-lg">
                       {manager.total_bench_points}
                     </div>
                     <div className="text-xs text-gray-400">
@@ -526,7 +526,6 @@ const FPLPositionChart = () => {
               );
             })}
           </div>
-        
         </div>
       )}
     </div>
