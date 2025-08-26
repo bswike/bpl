@@ -360,6 +360,7 @@ const FPLPositionChart = () => {
                 stroke={colors[index % colors.length]}
                 strokeWidth={2}
                 dot={<CustomDot fill={colors[index % colors.length]} />}
+                activeDot={false}
                 connectNulls={false}
               />
             ))}
@@ -422,6 +423,7 @@ const FPLPositionChart = () => {
                 stroke={colors[index % colors.length]}
                 strokeWidth={3}
                 dot={<CustomDot fill={colors[index % colors.length]} />}
+                activeDot={false}
                 connectNulls={false}
               />
             ))}
