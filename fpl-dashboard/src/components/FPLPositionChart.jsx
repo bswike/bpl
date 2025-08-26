@@ -394,7 +394,7 @@ const FPLPositionChart = () => {
               domain={[1, managers.length]}
               reversed={true}
               tickMargin={4}
-              width={10}
+              width={100}
               ticks={[1, 5, 10, 15, 20]}
             />
             <Tooltip content={<CustomTooltip />} />
