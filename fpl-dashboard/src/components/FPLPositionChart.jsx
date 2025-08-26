@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ReferenceArea } from 'recharts';
 import Papa from 'papaparse';
 
 const FPLPositionChart = () => {
@@ -17,6 +17,31 @@ const FPLPositionChart = () => {
     '#80FF00', '#FF8040', '#4080FF', '#FF0080', '#80FF80',
     '#FF4040', '#4040FF', '#40FF40', '#FF8080', '#8080FF'
   ];
+
+  const CustomBackground = (props) => {
+    const { x, y, width, height } = props;
+    const stripeHeight = height / managers.length;
+    const stripes = [];
+    
+    for (let i = 0; i < managers.length; i++) {
+      const isEven = i % 2 === 0;
+      const stripeY = y + (i * stripeHeight);
+      
+      stripes.push(
+        <rect
+          key={i}
+          x={x}
+          y={stripeY}
+          width={width}
+          height={stripeHeight}
+          fill={isEven ? '#374151' : '#1F2937'}
+          opacity={0.4}
+        />
+      );
+    }
+    
+    return <g>{stripes}</g>;
+  };
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length && selectedManager) {
@@ -285,9 +310,28 @@ const FPLPositionChart = () => {
         <ResponsiveContainer width="100%" height={400}>
           <LineChart
             data={chartData}
-            margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
+            margin={{ top: 20, right: 20, left: 40, bottom: 20 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
+            
+            {/* Create alternating background stripes using ReferenceArea */}
+            {Array.from({length: managers.length}, (_, i) => {
+              const position = i + 1;
+              const isEven = position % 2 === 1; // Position 1,3,5... get lighter gray
+              const y1 = position - 0.5;
+              const y2 = position + 0.5;
+              
+              return (
+                <ReferenceArea
+                  key={`ref-area-${position}`}
+                  y1={y1}
+                  y2={y2}
+                  fill={isEven ? '#374151' : '#1F2937'}
+                  fillOpacity={0.3}
+                />
+              );
+            })}
+            
             <XAxis 
               dataKey="gameweek" 
               stroke="#9CA3AF"
@@ -302,6 +346,8 @@ const FPLPositionChart = () => {
               tick={{ fill: '#9CA3AF', fontSize: 12 }}
               domain={[1, managers.length]}
               reversed={true}
+              tickMargin={8}
+              width={35}
               label={{ value: 'Position', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
             />
             <Tooltip content={<CustomTooltip />} />
@@ -326,9 +372,28 @@ const FPLPositionChart = () => {
         <ResponsiveContainer width="100%" height={600}>
           <LineChart
             data={chartData}
-            margin={{ top: 30, right: 30, left: 30, bottom: 30 }}
+            margin={{ top: 30, right: 30, left: 50, bottom: 30 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#4B5563" />
+            
+            {/* Create alternating background stripes using ReferenceArea */}
+            {Array.from({length: managers.length}, (_, i) => {
+              const position = i + 1;
+              const isEven = position % 2 === 1; // Position 1,3,5... get lighter gray
+              const y1 = position - 0.5;
+              const y2 = position + 0.5;
+              
+              return (
+                <ReferenceArea
+                  key={`ref-area-desktop-${position}`}
+                  y1={y1}
+                  y2={y2}
+                  fill={isEven ? '#374151' : '#1F2937'}
+                  fillOpacity={0.3}
+                />
+              );
+            })}
+            
             <XAxis 
               dataKey="gameweek" 
               stroke="#9CA3AF"
@@ -343,6 +408,8 @@ const FPLPositionChart = () => {
               tick={{ fill: '#9CA3AF', fontSize: 14 }}
               domain={[1, managers.length]}
               reversed={true}
+              tickMargin={10}
+              width={45}
               label={{ value: 'Position', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
             />
             <Tooltip content={<CustomTooltip />} />
