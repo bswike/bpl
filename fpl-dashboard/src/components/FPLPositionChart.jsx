@@ -395,7 +395,7 @@ const FPLPositionChart = () => {
               reversed={true}
               tickMargin={8}
               width={35}
-              label={{ value: 'Position', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
+              ticks={[1, 5, 10, 15, 20]}
             />
             <Tooltip content={<CustomTooltip />} />
             
