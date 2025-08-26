@@ -6,6 +6,7 @@ const FPLPositionChart = () => {
   const [chartData, setChartData] = useState([]);
   const [managers, setManagers] = useState([]);
   const [managerStats, setManagerStats] = useState({});
+  const [benchData, setBenchData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedManager, setSelectedManager] = useState(null);
@@ -147,15 +148,40 @@ const FPLPositionChart = () => {
 
       console.log(`GW${gameweek} parsed rows:`, parsed.data.length);
 
-      // Get total points for each manager
+      // Get total points for each manager and calculate bench points
       const totalRows = parsed.data.filter(row => row.player === "TOTAL");
-      console.log(`GW${gameweek} total rows found:`, totalRows.length);
       
-      return totalRows.map(row => ({
-        manager_name: row.manager_name,
-        total_points: row.points_applied,
-        gameweek: gameweek
-      }));
+      // Calculate bench points (players with multiplier = 0)
+      const benchPlayers = parsed.data.filter(row => 
+        row.multiplier === 0 && 
+        row.player !== "TOTAL" && 
+        row.points_gw > 0
+      );
+      
+      // Group bench points by manager
+      const benchPointsByManager = {};
+      benchPlayers.forEach(player => {
+        if (!benchPointsByManager[player.manager_name]) {
+          benchPointsByManager[player.manager_name] = 0;
+        }
+        benchPointsByManager[player.manager_name] += player.points_gw;
+      });
+      
+      console.log(`GW${gameweek} total rows found:`, totalRows.length);
+      console.log(`GW${gameweek} bench players found:`, benchPlayers.length);
+      
+      return {
+        totals: totalRows.map(row => ({
+          manager_name: row.manager_name,
+          total_points: row.points_applied,
+          gameweek: gameweek
+        })),
+        bench: Object.entries(benchPointsByManager).map(([manager_name, bench_points]) => ({
+          manager_name,
+          bench_points,
+          gameweek: gameweek
+        }))
+      };
 
     } catch (error) {
       console.error(`Error processing GW${gameweek}:`, error);
@@ -173,25 +199,46 @@ const FPLPositionChart = () => {
         processGameweekData(2)
       ]);
 
-      console.log('GW1 data:', gw1Data.length, 'managers');
-      console.log('GW2 data:', gw2Data.length, 'managers');
+      console.log('GW1 data:', gw1Data.totals.length, 'managers');
+      console.log('GW2 data:', gw2Data.totals.length, 'managers');
 
-      if (gw1Data.length === 0) {
+      if (gw1Data.totals.length === 0) {
         throw new Error('No GW1 data found');
       }
 
       // Create cumulative points data
-      const cumulativeData = gw1Data.map(gw1Manager => {
-        const gw2Manager = gw2Data.find(m => m.manager_name === gw1Manager.manager_name);
+      const cumulativeData = gw1Data.totals.map(gw1Manager => {
+        const gw2Manager = gw2Data.totals.find(m => m.manager_name === gw1Manager.manager_name);
         
         return {
           manager_name: gw1Manager.manager_name,
-          gw1_cumulative: gw1Manager.total_points, // Just GW1 points
-          gw2_cumulative: gw1Manager.total_points + (gw2Manager ? gw2Manager.total_points : 0) // GW1 + GW2 combined
+          gw1_cumulative: gw1Manager.total_points,
+          gw2_cumulative: gw1Manager.total_points + (gw2Manager ? gw2Manager.total_points : 0)
         };
       });
 
+      // Calculate bench points
+      const benchPoints = gw1Data.totals.map(manager => {
+        const gw1Bench = gw1Data.bench.find(b => b.manager_name === manager.manager_name)?.bench_points || 0;
+        const gw2Bench = gw2Data.bench.find(b => b.manager_name === manager.manager_name)?.bench_points || 0;
+        
+        return {
+          manager_name: manager.manager_name,
+          total_bench_points: gw1Bench + gw2Bench,
+          gw1_bench: gw1Bench,
+          gw2_bench: gw2Bench
+        };
+      });
+
+      // Sort bench points for leaderboard (highest first - they're the "winners" of bench points lol)
+      const sortedBenchData = benchPoints
+        .sort((a, b) => b.total_bench_points - a.total_bench_points)
+        .slice(0, 10); // Top 10 bench point "achievers"
+      
+      setBenchData(sortedBenchData);
+
       console.log('Cumulative data calculated for', cumulativeData.length, 'managers');
+      console.log('Bench data calculated for', benchPoints.length, 'managers');
 
       // Rank managers for each gameweek based on cumulative points
       const gw1Ranked = [...cumulativeData]
@@ -433,12 +480,55 @@ const FPLPositionChart = () => {
 
       {/* Instructions and Legend */}
       <div className="mt-4 text-xs text-gray-400 space-y-2">
-        <p className="text-cyan-300">💡 Click on any dot to see only that manager's details</p>
+        <p className="text-cyan-300">Click on any dot to see only that manager's details</p>
         <p>Positions based on cumulative points: GW1 shows total after 1 gameweek, GW2 shows total after 2 gameweeks.</p>
         {chartData.length < 2 && (
           <p className="text-yellow-400">GW2 data not yet available - showing GW1 positions only</p>
         )}
       </div>
+
+      {/* Bench Points Leaderboard */}
+      {benchData.length > 0 && (
+        <div className="mt-8 bg-gradient-to-br from-red-900/30 to-orange-900/30 rounded-lg p-4 border border-red-500/20">
+          <div className="text-center mb-4">
+            <h2 className="text-xl font-bold text-red-400 mb-1">
+              The Bench Point Champions
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {benchData.map((manager, index) => {
+              const trophies = ['🏆', '🥈', '🥉'];
+              const trophy = index < 3 ? trophies[index] : '';
+              const bgColor = index === 0 ? 'bg-red-600/20' : 
+                             index === 1 ? 'bg-orange-600/20' : 
+                             index === 2 ? 'bg-yellow-600/20' : 'bg-gray-800/20';
+              
+              return (
+                <div 
+                  key={manager.manager_name} 
+                  className={`${bgColor} border border-red-400/30 rounded-lg p-3 flex items-center justify-between`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{trophy}</span>
+                    <span className="font-mono text-sm text-gray-400">#{index + 1}</span>
+                    <span className="text-white font-medium text-sm">{manager.manager_name}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-red-300 font-bold text-lg">
+                      {manager.total_bench_points}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      ({manager.gw1_bench} + {manager.gw2_bench})
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        
+        </div>
+      )}
     </div>
   );
 };
