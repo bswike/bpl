@@ -28,7 +28,6 @@ const stats = managerStats[selectedManager];
 const currentGW = parseInt(label);
 const currentRank = managerData.value;
 
-```
     let previousRank = null;
     let totalPoints = null;
     
@@ -64,16 +63,13 @@ const currentRank = managerData.value;
   }
 }
 return null;
-```
-
 };
 
 const CustomDot = (props) => {
 const { cx, cy, payload, dataKey, fill } = props;
 if (payload && dataKey) {
-const initials = dataKey.split(’ ‘).map(name => name[0]).join(’’).substring(0, 2).toUpperCase();
+const initials = dataKey.split(' ').map(name => name[0]).join('').substring(0, 2).toUpperCase();
 
-```
   // Determine text color based on background - use black text for light colors
   const isLightColor = (color) => {
     const lightColors = ['#FFFF00', '#FFFFFF', '#00FFFF', '#00FF00', '#80FF00', '#80FF80', '#FF8080'];
@@ -110,8 +106,6 @@ const initials = dataKey.split(’ ‘).map(name => name[0]).join(’’).substr
   );
 }
 return <circle cx={cx} cy={cy} r={4} fill={fill} />;
-```
-
 };
 
 const processGameweekData = async (gameweek) => {
@@ -121,7 +115,6 @@ const CSV_URL = `https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_ros
 // tiny cache-buster tied to 5min intervals
 const url = `${CSV_URL}?t=${Math.floor(Date.now() / 300000)}`;
 
-```
   const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok) throw new Error(`Failed to fetch CSV: ${response.status}`);
 
@@ -180,16 +173,13 @@ const url = `${CSV_URL}?t=${Math.floor(Date.now() / 300000)}`;
   console.error(`Error processing GW${gameweek}:`, error);
   throw error;
 }
-```
-
 };
 
 const fetchData = async () => {
 try {
 setError(null);
-console.log(‘Starting to fetch data…’);
+console.log('Starting to fetch data…');
 
-```
   const [gw1Data, gw2Data, gw3Data] = await Promise.all([
     processGameweekData(1),
     processGameweekData(2),
@@ -320,8 +310,6 @@ console.log(‘Starting to fetch data…’);
 } finally {
   setLoading(false);
 }
-```
-
 };
 
 useEffect(() => {
@@ -330,7 +318,7 @@ fetchData();
 
 const hasGW3Data = chartData.length >= 3;
 const maxGameweek = hasGW3Data ? 3 : 2;
-const gameweekRange = hasGW3Data ? “GW1 to GW3” : “GW1 to GW2”;
+const gameweekRange = hasGW3Data ? 'GW1 to GW3' : 'GW1 to GW2';
 
 if (loading) {
 return (
@@ -371,7 +359,7 @@ Selected: {selectedManager}
 </span>
 <button
 onClick={() => setSelectedManager(null)}
-className=“text-red-400 hover:text-red-300 text-sm”
+className="text-red-400 hover:text-red-300 text-sm"
 >
 Clear
 </button>
@@ -379,7 +367,6 @@ Clear
 )}
 </div>
 
-```
   {/* Mobile Layout */}
   <div className="md:hidden">
     <ResponsiveContainer width="100%" height={400}>
@@ -557,9 +544,7 @@ Clear
     </div>
   )}
 </div>
-```
-
-);
+  );
 };
 
 export default FPLPositionChart;
