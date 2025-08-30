@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from ‘react’;
+import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ReferenceArea } from ‘recharts’;
-import Papa from ‘papaparse’;
+import Papa from 'papaparse';
 
 const FPLPositionChart = () => {
 const [chartData, setChartData] = useState([]);
@@ -13,10 +13,10 @@ const [selectedManager, setSelectedManager] = useState(null);
 
 // Color palette for different managers
 const colors = [
-‘#00FFFF’, ‘#FF0040’, ‘#FFFF00’, ‘#00FF00’, ‘#FF8000’,
-‘#FF00FF’, ‘#FFFFFF’, ‘#8000FF’, ‘#0080FF’, ‘#FF4080’,
-‘#80FF00’, ‘#FF8040’, ‘#4080FF’, ‘#FF0080’, ‘#80FF80’,
-‘#FF4040’, ‘#4040FF’, ‘#40FF40’, ‘#FF8080’, ‘#8080FF’
+'#00FFFF', '#FF0040', '#FFFF00', '#00FF00', '#FF8000',
+'#FF00FF', '#FFFFFF', '#8000FF', '#0080FF', '#FF4080',
+'#80FF00', '#FF8040', '#4080FF', '#FF0080', '#80FF80',
+'#FF4040', '#4040FF', '#40FF40', '#FF8080', '#8080FF'
 ];
 
 const CustomTooltip = ({ active, payload, label }) => {
