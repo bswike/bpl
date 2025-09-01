@@ -5,8 +5,9 @@ import Papa from 'papaparse';
 const FPLMultiGameweekDashboard = () => {
   const [gw1Data, setGw1Data] = useState([]);
   const [gw2Data, setGw2Data] = useState([]);
+  const [gw3Data, setGw3Data] = useState([]);
   const [combinedData, setCombinedData] = useState([]);
-  const [selectedView, setSelectedView] = useState('combined'); // 'gw1', 'gw2', 'combined'
+  const [selectedView, setSelectedView] = useState('combined'); // 'gw1', 'gw2', 'gw3', 'combined'
   const [loading, setLoading] = useState(true);
 
   const processGameweekData = async (gameweek) => {
@@ -103,34 +104,42 @@ const FPLMultiGameweekDashboard = () => {
 
   const fetchData = async () => {
     try {
-      // Process both gameweeks
-      const [gw1Managers, gw2Managers] = await Promise.all([
+      // Process all three gameweeks
+      const [gw1Managers, gw2Managers, gw3Managers] = await Promise.all([
         processGameweekData(1),
-        processGameweekData(2)
+        processGameweekData(2),
+        processGameweekData(3)
       ]);
 
       setGw1Data(gw1Managers);
       setGw2Data(gw2Managers);
+      setGw3Data(gw3Managers);
 
       // Create combined data showing cumulative points
-      // If GW2 data is empty (being updated), set all GW2 values to 0
       const combined = gw1Managers.map(gw1Manager => {
         const gw2Manager = gw2Managers.find(m => m.manager_name === gw1Manager.manager_name);
+        const gw3Manager = gw3Managers.find(m => m.manager_name === gw1Manager.manager_name);
+        
         const gw2Points = gw2Manager ? gw2Manager.total_points : 0;
+        const gw3Points = gw3Manager ? gw3Manager.total_points : 0;
         const isGw2Updated = gw2Managers.length === 0;
+        const isGw3Updated = gw3Managers.length === 0;
         
         return {
           manager_name: gw1Manager.manager_name,
           team_name: gw1Manager.team_name,
           gw1_points: gw1Manager.total_points,
           gw2_points: gw2Points,
-          total_points: gw1Manager.total_points + gw2Points,
+          gw3_points: gw3Points,
+          total_points: gw1Manager.total_points + gw2Points + gw3Points,
           gw1_captain: gw1Manager.captain_player,
           gw2_captain: gw2Manager ? gw2Manager.captain_player : (isGw2Updated ? 'Updating...' : 'N/A'),
+          gw3_captain: gw3Manager ? gw3Manager.captain_player : (isGw3Updated ? 'Updating...' : 'N/A'),
           gw1_position: gw1Manager.position,
           gw2_position: gw2Manager ? gw2Manager.position : (isGw2Updated ? null : null),
-          position_change: gw2Manager ? gw1Manager.position - gw2Manager.position : 0,
-          gw2_updating: isGw2Updated
+          gw3_position: gw3Manager ? gw3Manager.position : (isGw3Updated ? null : null),
+          gw2_updating: isGw2Updated,
+          gw3_updating: isGw3Updated
         };
       }).sort((a, b) => b.total_points - a.total_points)
         .map((manager, index) => ({
@@ -157,6 +166,7 @@ const FPLMultiGameweekDashboard = () => {
     switch(selectedView) {
       case 'gw1': return gw1Data;
       case 'gw2': return gw2Data;
+      case 'gw3': return gw3Data;
       case 'combined': return combinedData;
       default: return combinedData;
     }
@@ -210,6 +220,16 @@ const FPLMultiGameweekDashboard = () => {
               GW2 Only
             </button>
             <button
+              onClick={() => setSelectedView('gw3')}
+              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                selectedView === 'gw3' 
+                  ? 'bg-orange-600 text-white' 
+                  : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+              }`}
+            >
+              GW3 Only
+            </button>
+            <button
               onClick={() => setSelectedView('combined')}
               className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
                 selectedView === 'combined' 
@@ -224,7 +244,8 @@ const FPLMultiGameweekDashboard = () => {
           <p className="text-md sm:text-lg text-gray-400">
             {selectedView === 'gw1' && 'Gameweek 1 Performance'}
             {selectedView === 'gw2' && 'Gameweek 2 Performance'} 
-            {selectedView === 'combined' && 'Overall Season Performance (GW1 + GW2)'}
+            {selectedView === 'gw3' && 'Gameweek 3 Performance'}
+            {selectedView === 'combined' && 'Overall Season Performance (GW1 + GW2 + GW3)'}
           </p>
         </div>
 
@@ -270,6 +291,7 @@ const FPLMultiGameweekDashboard = () => {
             <h2 className="text-lg md:text-xl font-bold text-white">
               {selectedView === 'gw1' && 'GW1 Leaderboard'}
               {selectedView === 'gw2' && 'GW2 Leaderboard'}
+              {selectedView === 'gw3' && 'GW3 Leaderboard'}
               {selectedView === 'combined' && 'Overall Leaderboard'}
             </h2>
           </div>
@@ -279,25 +301,25 @@ const FPLMultiGameweekDashboard = () => {
             <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-400 uppercase">
               <div className="col-span-1 text-center">#</div>
               <div className="col-span-3">Manager</div>
-              <div className="col-span-2 text-center">
+              <div className="col-span-1 text-center">
                 {selectedView === 'combined' ? 'Total' : 'Points'}
               </div>
               {selectedView === 'combined' && (
                 <>
                   <div className="col-span-1 text-center">GW1</div>
                   <div className="col-span-1 text-center">GW2</div>
-                  <div className="col-span-2 text-center">Change</div>
+                  <div className="col-span-1 text-center">GW3</div>
+                  <div className="col-span-1 text-center">Change</div>
+                  <div className="col-span-3 text-center">Captains</div>
                 </>
               )}
               {selectedView !== 'combined' && (
                 <>
                   <div className="col-span-2 text-center">Captain</div>
                   <div className="col-span-2 text-center">Left</div>
+                  <div className="col-span-2 text-center">Bench</div>
                 </>
               )}
-              <div className="col-span-2 text-center">
-                {selectedView === 'combined' ? 'Captains' : 'Bench'}
-              </div>
             </div>
           </div>
 
@@ -335,12 +357,15 @@ const FPLMultiGameweekDashboard = () => {
                   </div>
                   
                   {selectedView === 'combined' && (
-                    <div className="grid grid-cols-2 gap-2 text-xs mt-1">
+                    <div className="grid grid-cols-3 gap-1 text-xs mt-1">
                       <div className="text-center bg-gray-800/30 rounded px-1 py-0.5">
                         <span className="text-blue-400">GW1: {manager.gw1_points}</span>
                       </div>
                       <div className="text-center bg-gray-800/30 rounded px-1 py-0.5">
                         <span className="text-green-400">GW2: {manager.gw2_points}</span>
+                      </div>
+                      <div className="text-center bg-gray-800/30 rounded px-1 py-0.5">
+                        <span className="text-orange-400">GW3: {manager.gw3_points}</span>
                       </div>
                     </div>
                   )}
@@ -382,15 +407,13 @@ const FPLMultiGameweekDashboard = () => {
                       </div>
                     </div>
 
-                    {/* Points */}
-                    <div className="col-span-2 text-center">
-                      <div className="text-white font-bold text-lg">
-                        {selectedView === 'combined' ? manager.total_points : manager.total_points}
-                      </div>
-                    </div>
-
                     {selectedView === 'combined' ? (
                       <>
+                        {/* Total Points */}
+                        <div className="col-span-1 text-center">
+                          <div className="text-white font-bold text-lg">{manager.total_points}</div>
+                        </div>
+
                         {/* GW1 Points */}
                         <div className="col-span-1 text-center">
                           <div className="text-blue-400 font-medium text-sm">{manager.gw1_points}</div>
@@ -401,13 +424,18 @@ const FPLMultiGameweekDashboard = () => {
                           <div className="text-green-400 font-medium text-sm">{manager.gw2_points}</div>
                         </div>
 
+                        {/* GW3 Points */}
+                        <div className="col-span-1 text-center">
+                          <div className="text-orange-400 font-medium text-sm">{manager.gw3_points}</div>
+                        </div>
+
                         {/* Position Change */}
-                        <div className="col-span-2 text-center text-xs">
+                        <div className="col-span-1 text-center text-xs">
                           {getPositionChangeIcon(manager.overall_position_change)}
                         </div>
 
                         {/* Captains */}
-                        <div className="col-span-2 text-center">
+                        <div className="col-span-3 text-center">
                           <div className="text-white text-xs">
                             GW1: {manager.gw1_captain.split(' ').pop()}
                           </div>
@@ -417,10 +445,21 @@ const FPLMultiGameweekDashboard = () => {
                               manager.gw2_captain.split(' ').pop()
                             }
                           </div>
+                          <div className="text-gray-400 text-xs">
+                            GW3: {manager.gw3_updating ? 
+                              <span className="text-yellow-400">Updating...</span> : 
+                              manager.gw3_captain.split(' ').pop()
+                            }
+                          </div>
                         </div>
                       </>
                     ) : (
                       <>
+                        {/* Points */}
+                        <div className="col-span-1 text-center">
+                          <div className="text-white font-bold text-lg">{manager.total_points}</div>
+                        </div>
+
                         {/* Captain */}
                         <div className="col-span-2 text-center">
                           <div className="text-white font-medium text-sm">{manager.captain_player.split(' ').pop()}</div>
