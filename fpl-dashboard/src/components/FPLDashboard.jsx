@@ -309,11 +309,6 @@ const FPLPointsChart = () => {
             <p className="text-xs sm:text-sm text-gray-400">Points left on bench</p>
           </div>
           
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">Total Managers</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-cyan-400">{data.length}</p>
-            <p className="text-xs sm:text-sm text-gray-400">In League</p>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 sm:mb-12">

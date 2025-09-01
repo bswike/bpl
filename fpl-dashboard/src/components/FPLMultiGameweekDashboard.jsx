@@ -7,7 +7,7 @@ const FPLMultiGameweekDashboard = () => {
   const [gw2Data, setGw2Data] = useState([]);
   const [gw3Data, setGw3Data] = useState([]);
   const [combinedData, setCombinedData] = useState([]);
-  const [selectedView, setSelectedView] = useState('combined'); // 'gw1', 'gw2', 'gw3', 'combined'
+  const [selectedView, setSelectedView] = useState('gw3'); // 'gw1', 'gw2', 'gw3', 'combined'
   const [loading, setLoading] = useState(true);
 
   const processGameweekData = async (gameweek) => {
@@ -278,11 +278,6 @@ const FPLMultiGameweekDashboard = () => {
             <p className="text-xs sm:text-sm text-gray-400">Points</p>
           </div>
           
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
-            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">👥 Total Managers</h3>
-            <p className="text-2xl sm:text-3xl font-bold text-cyan-400">{currentData.length}</p>
-            <p className="text-xs sm:text-sm text-gray-400">In League</p>
-          </div>
         </div>
 
         {/* Leaderboard Table */}
