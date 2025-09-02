@@ -20,44 +20,8 @@ const colors = [
 ];
 
 const CustomTooltip = ({ active, payload, label }) => {
-if (active && payload && payload.length && selectedManager) {
-// Only show the selected manager's data
-const managerData = payload.find(entry => entry.dataKey === selectedManager);
-if (managerData && managerStats[selectedManager]) {
-const stats = managerStats[selectedManager];
-const currentGW = parseInt(label);
-const currentRank = managerData.value;
-
-    // Get previous rank and total points dynamically
-    let previousRank = null;
-    let totalPoints = stats[`gw${currentGW}_cumulative`];
-    
-    if (currentGW > 1) {
-      previousRank = stats[`gw${currentGW - 1}_position`];
-    }
-    
-    const rankChange = previousRank ? currentRank - previousRank : null;
-    const rankChangeText = rankChange === null ? '' : 
-      rankChange === 0 ? ' (No change)' :
-      rankChange > 0 ? ` (↓${rankChange})` : 
-      ` (↑${Math.abs(rankChange)})`;
-    
-    return (
-      <div className="bg-gray-900 text-white p-3 rounded border border-gray-600 shadow-xl min-w-48">
-        <p className="font-bold text-cyan-300 mb-2">{selectedManager}</p>
-        <p className="text-sm mb-1">Gameweek: {label}</p>
-        <p className="text-sm mb-1">Current Rank: #{currentRank}{rankChangeText}</p>
-        {previousRank && (
-          <p className="text-sm mb-1">Previous Rank: #{previousRank}</p>
-        )}
-        <p className="text-sm font-semibold" style={{ color: managerData.color }}>
-          Total Points: {totalPoints}
-        </p>
-      </div>
-    );
-  }
-}
-return null;
+  // Remove tooltip - we'll use the summary section instead
+  return null;
 };
 
 const CustomDot = (props) => {
@@ -386,6 +350,40 @@ Clear Selection
 </div>
 )}
 </div>
+
+{/* Selected Manager Summary */}
+{selectedManager && managerStats[selectedManager] && (
+<div className="mb-6 bg-gradient-to-br from-cyan-900/30 to-blue-900/30 rounded-lg p-4 border border-cyan-500/30">
+<div className="flex items-center justify-between">
+<div>
+<h3 className="text-xl font-bold text-cyan-300 mb-1">{selectedManager}</h3>
+<div className="flex items-center space-x-4 text-sm">
+<span className="text-white">
+Current Position: <span className="font-bold text-cyan-400">#{managerStats[selectedManager][`gw${maxGameweek}_position`]}</span>
+</span>
+<span className="text-white">
+Total Points: <span className="font-bold text-green-400">{managerStats[selectedManager][`gw${maxGameweek}_cumulative`]}</span>
+</span>
+</div>
+</div>
+<div className="text-right">
+<div className="text-sm text-gray-300">
+Position Movement: GW1 → GW{maxGameweek}
+</div>
+<div className="text-lg font-bold">
+{(() => {
+const startPos = managerStats[selectedManager].gw1_position;
+const endPos = managerStats[selectedManager][`gw${maxGameweek}_position`];
+const change = startPos - endPos;
+if (change > 0) return <span className="text-green-400">↑ +{change}</span>;
+if (change < 0) return <span className="text-red-400">↓ {change}</span>;
+return <span className="text-gray-400">→ 0</span>;
+})()}
+</div>
+</div>
+</div>
+</div>
+)}
 
   {/* Mobile Layout */}
   <div className="md:hidden">
