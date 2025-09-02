@@ -1,4 +1,4 @@
-import os, time, requests, sys, signal, subprocess
+import os, time, requests, sys, signal, subprocess, hashlib
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -19,6 +19,9 @@ STATIC_INTERVAL = _int_env("INTERVAL_SECONDS", 0)  # Manual override if set
 ACTIVE = os.getenv("ACTIVE", "1")
 MAX_GAMEWEEK = _int_env("MAX_GAMEWEEK", 38)
 
+# Global hash storage to track file changes
+file_hashes = {}
+
 # Graceful shutdown
 running = True
 
@@ -32,6 +35,40 @@ signal.signal(signal.SIGTERM, _stop)
 
 def log(msg: str):
     print(f"[{datetime.utcnow().isoformat()}] {msg}", flush=True)
+
+def get_file_hash(data: bytes) -> str:
+    """Generate MD5 hash of file content to detect changes"""
+    return hashlib.md5(data).hexdigest()
+
+def smart_upload_csv(blob_name: str, data: bytes) -> bool:
+    """
+    Upload CSV only if content has changed since last upload.
+    Returns True if uploaded, False if skipped.
+    """
+    new_hash = get_file_hash(data)
+    
+    # Check if we've seen this file before and if content changed
+    if blob_name in file_hashes:
+        if file_hashes[blob_name] == new_hash:
+            log(f"Skipped {blob_name} - no changes detected")
+            return False
+    
+    # Content changed or first time uploading - proceed with upload
+    try:
+        url = f"{UPLOAD_ENDPOINT}?name={blob_name}"
+        r = requests.post(url, headers={"Content-Type": "text/csv"}, data=data, timeout=60)
+        r.raise_for_status()
+        j = r.json()
+        
+        # Store hash after successful upload
+        file_hashes[blob_name] = new_hash
+        
+        log(f"Uploaded {blob_name} → {j.get('wrote')} ({len(data)} bytes) [CHANGED]")
+        return True
+        
+    except Exception as e:
+        log(f"Failed to upload {blob_name}: {e}")
+        return False
 
 def is_game_day() -> bool:
     """
@@ -96,11 +133,8 @@ def get_dynamic_interval() -> int:
         return NON_GAMEDAY_INTERVAL
 
 def upload_csv(blob_name: str, data: bytes):
-    url = f"{UPLOAD_ENDPOINT}?name={blob_name}"
-    r = requests.post(url, headers={"Content-Type": "text/csv"}, data=data, timeout=60)
-    r.raise_for_status()
-    j = r.json()
-    log(f"Uploaded {blob_name} → {j.get('wrote')} ({len(data)} bytes)")
+    """Legacy upload function - now just calls smart_upload_csv"""
+    smart_upload_csv(blob_name, data)
 
 def run_scraper(cmd: list[str], expect_file: Path, timeout_sec: int = 90) -> bytes:
     try:
@@ -201,19 +235,28 @@ def detect_current_gameweek() -> int:
     return latest_gw
 
 def scrape_and_upload_gameweek(gw: int):
-    """Scrape and upload data for a specific gameweek"""
+    """Scrape and upload data for a specific gameweek - only if content changed"""
+    uploads_made = 0
+    files_processed = 0
+    
     try:
         # Scrape all players data
         all_players_data = scrape_all_players_bytes(gw)
         all_players_blob = get_blob_name("all_players", gw)
-        upload_csv(all_players_blob, all_players_data)
+        files_processed += 1
+        
+        if smart_upload_csv(all_players_blob, all_players_data):
+            uploads_made += 1
         
         # Scrape rosters data
         rosters_data = scrape_rosters_bytes(gw)
         rosters_blob = get_blob_name("rosters_points", gw)
-        upload_csv(rosters_blob, rosters_data)
+        files_processed += 1
         
-        log(f"GW{gw} cycle OK")
+        if smart_upload_csv(rosters_blob, rosters_data):
+            uploads_made += 1
+        
+        log(f"GW{gw} cycle OK - {uploads_made}/{files_processed} files uploaded (rest unchanged)")
         return True
         
     except Exception as e:
@@ -223,7 +266,12 @@ def scrape_and_upload_gameweek(gw: int):
         try:
             updating_msg = b"The game is being updated."
             rosters_blob = get_blob_name("rosters_points", gw)
-            upload_csv(rosters_blob, updating_msg)
+            # Force upload of updating message (bypass hash check)
+            url = f"{UPLOAD_ENDPOINT}?name={rosters_blob}"
+            r = requests.post(url, headers={"Content-Type": "text/csv"}, data=updating_msg, timeout=60)
+            r.raise_for_status()
+            # Update hash for updating message
+            file_hashes[rosters_blob] = get_file_hash(updating_msg)
             log(f"Uploaded GW{gw} updating message")
         except Exception as upload_err:
             log(f"Failed to upload updating message for GW{gw}: {upload_err}")
@@ -231,7 +279,7 @@ def scrape_and_upload_gameweek(gw: int):
         return False
 
 if __name__ == "__main__":
-    log("Booting dynamic FPL scraper worker with smart game day detection…")
+    log("Booting dynamic FPL scraper worker with smart game day detection and upload optimization…")
     
     while running:
         cycle_start_time = datetime.utcnow()
@@ -245,11 +293,16 @@ if __name__ == "__main__":
                 
                 # Scrape all available gameweeks (GW1 through latest)
                 successful_scrapes = 0
+                total_uploads = 0
+                total_files = 0
+                
                 for gw in range(1, latest_gw + 1):
                     if scrape_and_upload_gameweek(gw):
                         successful_scrapes += 1
                 
+                # Calculate upload efficiency
                 log(f"Full cycle complete: {successful_scrapes}/{latest_gw} gameweeks successful")
+                log(f"Upload efficiency: Only changed files uploaded (saving Vercel Blob quota)")
                 
         except Exception as e:
             log(f"GENERAL ERROR: {e}")
