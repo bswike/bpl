@@ -21,7 +21,7 @@ const colors = [
 
 const CustomTooltip = ({ active, payload, label }) => {
 if (active && payload && payload.length && selectedManager) {
-// Only show the selected manager’s data
+// Only show the selected manager's data
 const managerData = payload.find(entry => entry.dataKey === selectedManager);
 if (managerData && managerStats[selectedManager]) {
 const stats = managerStats[selectedManager];
@@ -78,26 +78,29 @@ const initials = dataKey.split(' ').map(name => name[0]).join('').substring(0, 2
   
   const textColor = isLightColor(fill) ? '#000000' : '#FFFFFF';
   const isSelected = selectedManager === dataKey;
+  const isDimmed = selectedManager && selectedManager !== dataKey;
   
   return (
     <g>
       <circle 
         cx={cx} 
         cy={cy} 
-        r={isSelected ? 16 : 12} 
+        r={isSelected ? 18 : 12} 
         fill={fill} 
         stroke={isSelected ? "#FFD700" : "#333333"} 
-        strokeWidth={isSelected ? 3 : 2}
+        strokeWidth={isSelected ? 4 : 2}
+        opacity={isDimmed ? 0.25 : 1}
         style={{ cursor: 'pointer' }}
-        onClick={() => setSelectedManager(dataKey)}
+        onClick={() => setSelectedManager(dataKey === selectedManager ? null : dataKey)}
       />
       <text 
         x={cx} 
         y={cy + 2} 
         textAnchor="middle" 
         fill={textColor}
-        fontSize={isSelected ? "10" : "9"}
+        fontSize={isSelected ? "11" : "9"}
         fontWeight="bold"
+        opacity={isDimmed ? 0.25 : 1}
         style={{ cursor: 'pointer', pointerEvents: 'none' }}
       >
         {initials}
@@ -359,9 +362,9 @@ Selected: {selectedManager}
 </span>
 <button
 onClick={() => setSelectedManager(null)}
-className="text-red-400 hover:text-red-300 text-sm"
+className="text-red-400 hover:text-red-300 text-sm px-3 py-1 rounded-md hover:bg-red-900/20 transition-colors"
 >
-Clear
+Clear Selection
 </button>
 </div>
 )}
@@ -414,18 +417,24 @@ Clear
         />
         <Tooltip content={<CustomTooltip />} />
         
-        {managers.map((manager, index) => (
-          <Line
-            key={manager}
-            type="linear"
-            dataKey={manager}
-            stroke={colors[index % colors.length]}
-            strokeWidth={2}
-            dot={<CustomDot fill={colors[index % colors.length]} />}
-            activeDot={false}
-            connectNulls={false}
-          />
-        ))}
+        {managers.map((manager, index) => {
+          const isSelected = selectedManager === manager;
+          const isDimmed = selectedManager && selectedManager !== manager;
+          
+          return (
+            <Line
+              key={manager}
+              type="linear"
+              dataKey={manager}
+              stroke={colors[index % colors.length]}
+              strokeWidth={isSelected ? 4 : 2}
+              strokeOpacity={isDimmed ? 0.2 : 1}
+              dot={<CustomDot fill={colors[index % colors.length]} />}
+              activeDot={false}
+              connectNulls={false}
+            />
+          );
+        })}
       </LineChart>
     </ResponsiveContainer>
   </div>
@@ -477,25 +486,31 @@ Clear
         />
         <Tooltip content={<CustomTooltip />} />
         
-        {managers.map((manager, index) => (
-          <Line
-            key={manager}
-            type="linear"
-            dataKey={manager}
-            stroke={colors[index % colors.length]}
-            strokeWidth={3}
-            dot={<CustomDot fill={colors[index % colors.length]} />}
-            activeDot={false}
-            connectNulls={false}
-          />
-        ))}
+        {managers.map((manager, index) => {
+          const isSelected = selectedManager === manager;
+          const isDimmed = selectedManager && selectedManager !== manager;
+          
+          return (
+            <Line
+              key={manager}
+              type="linear"
+              dataKey={manager}
+              stroke={colors[index % colors.length]}
+              strokeWidth={isSelected ? 5 : 3}
+              strokeOpacity={isDimmed ? 0.15 : 1}
+              dot={<CustomDot fill={colors[index % colors.length]} />}
+              activeDot={false}
+              connectNulls={false}
+            />
+          );
+        })}
       </LineChart>
     </ResponsiveContainer>
   </div>
 
   {/* Instructions and Legend */}
   <div className="mt-4 text-xs text-gray-400 space-y-2">
-    <p className="text-cyan-300">Click on any dot to see only that manager's details</p>
+    <p className="text-cyan-300">Click on any dot to highlight that manager's line and dim the others</p>
     <p>Positions based on cumulative points: GW1 shows total after 1 gameweek, GW2 shows total after 2 gameweeks{hasGW3Data ? ', GW3 shows total after 3 gameweeks' : ''}.</p>
     {!hasGW3Data && (
       <p className="text-yellow-400">GW3 data not yet available - showing GW1-GW2 positions only</p>
