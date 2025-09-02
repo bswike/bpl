@@ -258,8 +258,8 @@ const FPLMultiGameweekDashboard = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header with View Toggle */}
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-cyan-400 mb-4 drop-shadow-lg">
-            ⚽ BPL Multi-Gameweek Dashboard
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-light text-white mb-4 tracking-wide">
+            Multi-Gameweek Dashboard
           </h1>
           
           {/* Dynamic View Toggle Buttons */}
