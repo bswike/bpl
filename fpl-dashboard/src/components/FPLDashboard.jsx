@@ -4,10 +4,45 @@ import Papa from 'papaparse';
 
 const FPLPointsChart = () => {
   const [data, setData] = useState([]);
-  const [parsedDataGW1, setParsedDataGW1] = useState({ data: [] });
-  const [parsedDataGW2, setParsedDataGW2] = useState({ data: [] });
-  const [parsedDataGW3, setParsedDataGW3] = useState({ data: [] });
+  const [gameweekData, setGameweekData] = useState({}); // Store parsed data for all gameweeks
+  const [availableGameweeks, setAvailableGameweeks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [latestGameweek, setLatestGameweek] = useState(1);
+
+  // Dynamically detect available gameweeks
+  const findAvailableGameweeks = async () => {
+    const maxGWToCheck = 38;
+    const available = [];
+    
+    for (let gw = 1; gw <= maxGWToCheck; gw++) {
+      try {
+        const CSV_URL = `https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw${gw}.csv`;
+        const url = `${CSV_URL}?t=${Math.floor(Date.now() / 300000)}`;
+        
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) break;
+        
+        const csvData = await response.text();
+        if (csvData.trim() === "The game is being updated.") {
+          available.push(gw); // Still available, just updating
+          continue;
+        }
+        
+        // Try to parse to see if it's valid data
+        const parsed = Papa.parse(csvData, { header: true, skipEmptyLines: true });
+        if (parsed.data && parsed.data.length > 0) {
+          available.push(gw);
+        } else {
+          break;
+        }
+      } catch (error) {
+        console.log(`GW${gw} not available:`, error);
+        break;
+      }
+    }
+    
+    return available;
+  };
 
   const fetchGameweekData = async (gameweek) => {
     try {
@@ -46,16 +81,28 @@ const FPLPointsChart = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch all three gameweeks
-      const [gw1Parsed, gw2Parsed, gw3Parsed] = await Promise.all([
-        fetchGameweekData(1),
-        fetchGameweekData(2),
-        fetchGameweekData(3)
-      ]);
+      // Find all available gameweeks
+      const available = await findAvailableGameweeks();
+      if (available.length === 0) {
+        throw new Error('No gameweek data available');
+      }
 
-      setParsedDataGW1(gw1Parsed);
-      setParsedDataGW2(gw2Parsed);
-      setParsedDataGW3(gw3Parsed);
+      setAvailableGameweeks(available);
+      setLatestGameweek(available[available.length - 1]);
+
+      // Fetch all available gameweeks
+      const gameweekPromises = available.map(gw => 
+        fetchGameweekData(gw).then(data => ({ gameweek: gw, data }))
+      );
+      
+      const results = await Promise.all(gameweekPromises);
+      
+      // Store data by gameweek
+      const gwData = {};
+      results.forEach(({ gameweek, data }) => {
+        gwData[gameweek] = data;
+      });
+      setGameweekData(gwData);
 
       // Process manager data for each gameweek
       const processManagerData = (parsedData, gameweek) => {
@@ -118,59 +165,96 @@ const FPLPointsChart = () => {
         });
       };
 
-      // Process all three gameweeks
-      const gw1Data = gw1Parsed.data.length > 0 ? processManagerData(gw1Parsed, 1) : [];
-      const gw2Data = gw2Parsed.data.length > 0 ? processManagerData(gw2Parsed, 2) : [];
-      const gw3Data = gw3Parsed.data.length > 0 ? processManagerData(gw3Parsed, 3) : [];
+      // Process all available gameweeks
+      const processedGameweeks = [];
+      for (const gw of available) {
+        if (gwData[gw] && gwData[gw].data.length > 0) {
+          processedGameweeks.push(processManagerData(gwData[gw], gw));
+        } else {
+          processedGameweeks.push([]); // Empty array for updating gameweeks
+        }
+      }
 
       // Combine data for cumulative totals
-      const combinedData = gw1Data.map(gw1Manager => {
-        const gw2Manager = gw2Data.find(m => m.manager_name === gw1Manager.manager_name);
-        const gw3Manager = gw3Data.find(m => m.manager_name === gw1Manager.manager_name);
-        
-        return {
-          manager_name: gw1Manager.manager_name,
-          team_name: gw1Manager.team_name,
-          gw1_points: gw1Manager.total_points,
-          gw2_points: gw2Manager ? gw2Manager.total_points : 0,
-          gw3_points: gw3Manager ? gw3Manager.total_points : 0,
-          total_points: gw1Manager.total_points + (gw2Manager ? gw2Manager.total_points : 0) + (gw3Manager ? gw3Manager.total_points : 0),
-          gw1_captain: gw1Manager.captain_player,
-          gw2_captain: gw2Manager ? gw2Manager.captain_player : 'N/A',
-          gw3_captain: gw3Manager ? gw3Manager.captain_player : 'N/A',
-          captain_player: gw3Manager ? gw3Manager.captain_player : (gw2Manager ? gw2Manager.captain_player : gw1Manager.captain_player),
-          captain_points: (gw1Manager.captain_points || 0) + (gw2Manager ? gw2Manager.captain_points : 0) + (gw3Manager ? gw3Manager.captain_points : 0),
-          captain_base_points: (gw1Manager.captain_base_points || 0) + (gw2Manager ? gw2Manager.captain_base_points : 0) + (gw3Manager ? gw3Manager.captain_base_points : 0),
-          bench_points: (gw1Manager.bench_points || 0) + (gw2Manager ? gw2Manager.bench_points : 0) + (gw3Manager ? gw3Manager.bench_points : 0),
-          bench_players: [...(gw1Manager.bench_players || []), ...(gw2Manager ? gw2Manager.bench_players : []), ...(gw3Manager ? gw3Manager.bench_players : [])]
-        };
-      });
+      if (processedGameweeks[0] && processedGameweeks[0].length > 0) {
+        const combinedData = processedGameweeks[0].map(firstGwManager => {
+          const managerData = {
+            manager_name: firstGwManager.manager_name,
+            team_name: firstGwManager.team_name,
+            [`gw${available[0]}_points`]: firstGwManager.total_points,
+            [`gw${available[0]}_captain`]: firstGwManager.captain_player,
+            captain_points: firstGwManager.captain_points,
+            captain_base_points: firstGwManager.captain_base_points,
+            bench_points: firstGwManager.bench_points,
+            bench_players: [...firstGwManager.bench_players],
+            total_points: firstGwManager.total_points
+          };
 
-      const sortedData = combinedData
-        .sort((a, b) => b.total_points - a.total_points)
-        .map((item, index) => {
-          const totalManagers = combinedData.length;
-          let designation = 'Mid-table';
-          
-          if (index < 4) {
-            designation = 'Champions League';
-          } else if (index === 4) {
-            designation = 'Europa League';
-          } else if (index >= totalManagers - 3) {
-            designation = 'Relegation';
+          // Add data from subsequent gameweeks
+          let runningTotal = firstGwManager.total_points;
+          let totalCaptainPoints = firstGwManager.captain_points;
+          let totalCaptainBasePoints = firstGwManager.captain_base_points;
+          let totalBenchPoints = firstGwManager.bench_points;
+          let allBenchPlayers = [...firstGwManager.bench_players];
+
+          for (let i = 1; i < available.length; i++) {
+            const gw = available[i];
+            const gwManager = processedGameweeks[i]?.find(m => m.manager_name === firstGwManager.manager_name);
+            
+            if (gwManager) {
+              runningTotal += gwManager.total_points;
+              totalCaptainPoints += gwManager.captain_points;
+              totalCaptainBasePoints += gwManager.captain_base_points;
+              totalBenchPoints += gwManager.bench_points;
+              allBenchPlayers = [...allBenchPlayers, ...gwManager.bench_players];
+              
+              managerData[`gw${gw}_points`] = gwManager.total_points;
+              managerData[`gw${gw}_captain`] = gwManager.captain_player;
+            } else {
+              managerData[`gw${gw}_points`] = 0;
+              managerData[`gw${gw}_captain`] = 'N/A';
+            }
           }
 
-          return {
-            ...item,
-            rank: index + 1,
-            designation,
-            displayName: item.manager_name.length > 12 ?
-              item.manager_name.substring(0, 12) + '...' :
-              item.manager_name
-          };
+          managerData.total_points = runningTotal;
+          managerData.captain_points = totalCaptainPoints;
+          managerData.captain_base_points = totalCaptainBasePoints;
+          managerData.bench_points = totalBenchPoints;
+          managerData.bench_players = allBenchPlayers;
+          
+          // Set the latest captain as the display captain
+          managerData.captain_player = managerData[`gw${available[available.length - 1]}_captain`] || 
+                                     managerData[`gw${available[0]}_captain`];
+
+          return managerData;
         });
 
-      setData(sortedData);
+        const sortedData = combinedData
+          .sort((a, b) => b.total_points - a.total_points)
+          .map((item, index) => {
+            const totalManagers = combinedData.length;
+            let designation = 'Mid-table';
+            
+            if (index < 4) {
+              designation = 'Champions League';
+            } else if (index === 4) {
+              designation = 'Europa League';
+            } else if (index >= totalManagers - 3) {
+              designation = 'Relegation';
+            }
+
+            return {
+              ...item,
+              rank: index + 1,
+              designation,
+              displayName: item.manager_name.length > 12 ?
+                item.manager_name.substring(0, 12) + '...' :
+                item.manager_name
+            };
+          });
+
+        setData(sortedData);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -192,6 +276,12 @@ const FPLPointsChart = () => {
                      data.designation === 'Relegation' ? 'bg-red-900' : 'bg-gray-800';
       
       const captainLastName = data.captain_player.split(' ').pop();
+      
+      // Generate gameweek breakdown dynamically
+      const gwBreakdown = availableGameweeks.map(gw => 
+        `GW${gw}: ${data[`gw${gw}_points`] || 0}`
+      ).join(' | ');
+      
       return (
         <div className={`${bgColor} text-white p-1 rounded-lg shadow-xl border-2 border-white/20`}>
           <p className="font-bold text-sm">{data.manager_name}</p>
@@ -201,7 +291,7 @@ const FPLPointsChart = () => {
               Total: {data.total_points} points
             </p>
             <p className="text-gray-300 text-xxs">
-              GW1: {data.gw1_points} | GW2: {data.gw2_points} | GW3: {data.gw3_points}
+              {gwBreakdown}
             </p>
             <p className="text-gray-300 text-xxs">
               Captain: {data.captain_points} pts ({captainLastName})
@@ -230,31 +320,18 @@ const FPLPointsChart = () => {
   const lowPoints = data.length > 0 ? Math.min(...data.map(item => item.total_points)) : 0;
   const avgBenchPoints = data.length > 0 ? Math.round(data.reduce((sum, item) => sum + item.bench_points, 0) / data.length) : 0;
 
+  // Dynamic captain counting
   const captainCounts = {};
   data.forEach(manager => {
-    // Count GW1 captains
-    if (manager.gw1_captain && !captainCounts[manager.gw1_captain]) {
-      captainCounts[manager.gw1_captain] = { count: 0, points: 0 };
-    }
-    if (manager.gw1_captain) {
-      captainCounts[manager.gw1_captain].count++;
-    }
-    
-    // Count GW2 captains
-    if (manager.gw2_captain && manager.gw2_captain !== 'N/A' && !captainCounts[manager.gw2_captain]) {
-      captainCounts[manager.gw2_captain] = { count: 0, points: 0 };
-    }
-    if (manager.gw2_captain && manager.gw2_captain !== 'N/A') {
-      captainCounts[manager.gw2_captain].count++;
-    }
-
-    // Count GW3 captains
-    if (manager.gw3_captain && manager.gw3_captain !== 'N/A' && !captainCounts[manager.gw3_captain]) {
-      captainCounts[manager.gw3_captain] = { count: 0, points: 0 };
-    }
-    if (manager.gw3_captain && manager.gw3_captain !== 'N/A') {
-      captainCounts[manager.gw3_captain].count++;
-    }
+    availableGameweeks.forEach(gw => {
+      const captain = manager[`gw${gw}_captain`];
+      if (captain && captain !== 'N/A') {
+        if (!captainCounts[captain]) {
+          captainCounts[captain] = { count: 0, points: 0 };
+        }
+        captainCounts[captain].count++;
+      }
+    });
   });
 
   const popularCaptains = Object.entries(captainCounts)
@@ -265,14 +342,23 @@ const FPLPointsChart = () => {
     .sort((a, b) => b.bench_points - a.bench_points)
     .filter(manager => manager.bench_points > 0);
 
+  // Generate gameweek range text
+  const gameweekRangeText = availableGameweeks.length === 1 
+    ? `GW${availableGameweeks[0]}` 
+    : `GW${availableGameweeks[0]}-${availableGameweeks[availableGameweeks.length - 1]}`;
+
   return (
     <div className="min-h-screen bg-slate-900 p-4 sm:p-6 font-sans text-gray-100">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-cyan-400 mb-2 drop-shadow-lg">
-            BPL Season Leaderboard (GW1-3)
+            BPL Season Leaderboard ({gameweekRangeText})
           </h1>
-          <p className="text-md sm:text-lg text-gray-400">Combined points from gameweeks 1, 2, and 3</p>
+          <p className="text-md sm:text-lg text-gray-400">
+            Combined points from {availableGameweeks.length === 1 
+              ? `gameweek ${availableGameweeks[0]}` 
+              : `gameweeks ${availableGameweeks.join(', ')}`}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
@@ -281,7 +367,9 @@ const FPLPointsChart = () => {
             <p className="text-2xl sm:text-3xl font-bold text-green-400">{topScorer?.manager_name || 'N/A'}</p>
             <p className="text-xs sm:text-sm text-gray-400 truncate">"{topScorer?.team_name || 'N/A'}"</p>
             <p className="text-xs text-gray-500 mt-1">
-              GW1: {topScorer?.gw1_points || 0} | GW2: {topScorer?.gw2_points || 0} | GW3: {topScorer?.gw3_points || 0}
+              {availableGameweeks.map(gw => 
+                `GW${gw}: ${topScorer?.[`gw${gw}_points`] || 0}`
+              ).join(' | ')}
             </p>
           </div>
           
@@ -309,12 +397,17 @@ const FPLPointsChart = () => {
             <p className="text-xs sm:text-sm text-gray-400">Points left on bench</p>
           </div>
           
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">Latest GW</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-cyan-400">{latestGameweek}</p>
+            <p className="text-xs sm:text-sm text-gray-400">Available</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 sm:mb-12">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl lg:col-span-2 border border-slate-700">
             <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 sm:mb-6 text-center">
-              Season Performance (GW1-3)
+              Season Performance ({gameweekRangeText})
             </h2>
 
             <div className="flex justify-center flex-wrap gap-4 text-sm mb-6">
@@ -405,7 +498,9 @@ const FPLPointsChart = () => {
                     <p className="font-bold text-lg text-cyan-200">{manager.manager_name}</p>
                     <p className="text-xs text-gray-400">"{manager.team_name}"</p>
                     <p className="text-xs text-gray-500">
-                      GW1: {manager.gw1_points} | GW2: {manager.gw2_points} | GW3: {manager.gw3_points}
+                      {availableGameweeks.map(gw => 
+                        `GW${gw}: ${manager[`gw${gw}_points`] || 0}`
+                      ).join(' | ')}
                     </p>
                   </div>
                   <div className="text-right">
@@ -421,7 +516,7 @@ const FPLPointsChart = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
             <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
-              Popular Captains (GW1-3)
+              Popular Captains ({gameweekRangeText})
             </h2>
             <ul className="space-y-2">
               {popularCaptains.map(([captain, captainData]) => (
@@ -441,7 +536,7 @@ const FPLPointsChart = () => {
 
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700">
             <h2 className="text-xl sm:text-2xl font-bold text-cyan-300 mb-4 text-center">
-              Bench Points Leaders (GW1-3)
+              Bench Points Leaders ({gameweekRangeText})
             </h2>
             <ul className="space-y-2 max-h-96 overflow-y-auto pr-2">
               {sortedBenchPoints.map((manager, index) => (
@@ -453,7 +548,9 @@ const FPLPointsChart = () => {
                         Rank #{manager.rank} ({manager.total_points} pts)
                       </p>
                       <p className="text-xs text-gray-500">
-                        GW1: {manager.gw1_points} | GW2: {manager.gw2_points} | GW3: {manager.gw3_points}
+                        {availableGameweeks.map(gw => 
+                          `GW${gw}: ${manager[`gw${gw}_points`] || 0}`
+                        ).join(' | ')}
                       </p>
                     </div>
                     <div className="text-right">

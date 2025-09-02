@@ -28,17 +28,12 @@ const stats = managerStats[selectedManager];
 const currentGW = parseInt(label);
 const currentRank = managerData.value;
 
+    // Get previous rank and total points dynamically
     let previousRank = null;
-    let totalPoints = null;
+    let totalPoints = stats[`gw${currentGW}_cumulative`];
     
-    if (currentGW === 1) {
-      totalPoints = stats.gw1_cumulative;
-    } else if (currentGW === 2) {
-      previousRank = stats.gw1_position;
-      totalPoints = stats.gw2_cumulative;
-    } else if (currentGW === 3) {
-      previousRank = stats.gw2_position;
-      totalPoints = stats.gw3_cumulative;
+    if (currentGW > 1) {
+      previousRank = stats[`gw${currentGW - 1}_position`];
     }
     
     const rankChange = previousRank ? currentRank - previousRank : null;
@@ -178,131 +173,144 @@ const url = `${CSV_URL}?t=${Math.floor(Date.now() / 300000)}`;
 }
 };
 
+// Dynamically determine the latest gameweek with data
+const findLatestGameweek = async () => {
+  let latestGW = 1;
+  const maxGWToCheck = 38; // Premier League has 38 gameweeks max
+  
+  for (let gw = 1; gw <= maxGWToCheck; gw++) {
+    try {
+      const data = await processGameweekData(gw);
+      if (data.totals.length > 0) {
+        latestGW = gw;
+      } else {
+        break; // Stop when we hit empty data
+      }
+    } catch (error) {
+      console.log(`GW${gw} not available yet`);
+      break;
+    }
+  }
+  return latestGW;
+};
+
 const fetchData = async () => {
 try {
 setError(null);
 console.log('Starting to fetch data…');
 
-  const [gw1Data, gw2Data, gw3Data] = await Promise.all([
-    processGameweekData(1),
-    processGameweekData(2),
-    processGameweekData(3)
-  ]);
+  // First, determine the latest available gameweek
+  const latestGW = await findLatestGameweek();
+  console.log(`Latest gameweek detected: GW${latestGW}`);
+  
+  // Fetch data for all available gameweeks
+  const gameweekPromises = [];
+  for (let gw = 1; gw <= latestGW; gw++) {
+    gameweekPromises.push(processGameweekData(gw));
+  }
+  
+  const allGameweekData = await Promise.all(gameweekPromises);
+  
+  // Log data for each gameweek
+  allGameweekData.forEach((data, index) => {
+    console.log(`GW${index + 1} data:`, data.totals.length, 'managers');
+  });
 
-  console.log('GW1 data:', gw1Data.totals.length, 'managers');
-  console.log('GW2 data:', gw2Data.totals.length, 'managers');
-  console.log('GW3 data:', gw3Data.totals.length, 'managers');
-
-  if (gw1Data.totals.length === 0) {
+  if (allGameweekData[0].totals.length === 0) {
     throw new Error('No GW1 data found');
   }
 
-  // Create cumulative points data
-  const cumulativeData = gw1Data.totals.map(gw1Manager => {
-    const gw2Manager = gw2Data.totals.find(m => m.manager_name === gw1Manager.manager_name);
-    const gw3Manager = gw3Data.totals.find(m => m.manager_name === gw1Manager.manager_name);
-    
-    return {
+  // Create cumulative points data dynamically
+  const cumulativeData = allGameweekData[0].totals.map(gw1Manager => {
+    const managerData = {
       manager_name: gw1Manager.manager_name,
-      gw1_cumulative: gw1Manager.total_points,
-      gw2_cumulative: gw1Manager.total_points + (gw2Manager ? gw2Manager.total_points : 0),
-      gw3_cumulative: gw1Manager.total_points + (gw2Manager ? gw2Manager.total_points : 0) + (gw3Manager ? gw3Manager.total_points : 0)
+      gw1_cumulative: gw1Manager.total_points
     };
-  });
-
-  // Calculate bench points
-  const benchPoints = gw1Data.totals.map(manager => {
-    const gw1Bench = gw1Data.bench.find(b => b.manager_name === manager.manager_name)?.bench_points || 0;
-    const gw2Bench = gw2Data.bench.find(b => b.manager_name === manager.manager_name)?.bench_points || 0;
-    const gw3Bench = gw3Data.bench.find(b => b.manager_name === manager.manager_name)?.bench_points || 0;
     
-    return {
-      manager_name: manager.manager_name,
-      total_bench_points: gw1Bench + gw2Bench + gw3Bench,
-      gw1_bench: gw1Bench,
-      gw2_bench: gw2Bench,
-      gw3_bench: gw3Bench
-    };
+    // Add cumulative points for each subsequent gameweek
+    let runningTotal = gw1Manager.total_points;
+    for (let gw = 2; gw <= latestGW; gw++) {
+      const gwManager = allGameweekData[gw - 1].totals.find(m => m.manager_name === gw1Manager.manager_name);
+      if (gwManager) {
+        runningTotal += gwManager.total_points;
+      }
+      managerData[`gw${gw}_cumulative`] = runningTotal;
+    }
+    
+    return managerData;
   });
 
-  // Sort bench points for leaderboard (highest first - they're the "winners" of bench points lol)
+  // Calculate bench points dynamically
+  const benchPoints = allGameweekData[0].totals.map(manager => {
+    const benchData = {
+      manager_name: manager.manager_name,
+      total_bench_points: 0
+    };
+    
+    // Add bench points from each gameweek
+    for (let gw = 1; gw <= latestGW; gw++) {
+      const gwBench = allGameweekData[gw - 1].bench.find(b => b.manager_name === manager.manager_name)?.bench_points || 0;
+      benchData[`gw${gw}_bench`] = gwBench;
+      benchData.total_bench_points += gwBench;
+    }
+    
+    return benchData;
+  });
+
+  // Sort bench points for leaderboard (highest first)
   const sortedBenchData = benchPoints
     .sort((a, b) => b.total_bench_points - a.total_bench_points)
-    .slice(0, 10); // Top 10 bench point "achievers"
+    .slice(0, 10);
   
   setBenchData(sortedBenchData);
 
   console.log('Cumulative data calculated for', cumulativeData.length, 'managers');
   console.log('Bench data calculated for', benchPoints.length, 'managers');
 
-  // Rank managers for each gameweek based on cumulative points
-  const gw1Ranked = [...cumulativeData]
-    .sort((a, b) => b.gw1_cumulative - a.gw1_cumulative)
-    .map((manager, index) => ({
-      ...manager,
-      gw1_position: index + 1
-    }));
+  // Rank managers for each gameweek dynamically
+  const rankedData = [];
+  for (let gw = 1; gw <= latestGW; gw++) {
+    const gwRanked = [...cumulativeData]
+      .sort((a, b) => b[`gw${gw}_cumulative`] - a[`gw${gw}_cumulative`])
+      .map((manager, index) => ({
+        ...manager,
+        [`gw${gw}_position`]: index + 1
+      }));
+    rankedData.push(gwRanked);
+  }
 
-  const gw2Ranked = [...cumulativeData]
-    .sort((a, b) => b.gw2_cumulative - a.gw2_cumulative)
-    .map((manager, index) => ({
-      ...manager,
-      gw2_position: index + 1
-    }));
-
-  const gw3Ranked = [...cumulativeData]
-    .sort((a, b) => b.gw3_cumulative - a.gw3_cumulative)
-    .map((manager, index) => ({
-      ...manager,
-      gw3_position: index + 1
-    }));
-
-  console.log('Ranked by cumulative points - GW1:', gw1Ranked.length, 'GW2:', gw2Ranked.length, 'GW3:', gw3Ranked.length);
+  console.log(`Ranked data created for ${rankedData.length} gameweeks`);
 
   // Create chart data structure and manager stats
-  const allManagers = gw1Ranked.map(m => m.manager_name);
+  const allManagers = rankedData[0].map(m => m.manager_name);
   setManagers(allManagers);
   console.log('All managers:', allManagers);
 
-  // Store manager stats for tooltip use
+  // Store manager stats dynamically
   const statsLookup = {};
-  gw1Ranked.forEach(manager => {
-    const gw2Manager = gw2Ranked.find(m => m.manager_name === manager.manager_name);
-    const gw3Manager = gw3Ranked.find(m => m.manager_name === manager.manager_name);
-    statsLookup[manager.manager_name] = {
-      gw1_position: manager.gw1_position,
-      gw1_cumulative: manager.gw1_cumulative,
-      gw2_position: gw2Manager ? gw2Manager.gw2_position : null,
-      gw2_cumulative: gw2Manager ? gw2Manager.gw2_cumulative : manager.gw1_cumulative,
-      gw3_position: gw3Manager ? gw3Manager.gw3_position : null,
-      gw3_cumulative: gw3Manager ? gw3Manager.gw3_cumulative : (gw2Manager ? gw2Manager.gw2_cumulative : manager.gw1_cumulative)
-    };
+  rankedData[0].forEach(manager => {
+    const managerStats = { manager_name: manager.manager_name };
+    
+    for (let gw = 1; gw <= latestGW; gw++) {
+      const gwManager = rankedData[gw - 1].find(m => m.manager_name === manager.manager_name);
+      if (gwManager) {
+        managerStats[`gw${gw}_position`] = gwManager[`gw${gw}_position`];
+        managerStats[`gw${gw}_cumulative`] = gwManager[`gw${gw}_cumulative`];
+      }
+    }
+    
+    statsLookup[manager.manager_name] = managerStats;
   });
   setManagerStats(statsLookup);
 
+  // Create chart points dynamically
   const chartPoints = [];
-
-  // GW1 positions (based on GW1 points only)
-  const gw1Point = { gameweek: 1 };
-  gw1Ranked.forEach(manager => {
-    gw1Point[manager.manager_name] = manager.gw1_position;
-  });
-  chartPoints.push(gw1Point);
-
-  // GW2 positions (based on GW1+GW2 cumulative points)
-  const gw2Point = { gameweek: 2 };
-  gw2Ranked.forEach(manager => {
-    gw2Point[manager.manager_name] = manager.gw2_position;
-  });
-  chartPoints.push(gw2Point);
-
-  // GW3 positions (based on GW1+GW2+GW3 cumulative points)
-  if (gw3Data.totals.length > 0) {
-    const gw3Point = { gameweek: 3 };
-    gw3Ranked.forEach(manager => {
-      gw3Point[manager.manager_name] = manager.gw3_position;
+  for (let gw = 1; gw <= latestGW; gw++) {
+    const gwPoint = { gameweek: gw };
+    rankedData[gw - 1].forEach(manager => {
+      gwPoint[manager.manager_name] = manager[`gw${gw}_position`];
     });
-    chartPoints.push(gw3Point);
+    chartPoints.push(gwPoint);
   }
 
   console.log('Chart data created:', chartPoints);
@@ -319,9 +327,18 @@ useEffect(() => {
 fetchData();
 }, []);
 
-const hasGW3Data = chartData.length >= 3;
-const maxGameweek = hasGW3Data ? 3 : 2;
-const gameweekRange = hasGW3Data ? 'GW1 to GW3' : 'GW1 to GW2';
+const hasLatestGameweekData = chartData.length > 0;
+const maxGameweek = hasLatestGameweekData ? chartData.length : 1;
+const gameweekRange = maxGameweek === 1 ? 'GW1' : `GW1 to GW${maxGameweek}`;
+
+// Generate dynamic ticks for X-axis
+const generateGameweekTicks = (maxGW) => {
+  const ticks = [];
+  for (let i = 1; i <= maxGW; i++) {
+    ticks.push(i);
+  }
+  return ticks;
+};
 
 if (loading) {
 return (
@@ -403,7 +420,7 @@ Clear Selection
           tick={{ fill: '#9CA3AF', fontSize: 12 }}
           domain={[1, maxGameweek]}
           type="number"
-          ticks={hasGW3Data ? [1, 2, 3] : [1, 2]}
+          ticks={generateGameweekTicks(maxGameweek)}
           label={{ value: 'Gameweek', position: 'insideBottom', offset: -10, fill: '#9CA3AF' }}
         />
         <YAxis 
@@ -472,7 +489,7 @@ Clear Selection
           tick={{ fill: '#9CA3AF', fontSize: 14 }}
           domain={[1, maxGameweek]}
           type="number"
-          ticks={hasGW3Data ? [1, 2, 3] : [1, 2]}
+          ticks={generateGameweekTicks(maxGameweek)}
           label={{ value: 'Gameweek', position: 'insideBottom', offset: -20, fill: '#9CA3AF' }}
         />
         <YAxis 
@@ -511,9 +528,9 @@ Clear Selection
   {/* Instructions and Legend */}
   <div className="mt-4 text-xs text-gray-400 space-y-2">
     <p className="text-cyan-300">Click on any dot to highlight that manager's line and dim the others</p>
-    <p>Positions based on cumulative points: GW1 shows total after 1 gameweek, GW2 shows total after 2 gameweeks{hasGW3Data ? ', GW3 shows total after 3 gameweeks' : ''}.</p>
-    {!hasGW3Data && (
-      <p className="text-yellow-400">GW3 data not yet available - showing GW1-GW2 positions only</p>
+    <p>Positions based on cumulative points: GW1 shows total after 1 gameweek{maxGameweek > 1 ? `, GW${maxGameweek} shows total after ${maxGameweek} gameweeks` : ''}.</p>
+    {maxGameweek === 1 && (
+      <p className="text-yellow-400">Only GW1 data available - more gameweeks will appear as they become available</p>
     )}
   </div>
 
@@ -549,7 +566,14 @@ Clear Selection
                   {manager.total_bench_points}
                 </div>
                 <div className="text-xs text-gray-400">
-                  ({manager.gw1_bench} + {manager.gw2_bench}{manager.gw3_bench > 0 ? ` + ${manager.gw3_bench}` : ''})
+                  ({(() => {
+                    const benchBreakdown = [];
+                    for (let gw = 1; gw <= maxGameweek; gw++) {
+                      const gwBench = manager[`gw${gw}_bench`] || 0;
+                      benchBreakdown.push(gwBench);
+                    }
+                    return benchBreakdown.join(' + ');
+                  })()})
                 </div>
               </div>
             </div>

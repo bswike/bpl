@@ -3,18 +3,52 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import Papa from 'papaparse';
 
 const FPLMultiGameweekDashboard = () => {
-  const [gw1Data, setGw1Data] = useState([]);
-  const [gw2Data, setGw2Data] = useState([]);
-  const [gw3Data, setGw3Data] = useState([]);
+  const [gameweekData, setGameweekData] = useState({}); // Store all gameweek data dynamically
   const [combinedData, setCombinedData] = useState([]);
-  const [selectedView, setSelectedView] = useState('gw3'); // 'gw1', 'gw2', 'gw3', 'combined'
+  const [availableGameweeks, setAvailableGameweeks] = useState([]);
+  const [selectedView, setSelectedView] = useState('latest'); // Default to latest gameweek
   const [loading, setLoading] = useState(true);
+  const [latestGameweek, setLatestGameweek] = useState(1);
+
+  // Dynamically detect available gameweeks
+  const findAvailableGameweeks = async () => {
+    const maxGWToCheck = 38;
+    const available = [];
+    
+    for (let gw = 1; gw <= maxGWToCheck; gw++) {
+      try {
+        const CSV_URL = `https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw${gw}.csv`;
+        const url = `${CSV_URL}?t=${Math.floor(Date.now() / 300000)}`;
+        
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) break;
+        
+        const csvData = await response.text();
+        if (csvData.trim() === "The game is being updated.") {
+          available.push(gw); // Still available, just updating
+          continue;
+        }
+        
+        // Try to parse to see if it's valid data
+        const parsed = Papa.parse(csvData, { header: true, skipEmptyLines: true });
+        if (parsed.data && parsed.data.length > 0) {
+          available.push(gw);
+        } else {
+          break;
+        }
+      } catch (error) {
+        console.log(`GW${gw} not available:`, error);
+        break;
+      }
+    }
+    
+    console.log('Available gameweeks:', available);
+    return available;
+  };
 
   const processGameweekData = async (gameweek) => {
     try {
-      // Fetch from Vercel Blob (your Fly worker overwrites this file every 5 minutes)
       const CSV_URL = `https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw${gameweek}.csv`;
-      // tiny cache-buster tied to 5min intervals
       const url = `${CSV_URL}?t=${Math.floor(Date.now() / 300000)}`;
 
       const response = await fetch(url, { cache: 'no-store' });
@@ -22,7 +56,6 @@ const FPLMultiGameweekDashboard = () => {
 
       const csvData = await response.text();
       
-      // Check if the game is being updated
       if (csvData.trim() === "The game is being updated.") {
         console.log(`GW${gameweek} is being updated, returning empty data`);
         return [];
@@ -43,7 +76,6 @@ const FPLMultiGameweekDashboard = () => {
 
       const managerStats = {};
       
-      // Process non-total rows
       parsed.data
         .filter(row => row.player !== "TOTAL")
         .forEach(row => {
@@ -61,24 +93,20 @@ const FPLMultiGameweekDashboard = () => {
             };
           }
 
-          // Track captain
           if (row.is_captain === "True") {
             managerStats[manager].captain_player = row.player;
             managerStats[manager].captain_points = row.points_applied;
           }
 
-          // Count remaining players
           if (row.multiplier >= 1) {
             if (row.fixture_finished !== "True" && row.status !== "dnp") {
               managerStats[manager].remaining_players++;
             }
           } else if (row.multiplier === 0) {
-            // Bench points
             managerStats[manager].bench_points += parseFloat(row.points_gw) || 0;
           }
         });
 
-      // Get total points from TOTAL rows
       const totalRows = parsed.data.filter(row => row.player === "TOTAL");
       totalRows.forEach(row => {
         if (managerStats[row.manager_name]) {
@@ -86,7 +114,6 @@ const FPLMultiGameweekDashboard = () => {
         }
       });
 
-      // Convert to array and sort by points
       const sortedManagers = Object.values(managerStats)
         .sort((a, b) => b.total_points - a.total_points)
         .map((manager, index) => ({
@@ -104,51 +131,71 @@ const FPLMultiGameweekDashboard = () => {
 
   const fetchData = async () => {
     try {
-      // Process all three gameweeks
-      const [gw1Managers, gw2Managers, gw3Managers] = await Promise.all([
-        processGameweekData(1),
-        processGameweekData(2),
-        processGameweekData(3)
-      ]);
+      // Find all available gameweeks
+      const available = await findAvailableGameweeks();
+      if (available.length === 0) {
+        throw new Error('No gameweek data available');
+      }
 
-      setGw1Data(gw1Managers);
-      setGw2Data(gw2Managers);
-      setGw3Data(gw3Managers);
+      setAvailableGameweeks(available);
+      setLatestGameweek(available[available.length - 1]);
 
-      // Create combined data showing cumulative points
-      const combined = gw1Managers.map(gw1Manager => {
-        const gw2Manager = gw2Managers.find(m => m.manager_name === gw1Manager.manager_name);
-        const gw3Manager = gw3Managers.find(m => m.manager_name === gw1Manager.manager_name);
-        
-        const gw2Points = gw2Manager ? gw2Manager.total_points : 0;
-        const gw3Points = gw3Manager ? gw3Manager.total_points : 0;
-        const isGw2Updated = gw2Managers.length === 0;
-        const isGw3Updated = gw3Managers.length === 0;
-        
-        return {
-          manager_name: gw1Manager.manager_name,
-          team_name: gw1Manager.team_name,
-          gw1_points: gw1Manager.total_points,
-          gw2_points: gw2Points,
-          gw3_points: gw3Points,
-          total_points: gw1Manager.total_points + gw2Points + gw3Points,
-          gw1_captain: gw1Manager.captain_player,
-          gw2_captain: gw2Manager ? gw2Manager.captain_player : (isGw2Updated ? 'Updating...' : 'N/A'),
-          gw3_captain: gw3Manager ? gw3Manager.captain_player : (isGw3Updated ? 'Updating...' : 'N/A'),
-          gw1_position: gw1Manager.position,
-          gw2_position: gw2Manager ? gw2Manager.position : (isGw2Updated ? null : null),
-          gw3_position: gw3Manager ? gw3Manager.position : (isGw3Updated ? null : null),
-          gw2_updating: isGw2Updated,
-          gw3_updating: isGw3Updated
-        };
-      }).sort((a, b) => b.total_points - a.total_points)
-        .map((manager, index) => ({
-          ...manager,
-          current_position: index + 1,
-          overall_position_change: manager.gw1_position - (index + 1)
-        }));
+      // Process all available gameweeks
+      const gameweekPromises = available.map(gw => 
+        processGameweekData(gw).then(data => ({ gameweek: gw, data }))
+      );
+      
+      const results = await Promise.all(gameweekPromises);
+      
+      // Store data by gameweek
+      const gwData = {};
+      results.forEach(({ gameweek, data }) => {
+        gwData[gameweek] = data;
+      });
+      setGameweekData(gwData);
 
-      setCombinedData(combined);
+      // Create combined data with cumulative points
+      if (results[0] && results[0].data.length > 0) {
+        const combined = results[0].data.map(firstGwManager => {
+          const managerData = {
+            manager_name: firstGwManager.manager_name,
+            team_name: firstGwManager.team_name,
+            [`gw${available[0]}_points`]: firstGwManager.total_points,
+            [`gw${available[0]}_captain`]: firstGwManager.captain_player,
+            [`gw${available[0]}_position`]: firstGwManager.position,
+            total_points: firstGwManager.total_points
+          };
+
+          // Add data from subsequent gameweeks
+          let runningTotal = firstGwManager.total_points;
+          for (let i = 1; i < available.length; i++) {
+            const gw = available[i];
+            const gwManager = gwData[gw]?.find(m => m.manager_name === firstGwManager.manager_name);
+            const gwPoints = gwManager ? gwManager.total_points : 0;
+            const isUpdating = gwData[gw]?.length === 0;
+
+            runningTotal += gwPoints;
+            managerData[`gw${gw}_points`] = gwPoints;
+            managerData[`gw${gw}_captain`] = gwManager ? gwManager.captain_player : (isUpdating ? 'Updating...' : 'N/A');
+            managerData[`gw${gw}_position`] = gwManager ? gwManager.position : null;
+            managerData[`gw${gw}_updating`] = isUpdating;
+          }
+
+          managerData.total_points = runningTotal;
+          return managerData;
+        }).sort((a, b) => b.total_points - a.total_points)
+          .map((manager, index) => ({
+            ...manager,
+            current_position: index + 1,
+            overall_position_change: manager[`gw${available[0]}_position`] - (index + 1)
+          }));
+
+        setCombinedData(combined);
+      }
+
+      // Set default view to latest gameweek
+      setSelectedView(`gw${available[available.length - 1]}`);
+
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -158,24 +205,42 @@ const FPLMultiGameweekDashboard = () => {
 
   useEffect(() => {
     fetchData();
-    const intervalId = setInterval(fetchData, 300000); // Update every 5 minutes (300000ms)
+    const intervalId = setInterval(fetchData, 300000);
     return () => clearInterval(intervalId);
   }, []);
 
   const getCurrentData = () => {
-    switch(selectedView) {
-      case 'gw1': return gw1Data;
-      case 'gw2': return gw2Data;
-      case 'gw3': return gw3Data;
-      case 'combined': return combinedData;
-      default: return combinedData;
-    }
+    if (selectedView === 'combined') return combinedData;
+    
+    const gwNumber = parseInt(selectedView.replace('gw', ''));
+    return gameweekData[gwNumber] || [];
   };
 
   const getPositionChangeIcon = (change) => {
     if (change > 0) return <span className="text-green-400">↗️ +{change}</span>;
     if (change < 0) return <span className="text-red-400">↘️ {change}</span>;
     return <span className="text-gray-400">➡️ 0</span>;
+  };
+
+  // Generate color for each gameweek button (maintaining original colors)
+  const getGameweekColor = (gw, isSelected) => {
+    const colorMap = {
+      1: isSelected ? 'bg-blue-600 text-white' : 'bg-slate-700 text-gray-300 hover:bg-slate-600',
+      2: isSelected ? 'bg-green-600 text-white' : 'bg-slate-700 text-gray-300 hover:bg-slate-600',
+      3: isSelected ? 'bg-orange-600 text-white' : 'bg-slate-700 text-gray-300 hover:bg-slate-600',
+    };
+    
+    // For GW4 and beyond, use a cycling color scheme
+    if (gw > 3) {
+      const colors = ['purple', 'pink', 'indigo', 'teal', 'red', 'amber', 'emerald', 'rose'];
+      const colorIndex = (gw - 4) % colors.length;
+      const color = colors[colorIndex];
+      return isSelected 
+        ? `bg-${color}-600 text-white` 
+        : `bg-slate-700 text-gray-300 hover:bg-slate-600`;
+    }
+    
+    return colorMap[gw] || 'bg-slate-700 text-gray-300 hover:bg-slate-600';
   };
 
   if (loading) {
@@ -197,38 +262,21 @@ const FPLMultiGameweekDashboard = () => {
             ⚽ BPL Multi-Gameweek Dashboard
           </h1>
           
-          {/* View Toggle Buttons */}
-          <div className="flex justify-center space-x-2 mb-4">
-            <button
-              onClick={() => setSelectedView('gw1')}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                selectedView === 'gw1' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-              }`}
-            >
-              GW1 Only
-            </button>
-            <button
-              onClick={() => setSelectedView('gw2')}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                selectedView === 'gw2' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-              }`}
-            >
-              GW2 Only
-            </button>
-            <button
-              onClick={() => setSelectedView('gw3')}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                selectedView === 'gw3' 
-                  ? 'bg-orange-600 text-white' 
-                  : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
-              }`}
-            >
-              GW3 Only
-            </button>
+          {/* Dynamic View Toggle Buttons */}
+          <div className="flex justify-center flex-wrap gap-2 mb-4">
+            {availableGameweeks.map(gw => (
+              <button
+                key={gw}
+                onClick={() => setSelectedView(`gw${gw}`)}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  selectedView === `gw${gw}` 
+                    ? getGameweekColor(gw, true)
+                    : getGameweekColor(gw, false)
+                }`}
+              >
+                GW{gw} Only
+              </button>
+            ))}
             <button
               onClick={() => setSelectedView('combined')}
               className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
@@ -242,10 +290,8 @@ const FPLMultiGameweekDashboard = () => {
           </div>
           
           <p className="text-md sm:text-lg text-gray-400">
-            {selectedView === 'gw1' && 'Gameweek 1 Performance'}
-            {selectedView === 'gw2' && 'Gameweek 2 Performance'} 
-            {selectedView === 'gw3' && 'Gameweek 3 Performance'}
-            {selectedView === 'combined' && 'Overall Season Performance (GW1 + GW2 + GW3)'}
+            {selectedView === 'combined' && `Overall Season Performance (GW1-${latestGameweek})`}
+            {selectedView !== 'combined' && `Gameweek ${selectedView.replace('gw', '')} Performance`}
           </p>
         </div>
 
@@ -278,22 +324,29 @@ const FPLMultiGameweekDashboard = () => {
             <p className="text-xs sm:text-sm text-gray-400">Points</p>
           </div>
           
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-4 sm:p-6 shadow-2xl border border-slate-700 text-center">
+            <h3 className="text-lg sm:text-xl font-bold text-cyan-300 mb-1">🎯 Latest GW</h3>
+            <p className="text-2xl sm:text-3xl font-bold text-cyan-400">{latestGameweek}</p>
+            <p className="text-xs sm:text-sm text-gray-400">Available</p>
+          </div>
         </div>
 
         {/* Leaderboard Table */}
         <div className="bg-black rounded-md overflow-hidden shadow-xl mb-8">
           <div className="bg-black px-4 py-2 border-b border-gray-700">
             <h2 className="text-lg md:text-xl font-bold text-white">
-              {selectedView === 'gw1' && 'GW1 Leaderboard'}
-              {selectedView === 'gw2' && 'GW2 Leaderboard'}
-              {selectedView === 'gw3' && 'GW3 Leaderboard'}
               {selectedView === 'combined' && 'Overall Leaderboard'}
+              {selectedView !== 'combined' && `GW${selectedView.replace('gw', '')} Leaderboard`}
             </h2>
           </div>
 
-          {/* Table Header */}
+          {/* Dynamic Table Header */}
           <div className="hidden md:block bg-gray-900 px-4 py-2 border-b border-gray-700">
-            <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-400 uppercase">
+            <div className={`grid gap-2 text-xs font-medium text-gray-400 uppercase ${
+              selectedView === 'combined' 
+                ? `grid-cols-${Math.min(12, 5 + availableGameweeks.length)}` 
+                : 'grid-cols-12'
+            }`}>
               <div className="col-span-1 text-center">#</div>
               <div className="col-span-3">Manager</div>
               <div className="col-span-1 text-center">
@@ -301,11 +354,10 @@ const FPLMultiGameweekDashboard = () => {
               </div>
               {selectedView === 'combined' && (
                 <>
-                  <div className="col-span-1 text-center">GW1</div>
-                  <div className="col-span-1 text-center">GW2</div>
-                  <div className="col-span-1 text-center">GW3</div>
+                  {availableGameweeks.map(gw => (
+                    <div key={gw} className="col-span-1 text-center">GW{gw}</div>
+                  ))}
                   <div className="col-span-1 text-center">Change</div>
-                  <div className="col-span-3 text-center">Captains</div>
                 </>
               )}
               {selectedView !== 'combined' && (
@@ -352,26 +404,24 @@ const FPLMultiGameweekDashboard = () => {
                   </div>
                   
                   {selectedView === 'combined' && (
-                    <div className="grid grid-cols-3 gap-1 text-xs mt-1">
-                      <div className="text-center bg-gray-800/30 rounded px-1 py-0.5">
-                        <span className="text-blue-400">GW1: {manager.gw1_points}</span>
-                      </div>
-                      <div className="text-center bg-gray-800/30 rounded px-1 py-0.5">
-                        <span className="text-green-400">GW2: {manager.gw2_points}</span>
-                      </div>
-                      <div className="text-center bg-gray-800/30 rounded px-1 py-0.5">
-                        <span className="text-orange-400">GW3: {manager.gw3_points}</span>
-                      </div>
+                    <div className={`grid gap-1 text-xs mt-1 grid-cols-${Math.min(4, availableGameweeks.length)}`}>
+                      {availableGameweeks.slice(0, 4).map(gw => (
+                        <div key={gw} className="text-center bg-gray-800/30 rounded px-1 py-0.5">
+                          <span className={`${gw === 1 ? 'text-blue-400' : gw === 2 ? 'text-green-400' : gw === 3 ? 'text-orange-400' : 'text-purple-400'}`}>
+                            GW{gw}: {manager[`gw${gw}_points`] || 0}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   )}
                   
                   {selectedView !== 'combined' && (
                     <div className="grid grid-cols-2 gap-2 text-xs mt-1">
                       <div className="text-center bg-gray-800/30 rounded px-1 py-0.5">
-                        <span className="text-cyan-400">Cap: {manager.captain_player.split(' ').pop()}</span>
+                        <span className="text-cyan-400">Cap: {manager.captain_player?.split(' ').pop() || 'N/A'}</span>
                       </div>
                       <div className="text-center bg-gray-800/30 rounded px-1 py-0.5">
-                        <span className="text-yellow-400">Left: {manager.remaining_players}</span>
+                        <span className="text-yellow-400">Left: {manager.remaining_players || 0}</span>
                       </div>
                     </div>
                   )}
@@ -379,7 +429,11 @@ const FPLMultiGameweekDashboard = () => {
 
                 {/* Desktop Layout */}
                 <div className="hidden md:block px-4 py-2">
-                  <div className="grid grid-cols-12 gap-2 items-center text-sm">
+                  <div className={`grid gap-2 items-center text-sm ${
+                    selectedView === 'combined' 
+                      ? `grid-cols-${Math.min(12, 5 + availableGameweeks.length)}` 
+                      : 'grid-cols-12'
+                  }`}>
                     {/* Position */}
                     <div className="col-span-1 text-center">
                       <div className="w-6 h-6 bg-gray-800 rounded text-center mx-auto">
@@ -409,43 +463,22 @@ const FPLMultiGameweekDashboard = () => {
                           <div className="text-white font-bold text-lg">{manager.total_points}</div>
                         </div>
 
-                        {/* GW1 Points */}
-                        <div className="col-span-1 text-center">
-                          <div className="text-blue-400 font-medium text-sm">{manager.gw1_points}</div>
-                        </div>
-
-                        {/* GW2 Points */}
-                        <div className="col-span-1 text-center">
-                          <div className="text-green-400 font-medium text-sm">{manager.gw2_points}</div>
-                        </div>
-
-                        {/* GW3 Points */}
-                        <div className="col-span-1 text-center">
-                          <div className="text-orange-400 font-medium text-sm">{manager.gw3_points}</div>
-                        </div>
+                        {/* Individual Gameweek Points */}
+                        {availableGameweeks.map(gw => (
+                          <div key={gw} className="col-span-1 text-center">
+                            <div className={`font-medium text-sm ${
+                              gw === 1 ? 'text-blue-400' : 
+                              gw === 2 ? 'text-green-400' : 
+                              gw === 3 ? 'text-orange-400' : 'text-purple-400'
+                            }`}>
+                              {manager[`gw${gw}_points`] || 0}
+                            </div>
+                          </div>
+                        ))}
 
                         {/* Position Change */}
                         <div className="col-span-1 text-center text-xs">
                           {getPositionChangeIcon(manager.overall_position_change)}
-                        </div>
-
-                        {/* Captains */}
-                        <div className="col-span-3 text-center">
-                          <div className="text-white text-xs">
-                            GW1: {manager.gw1_captain.split(' ').pop()}
-                          </div>
-                          <div className="text-gray-400 text-xs">
-                            GW2: {manager.gw2_updating ? 
-                              <span className="text-yellow-400">Updating...</span> : 
-                              manager.gw2_captain.split(' ').pop()
-                            }
-                          </div>
-                          <div className="text-gray-400 text-xs">
-                            GW3: {manager.gw3_updating ? 
-                              <span className="text-yellow-400">Updating...</span> : 
-                              manager.gw3_captain.split(' ').pop()
-                            }
-                          </div>
                         </div>
                       </>
                     ) : (
@@ -457,19 +490,19 @@ const FPLMultiGameweekDashboard = () => {
 
                         {/* Captain */}
                         <div className="col-span-2 text-center">
-                          <div className="text-white font-medium text-sm">{manager.captain_player.split(' ').pop()}</div>
-                          <div className="text-cyan-400 text-xs">{manager.captain_points} pts</div>
+                          <div className="text-white font-medium text-sm">{manager.captain_player?.split(' ').pop() || 'N/A'}</div>
+                          <div className="text-cyan-400 text-xs">{manager.captain_points || 0} pts</div>
                         </div>
 
                         {/* Remaining */}
                         <div className="col-span-2 text-center">
-                          <div className="text-cyan-400 font-bold text-lg">{manager.remaining_players}</div>
+                          <div className="text-cyan-400 font-bold text-lg">{manager.remaining_players || 0}</div>
                           <div className="text-gray-400 text-xs">left</div>
                         </div>
 
                         {/* Bench */}
                         <div className="col-span-2 text-center">
-                          <div className="text-yellow-400 font-medium text-sm">{Math.round(manager.bench_points)}</div>
+                          <div className="text-yellow-400 font-medium text-sm">{Math.round(manager.bench_points) || 0}</div>
                           <div className="text-gray-400 text-xs">bench</div>
                         </div>
                       </>
