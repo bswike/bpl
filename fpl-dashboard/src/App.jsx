@@ -8,7 +8,7 @@ import './App.css';
 const Navigation = ({ currentPage, setCurrentPage }) => {
   const navItems = [
     { id: 'position-chart', label: 'Positions', icon: '📈' },
-    { id: 'multi-gw', label: 'GW Stats', icon: '📈' },
+    { id: 'multi-gw', label: 'GW Stats', icon: '🔢' },
     { id: 'dashboard', label: 'League Table', icon: '📊' },
    // { id: 'analysis', label: 'Analysis', icon: '🧠' },
     
