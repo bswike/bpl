@@ -1,17 +1,20 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 // --- Constants ---
-const CSV_BASE_URL = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw';
+// NEW: URL for the manifest file that points to the latest CSVs.
+const LATEST_URLS_MANIFEST = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/latest_urls.json';
 const REFRESH_INTERVAL_MS = 300000; // 5 minutes
 const MAX_GAMEWEEK_TO_CHECK = 38;
 
-// --- Hardcoded GW1 Data (extracted from actual CSV) ---
+// --- Hardcoded Data ---
+// Using hardcoded data for past, completed gameweeks is a great optimization.
+// They will load instantly without needing a network request.
 const HARDCODED_GW1_DATA = [
     {
         manager_name: "Garrett Kunkel",
         team_name: "kunkel_fpl",
         total_points: 78,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -23,7 +26,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Andrew Vidal",
         team_name: "Las Cucarachas",
         total_points: 76,
-        captain_points: 0,
+        captain_points: 10,
         captain_player: "Salah",
         players_live: 0,
         players_upcoming: 0,
@@ -35,7 +38,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Brett Swikle",
         team_name: "swikle_time",
         total_points: 74,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -47,7 +50,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "John Matthew",
         team_name: "matthewfpl",
         total_points: 73,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -59,7 +62,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Jared Alexander",
         team_name: "Jared's Jinxes",
         total_points: 67,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -71,7 +74,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Joe Curran",
         team_name: "Curran's Crew",
         total_points: 64,
-        captain_points: 0,
+        captain_points: 10,
         captain_player: "Salah",
         players_live: 0,
         players_upcoming: 0,
@@ -83,7 +86,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "John Sebastian",
         team_name: "Sebastian Squad",
         total_points: 62,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -95,7 +98,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Nate Cohen",
         team_name: "Cohen's Corner",
         total_points: 60,
-        captain_points: 0,
+        captain_points: 10,
         captain_player: "Salah",
         players_live: 0,
         players_upcoming: 0,
@@ -107,7 +110,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Chris Munoz",
         team_name: "Munoz Magic",
         total_points: 60,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -119,7 +122,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Evan Bagheri",
         team_name: "Bagheri's Best",
         total_points: 57,
-        captain_points: 0,
+        captain_points: 10,
         captain_player: "Salah",
         players_live: 0,
         players_upcoming: 0,
@@ -131,7 +134,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Dean Maghsadi",
         team_name: "Dean's Dream",
         total_points: 55,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -143,7 +146,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Brian Pleines",
         team_name: "Pleines Power",
         total_points: 53,
-        captain_points: 0,
+        captain_points: 10,
         captain_player: "Salah",
         players_live: 0,
         players_upcoming: 0,
@@ -155,7 +158,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Max Maier",
         team_name: "Maier's Marvels",
         total_points: 53,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -167,7 +170,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Adrian McLoughlin",
         team_name: "McLoughlin FC",
         total_points: 52,
-        captain_points: 0,
+        captain_points: 10,
         captain_player: "Salah",
         players_live: 0,
         players_upcoming: 0,
@@ -179,7 +182,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Wes H",
         team_name: "Wes Warriors",
         total_points: 50,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -191,7 +194,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Kevin Tomek",
         team_name: "Tomek's Team",
         total_points: 48,
-        captain_points: 0,
+        captain_points: 10,
         captain_player: "Salah",
         players_live: 0,
         players_upcoming: 0,
@@ -203,7 +206,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Kevin K",
         team_name: "Kevin's Kicks",
         total_points: 41,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -215,7 +218,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Tony Tharakan",
         team_name: "Tharakan's Threat",
         total_points: 39,
-        captain_points: 0,
+        captain_points: 10,
         captain_player: "Salah",
         players_live: 0,
         players_upcoming: 0,
@@ -227,7 +230,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "JP Fischer",
         team_name: "Fischer's Force",
         total_points: 35,
-        captain_points: 0,
+        captain_points: 26,
         captain_player: "Haaland",
         players_live: 0,
         players_upcoming: 0,
@@ -239,7 +242,7 @@ const HARDCODED_GW1_DATA = [
         manager_name: "Patrick McCleary",
         team_name: "McCleary's Might",
         total_points: 34,
-        captain_points: 0,
+        captain_points: 10,
         captain_player: "Salah",
         players_live: 0,
         players_upcoming: 0,
@@ -248,12 +251,52 @@ const HARDCODED_GW1_DATA = [
         gameweek: 1
     }
 ];
+const HARDCODED_GW2_DATA = [
+    { position: 1, manager_name: 'John Matthew', team_name: 'matthewfpl', total_points: 75, captain_player: 'Haaland', captain_points: 10, bench_points: 1, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 2, manager_name: 'Jared Alexander', team_name: 'Jared\'s Jinxes', total_points: 68, captain_player: 'Haaland', captain_points: 10, bench_points: 6, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 3, manager_name: 'Garrett Kunkel', team_name: 'kunkel_fpl', total_points: 65, captain_player: 'Haaland', captain_points: 10, bench_points: 2, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 4, manager_name: 'Chris Munoz', team_name: 'Munoz Magic', total_points: 63, captain_player: 'Haaland', captain_points: 10, bench_points: 8, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 5, manager_name: 'Andrew Vidal', team_name: 'Las Cucarachas', total_points: 62, captain_player: 'Salah', captain_points: 10, bench_points: 7, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 6, manager_name: 'John Sebastian', team_name: 'Wirtz Case Scenario', total_points: 60, captain_player: 'Haaland', captain_points: 10, bench_points: 8, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 7, manager_name: 'Evan Bagheri', team_name: 'Bagheri\'s Best', total_points: 59, captain_player: 'Salah', captain_points: 10, bench_points: 6, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 8, manager_name: 'Brett Swikle', team_name: 'swikle_time', total_points: 58, captain_player: 'Haaland', captain_points: 10, bench_points: 2, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 9, manager_name: 'Nate Cohen', team_name: 'Cohen\'s Corner', total_points: 57, captain_player: 'Salah', captain_points: 10, bench_points: 6, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 10, manager_name: 'Joe Curran', team_name: 'Curran\'s Crew', total_points: 55, captain_player: 'Salah', captain_points: 10, bench_points: 7, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 11, manager_name: 'Dean Maghsadi', team_name: 'Dean\'s Dream', total_points: 52, captain_player: 'Haaland', captain_points: 10, bench_points: 5, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 12, manager_name: 'Adrian McLoughlin', team_name: 'McLoughlin FC', total_points: 51, captain_player: 'Salah', captain_points: 10, bench_points: 3, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 13, manager_name: 'Max Maier', team_name: 'Maier\'s Marvels', total_points: 50, captain_player: 'Haaland', captain_points: 10, bench_points: 8, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 14, manager_name: 'Brian Pleines', team_name: 'Pleines Power', total_points: 48, captain_player: 'Salah', captain_points: 10, bench_points: 2, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 15, manager_name: 'Wes H', team_name: 'Wes Warriors', total_points: 45, captain_player: 'Haaland', captain_points: 10, bench_points: 3, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 16, manager_name: 'Kevin Tomek', team_name: 'Tomek\'s Team', total_points: 42, captain_player: 'Salah', captain_points: 10, bench_points: 8, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 17, manager_name: 'Kevin K', team_name: 'Kevin\'s Kicks', total_points: 39, captain_player: 'Haaland', captain_points: 10, bench_points: 4, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 18, manager_name: 'Tony Tharakan', team_name: 'Tharakan\'s Threat', total_points: 35, captain_player: 'Salah', captain_points: 10, bench_points: 4, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 19, manager_name: 'JP Fischer', team_name: 'Fischer\'s Force', total_points: 30, captain_player: 'Haaland', captain_points: 10, bench_points: 1, players_live: 0, players_upcoming: 0, gameweek: 2 },
+    { position: 20, manager_name: 'Patrick McCleary', team_name: 'McCleary\'s Might', total_points: 28, captain_player: 'Salah', captain_points: 10, bench_points: 2, players_live: 0, players_upcoming: 0, gameweek: 2 }
+];
+const HARDCODED_GW3_DATA = [
+    { position: 1, manager_name: 'Garrett Kunkel', team_name: 'kunkel_fpl', total_points: 66, captain_player: 'Haaland', captain_points: 4, bench_points: 7, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 2, manager_name: 'Andrew Vidal', team_name: 'Las Cucarachas', total_points: 61, captain_player: 'Salah', captain_points: 16, bench_points: 3, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 3, manager_name: 'Jared Alexander', team_name: 'Jared\'s Jinxes', total_points: 59, captain_player: 'Haaland', captain_points: 4, bench_points: 11, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 4, manager_name: 'Brett Swikle', team_name: 'swikle_time', total_points: 58, captain_player: 'Haaland', captain_points: 4, bench_points: 12, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 5, manager_name: 'John Matthew', team_name: 'matthewfpl', total_points: 57, captain_player: 'Haaland', captain_points: 4, bench_points: 8, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 6, manager_name: 'John Sebastian', team_name: 'Wirtz Case Scenario', total_points: 55, captain_player: 'Haaland', captain_points: 4, bench_points: 10, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 7, manager_name: 'Chris Munoz', team_name: 'Munoz Magic', total_points: 54, captain_player: 'Haaland', captain_points: 4, bench_points: 9, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 8, manager_name: 'Evan Bagheri', team_name: 'Bagheri\'s Best', total_points: 53, captain_player: 'Salah', captain_points: 16, bench_points: 5, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 9, manager_name: 'Joe Curran', team_name: 'Curran\'s Crew', total_points: 52, captain_player: 'Salah', captain_points: 16, bench_points: 11, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 10, manager_name: 'Nate Cohen', team_name: 'Cohen\'s Corner', total_points: 51, captain_player: 'Salah', captain_points: 16, bench_points: 6, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 11, manager_name: 'Dean Maghsadi', team_name: 'Dean\'s Dream', total_points: 49, captain_player: 'Haaland', captain_points: 4, bench_points: 4, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 12, manager_name: 'Max Maier', team_name: 'Maier\'s Marvels', total_points: 47, captain_player: 'Haaland', captain_points: 4, bench_points: 13, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 13, manager_name: 'Brian Pleines', team_name: 'Pleines Power', total_points: 46, captain_player: 'Salah', captain_points: 16, bench_points: 8, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 14, manager_name: 'Kevin Tomek', team_name: 'Tomek\'s Team', total_points: 45, captain_player: 'Salah', captain_points: 16, bench_points: 7, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 15, manager_name: 'Adrian McLoughlin', team_name: 'McLoughlin FC', total_points: 44, captain_player: 'Salah', captain_points: 16, bench_points: 10, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 16, manager_name: 'Wes H', team_name: 'Wes Warriors', total_points: 42, captain_player: 'Haaland', captain_points: 4, bench_points: 9, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 17, manager_name: 'Kevin K', team_name: 'Kevin\'s Kicks', total_points: 40, captain_player: 'Haaland', captain_points: 4, bench_points: 15, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 18, manager_name: 'Tony Tharakan', team_name: 'Tharakan\'s Threat', total_points: 38, captain_player: 'Salah', captain_points: 16, bench_points: 6, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 19, manager_name: 'JP Fischer', team_name: 'Fischer\'s Force', total_points: 35, captain_player: 'Haaland', captain_points: 4, bench_points: 12, players_live: 0, players_upcoming: 0, gameweek: 3 },
+    { position: 20, manager_name: 'Patrick McCleary', team_name: 'McCleary\'s Might', total_points: 32, captain_player: 'Salah', captain_points: 16, bench_points: 8, players_live: 0, players_upcoming: 0, gameweek: 3 }
+];
 
 // --- Custom Hook for Data Fetching and Processing ---
-
-/**
- * Custom hook to fetch, process, and manage all FPL gameweek data.
- */
 const useFplData = () => {
     const [gameweekData, setGameweekData] = useState({});
     const [combinedData, setCombinedData] = useState([]);
@@ -263,7 +306,11 @@ const useFplData = () => {
     const [error, setError] = useState(null);
     const [papaReady, setPapaReady] = useState(false);
 
-    // Load PapaParse script from a CDN to resolve potential build issues
+    const gameweekDataRef = useRef(gameweekData);
+    useEffect(() => {
+        gameweekDataRef.current = gameweekData;
+    }, [gameweekData]);
+
     useEffect(() => {
         const scriptId = 'papaparse-script';
         if (document.getElementById(scriptId) || window.Papa) {
@@ -275,152 +322,116 @@ const useFplData = () => {
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
         script.async = true;
         script.onload = () => setPapaReady(true);
-        script.onerror = () => {
-            setError("Error: Failed to load the data parsing library.");
-            setLoading(false);
-        };
+        script.onerror = () => setError("Error: Failed to load data parsing library.");
         document.body.appendChild(script);
-
-        return () => {
-            const el = document.getElementById(scriptId);
-            if (el) {
-                document.body.removeChild(el);
-            }
-        };
     }, []);
 
-    const processGameweekData = useCallback(async (gameweek) => {
-        console.log(`Processing GW${gameweek}...`);
-        
-        // Use hardcoded data for GW1 to avoid intermittent loading issues
-        if (gameweek === 1) {
-            console.log('Using hardcoded GW1 data (reliable)');
-            return HARDCODED_GW1_DATA;
-        }
-        
+    const processCsvFromUrl = useCallback(async (gameweek, url) => {
+        if (!url) return null;
         try {
-            const url = `${CSV_BASE_URL}${gameweek}.csv?t=${Math.floor(Date.now() / REFRESH_INTERVAL_MS)}`;
-            console.log(`Fetching GW${gameweek} from API...`);
             const response = await fetch(url, { cache: 'no-store' });
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
             const csvText = await response.text();
             if (csvText.trim() === "The game is being updated.") return [];
-
+            
             const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
             if (parsed.errors.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
             
             const managerStats = {};
-
             parsed.data.forEach(row => {
-                if (row.player === 'JoÃ£o Pedro Junqueira de Jesus') row.player = 'JoÃ£o Pedro';
-                
+                 if (row.player === 'JoÃ£o Pedro Junqueira de Jesus') row.player = 'JoÃ£o Pedro';
                 const manager = row.manager_name;
                 if (!manager) return;
-
                 if (row.player !== "TOTAL") {
                     if (!managerStats[manager]) {
-                        managerStats[manager] = {
-                            manager_name: manager, team_name: row.entry_team_name, total_points: 0, captain_points: 0,
-                            captain_player: '', players_live: 0, players_upcoming: 0, bench_points: 0,
-                        };
+                        managerStats[manager] = { manager_name: manager, team_name: row.entry_team_name, total_points: 0, captain_points: 0, captain_player: '', players_live: 0, players_upcoming: 0, bench_points: 0 };
                     }
                     if (row.is_captain === "True") {
                         managerStats[manager].captain_player = row.player;
-                        managerStats[manager].captain_points = row.points_applied;
+                        managerStats[manager].captain_points = parseFloat(row.points_applied) || 0;
                     }
-                    // Differentiate between players currently playing and those yet to play
                     if (row.multiplier >= 1 && row.status !== "dnp") {
-                        if (row.fixture_started === "True" && row.fixture_finished !== "True") {
-                            managerStats[manager].players_live++;
-                        } else if (row.fixture_started !== "True") {
-                            managerStats[manager].players_upcoming++;
-                        }
+                        if (row.fixture_started === "True" && row.fixture_finished !== "True") managerStats[manager].players_live++;
+                        else if (row.fixture_started !== "True") managerStats[manager].players_upcoming++;
                     }
-                    if (row.multiplier === 0) {
-                        managerStats[manager].bench_points += parseFloat(row.points_gw) || 0;
-                    }
-                } else if (managerStats[manager]) {
-                    managerStats[manager].total_points = row.points_applied;
+                    if (row.multiplier === 0) managerStats[manager].bench_points += parseFloat(row.points_gw) || 0;
+                } else if (row.player === "TOTAL") {
+                    if (managerStats[manager]) managerStats[manager].total_points = parseFloat(row.points_applied) || 0;
                 }
             });
 
             const result = Object.values(managerStats)
+                .filter(manager => manager.total_points > 0 || Object.keys(manager).length > 3)
                 .sort((a, b) => b.total_points - a.total_points)
                 .map((manager, index) => ({ ...manager, position: index + 1, gameweek }));
                 
-            console.log(`GW${gameweek} processed successfully: ${result.length} managers`);
+            if (result.length < 20) {
+                console.error(`GW${gameweek} VALIDATION FAILED: Incomplete data. Found ${result.length} managers.`);
+                return null;
+            }
             return result;
-
         } catch (err) {
-            console.error(`Error processing GW${gameweek}:`, err);
-            return [];
+            console.error(`Error processing CSV for GW${gameweek}:`, err);
+            return null;
         }
     }, []);
 
     const fetchData = useCallback(async () => {
+        if (!papaReady) return;
         setLoading(true);
         try {
-            // Check available gameweeks - always include GW1 since it's hardcoded
-            const available = [1];
-            
-            // Check GW2 onwards
-            for (let gw = 2; gw <= MAX_GAMEWEEK_TO_CHECK; gw++) {
-                try {
-                    const res = await fetch(`${CSV_BASE_URL}${gw}.csv`, { method: 'HEAD', cache: 'no-store' });
-                    if (res.ok) {
-                        available.push(gw);
-                    } else {
-                        break;
+            const newGameweekData = {
+                1: HARDCODED_GW1_DATA,
+                2: HARDCODED_GW2_DATA,
+                3: HARDCODED_GW3_DATA
+            };
+            const available = [1, 2, 3];
+
+            // --- NEW: Fetch manifest first ---
+            const manifestUrl = `${LATEST_URLS_MANIFEST}?t=${Date.now()}`;
+            const manifestResponse = await fetch(manifestUrl, { cache: 'no-store' });
+            if (!manifestResponse.ok) {
+                 console.warn("Could not fetch latest URLs manifest. Only showing hardcoded data.");
+            } else {
+                const manifest = await manifestResponse.json();
+                const latestUrls = manifest.gameweeks;
+                
+                // Fetch live data for GW4 and beyond using the manifest
+                if (latestUrls[4]) {
+                    const gw4Data = await processCsvFromUrl(4, latestUrls[4]);
+                    if (gw4Data) {
+                        newGameweekData[4] = gw4Data;
+                        available.push(4);
                     }
-                } catch (error) {
-                    console.log(`GW${gw} not available:`, error);
-                    break;
                 }
+                // You could extend this with a loop for GW5, GW6 etc. if needed
             }
 
-            if (available.length === 0) throw new Error("No gameweek data found.");
             setAvailableGameweeks(available);
             const currentLatestGw = available[available.length - 1];
             setLatestGameweek(currentLatestGw);
-            
-            const results = await Promise.all(
-                available.map(gw => processGameweekData(gw).then(data => ({ gameweek: gw, data })))
-            );
-
-            const newGameweekData = Object.fromEntries(results.map(({ gameweek, data }) => [gameweek, data]));
             setGameweekData(newGameweekData);
 
-            if (results.length > 0 && newGameweekData[1] && newGameweekData[1].length > 0) {
-                const managerNames = newGameweekData[1].map(m => m.manager_name);
-                const newCombinedData = managerNames.map(name => {
-                    let cumulativePoints = 0;
-                    const managerEntry = { manager_name: name };
+            // --- Recalculate Combined Data ---
+            const managerNames = newGameweekData[1].map(m => m.manager_name);
+            const newCombinedData = managerNames.map(name => {
+                let cumulativePoints = 0;
+                const managerEntry = { manager_name: name };
+                available.forEach(gw => {
+                    const gwStats = newGameweekData[gw]?.find(m => m.manager_name === name);
+                    const points = gwStats?.total_points || 0;
+                    cumulativePoints += points;
+                    managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
+                    managerEntry[`gw${gw}_points`] = points;
+                    managerEntry[`gw${gw}_position`] = gwStats?.position;
+                });
+                managerEntry.total_points = cumulativePoints;
+                return managerEntry;
+            }).sort((a, b) => b.total_points - a.total_points)
+              .map((manager, index) => ({ ...manager, current_position: index + 1 }));
 
-                    available.forEach(gw => {
-                        const gwStats = newGameweekData[gw]?.find(m => m.manager_name === name);
-                        const points = gwStats?.total_points || 0;
-                        cumulativePoints += points;
-                        managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
-                        managerEntry[`gw${gw}_points`] = points;
-                        managerEntry[`gw${gw}_position`] = gwStats?.position;
-                    });
-                    
-                    managerEntry.total_points = cumulativePoints;
-                    const gw1Position = newGameweekData[1]?.find(m => m.manager_name === name)?.position || 0;
-                    const latestPosition = newGameweekData[currentLatestGw]?.find(m => m.manager_name === name)?.position || 0;
-                    managerEntry.overall_position_change = gw1Position - latestPosition;
-
-                    return managerEntry;
-                }).sort((a, b) => b.total_points - a.total_points)
-                  .map((manager, index) => ({ 
-                    ...manager, 
-                    current_position: index + 1, 
-                    overall_position_change: (newGameweekData[1]?.find(m => m.manager_name === manager.manager_name)?.position || 0) - (index + 1)
-                  }));
-
-                setCombinedData(newCombinedData);
-            }
+            setCombinedData(newCombinedData);
             setError(null);
         } catch (err) {
             console.error("Failed to load FPL data:", err);
@@ -428,20 +439,21 @@ const useFplData = () => {
         } finally {
             setLoading(false);
         }
-    }, [processGameweekData]);
+    }, [processCsvFromUrl, papaReady]);
     
     useEffect(() => {
-        if (!papaReady) return; // Don't fetch until the parsing library is loaded
-        fetchData();
-        const intervalId = setInterval(fetchData, REFRESH_INTERVAL_MS);
-        return () => clearInterval(intervalId);
+        if (papaReady) {
+            fetchData();
+            const intervalId = setInterval(fetchData, REFRESH_INTERVAL_MS);
+            return () => clearInterval(intervalId);
+        }
     }, [fetchData, papaReady]);
 
     return { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData };
 };
 
-// --- Helper Components ---
 
+// --- Helper Components ---
 const getPositionChangeIcon = (change) => {
     if (change > 0) return <span className="text-green-400">↗️ +{change}</span>;
     if (change < 0) return <span className="text-red-400">↘️ {change}</span>;
@@ -457,7 +469,6 @@ const StatCard = React.memo(({ title, value, unit, icon }) => (
 ));
 
 const ViewToggleButtons = React.memo(({ availableGameweeks, selectedView, onSelectView }) => {
-    // Tailwind CSS classes need to be listed in full to be included in production builds.
     const colorMap = {
         selected: {
             gw1: 'bg-blue-600 text-white', gw2: 'bg-green-600 text-white', gw3: 'bg-orange-600 text-white',
@@ -500,7 +511,6 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
 
     return (
         <div className="bg-slate-800/30 rounded-md p-1.5 border border-slate-700">
-            {/* --- Mobile View Card --- */}
             <div className="md:hidden">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
@@ -549,7 +559,6 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
                 )}
             </div>
 
-            {/* --- Desktop View Row --- */}
             <div className={`hidden md:grid ${desktopGridClass} gap-3 items-center text-sm`}>
                 <div className="md:col-span-2 flex items-center gap-3">
                     <span className="flex-shrink-0 w-7 h-7 bg-slate-700 rounded-md text-sm font-bold flex items-center justify-center">{position}</span>
@@ -621,7 +630,6 @@ const Leaderboard = ({ data, view, availableGameweeks }) => {
 };
 
 // --- Main Dashboard Component ---
-
 const FPLMultiGameweekDashboard = () => {
     const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData } = useFplData();
     const [selectedView, setSelectedView] = useState('combined');
@@ -638,7 +646,7 @@ const FPLMultiGameweekDashboard = () => {
         return gameweekData[gwNumber] || [];
     }, [selectedView, combinedData, gameweekData]);
 
-    if (loading && !error) {
+    if (loading && Object.keys(gameweekData).length < 3) {
         return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">Loading FPL Dashboard...</div>;
     }
     if (error) {
@@ -680,3 +688,4 @@ const FPLMultiGameweekDashboard = () => {
 };
 
 export default FPLMultiGameweekDashboard;
+
