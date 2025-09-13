@@ -70,15 +70,20 @@ const useFplData = () => {
                     if (!managerStats[manager]) {
                         managerStats[manager] = {
                             manager_name: manager, team_name: row.entry_team_name, total_points: 0, captain_points: 0,
-                            captain_player: '', remaining_players: 0, bench_points: 0,
+                            captain_player: '', players_live: 0, players_upcoming: 0, bench_points: 0,
                         };
                     }
                     if (row.is_captain === "True") {
                         managerStats[manager].captain_player = row.player;
                         managerStats[manager].captain_points = row.points_applied;
                     }
-                    if (row.multiplier >= 1 && row.fixture_finished !== "True" && row.status !== "dnp") {
-                        managerStats[manager].remaining_players++;
+                    // Differentiate between players currently playing and those yet to play
+                    if (row.multiplier >= 1 && row.status !== "dnp") {
+                        if (row.fixture_started === "True" && row.fixture_finished !== "True") {
+                            managerStats[manager].players_live++;
+                        } else if (row.fixture_started !== "True") {
+                            managerStats[manager].players_upcoming++;
+                        }
                     }
                     if (row.multiplier === 0) {
                         managerStats[manager].bench_points += parseFloat(row.points_gw) || 0;
@@ -137,7 +142,6 @@ const useFplData = () => {
                     });
                     
                     managerEntry.total_points = cumulativePoints;
-                    const posChange = managerEntry.gw1_position - (managerNames.indexOf(name) + 1);
                     managerEntry.overall_position_change = managerEntry.gw1_position ? (newGameweekData[currentLatestGw]?.find(m => m.manager_name === name)?.position ? managerEntry.gw1_position - newGameweekData[currentLatestGw]?.find(m => m.manager_name === name)?.position : 0) : 0;
 
                     return managerEntry;
@@ -220,9 +224,8 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
     const position = isCombined ? manager.current_position : manager.position;
     const totalPoints = isCombined ? manager.total_points : manager.total_points;
     
-    // Tailwind classes map to prevent purging
     const gridColsMap = { 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6', 7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10', 11: 'md:grid-cols-11', 12: 'md:grid-cols-12' };
-    const desktopGridClass = isCombined ? (gridColsMap[4 + availableGameweeks.length] || 'md:grid-cols-12') : 'md:grid-cols-7';
+    const desktopGridClass = isCombined ? (gridColsMap[4 + availableGameweeks.length] || 'md:grid-cols-12') : 'md:grid-cols-8';
 
     return (
         <div className="bg-slate-800/30 rounded-md p-1.5 border border-slate-700">
@@ -251,18 +254,25 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
                         ))}
                     </div>
                  ) : (
-                    <div className="grid grid-cols-3 gap-1 text-center text-[10px] mt-1">
+                    <div className="grid grid-cols-4 gap-1 text-center text-[10px] mt-1">
                         <div className="bg-slate-900/50 p-0.5 rounded">
                             <p className="font-semibold text-cyan-400">Captain</p>
                             <p className="text-gray-200 truncate">{manager.captain_player?.split(' ').pop() || 'N/A'}</p>
                         </div>
                         <div className="bg-slate-900/50 p-0.5 rounded">
-                            <p className="font-semibold text-yellow-400">Playing</p>
-                            <p className="text-gray-200 font-bold text-xs">{manager.remaining_players}</p>
+                            <p className="font-semibold text-green-400 flex items-center justify-center gap-1">Live <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span></p>
+                            <p className="text-gray-200 font-bold text-xs">{manager.players_live}</p>
+                            <p className="text-gray-500 text-[9px] -mt-1">players</p>
+                        </div>
+                        <div className="bg-slate-900/50 p-0.5 rounded">
+                             <p className="font-semibold text-yellow-400">Upcoming</p>
+                            <p className="text-gray-200 font-bold text-xs">{manager.players_upcoming}</p>
+                            <p className="text-gray-500 text-[9px] -mt-1">players</p>
                         </div>
                         <div className="bg-slate-900/50 p-0.5 rounded">
                             <p className="font-semibold text-orange-400">Bench</p>
                             <p className="text-gray-200 font-bold text-xs">{Math.round(manager.bench_points)}</p>
+                            <p className="text-gray-500 text-[9px] -mt-1">pts</p>
                         </div>
                     </div>
                 )}
@@ -285,12 +295,22 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
                     </>
                 ) : (
                     <>
-                        <div className="text-center md:col-span-2">
+                        <div className="text-center">
                             <p className="text-white font-medium">{manager.captain_player || 'N/A'}</p>
                             <p className="text-cyan-400 text-xs">{manager.captain_points} pts</p>
                         </div>
-                        <div className="text-center"><p className="text-yellow-400 font-bold text-lg">{manager.remaining_players}</p></div>
-                        <div className="text-center"><p className="text-orange-400 font-medium">{Math.round(manager.bench_points)}</p></div>
+                        <div className="text-center">
+                            <p className="text-green-400 font-bold text-lg">{manager.players_live}</p>
+                            <p className="text-gray-400 text-xs -mt-1">players</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-yellow-400 font-bold text-lg">{manager.players_upcoming}</p>
+                            <p className="text-gray-400 text-xs -mt-1">players</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-orange-400 font-bold text-lg">{Math.round(manager.bench_points)}</p>
+                            <p className="text-gray-400 text-xs -mt-1">pts</p>
+                        </div>
                     </>
                 )}
             </div>
@@ -300,9 +320,8 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
 
 const Leaderboard = ({ data, view, availableGameweeks }) => {
     const isCombined = view === 'combined';
-    // Tailwind classes map to prevent purging
     const gridColsMap = { 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6', 7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10', 11: 'md:grid-cols-11', 12: 'md:grid-cols-12' };
-    const desktopGridClass = isCombined ? (gridColsMap[4 + availableGameweeks.length] || 'md:grid-cols-12') : 'md:grid-cols-7';
+    const desktopGridClass = isCombined ? (gridColsMap[4 + availableGameweeks.length] || 'md:grid-cols-12') : 'md:grid-cols-8';
 
     return (
         <div className="space-y-1">
@@ -316,8 +335,9 @@ const Leaderboard = ({ data, view, availableGameweeks }) => {
                     </>
                 ) : (
                     <>
-                        <div className="text-center md:col-span-2">Captain</div>
-                        <div className="text-center">Playing</div>
+                        <div className="text-center">Captain</div>
+                        <div className="text-center">Live</div>
+                        <div className="text-center">Upcoming</div>
                         <div className="text-center">Bench</div>
                     </>
                 )}

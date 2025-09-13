@@ -71,7 +71,7 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
 };
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('position-chart');
+  const [currentPage, setCurrentPage] = useState('multi-gw');
 
   const renderCurrentPage = () => {
     switch (currentPage) {
