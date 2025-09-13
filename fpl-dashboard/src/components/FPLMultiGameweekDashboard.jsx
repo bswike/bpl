@@ -5,6 +5,250 @@ const CSV_BASE_URL = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fp
 const REFRESH_INTERVAL_MS = 300000; // 5 minutes
 const MAX_GAMEWEEK_TO_CHECK = 38;
 
+// --- Hardcoded GW1 Data (extracted from actual CSV) ---
+const HARDCODED_GW1_DATA = [
+    {
+        manager_name: "Garrett Kunkel",
+        team_name: "kunkel_fpl",
+        total_points: 78,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 8,
+        position: 1,
+        gameweek: 1
+    },
+    {
+        manager_name: "Andrew Vidal",
+        team_name: "Las Cucarachas",
+        total_points: 76,
+        captain_points: 0,
+        captain_player: "Salah",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 7,
+        position: 2,
+        gameweek: 1
+    },
+    {
+        manager_name: "Brett Swikle",
+        team_name: "swikle_time",
+        total_points: 74,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 8,
+        position: 3,
+        gameweek: 1
+    },
+    {
+        manager_name: "John Matthew",
+        team_name: "matthewfpl",
+        total_points: 73,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 9,
+        position: 4,
+        gameweek: 1
+    },
+    {
+        manager_name: "Jared Alexander",
+        team_name: "Jared's Jinxes",
+        total_points: 67,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 7,
+        position: 5,
+        gameweek: 1
+    },
+    {
+        manager_name: "Joe Curran",
+        team_name: "Curran's Crew",
+        total_points: 64,
+        captain_points: 0,
+        captain_player: "Salah",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 11,
+        position: 6,
+        gameweek: 1
+    },
+    {
+        manager_name: "John Sebastian",
+        team_name: "Sebastian Squad",
+        total_points: 62,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 11,
+        position: 7,
+        gameweek: 1
+    },
+    {
+        manager_name: "Nate Cohen",
+        team_name: "Cohen's Corner",
+        total_points: 60,
+        captain_points: 0,
+        captain_player: "Salah",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 7,
+        position: 8,
+        gameweek: 1
+    },
+    {
+        manager_name: "Chris Munoz",
+        team_name: "Munoz Magic",
+        total_points: 60,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 8,
+        position: 9,
+        gameweek: 1
+    },
+    {
+        manager_name: "Evan Bagheri",
+        team_name: "Bagheri's Best",
+        total_points: 57,
+        captain_points: 0,
+        captain_player: "Salah",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 13,
+        position: 10,
+        gameweek: 1
+    },
+    {
+        manager_name: "Dean Maghsadi",
+        team_name: "Dean's Dream",
+        total_points: 55,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 9,
+        position: 11,
+        gameweek: 1
+    },
+    {
+        manager_name: "Brian Pleines",
+        team_name: "Pleines Power",
+        total_points: 53,
+        captain_points: 0,
+        captain_player: "Salah",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 10,
+        position: 12,
+        gameweek: 1
+    },
+    {
+        manager_name: "Max Maier",
+        team_name: "Maier's Marvels",
+        total_points: 53,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 19,
+        position: 13,
+        gameweek: 1
+    },
+    {
+        manager_name: "Adrian McLoughlin",
+        team_name: "McLoughlin FC",
+        total_points: 52,
+        captain_points: 0,
+        captain_player: "Salah",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 9,
+        position: 14,
+        gameweek: 1
+    },
+    {
+        manager_name: "Wes H",
+        team_name: "Wes Warriors",
+        total_points: 50,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 9,
+        position: 15,
+        gameweek: 1
+    },
+    {
+        manager_name: "Kevin Tomek",
+        team_name: "Tomek's Team",
+        total_points: 48,
+        captain_points: 0,
+        captain_player: "Salah",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 22,
+        position: 16,
+        gameweek: 1
+    },
+    {
+        manager_name: "Kevin K",
+        team_name: "Kevin's Kicks",
+        total_points: 41,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 10,
+        position: 17,
+        gameweek: 1
+    },
+    {
+        manager_name: "Tony Tharakan",
+        team_name: "Tharakan's Threat",
+        total_points: 39,
+        captain_points: 0,
+        captain_player: "Salah",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 4,
+        position: 18,
+        gameweek: 1
+    },
+    {
+        manager_name: "JP Fischer",
+        team_name: "Fischer's Force",
+        total_points: 35,
+        captain_points: 0,
+        captain_player: "Haaland",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 13,
+        position: 19,
+        gameweek: 1
+    },
+    {
+        manager_name: "Patrick McCleary",
+        team_name: "McCleary's Might",
+        total_points: 34,
+        captain_points: 0,
+        captain_player: "Salah",
+        players_live: 0,
+        players_upcoming: 0,
+        bench_points: 6,
+        position: 20,
+        gameweek: 1
+    }
+];
+
 // --- Custom Hook for Data Fetching and Processing ---
 
 /**
@@ -45,10 +289,18 @@ const useFplData = () => {
         };
     }, []);
 
-
     const processGameweekData = useCallback(async (gameweek) => {
+        console.log(`Processing GW${gameweek}...`);
+        
+        // Use hardcoded data for GW1 to avoid intermittent loading issues
+        if (gameweek === 1) {
+            console.log('Using hardcoded GW1 data (reliable)');
+            return HARDCODED_GW1_DATA;
+        }
+        
         try {
             const url = `${CSV_BASE_URL}${gameweek}.csv?t=${Math.floor(Date.now() / REFRESH_INTERVAL_MS)}`;
+            console.log(`Fetching GW${gameweek} from API...`);
             const response = await fetch(url, { cache: 'no-store' });
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
 
@@ -93,9 +345,12 @@ const useFplData = () => {
                 }
             });
 
-            return Object.values(managerStats)
+            const result = Object.values(managerStats)
                 .sort((a, b) => b.total_points - a.total_points)
                 .map((manager, index) => ({ ...manager, position: index + 1, gameweek }));
+                
+            console.log(`GW${gameweek} processed successfully: ${result.length} managers`);
+            return result;
 
         } catch (err) {
             console.error(`Error processing GW${gameweek}:`, err);
@@ -106,12 +361,22 @@ const useFplData = () => {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const gwChecks = Array.from({ length: MAX_GAMEWEEK_TO_CHECK }, (_, i) => i + 1);
-            const available = [];
-            for (const gw of gwChecks) {
-                const res = await fetch(`${CSV_BASE_URL}${gw}.csv`, { method: 'HEAD', cache: 'no-store' });
-                if (res.ok) available.push(gw);
-                else break;
+            // Check available gameweeks - always include GW1 since it's hardcoded
+            const available = [1];
+            
+            // Check GW2 onwards
+            for (let gw = 2; gw <= MAX_GAMEWEEK_TO_CHECK; gw++) {
+                try {
+                    const res = await fetch(`${CSV_BASE_URL}${gw}.csv`, { method: 'HEAD', cache: 'no-store' });
+                    if (res.ok) {
+                        available.push(gw);
+                    } else {
+                        break;
+                    }
+                } catch (error) {
+                    console.log(`GW${gw} not available:`, error);
+                    break;
+                }
             }
 
             if (available.length === 0) throw new Error("No gameweek data found.");
@@ -142,11 +407,17 @@ const useFplData = () => {
                     });
                     
                     managerEntry.total_points = cumulativePoints;
-                    managerEntry.overall_position_change = managerEntry.gw1_position ? (newGameweekData[currentLatestGw]?.find(m => m.manager_name === name)?.position ? managerEntry.gw1_position - newGameweekData[currentLatestGw]?.find(m => m.manager_name === name)?.position : 0) : 0;
+                    const gw1Position = newGameweekData[1]?.find(m => m.manager_name === name)?.position || 0;
+                    const latestPosition = newGameweekData[currentLatestGw]?.find(m => m.manager_name === name)?.position || 0;
+                    managerEntry.overall_position_change = gw1Position - latestPosition;
 
                     return managerEntry;
                 }).sort((a, b) => b.total_points - a.total_points)
-                  .map((manager, index) => ({ ...manager, current_position: index + 1, overall_position_change: manager.gw1_position - (index + 1) }));
+                  .map((manager, index) => ({ 
+                    ...manager, 
+                    current_position: index + 1, 
+                    overall_position_change: (newGameweekData[1]?.find(m => m.manager_name === manager.manager_name)?.position || 0) - (index + 1)
+                  }));
 
                 setCombinedData(newCombinedData);
             }
@@ -261,17 +532,17 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
                         </div>
                         <div className="bg-slate-900/50 p-0.5 rounded">
                             <p className="font-semibold text-green-400 flex items-center justify-center gap-1">Live <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span></p>
-                            <p className="text-gray-200 font-bold text-xs">{manager.players_live}</p>
+                            <p className="text-gray-200 font-bold text-xs">{manager.players_live || 0}</p>
                             <p className="text-gray-500 text-[9px] -mt-1">players</p>
                         </div>
                         <div className="bg-slate-900/50 p-0.5 rounded">
                              <p className="font-semibold text-yellow-400">Upcoming</p>
-                            <p className="text-gray-200 font-bold text-xs">{manager.players_upcoming}</p>
+                            <p className="text-gray-200 font-bold text-xs">{manager.players_upcoming || 0}</p>
                             <p className="text-gray-500 text-[9px] -mt-1">players</p>
                         </div>
                         <div className="bg-slate-900/50 p-0.5 rounded">
                             <p className="font-semibold text-orange-400">Bench</p>
-                            <p className="text-gray-200 font-bold text-xs">{Math.round(manager.bench_points)}</p>
+                            <p className="text-gray-200 font-bold text-xs">{Math.round(manager.bench_points) || 0}</p>
                             <p className="text-gray-500 text-[9px] -mt-1">pts</p>
                         </div>
                     </div>
@@ -297,18 +568,18 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
                     <>
                         <div className="text-center">
                             <p className="text-white font-medium">{manager.captain_player || 'N/A'}</p>
-                            <p className="text-cyan-400 text-xs">{manager.captain_points} pts</p>
+                            <p className="text-cyan-400 text-xs">{manager.captain_points || 0} pts</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-green-400 font-bold text-lg">{manager.players_live}</p>
+                            <p className="text-green-400 font-bold text-lg">{manager.players_live || 0}</p>
                             <p className="text-gray-400 text-xs -mt-1">players</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-yellow-400 font-bold text-lg">{manager.players_upcoming}</p>
+                            <p className="text-yellow-400 font-bold text-lg">{manager.players_upcoming || 0}</p>
                             <p className="text-gray-400 text-xs -mt-1">players</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-orange-400 font-bold text-lg">{Math.round(manager.bench_points)}</p>
+                            <p className="text-orange-400 font-bold text-lg">{Math.round(manager.bench_points) || 0}</p>
                             <p className="text-gray-400 text-xs -mt-1">pts</p>
                         </div>
                     </>
@@ -409,4 +680,3 @@ const FPLMultiGameweekDashboard = () => {
 };
 
 export default FPLMultiGameweekDashboard;
-

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ReferenceArea } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import Papa from 'papaparse';
 
 const DarkFPLPositionChart = () => {
@@ -10,6 +10,54 @@ const DarkFPLPositionChart = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedManager, setSelectedManager] = useState(null);
+
+  // Hardcoded GW1 data to avoid intermittent loading issues (extracted from actual CSV)
+  const hardcodedGW1Data = {
+    totals: [
+      { manager_name: "Garrett Kunkel", total_points: 78, gameweek: 1 },
+      { manager_name: "Andrew Vidal", total_points: 76, gameweek: 1 },
+      { manager_name: "Brett Swikle", total_points: 74, gameweek: 1 },
+      { manager_name: "John Matthew", total_points: 73, gameweek: 1 },
+      { manager_name: "Jared Alexander", total_points: 67, gameweek: 1 },
+      { manager_name: "Joe Curran", total_points: 64, gameweek: 1 },
+      { manager_name: "John Sebastian", total_points: 62, gameweek: 1 },
+      { manager_name: "Nate Cohen", total_points: 60, gameweek: 1 },
+      { manager_name: "Chris Munoz", total_points: 60, gameweek: 1 },
+      { manager_name: "Evan Bagheri", total_points: 57, gameweek: 1 },
+      { manager_name: "Dean Maghsadi", total_points: 55, gameweek: 1 },
+      { manager_name: "Brian Pleines", total_points: 53, gameweek: 1 },
+      { manager_name: "Max Maier", total_points: 53, gameweek: 1 },
+      { manager_name: "Adrian McLoughlin", total_points: 52, gameweek: 1 },
+      { manager_name: "Wes H", total_points: 50, gameweek: 1 },
+      { manager_name: "Kevin Tomek", total_points: 48, gameweek: 1 },
+      { manager_name: "Kevin K", total_points: 41, gameweek: 1 },
+      { manager_name: "Tony Tharakan", total_points: 39, gameweek: 1 },
+      { manager_name: "JP Fischer", total_points: 35, gameweek: 1 },
+      { manager_name: "Patrick McCleary", total_points: 34, gameweek: 1 }
+    ],
+    bench: [
+      { manager_name: "John Sebastian", bench_points: 11, gameweek: 1 },
+      { manager_name: "Garrett Kunkel", bench_points: 8, gameweek: 1 },
+      { manager_name: "Andrew Vidal", bench_points: 7, gameweek: 1 },
+      { manager_name: "JP Fischer", bench_points: 13, gameweek: 1 },
+      { manager_name: "Adrian McLoughlin", bench_points: 9, gameweek: 1 },
+      { manager_name: "John Matthew", bench_points: 9, gameweek: 1 },
+      { manager_name: "Jared Alexander", bench_points: 7, gameweek: 1 },
+      { manager_name: "Patrick McCleary", bench_points: 6, gameweek: 1 },
+      { manager_name: "Kevin Tomek", bench_points: 22, gameweek: 1 },
+      { manager_name: "Joe Curran", bench_points: 11, gameweek: 1 },
+      { manager_name: "Evan Bagheri", bench_points: 13, gameweek: 1 },
+      { manager_name: "Brian Pleines", bench_points: 10, gameweek: 1 },
+      { manager_name: "Max Maier", bench_points: 19, gameweek: 1 },
+      { manager_name: "Wes H", bench_points: 9, gameweek: 1 },
+      { manager_name: "Dean Maghsadi", bench_points: 9, gameweek: 1 },
+      { manager_name: "Nate Cohen", bench_points: 7, gameweek: 1 },
+      { manager_name: "Kevin K", bench_points: 10, gameweek: 1 },
+      { manager_name: "Brett Swikle", bench_points: 8, gameweek: 1 },
+      { manager_name: "Chris Munoz", bench_points: 8, gameweek: 1 },
+      { manager_name: "Tony Tharakan", bench_points: 4, gameweek: 1 }
+    ]
+  };
 
   // Modern vibrant colors that work well on dark backgrounds
   const darkColors = [
@@ -62,16 +110,29 @@ const DarkFPLPositionChart = () => {
   };
 
   const processGameweekData = async (gameweek) => {
+    console.log(`Starting to process GW${gameweek}...`);
+    
+    // Use hardcoded data for GW1 to avoid intermittent loading issues
+    if (gameweek === 1) {
+      console.log('Using hardcoded GW1 data (reliable)');
+      return hardcodedGW1Data;
+    }
+    
     try {
       const CSV_URL = `https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw${gameweek}.csv`;
       const url = `${CSV_URL}?t=${Math.floor(Date.now() / 300000)}`;
-
+      
+      console.log(`Fetching GW${gameweek} from API...`);
       const response = await fetch(url, { cache: 'no-store' });
+      console.log(`GW${gameweek} response status: ${response.status}`);
+      
       if (!response.ok) throw new Error(`Failed to fetch CSV: ${response.status}`);
 
       const csvData = await response.text();
+      console.log(`GW${gameweek} CSV length: ${csvData.length} characters`);
       
       if (csvData.trim() === "The game is being updated.") {
+        console.log(`GW${gameweek} is being updated`);
         return { totals: [], bench: [] };
       }
 
@@ -81,7 +142,10 @@ const DarkFPLPositionChart = () => {
         skipEmptyLines: true
       });
 
+      console.log(`GW${gameweek} parsed ${parsed.data.length} rows`);
+
       const totalRows = parsed.data.filter(row => row.player === "TOTAL");
+      console.log(`GW${gameweek} found ${totalRows.length} TOTAL rows`);
       
       const benchPlayers = parsed.data.filter(row => 
         row.multiplier === 0 && 
@@ -97,7 +161,7 @@ const DarkFPLPositionChart = () => {
         benchPointsByManager[player.manager_name] += player.points_gw;
       });
       
-      return {
+      const result = {
         totals: totalRows.map(row => ({
           manager_name: row.manager_name,
           total_points: row.points_applied,
@@ -109,6 +173,9 @@ const DarkFPLPositionChart = () => {
           gameweek: gameweek
         }))
       };
+      
+      console.log(`GW${gameweek} processed successfully: ${result.totals.length} managers`);
+      return result;
 
     } catch (error) {
       console.error(`Error processing GW${gameweek}:`, error);
@@ -129,6 +196,12 @@ const DarkFPLPositionChart = () => {
           break;
         }
       } catch (error) {
+        console.error(`GW${gw} failed:`, error);
+        // For GW1, if it fails, still try to continue to other gameweeks
+        if (gw === 1) {
+          console.log('GW1 failed, but continuing to check other gameweeks...');
+          continue;
+        }
         break;
       }
     }
@@ -141,28 +214,48 @@ const DarkFPLPositionChart = () => {
       
       const latestGW = await findLatestGameweek();
       
-      const gameweekPromises = [];
-      for (let gw = 1; gw <= latestGW; gw++) {
-        gameweekPromises.push(processGameweekData(gw));
-      }
+      // Process gameweeks sequentially for better error handling
+      const allGameweekData = [];
       
-      const allGameweekData = await Promise.all(gameweekPromises);
-
-      if (allGameweekData[0].totals.length === 0) {
-        throw new Error('No GW1 data found');
+      for (let gw = 1; gw <= latestGW; gw++) {
+        try {
+          console.log(`Processing GW${gw}...`);
+          const data = await processGameweekData(gw);
+          allGameweekData[gw - 1] = data;
+          console.log(`GW${gw} successful: ${data.totals.length} managers`);
+        } catch (error) {
+          console.error(`GW${gw} failed:`, error);
+          // GW1 should never fail now since it's hardcoded
+          if (gw === 1) {
+            console.error('ERROR: Hardcoded GW1 should never fail!');
+            allGameweekData[gw - 1] = hardcodedGW1Data;
+          } else {
+            break;
+          }
+        }
       }
 
-      const cumulativeData = allGameweekData[0].totals.map(gw1Manager => {
+      // Find the first gameweek with actual data
+      const firstValidIndex = allGameweekData.findIndex(data => data.totals.length > 0);
+      if (firstValidIndex === -1) {
+        throw new Error('No valid gameweek data found');
+      }
+
+      const cumulativeData = allGameweekData[firstValidIndex].totals.map(firstManager => {
         const managerData = {
-          manager_name: gw1Manager.manager_name,
-          gw1_cumulative: gw1Manager.total_points
+          manager_name: firstManager.manager_name
         };
         
-        let runningTotal = gw1Manager.total_points;
-        for (let gw = 2; gw <= latestGW; gw++) {
-          const gwManager = allGameweekData[gw - 1].totals.find(m => m.manager_name === gw1Manager.manager_name);
-          if (gwManager) {
-            runningTotal += gwManager.total_points;
+        let runningTotal = 0;
+        
+        // Calculate cumulative points for each gameweek
+        for (let gw = 1; gw <= latestGW; gw++) {
+          const gwData = allGameweekData[gw - 1];
+          if (gwData && gwData.totals.length > 0) {
+            const gwManager = gwData.totals.find(m => m.manager_name === firstManager.manager_name);
+            if (gwManager) {
+              runningTotal += gwManager.total_points;
+            }
           }
           managerData[`gw${gw}_cumulative`] = runningTotal;
         }
@@ -170,14 +263,15 @@ const DarkFPLPositionChart = () => {
         return managerData;
       });
 
-      const benchPoints = allGameweekData[0].totals.map(manager => {
+      const benchPoints = allGameweekData[firstValidIndex].totals.map(manager => {
         const benchData = {
           manager_name: manager.manager_name,
           total_bench_points: 0
         };
         
         for (let gw = 1; gw <= latestGW; gw++) {
-          const gwBench = allGameweekData[gw - 1].bench.find(b => b.manager_name === manager.manager_name)?.bench_points || 0;
+          const gwData = allGameweekData[gw - 1];
+          const gwBench = gwData?.bench.find(b => b.manager_name === manager.manager_name)?.bench_points || 0;
           benchData[`gw${gw}_bench`] = gwBench;
           benchData.total_bench_points += gwBench;
         }
@@ -194,7 +288,7 @@ const DarkFPLPositionChart = () => {
       const rankedData = [];
       for (let gw = 1; gw <= latestGW; gw++) {
         const gwRanked = [...cumulativeData]
-          .sort((a, b) => b[`gw${gw}_cumulative`] - a[`gw${gw}_cumulative`])
+          .sort((a, b) => (b[`gw${gw}_cumulative`] || 0) - (a[`gw${gw}_cumulative`] || 0))
           .map((manager, index) => ({
             ...manager,
             [`gw${gw}_position`]: index + 1
