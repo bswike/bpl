@@ -8,26 +8,26 @@ const REFRESH_INTERVAL_MS = 300000; // 5 minutes
 
 // --- Hardcoded GW1 Data (extracted from actual CSV) ---
 const HARDCODED_GW1_DATA = [
-  { manager_name: "Garrett Kunkel", team_name: "kunkel_fpl", total_points: 78, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 8, position: 1, gameweek: 1 },
-  { manager_name: "Andrew Vidal", team_name: "Las Cucarachas", total_points: 76, captain_points: 0, captain_player: "Salah", players_live: 0, players_upcoming: 0, bench_points: 7, position: 2, gameweek: 1 },
-  { manager_name: "Brett Swikle", team_name: "swikle_time", total_points: 74, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 8, position: 3, gameweek: 1 },
-  { manager_name: "John Matthew", team_name: "matthewfpl", total_points: 73, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 9, position: 4, gameweek: 1 },
-  { manager_name: "Jared Alexander", team_name: "Jared's Jinxes", total_points: 67, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 7, position: 5, gameweek: 1 },
-  { manager_name: "Joe Curran", team_name: "Curran's Crew", total_points: 64, captain_points: 0, captain_player: "Salah", players_live: 0, players_upcoming: 0, bench_points: 11, position: 6, gameweek: 1 },
-  { manager_name: "John Sebastian", team_name: "Sebastian Squad", total_points: 62, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 11, position: 7, gameweek: 1 },
-  { manager_name: "Nate Cohen", team_name: "Cohen's Corner", total_points: 60, captain_points: 0, captain_player: "Salah", players_live: 0, players_upcoming: 0, bench_points: 7, position: 8, gameweek: 1 },
-  { manager_name: "Chris Munoz", team_name: "Munoz Magic", total_points: 60, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 8, position: 9, gameweek: 1 },
-  { manager_name: "Evan Bagheri", team_name: "Bagheri's Best", total_points: 57, captain_points: 0, captain_player: "Salah", players_live: 0, players_upcoming: 0, bench_points: 13, position: 10, gameweek: 1 },
-  { manager_name: "Dean Maghsadi", team_name: "Dean's Dream", total_points: 55, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 9, position: 11, gameweek: 1 },
-  { manager_name: "Brian Pleines", team_name: "Pleines Power", total_points: 53, captain_points: 0, captain_player: "Salah", players_live: 0, players_upcoming: 0, bench_points: 10, position: 12, gameweek: 1 },
-  { manager_name: "Max Maier", team_name: "Maier's Marvels", total_points: 53, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 19, position: 13, gameweek: 1 },
-  { manager_name: "Adrian McLoughlin", team_name: "McLoughlin FC", total_points: 52, captain_points: 0, captain_player: "Salah", players_live: 0, players_upcoming: 0, bench_points: 9, position: 14, gameweek: 1 },
-  { manager_name: "Wes H", team_name: "Wes Warriors", total_points: 50, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 9, position: 15, gameweek: 1 },
-  { manager_name: "Kevin Tomek", team_name: "Tomek's Team", total_points: 48, captain_points: 0, captain_player: "Salah", players_live: 0, players_upcoming: 0, bench_points: 22, position: 16, gameweek: 1 },
-  { manager_name: "Kevin K", team_name: "Kevin's Kicks", total_points: 41, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 10, position: 17, gameweek: 1 },
-  { manager_name: "Tony Tharakan", team_name: "Tharakan's Threat", total_points: 39, captain_points: 0, captain_player: "Salah", players_live: 0, players_upcoming: 0, bench_points: 4, position: 18, gameweek: 1 },
-  { manager_name: "JP Fischer", team_name: "Fischer's Force", total_points: 35, captain_points: 0, captain_player: "Haaland", players_live: 0, players_upcoming: 0, bench_points: 13, position: 19, gameweek: 1 },
-  { manager_name: "Patrick McCleary", team_name: "McCleary's Might", total_points: 34, captain_points: 0, captain_player: "Salah", players_live: 0, players_upcoming: 0, bench_points: 6, position: 20, gameweek: 1 }
+  { manager_name: "Garrett Kunkel", team_name: "kunkel_fpl", total_points: 78, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 1, gameweek: 1 },
+  { manager_name: "Andrew Vidal", team_name: "Las Cucarachas", total_points: 76, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 2, gameweek: 1 },
+  { manager_name: "Brett Swikle", team_name: "swikle_time", total_points: 74, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 3, gameweek: 1 },
+  { manager_name: "John Matthew", team_name: "matthewfpl", total_points: 73, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 4, gameweek: 1 },
+  { manager_name: "Jared Alexander", team_name: "Jared's Jinxes", total_points: 67, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 5, gameweek: 1 },
+  { manager_name: "Joe Curran", team_name: "Curran's Crew", total_points: 64, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 11, position: 6, gameweek: 1 },
+  { manager_name: "John Sebastian", team_name: "Sebastian Squad", total_points: 62, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 11, position: 7, gameweek: 1 },
+  { manager_name: "Nate Cohen", team_name: "Cohen's Corner", total_points: 60, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 8, gameweek: 1 },
+  { manager_name: "Chris Munoz", team_name: "Munoz Magic", total_points: 60, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 9, gameweek: 1 },
+  { manager_name: "Evan Bagheri", team_name: "Bagheri's Best", total_points: 57, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 13, position: 10, gameweek: 1 },
+  { manager_name: "Dean Maghsadi", team_name: "Dean's Dream", total_points: 55, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 11, gameweek: 1 },
+  { manager_name: "Brian Pleines", team_name: "Pleines Power", total_points: 53, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 10, position: 12, gameweek: 1 },
+  { manager_name: "Max Maier", team_name: "Maier's Marvels", total_points: 53, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 19, position: 13, gameweek: 1 },
+  { manager_name: "Adrian McLoughlin", team_name: "McLoughlin FC", total_points: 52, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 14, gameweek: 1 },
+  { manager_name: "Wes H", team_name: "Wes Warriors", total_points: 50, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 15, gameweek: 1 },
+  { manager_name: "Kevin Tomek", team_name: "Tomek's Team", total_points: 48, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 22, position: 16, gameweek: 1 },
+  { manager_name: "Kevin K", team_name: "Kevin's Kicks", total_points: 41, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 10, position: 17, gameweek: 1 },
+  { manager_name: "Tony Tharakan", team_name: "Tharakan's Threat", total_points: 39, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 4, position: 18, gameweek: 1 },
+  { manager_name: "JP Fischer", team_name: "Fischer's Force", total_points: 35, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 13, position: 19, gameweek: 1 },
+  { manager_name: "Patrick McCleary", team_name: "McCleary's Might", total_points: 34, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 6, position: 20, gameweek: 1 }
 ];
 
 // --- Helpers ---
@@ -82,6 +82,7 @@ const useFplData = () => {
           manager_name: manager,
           team_name: normalizeStr(raw.entry_team_name),
           total_points: 0, captain_points: 0, captain_player: '',
+          captain_fixture_started: false, captain_fixture_finished: false,
           players_live: 0, players_upcoming: 0, bench_points: 0
         };
       }
@@ -91,6 +92,8 @@ const useFplData = () => {
         if (truthy(raw.is_captain) && !managerStats[manager].captain_player) {
           managerStats[manager].captain_player = player;
           managerStats[manager].captain_points = toNum(raw.points_applied);
+          managerStats[manager].captain_fixture_started = truthy(raw.fixture_started);
+          managerStats[manager].captain_fixture_finished = truthy(raw.fixture_finished);
         }
         const mult = toNum(raw.multiplier);
         if (mult >= 1 && raw.status !== "dnp") {
@@ -228,7 +231,13 @@ const useFplData = () => {
 };
 
 
-// --- Helper Components (UI unchanged) ---
+// --- Helper Components ---
+const getCaptainStatusIcon = (manager) => {
+  if (!manager.captain_fixture_started) return '⏳'; // Yet to play
+  if (manager.captain_fixture_started && !manager.captain_fixture_finished) return '🟡'; // Currently playing
+  return '✅'; // Finished playing
+};
+
 const getPositionChangeIcon = (change) => {
   if (change > 0) return <span className="text-green-400">↗️ +{change}</span>;
   if (change < 0) return <span className="text-red-400">↘️ {change}</span>;
@@ -308,7 +317,9 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
         ) : (
           <div className="grid grid-cols-4 gap-1 text-center text-[10px] mt-1">
             <div className="bg-slate-900/50 p-0.5 rounded">
-              <p className="font-semibold text-cyan-400">Captain</p>
+              <p className="font-semibold text-cyan-400 flex items-center justify-center gap-1">
+                Captain {getCaptainStatusIcon(manager)}
+              </p>
               <p className="text-gray-200 truncate">{manager.captain_player?.split(' ').pop() || 'N/A'}</p>
             </div>
             <div className="bg-slate-900/50 p-0.5 rounded">
