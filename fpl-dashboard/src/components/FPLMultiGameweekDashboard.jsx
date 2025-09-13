@@ -166,7 +166,7 @@ const useFplData = () => {
         return () => clearInterval(intervalId);
     }, [fetchData, papaReady]);
 
-    return { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek };
+    return { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData };
 };
 
 // --- Helper Components ---
@@ -352,7 +352,7 @@ const Leaderboard = ({ data, view, availableGameweeks }) => {
 // --- Main Dashboard Component ---
 
 const FPLMultiGameweekDashboard = () => {
-    const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek } = useFplData();
+    const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData } = useFplData();
     const [selectedView, setSelectedView] = useState('combined');
 
     useEffect(() => {
@@ -378,10 +378,20 @@ const FPLMultiGameweekDashboard = () => {
     const averageScore = currentData.length > 0 ? Math.round(currentData.reduce((sum, m) => sum + m.total_points, 0) / currentData.length) : 0;
 
     return (
-        <div className="min-h-screen bg-slate-900 p-2 sm:p-6 font-sans text-gray-100">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
+            <div className="max-w-7xl mx-auto p-2 sm:p-6">
                 <header className="text-center mb-4 sm:mb-8">
-                    <h1 className="text-xl sm:text-3xl font-light text-white mb-3 tracking-wide">FPL Multi-GW Dashboard</h1>
+                    <div className="relative flex justify-center items-center max-w-md mx-auto mb-3">
+                        <h1 className="text-xl sm:text-3xl font-light text-white tracking-wide">FPL Multi-GW Dashboard</h1>
+                        <button 
+                            onClick={fetchData} 
+                            disabled={loading}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 bg-slate-200 text-slate-800 rounded-full shadow-md border border-slate-400 hover:bg-slate-300 active:shadow-inner active:bg-slate-400 disabled:shadow-none disabled:bg-slate-400 disabled:text-slate-600 disabled:cursor-not-allowed transition-all">
+                             <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
                     <ViewToggleButtons {...{ availableGameweeks, selectedView, onSelectView: setSelectedView }} />
                 </header>
 
