@@ -6,9 +6,7 @@ const LATEST_URLS_MANIFEST = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storag
 const REFRESH_INTERVAL_MS = 300000; // 5 minutes
 const MAX_GAMEWEEK_TO_CHECK = 38;
 
-// --- Hardcoded Data ---
-// Using hardcoded data for past, completed gameweeks is a great optimization.
-// They will load instantly without needing a network request.
+// --- Hardcoded GW1 Data (extracted from actual CSV) ---
 const HARDCODED_GW1_DATA = [
     {
         manager_name: "Garrett Kunkel",
@@ -251,6 +249,8 @@ const HARDCODED_GW1_DATA = [
         gameweek: 1
     }
 ];
+
+// --- Hardcoded GW2 Data ---
 const HARDCODED_GW2_DATA = [
     { position: 1, manager_name: 'John Matthew', team_name: 'matthewfpl', total_points: 75, captain_player: 'Haaland', captain_points: 10, bench_points: 1, players_live: 0, players_upcoming: 0, gameweek: 2 },
     { position: 2, manager_name: 'Jared Alexander', team_name: 'Jared\'s Jinxes', total_points: 68, captain_player: 'Haaland', captain_points: 10, bench_points: 6, players_live: 0, players_upcoming: 0, gameweek: 2 },
@@ -273,6 +273,8 @@ const HARDCODED_GW2_DATA = [
     { position: 19, manager_name: 'JP Fischer', team_name: 'Fischer\'s Force', total_points: 30, captain_player: 'Haaland', captain_points: 10, bench_points: 1, players_live: 0, players_upcoming: 0, gameweek: 2 },
     { position: 20, manager_name: 'Patrick McCleary', team_name: 'McCleary\'s Might', total_points: 28, captain_player: 'Salah', captain_points: 10, bench_points: 2, players_live: 0, players_upcoming: 0, gameweek: 2 }
 ];
+
+// --- Hardcoded GW3 Data ---
 const HARDCODED_GW3_DATA = [
     { position: 1, manager_name: 'Garrett Kunkel', team_name: 'kunkel_fpl', total_points: 66, captain_player: 'Haaland', captain_points: 4, bench_points: 7, players_live: 0, players_upcoming: 0, gameweek: 3 },
     { position: 2, manager_name: 'Andrew Vidal', team_name: 'Las Cucarachas', total_points: 61, captain_player: 'Salah', captain_points: 16, bench_points: 3, players_live: 0, players_upcoming: 0, gameweek: 3 },
@@ -296,7 +298,12 @@ const HARDCODED_GW3_DATA = [
     { position: 20, manager_name: 'Patrick McCleary', team_name: 'McCleary\'s Might', total_points: 32, captain_player: 'Salah', captain_points: 16, bench_points: 8, players_live: 0, players_upcoming: 0, gameweek: 3 }
 ];
 
+
 // --- Custom Hook for Data Fetching and Processing ---
+
+/**
+ * Custom hook to fetch, process, and manage all FPL gameweek data.
+ */
 const useFplData = () => {
     const [gameweekData, setGameweekData] = useState({});
     const [combinedData, setCombinedData] = useState([]);
@@ -322,15 +329,41 @@ const useFplData = () => {
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
         script.async = true;
         script.onload = () => setPapaReady(true);
-        script.onerror = () => setError("Error: Failed to load data parsing library.");
+        script.onerror = () => {
+            setError("Error: Failed to load the data parsing library.");
+            setLoading(false);
+        };
         document.body.appendChild(script);
+
+        return () => {
+            const el = document.getElementById(scriptId);
+            if (el) {
+                document.body.removeChild(el);
+            }
+        };
     }, []);
 
-    const processCsvFromUrl = useCallback(async (gameweek, url) => {
-        if (!url) return null;
+    const processGameweekData = useCallback(async (gameweek, url) => {
+        // Hardcoded data doesn't need a URL
+        if (gameweek <= 3) {
+            if (gameweek === 1) return HARDCODED_GW1_DATA;
+            if (gameweek === 2) return HARDCODED_GW2_DATA;
+            if (gameweek === 3) return HARDCODED_GW3_DATA;
+        }
+        
+        // All live data fetching requires a URL from the manifest
+        if (!url) {
+             console.log(`GW${gameweek} has no URL in manifest. Skipping.`);
+             return null;
+        }
+
         try {
             const response = await fetch(url, { cache: 'no-store' });
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+            if (!response.ok) {
+                console.log(`GW${gameweek} data not yet available (Status: ${response.status})`);
+                return null;
+            }
 
             const csvText = await response.text();
             if (csvText.trim() === "The game is being updated.") return [];
@@ -338,100 +371,135 @@ const useFplData = () => {
             const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
             if (parsed.errors.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
             
-            const managerStats = {};
+            const managerStats = Object.create(null);
+
             parsed.data.forEach(row => {
-                 if (row.player === 'JoÃ£o Pedro Junqueira de Jesus') row.player = 'JoÃ£o Pedro';
+                if (row.player === 'JoÃ£o Pedro Junqueira de Jesus') row.player = 'JoÃ£o Pedro';
+                
                 const manager = row.manager_name;
                 if (!manager) return;
+                
                 if (row.player !== "TOTAL") {
                     if (!managerStats[manager]) {
-                        managerStats[manager] = { manager_name: manager, team_name: row.entry_team_name, total_points: 0, captain_points: 0, captain_player: '', players_live: 0, players_upcoming: 0, bench_points: 0 };
+                        managerStats[manager] = {
+                            manager_name: manager, 
+                            team_name: row.entry_team_name, 
+                            total_points: 0, 
+                            captain_points: 0,
+                            captain_player: '', 
+                            players_live: 0, 
+                            players_upcoming: 0, 
+                            bench_points: 0,
+                        };
                     }
-                    if (row.is_captain === "True") {
+                    
+                    if (row.is_captain === "True" && !managerStats[manager].captain_player) {
                         managerStats[manager].captain_player = row.player;
                         managerStats[manager].captain_points = parseFloat(row.points_applied) || 0;
                     }
+                    
                     if (row.multiplier >= 1 && row.status !== "dnp") {
-                        if (row.fixture_started === "True" && row.fixture_finished !== "True") managerStats[manager].players_live++;
-                        else if (row.fixture_started !== "True") managerStats[manager].players_upcoming++;
+                        if (row.fixture_started === "True" && row.fixture_finished !== "True") {
+                            managerStats[manager].players_live++;
+                        } else if (row.fixture_started !== "True") {
+                            managerStats[manager].players_upcoming++;
+                        }
                     }
-                    if (row.multiplier === 0) managerStats[manager].bench_points += parseFloat(row.points_gw) || 0;
-                } else if (row.player === "TOTAL") {
-                    if (managerStats[manager]) managerStats[manager].total_points = parseFloat(row.points_applied) || 0;
+                    
+                    if (row.multiplier === 0) {
+                        managerStats[manager].bench_points += parseFloat(row.points_gw) || 0;
+                    }
+                } else if (row.player === "TOTAL" && managerStats[manager]) {
+                    managerStats[manager].total_points = parseFloat(row.points_applied) || 0;
                 }
             });
 
             const result = Object.values(managerStats)
-                .filter(manager => manager.total_points > 0 || Object.keys(manager).length > 3)
+                .filter(manager => manager.hasOwnProperty('total_points'))
                 .sort((a, b) => b.total_points - a.total_points)
                 .map((manager, index) => ({ ...manager, position: index + 1, gameweek }));
                 
             if (result.length < 20) {
-                console.error(`GW${gameweek} VALIDATION FAILED: Incomplete data. Found ${result.length} managers.`);
+                console.error(
+                  `GW${gameweek} VALIDATION FAILED. Data appears incomplete. ` +
+                  `Managers found: ${result.length}. Discarding this fetch.`
+                );
                 return null;
             }
+                
+            console.log(`GW${gameweek} processed successfully: ${result.length} managers`);
             return result;
+
         } catch (err) {
-            console.error(`Error processing CSV for GW${gameweek}:`, err);
+            console.error(`Error processing GW${gameweek}:`, err);
             return null;
         }
     }, []);
 
     const fetchData = useCallback(async () => {
         if (!papaReady) return;
+
         setLoading(true);
         try {
-            const newGameweekData = {
-                1: HARDCODED_GW1_DATA,
-                2: HARDCODED_GW2_DATA,
-                3: HARDCODED_GW3_DATA
-            };
-            const available = [1, 2, 3];
-
-            // --- NEW: Fetch manifest first ---
+            // --- NEW FETCH LOGIC ---
+            // 1. Fetch the manifest file first to get the dynamic URLs
             const manifestUrl = `${LATEST_URLS_MANIFEST}?t=${Date.now()}`;
             const manifestResponse = await fetch(manifestUrl, { cache: 'no-store' });
-            if (!manifestResponse.ok) {
-                 console.warn("Could not fetch latest URLs manifest. Only showing hardcoded data.");
-            } else {
-                const manifest = await manifestResponse.json();
-                const latestUrls = manifest.gameweeks;
+            if (!manifestResponse.ok) throw new Error('Could not fetch the latest data URLs manifest.');
+            const manifest = await manifestResponse.json();
+            const latestUrls = manifest.gameweeks;
+
+            const available = [];
+            const newGameweekData = { ...gameweekDataRef.current };
+
+            // 2. Loop and process data using URLs from the manifest
+            for (let gw = 1; gw <= MAX_GAMEWEEK_TO_CHECK; gw++) {
+                const urlForGw = latestUrls[gw]; // Get the unique URL for the gameweek
+                const data = await processGameweekData(gw, urlForGw); // Pass URL to processor
                 
-                // Fetch live data for GW4 and beyond using the manifest
-                if (latestUrls[4]) {
-                    const gw4Data = await processCsvFromUrl(4, latestUrls[4]);
-                    if (gw4Data) {
-                        newGameweekData[4] = gw4Data;
-                        available.push(4);
-                    }
+                if (data) {
+                    newGameweekData[gw] = data;
+                    available.push(gw);
+                } else {
+                    // Stop if a gameweek is missing or fails, assuming subsequent ones aren't ready
+                    break;
                 }
-                // You could extend this with a loop for GW5, GW6 etc. if needed
             }
 
+            if (available.length === 0) throw new Error("No gameweek data found.");
+            
             setAvailableGameweeks(available);
             const currentLatestGw = available[available.length - 1];
             setLatestGameweek(currentLatestGw);
             setGameweekData(newGameweekData);
 
-            // --- Recalculate Combined Data ---
-            const managerNames = newGameweekData[1].map(m => m.manager_name);
-            const newCombinedData = managerNames.map(name => {
-                let cumulativePoints = 0;
-                const managerEntry = { manager_name: name };
-                available.forEach(gw => {
-                    const gwStats = newGameweekData[gw]?.find(m => m.manager_name === name);
-                    const points = gwStats?.total_points || 0;
-                    cumulativePoints += points;
-                    managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
-                    managerEntry[`gw${gw}_points`] = points;
-                    managerEntry[`gw${gw}_position`] = gwStats?.position;
-                });
-                managerEntry.total_points = cumulativePoints;
-                return managerEntry;
-            }).sort((a, b) => b.total_points - a.total_points)
-              .map((manager, index) => ({ ...manager, current_position: index + 1 }));
+            if (newGameweekData[1]?.length > 0) {
+                const managerNames = newGameweekData[1].map(m => m.manager_name);
+                const newCombinedData = managerNames.map(name => {
+                    let cumulativePoints = 0;
+                    const managerEntry = { manager_name: name };
 
-            setCombinedData(newCombinedData);
+                    available.forEach(gw => {
+                        const gwStats = newGameweekData[gw]?.find(m => m.manager_name === name);
+                        const points = gwStats?.total_points || 0;
+                        cumulativePoints += points;
+                        managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
+                        managerEntry[`gw${gw}_points`] = points;
+                        managerEntry[`gw${gw}_position`] = gwStats?.position;
+                    });
+                    
+                    managerEntry.total_points = cumulativePoints;
+                    
+                    return managerEntry;
+                }).sort((a, b) => b.total_points - a.total_points)
+                  .map((manager, index) => ({ 
+                    ...manager, 
+                    current_position: index + 1, 
+                    overall_position_change: (newGameweekData[1]?.find(m => m.manager_name === manager.manager_name)?.position || 0) - (index + 1)
+                  }));
+
+                setCombinedData(newCombinedData);
+            }
             setError(null);
         } catch (err) {
             console.error("Failed to load FPL data:", err);
@@ -439,7 +507,7 @@ const useFplData = () => {
         } finally {
             setLoading(false);
         }
-    }, [processCsvFromUrl, papaReady]);
+    }, [processGameweekData, papaReady]);
     
     useEffect(() => {
         if (papaReady) {
@@ -452,8 +520,8 @@ const useFplData = () => {
     return { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData };
 };
 
-
 // --- Helper Components ---
+
 const getPositionChangeIcon = (change) => {
     if (change > 0) return <span className="text-green-400">↗️ +{change}</span>;
     if (change < 0) return <span className="text-red-400">↘️ {change}</span>;
@@ -511,6 +579,7 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
 
     return (
         <div className="bg-slate-800/30 rounded-md p-1.5 border border-slate-700">
+            {/* --- Mobile View Card --- */}
             <div className="md:hidden">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
@@ -559,6 +628,7 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
                 )}
             </div>
 
+            {/* --- Desktop View Row --- */}
             <div className={`hidden md:grid ${desktopGridClass} gap-3 items-center text-sm`}>
                 <div className="md:col-span-2 flex items-center gap-3">
                     <span className="flex-shrink-0 w-7 h-7 bg-slate-700 rounded-md text-sm font-bold flex items-center justify-center">{position}</span>
@@ -630,6 +700,7 @@ const Leaderboard = ({ data, view, availableGameweeks }) => {
 };
 
 // --- Main Dashboard Component ---
+
 const FPLMultiGameweekDashboard = () => {
     const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData } = useFplData();
     const [selectedView, setSelectedView] = useState('combined');
@@ -646,7 +717,7 @@ const FPLMultiGameweekDashboard = () => {
         return gameweekData[gwNumber] || [];
     }, [selectedView, combinedData, gameweekData]);
 
-    if (loading && Object.keys(gameweekData).length < 3) {
+    if (loading && Object.keys(gameweekData).length === 0) {
         return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">Loading FPL Dashboard...</div>;
     }
     if (error) {
