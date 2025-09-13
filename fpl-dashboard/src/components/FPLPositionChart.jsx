@@ -1,6 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import Papa from 'papaparse';
+
+// ---- Constants (pointer-first + legacy fallback) ----
+const CSV_PREFIX = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw'; // legacy CSV path
+const POINTER_PREFIX = CSV_PREFIX; // pointer: fpl_rosters_points_gw{gw}-latest.json
+const MAX_GAMEWEEK_TO_CHECK = 38;
+
+const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+// ✨ NEW: Skeleton Loader Component
+const ChartSkeleton = ({ progress, total }) => (
+  <div className="space-y-6 animate-pulse">
+    {/* Header Skeleton */}
+    <div className="text-center">
+      <div className="h-8 bg-gray-700/80 rounded-md w-1/3 mx-auto mb-3"></div>
+      <div className="h-5 bg-gray-700/80 rounded-md w-1/4 mx-auto"></div>
+    </div>
+
+    {/* Main Chart Skeleton */}
+    <div className="bg-gray-800/40 rounded-xl border border-gray-700/50">
+      <div className="p-6 border-b border-gray-700/50">
+        <div className="h-7 bg-gray-700/80 rounded-md w-1/2"></div>
+      </div>
+      <div className="p-6 flex flex-col items-center justify-center h-[500px]">
+        <div className="w-full h-full bg-gray-700/50 rounded-lg"></div>
+        {total > 0 && (
+          <div className="text-cyan-400 text-sm mt-4">
+            Loading Gameweek Data... ({progress} / {total})
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Bench Champions Skeleton */}
+    <div className="bg-gray-800/40 rounded-xl border border-red-700/50">
+      <div className="p-6 border-b border-red-700/50">
+        <div className="h-7 bg-gray-700/80 rounded-md w-1/3"></div>
+      </div>
+      <div className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-20 bg-red-900/20 rounded-lg border border-red-600/30"></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 
 const DarkFPLPositionChart = () => {
   const [chartData, setChartData] = useState([]);
@@ -10,6 +58,15 @@ const DarkFPLPositionChart = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedManager, setSelectedManager] = useState(null);
+
+  // enter animation trigger (fade + lift when the chart first appears)
+  const [enter, setEnter] = useState(false);
+
+  // ✨ NEW: State for loading progress
+  const [progress, setProgress] = useState({ loaded: 0, total: 0 });
+
+  // Abort the current fetch cycle if the component unmounts / refetch happens
+  const abortRef = useRef(null);
 
   // Hardcoded GW1 data to avoid intermittent loading issues (extracted from actual CSV)
   const hardcodedGW1Data = {
@@ -59,7 +116,6 @@ const DarkFPLPositionChart = () => {
     ]
   };
 
-  // Modern vibrant colors that work well on dark backgrounds
   const darkColors = [
     '#06b6d4', '#f59e0b', '#10b981', '#f97316', '#8b5cf6',
     '#ec4899', '#14b8a6', '#84cc16', '#6366f1', '#ef4444',
@@ -67,9 +123,7 @@ const DarkFPLPositionChart = () => {
     '#f472b6', '#2dd4bf', '#a3e635', '#818cf8', '#fb7185'
   ];
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    return null;
-  };
+  const CustomTooltip = () => null;
 
   const CustomDot = (props) => {
     const { cx, cy, payload, dataKey, fill } = props;
@@ -77,24 +131,23 @@ const DarkFPLPositionChart = () => {
       const initials = dataKey.split(' ').map(name => name[0]).join('').substring(0, 2).toUpperCase();
       const isSelected = selectedManager === dataKey;
       const isDimmed = selectedManager && selectedManager !== dataKey;
-      
       return (
         <g>
-          <circle 
-            cx={cx} 
-            cy={cy} 
-            r={isSelected ? 14 : 8} 
-            fill={fill} 
-            stroke={isSelected ? "#06b6d4" : "#374151"} 
+          <circle
+            cx={cx}
+            cy={cy}
+            r={isSelected ? 14 : 8}
+            fill={fill}
+            stroke={isSelected ? "#06b6d4" : "#374151"}
             strokeWidth={isSelected ? 3 : 2}
             opacity={isDimmed ? 0.3 : 1}
             style={{ cursor: 'pointer' }}
             onClick={() => setSelectedManager(dataKey === selectedManager ? null : dataKey)}
           />
-          <text 
-            x={cx} 
-            y={cy + 2} 
-            textAnchor="middle" 
+          <text
+            x={cx}
+            y={cy + 2}
+            textAnchor="middle"
             fill="#ffffff"
             fontSize={isSelected ? "9" : "7"}
             fontWeight="600"
@@ -109,190 +162,171 @@ const DarkFPLPositionChart = () => {
     return <circle cx={cx} cy={cy} r={4} fill={fill} />;
   };
 
-  const processGameweekData = async (gameweek) => {
-    console.log(`Starting to process GW${gameweek}...`);
-    
-    // Use hardcoded data for GW1 to avoid intermittent loading issues
-    if (gameweek === 1) {
-      console.log('Using hardcoded GW1 data (reliable)');
-      return hardcodedGW1Data;
-    }
-    
-    try {
-      const CSV_URL = `https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw${gameweek}.csv`;
-      const url = `${CSV_URL}?t=${Math.floor(Date.now() / 300000)}`;
-      
-      console.log(`Fetching GW${gameweek} from API...`);
-      const response = await fetch(url, { cache: 'no-store' });
-      console.log(`GW${gameweek} response status: ${response.status}`);
-      
-      if (!response.ok) throw new Error(`Failed to fetch CSV: ${response.status}`);
+  const fetchLatestCsvUrl = async (gw, signal) => {
+    const pointerUrl = `${POINTER_PREFIX}${gw}-latest.json?v=${bust()}`;
+    const res = await fetch(pointerUrl, { method: 'GET', cache: 'no-store', signal });
+    if (!res.ok) throw new Error(`No latest pointer for GW${gw} (${res.status})`);
+    const j = await res.json();
+    if (!j?.url) throw new Error(`Malformed pointer for GW${gw}`);
+    return j.url;
+  };
 
+  const processGameweekData = async (gameweek, signal) => {
+    if (gameweek === 1) return hardcodedGW1Data;
+
+    try {
+      const dataUrl = await fetchLatestCsvUrl(gameweek, signal);
+      const response = await fetch(dataUrl, { cache: 'no-store', signal });
+      if (!response.ok) throw new Error(`HTTP ${response.status} for ${dataUrl}`);
       const csvData = await response.text();
-      console.log(`GW${gameweek} CSV length: ${csvData.length} characters`);
-      
-      if (csvData.trim() === "The game is being updated.") {
-        console.log(`GW${gameweek} is being updated`);
+      if (csvData.trim() === "The game is being updated.") return { totals: [], bench: [] };
+      return parseCsv(csvData, gameweek);
+    } catch (err) {
+      try {
+        const legacyUrl = `${CSV_PREFIX}${gameweek}.csv?v=${bust()}`;
+        const r2 = await fetch(legacyUrl, { method: 'GET', cache: 'no-store', signal });
+        if (!r2.ok) throw new Error(`HTTP ${r2.status} for ${legacyUrl}`);
+        const csvData = await r2.text();
+        if (csvData.trim() === "The game is being updated.") return { totals: [], bench: [] };
+        return parseCsv(csvData, gameweek);
+      } catch (e2) {
+        if (err?.name !== 'AbortError' && e2?.name !== 'AbortError') {
+          console.error(`GW${gameweek} fetch failed:`, err, e2);
+        }
         return { totals: [], bench: [] };
       }
-
-      const parsed = Papa.parse(csvData, {
-        header: true,
-        dynamicTyping: true,
-        skipEmptyLines: true
-      });
-
-      console.log(`GW${gameweek} parsed ${parsed.data.length} rows`);
-
-      const totalRows = parsed.data.filter(row => row.player === "TOTAL");
-      console.log(`GW${gameweek} found ${totalRows.length} TOTAL rows`);
-      
-      const benchPlayers = parsed.data.filter(row => 
-        row.multiplier === 0 && 
-        row.player !== "TOTAL" && 
-        row.points_gw > 0
-      );
-      
-      const benchPointsByManager = {};
-      benchPlayers.forEach(player => {
-        if (!benchPointsByManager[player.manager_name]) {
-          benchPointsByManager[player.manager_name] = 0;
-        }
-        benchPointsByManager[player.manager_name] += player.points_gw;
-      });
-      
-      const result = {
-        totals: totalRows.map(row => ({
-          manager_name: row.manager_name,
-          total_points: row.points_applied,
-          gameweek: gameweek
-        })),
-        bench: Object.entries(benchPointsByManager).map(([manager_name, bench_points]) => ({
-          manager_name,
-          bench_points,
-          gameweek: gameweek
-        }))
-      };
-      
-      console.log(`GW${gameweek} processed successfully: ${result.totals.length} managers`);
-      return result;
-
-    } catch (error) {
-      console.error(`Error processing GW${gameweek}:`, error);
-      throw error;
     }
   };
 
-  const findLatestGameweek = async () => {
-    let latestGW = 1;
-    const maxGWToCheck = 38;
+  const parseCsv = (csvText, gameweek) => {
+    const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
+    const rows = parsed.data || [];
+
+    const totalRows = rows.filter(row => row.player === "TOTAL");
+    const benchPlayers = rows.filter(row =>
+      row.multiplier === 0 &&
+      row.player !== "TOTAL" &&
+      (Number(row.points_gw) || 0) > 0
+    );
+
+    const benchPointsByManager = {};
+    benchPlayers.forEach(player => {
+      const name = player.manager_name;
+      if (!name) return;
+      benchPointsByManager[name] = (benchPointsByManager[name] || 0) + (Number(player.points_gw) || 0);
+    });
+
+    return {
+      totals: totalRows.map(row => ({
+        manager_name: row.manager_name,
+        total_points: Number(row.points_applied) || 0,
+        gameweek
+      })),
+      bench: Object.entries(benchPointsByManager).map(([manager_name, bench_points]) => ({
+        manager_name,
+        bench_points,
+        gameweek
+      }))
+    };
+  };
+
+  const findAvailableGameweeks = async (signal) => {
+    // ✨ IMPROVEMENT: Check for all gameweeks in parallel for speed.
+    const gameweekChecks = Array.from({ length: MAX_GAMEWEEK_TO_CHECK - 1 }, (_, i) => i + 2);
     
-    for (let gw = 1; gw <= maxGWToCheck; gw++) {
-      try {
-        const data = await processGameweekData(gw);
-        if (data.totals.length > 0) {
-          latestGW = gw;
-        } else {
-          break;
+    const results = await Promise.all(
+      gameweekChecks.map(async (gw) => {
+        try {
+          const res = await fetch(`${POINTER_PREFIX}${gw}-latest.json?v=${bust()}`, { method: 'GET', cache: 'no-store', signal });
+          if (res.ok) return { gw, ok: true };
+          
+          const head = await fetch(`${CSV_PREFIX}${gw}.csv?v=${bust()}`, { method: 'HEAD', cache: 'no-store', signal });
+          return { gw, ok: head.ok };
+        } catch (e) {
+          if (e?.name === 'AbortError') throw e;
+          return { gw, ok: false };
         }
-      } catch (error) {
-        console.error(`GW${gw} failed:`, error);
-        // For GW1, if it fails, still try to continue to other gameweeks
-        if (gw === 1) {
-          console.log('GW1 failed, but continuing to check other gameweeks...');
-          continue;
-        }
-        break;
+      })
+    );
+
+    const available = [1];
+    for (const result of results) {
+      if (result.ok) {
+        available.push(result.gw);
+      } else {
+        break; // Stop at the first unavailable gameweek
       }
     }
-    return latestGW;
+    return available;
   };
 
   const fetchData = async () => {
-    try {
-      setError(null);
-      
-      const latestGW = await findLatestGameweek();
-      
-      // Process gameweeks sequentially for better error handling
-      const allGameweekData = [];
-      
-      for (let gw = 1; gw <= latestGW; gw++) {
-        try {
-          console.log(`Processing GW${gw}...`);
-          const data = await processGameweekData(gw);
-          allGameweekData[gw - 1] = data;
-          console.log(`GW${gw} successful: ${data.totals.length} managers`);
-        } catch (error) {
-          console.error(`GW${gw} failed:`, error);
-          // GW1 should never fail now since it's hardcoded
-          if (gw === 1) {
-            console.error('ERROR: Hardcoded GW1 should never fail!');
-            allGameweekData[gw - 1] = hardcodedGW1Data;
-          } else {
-            break;
-          }
-        }
-      }
+    if (abortRef.current) abortRef.current.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
 
-      // Find the first gameweek with actual data
-      const firstValidIndex = allGameweekData.findIndex(data => data.totals.length > 0);
-      if (firstValidIndex === -1) {
-        throw new Error('No valid gameweek data found');
-      }
+    setLoading(true);
+    setError(null);
+    setEnter(false);
+    setProgress({ loaded: 0, total: 0 });
+
+    try {
+      const availableGws = await findAvailableGameweeks(ctrl.signal);
+      const latestGW = availableGws[availableGws.length - 1];
+      setProgress({ loaded: 0, total: latestGW });
+
+      // ✨ IMPROVEMENT: Fetch all gameweek data in parallel, not sequentially.
+      const gameweekPromises = availableGws.map(gw =>
+        processGameweekData(gw, ctrl.signal).then(result => {
+          // Update progress as each gameweek finishes loading
+          setProgress(p => ({ ...p, loaded: p.loaded + 1 }));
+          return { ...result, gw }; // Add gw to result for easier sorting
+        })
+      );
+      
+      const results = await Promise.all(gameweekPromises);
+
+      // Sort results by gameweek number to ensure correct order
+      const allGameweekData = results.sort((a, b) => a.gw - b.gw);
+
+      const firstValidIndex = allGameweekData.findIndex(d => d?.totals?.length > 0);
+      if (firstValidIndex === -1) throw new Error('No valid gameweek data found');
 
       const cumulativeData = allGameweekData[firstValidIndex].totals.map(firstManager => {
-        const managerData = {
-          manager_name: firstManager.manager_name
-        };
-        
+        const managerData = { manager_name: firstManager.manager_name };
         let runningTotal = 0;
-        
-        // Calculate cumulative points for each gameweek
         for (let gw = 1; gw <= latestGW; gw++) {
           const gwData = allGameweekData[gw - 1];
-          if (gwData && gwData.totals.length > 0) {
+          if (gwData?.totals?.length) {
             const gwManager = gwData.totals.find(m => m.manager_name === firstManager.manager_name);
-            if (gwManager) {
-              runningTotal += gwManager.total_points;
-            }
+            if (gwManager) runningTotal += gwManager.total_points || 0;
           }
           managerData[`gw${gw}_cumulative`] = runningTotal;
         }
-        
         return managerData;
       });
 
       const benchPoints = allGameweekData[firstValidIndex].totals.map(manager => {
-        const benchData = {
-          manager_name: manager.manager_name,
-          total_bench_points: 0
-        };
-        
+        const row = { manager_name: manager.manager_name, total_bench_points: 0 };
         for (let gw = 1; gw <= latestGW; gw++) {
           const gwData = allGameweekData[gw - 1];
           const gwBench = gwData?.bench.find(b => b.manager_name === manager.manager_name)?.bench_points || 0;
-          benchData[`gw${gw}_bench`] = gwBench;
-          benchData.total_bench_points += gwBench;
+          row[`gw${gw}_bench`] = gwBench;
+          row.total_bench_points += gwBench;
         }
-        
-        return benchData;
+        return row;
       });
 
       const sortedBenchData = benchPoints
         .sort((a, b) => b.total_bench_points - a.total_bench_points)
         .slice(0, 10);
-      
       setBenchData(sortedBenchData);
 
       const rankedData = [];
       for (let gw = 1; gw <= latestGW; gw++) {
         const gwRanked = [...cumulativeData]
           .sort((a, b) => (b[`gw${gw}_cumulative`] || 0) - (a[`gw${gw}_cumulative`] || 0))
-          .map((manager, index) => ({
-            ...manager,
-            [`gw${gw}_position`]: index + 1
-          }));
+          .map((manager, index) => ({ ...manager, [`gw${gw}_position`]: index + 1 }));
         rankedData.push(gwRanked);
       }
 
@@ -300,71 +334,60 @@ const DarkFPLPositionChart = () => {
       setManagers(allManagers);
 
       const statsLookup = {};
-      rankedData[0].forEach(manager => {
-        const managerStats = { manager_name: manager.manager_name };
-        
+      rankedData[0].forEach(m => {
+        const s = { manager_name: m.manager_name };
         for (let gw = 1; gw <= latestGW; gw++) {
-          const gwManager = rankedData[gw - 1].find(m => m.manager_name === manager.manager_name);
-          if (gwManager) {
-            managerStats[`gw${gw}_position`] = gwManager[`gw${gw}_position`];
-            managerStats[`gw${gw}_cumulative`] = gwManager[`gw${gw}_cumulative`];
+          const gwRow = rankedData[gw - 1].find(x => x.manager_name === m.manager_name);
+          if (gwRow) {
+            s[`gw${gw}_position`] = gwRow[`gw${gw}_position`];
+            s[`gw${gw}_cumulative`] = gwRow[`gw${gw}_cumulative`];
           }
         }
-        
-        statsLookup[manager.manager_name] = managerStats;
+        statsLookup[m.manager_name] = s;
       });
       setManagerStats(statsLookup);
 
       const chartPoints = [];
       for (let gw = 1; gw <= latestGW; gw++) {
-        const gwPoint = { gameweek: gw };
-        rankedData[gw - 1].forEach(manager => {
-          gwPoint[manager.manager_name] = manager[`gw${gw}_position`];
+        const point = { gameweek: gw };
+        rankedData[gw - 1].forEach(m => {
+          point[m.manager_name] = m[`gw${gw}_position`];
         });
-        chartPoints.push(gwPoint);
+        chartPoints.push(point);
       }
-
       setChartData(chartPoints);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+
+      setLoading(false); // Set loading to false before animation starts
+      requestAnimationFrame(() => setEnter(true));
+
+    } catch (e) {
+      if (e?.name !== 'AbortError') {
+        console.error('Error loading data:', e);
+        setError(e.message || 'Unknown error');
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchData();
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const hasLatestGameweekData = chartData.length > 0;
-  const maxGameweek = hasLatestGameweekData ? chartData.length : 1;
+  const maxGameweek = chartData.length > 0 ? chartData.length : 1;
 
   const generateGameweekTicks = (maxGW) => {
     const ticks = [];
-    for (let i = 1; i <= maxGW; i++) {
-      ticks.push(i);
-    }
+    for (let i = 1; i <= maxGW; i++) ticks.push(i);
     return ticks;
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="text-cyan-400 text-xl mb-4">Loading Position Chart...</div>
-          <div className="flex justify-center space-x-2">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="w-3 h-3 bg-cyan-400 rounded-full animate-bounce"
-                style={{ animationDelay: `${i * 0.2}s` }}
-              ></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    // ✨ USE SKELETON LOADER
+    return <ChartSkeleton progress={progress.loaded} total={progress.total} />;
   }
 
   if (error) {
@@ -380,14 +403,17 @@ const DarkFPLPositionChart = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-100 mb-2">Position Tracker</h1>
         <p className="text-gray-400">GW 1-{maxGameweek} • {managers.length} managers</p>
       </div>
 
-      {/* Main Chart */}
-      <div className="bg-gray-800/40 backdrop-blur-xl rounded-xl border border-gray-700/50 overflow-hidden">
+      <div
+        // ✨ UPDATED: Added duration-700 for a slightly slower, smoother feel
+        className={`bg-gray-800/40 backdrop-blur-xl rounded-xl border border-gray-700/50 overflow-hidden transform transition-all duration-700 ease-out ${
+          enter ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}
+      >
         <div className="p-6 border-b border-gray-700/50">
           {selectedManager && managerStats[selectedManager] ? (
             <div className="flex items-center justify-between">
@@ -398,7 +424,7 @@ const DarkFPLPositionChart = () => {
                 <div className="text-sm text-gray-400">Position: <span className="font-semibold text-cyan-400">#{managerStats[selectedManager][`gw${maxGameweek}_position`]}</span></div>
                 <div className="text-sm text-gray-400">Points: <span className="font-semibold text-gray-100">{managerStats[selectedManager][`gw${maxGameweek}_cumulative`]}</span></div>
                 <div className="text-sm text-gray-400">
-                  Change: 
+                  Change:
                   <span className="font-semibold ml-1">
                     {(() => {
                       const startPos = managerStats[selectedManager].gw1_position;
@@ -427,141 +453,59 @@ const DarkFPLPositionChart = () => {
         </div>
 
         <div className="p-6">
-          {/* Mobile Chart */}
           <div className="md:hidden">
             <ResponsiveContainer width="100%" height={400}>
-              <LineChart
-                data={chartData}
-                margin={{ top: 20, right: 15, left: 5, bottom: 20 }}
-              >
+              <LineChart data={chartData} margin={{ top: 20, right: 15, left: 5, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.6} />
-                
-                <XAxis 
-                  dataKey="gameweek" 
-                  stroke="#9CA3AF"
-                  tick={{ fill: '#9CA3AF', fontSize: 11 }}
-                  domain={[1, maxGameweek]}
-                  type="number"
-                  ticks={generateGameweekTicks(maxGameweek)}
-                />
-                <YAxis 
-                  stroke="#9CA3AF"
-                  tick={{ fill: '#9CA3AF', fontSize: 10 }}
-                  domain={[1, managers.length]}
-                  reversed={true}
-                  tickMargin={4}
-                  width={25}
-                />
+                <XAxis dataKey="gameweek" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 11 }} domain={[1, maxGameweek]} type="number" ticks={generateGameweekTicks(maxGameweek)} />
+                <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 10 }} domain={[1, managers.length]} reversed tickMargin={4} width={25} />
                 <Tooltip content={<CustomTooltip />} />
-                
-                {managers.map((manager, index) => {
-                  const isSelected = selectedManager === manager;
-                  const isDimmed = selectedManager && selectedManager !== manager;
-                  
-                  return (
-                    <Line
-                      key={manager}
-                      type="linear"
-                      dataKey={manager}
-                      stroke={darkColors[index % darkColors.length]}
-                      strokeWidth={isSelected ? 3 : 2}
-                      strokeOpacity={isDimmed ? 0.2 : 1}
-                      dot={<CustomDot fill={darkColors[index % darkColors.length]} />}
-                      activeDot={false}
-                      connectNulls={false}
-                    />
-                  );
-                })}
+                {managers.map((manager, index) => (
+                    <Line key={manager} type="linear" dataKey={manager} stroke={darkColors[index % darkColors.length]} strokeWidth={selectedManager === manager ? 3 : 2} strokeOpacity={selectedManager && selectedManager !== manager ? 0.2 : 1} dot={<CustomDot fill={darkColors[index % darkColors.length]} />} activeDot={false} connectNulls={false} isAnimationActive={true} animationDuration={700} animationEasing="ease-out" animationBegin={index * 60} />
+                ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
-
-          {/* Desktop Chart */}
           <div className="hidden md:block">
             <ResponsiveContainer width="100%" height={500}>
-              <LineChart
-                data={chartData}
-                margin={{ top: 30, right: 30, left: 50, bottom: 30 }}
-              >
+              <LineChart data={chartData} margin={{ top: 30, right: 30, left: 50, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.6} />
-                
-                <XAxis 
-                  dataKey="gameweek" 
-                  stroke="#9CA3AF"
-                  tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                  domain={[1, maxGameweek]}
-                  type="number"
-                  ticks={generateGameweekTicks(maxGameweek)}
-                  label={{ value: 'Gameweek', position: 'insideBottom', offset: -10, fill: '#9CA3AF' }}
-                />
-                <YAxis 
-                  stroke="#9CA3AF"
-                  tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                  domain={[1, managers.length]}
-                  reversed={true}
-                  tickMargin={10}
-                  width={45}
-                  label={{ value: 'Position', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }}
-                />
+                <XAxis dataKey="gameweek" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 12 }} domain={[1, maxGameweek]} type="number" ticks={generateGameweekTicks(maxGameweek)} label={{ value: 'Gameweek', position: 'insideBottom', offset: -10, fill: '#9CA3AF' }} />
+                <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 12 }} domain={[1, managers.length]} reversed tickMargin={10} width={45} label={{ value: 'Position', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }} />
                 <Tooltip content={<CustomTooltip />} />
-                
-                {managers.map((manager, index) => {
-                  const isSelected = selectedManager === manager;
-                  const isDimmed = selectedManager && selectedManager !== manager;
-                  
-                  return (
-                    <Line
-                      key={manager}
-                      type="linear"
-                      dataKey={manager}
-                      stroke={darkColors[index % darkColors.length]}
-                      strokeWidth={isSelected ? 4 : 2.5}
-                      strokeOpacity={isDimmed ? 0.15 : 1}
-                      dot={<CustomDot fill={darkColors[index % darkColors.length]} />}
-                      activeDot={false}
-                      connectNulls={false}
-                    />
-                  );
-                })}
+                {managers.map((manager, index) => (
+                    <Line key={manager} type="linear" dataKey={manager} stroke={darkColors[index % darkColors.length]} strokeWidth={selectedManager === manager ? 4 : 2.5} strokeOpacity={selectedManager && selectedManager !== manager ? 0.15 : 1} dot={<CustomDot fill={darkColors[index % darkColors.length]} />} activeDot={false} connectNulls={false} isAnimationActive={true} animationDuration={800} animationEasing="ease-out" animationBegin={index * 60} />
+                ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Bench Champions */}
       {benchData.length > 0 && (
-        <div className="bg-gray-800/40 backdrop-blur-xl rounded-xl border border-red-700/50 overflow-hidden">
+        <div
+          // ✨ IMPROVEMENT: Staggered animation with a delay
+          className={`bg-gray-800/40 backdrop-blur-xl rounded-xl border border-red-700/50 overflow-hidden transform transition-all duration-700 ease-out delay-150 ${
+            enter ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+        >
           <div className="p-6 border-b border-red-700/50 bg-gradient-to-r from-red-900/20 to-red-800/20">
             <h2 className="text-lg font-semibold text-gray-100">Bench Champions</h2>
             <p className="text-gray-400 text-sm">Highest unused substitute points</p>
           </div>
-
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {benchData.slice(0, 6).map((manager, index) => (
-                <div 
-                  key={manager.manager_name} 
-                  className="flex items-center justify-between p-4 bg-red-900/20 rounded-lg border border-red-600/30 hover:bg-red-900/30 transition-colors"
-                >
+                <div key={manager.manager_name} className="flex items-center justify-between p-4 bg-red-900/20 rounded-lg border border-red-600/30 hover:bg-red-900/30 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gradient-to-b from-red-500 to-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                      {index + 1}
-                    </div>
+                    <div className="w-8 h-8 bg-gradient-to-b from-red-500 to-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">{index + 1}</div>
                     <div className="flex flex-col">
                       <span className="text-gray-100 font-medium">{manager.manager_name}</span>
-                      <span className="text-gray-400 text-xs">
-                        ({Array.from({length: maxGameweek}, (_, gwIndex) => {
-                          const gw = gwIndex + 1;
-                          return manager[`gw${gw}_bench`] || 0;
-                        }).join(', ')})
-                      </span>
+                      <span className="text-gray-400 text-xs">({Array.from({ length: maxGameweek }, (_, gwIndex) => manager[`gw${gwIndex + 1}_bench`] || 0).join(', ')})</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-red-400">
-                      {manager.total_bench_points}
-                    </div>
+                    <div className="text-lg font-bold text-red-400">{manager.total_bench_points}</div>
                     <div className="text-gray-400 text-xs">points</div>
                   </div>
                 </div>
