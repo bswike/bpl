@@ -2,10 +2,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 // --- Constants ---
-const CSV_PREFIX = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw'; // legacy .csv prefix
-const POINTER_PREFIX = CSV_PREFIX; // pointer is fpl_rosters_points_gw{gw}-latest.json
+const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
+const MANIFEST_URL = `${PUBLIC_BASE}fpl-league-manifest.json`;
 const REFRESH_INTERVAL_MS = 300000; // 5 minutes
-const MAX_GAMEWEEK_TO_CHECK = 38;
 
 // --- Hardcoded GW1 Data (extracted from actual CSV) ---
 const HARDCODED_GW1_DATA = [
@@ -47,35 +46,22 @@ const useFplData = () => {
   const [error, setError] = useState(null);
   const [papaReady, setPapaReady] = useState(false);
 
-  // per-cycle abort + run guard
   const cycleAbortRef = useRef(null);
   const fetchCycleIdRef = useRef(0);
 
   // Lazy-load PapaParse
   useEffect(() => {
-    const scriptId = 'papaparse-script';
-    if (document.getElementById(scriptId) || window.Papa) {
+    if (window.Papa) {
       setPapaReady(true);
       return;
     }
     const script = document.createElement('script');
-    script.id = scriptId;
+    script.id = 'papaparse-script';
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
     script.async = true;
     script.onload = () => setPapaReady(true);
-    script.onerror = () => { setError("Error: Failed to load the data parsing library."); setLoading(false); };
+    script.onerror = () => { setError("Error: Failed to load data parsing library."); setLoading(false); };
     document.body.appendChild(script);
-    return () => { const el = document.getElementById(scriptId); if (el) document.body.removeChild(el); };
-  }, []);
-
-  // --- pointer fetcher (no custom headers) ---
-  const fetchLatestCsvUrl = useCallback(async (gw, signal) => {
-    const pointerUrl = `${POINTER_PREFIX}${gw}-latest.json?v=${bust()}`;
-    const res = await fetch(pointerUrl, { method: 'GET', cache: 'no-store', signal });
-    if (!res.ok) throw new Error(`No latest pointer for GW${gw} (${res.status})`);
-    const j = await res.json();
-    if (!j?.url) throw new Error(`Malformed pointer for GW${gw}`);
-    return j.url; // fully-qualified immutable CSV URL
   }, []);
 
   // --- CSV -> managers ---
@@ -88,40 +74,31 @@ const useFplData = () => {
     const managerStats = Object.create(null);
 
     for (const raw of parsed.data) {
-      const player = normalizeStr(raw.player);
       const manager = normalizeStr(raw.manager_name);
-      const team = normalizeStr(raw.entry_team_name);
       if (!manager) continue;
 
       if (!managerStats[manager]) {
         managerStats[manager] = {
           manager_name: manager,
-          team_name: team,
-          total_points: 0,
-          captain_points: 0,
-          captain_player: '',
-          players_live: 0,
-          players_upcoming: 0,
-          bench_points: 0
+          team_name: normalizeStr(raw.entry_team_name),
+          total_points: 0, captain_points: 0, captain_player: '',
+          players_live: 0, players_upcoming: 0, bench_points: 0
         };
       }
-
+      
+      const player = normalizeStr(raw.player);
       if (player !== "TOTAL") {
-        // captain
         if (truthy(raw.is_captain) && !managerStats[manager].captain_player) {
           managerStats[manager].captain_player = player;
           managerStats[manager].captain_points = toNum(raw.points_applied);
         }
-        // live/upcoming
         const mult = toNum(raw.multiplier);
         if (mult >= 1 && raw.status !== "dnp") {
           if (truthy(raw.fixture_started) && !truthy(raw.fixture_finished)) managerStats[manager].players_live++;
           else if (!truthy(raw.fixture_started)) managerStats[manager].players_upcoming++;
         }
-        // bench
         if (mult === 0) managerStats[manager].bench_points += toNum(raw.points_gw);
       } else {
-        // authoritative total from TOTAL row
         managerStats[manager].total_points = toNum(raw.points_applied);
       }
     }
@@ -132,35 +109,37 @@ const useFplData = () => {
       .map((m, i) => ({ ...m, position: i + 1, gameweek }));
   }, []);
 
-  // --- fetch one GW (pointer → versioned CSV; fallback to legacy) ---
-  const processGameweekData = useCallback(async (gameweek, signal) => {
+  // --- fetch one GW using manifest ---
+  const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     if (gameweek === 1) return HARDCODED_GW1_DATA;
 
     try {
-      const dataUrl = await fetchLatestCsvUrl(gameweek, signal);
-      const response = await fetch(dataUrl, { cache: 'no-store', signal });
-      if (!response.ok) throw new Error(`HTTP ${response.status} for ${dataUrl}`);
-      const csvText = await response.text();
+      const pointerUrl = manifest?.gameweeks?.[gameweek];
+      if (!pointerUrl) throw new Error(`No pointer URL for GW${gameweek} in manifest`);
+
+      // Fetch the unique pointer file
+      const pointerRes = await fetch(`${pointerUrl}?v=${bust()}`, { cache: 'no-store', signal });
+      if (!pointerRes.ok) throw new Error(`Could not fetch pointer for GW${gameweek} (${pointerRes.status})`);
+      const pointerData = await pointerRes.json();
+      
+      const csvUrl = pointerData?.url;
+      if (!csvUrl) throw new Error(`Malformed pointer for GW${gameweek}`);
+
+      // Fetch the final versioned CSV
+      const csvRes = await fetch(csvUrl, { cache: 'no-store', signal });
+      if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for ${csvUrl}`);
+      const csvText = await csvRes.text();
+      
       return parseCsvToManagers(csvText, gameweek);
     } catch (err) {
-      // Fallback to legacy path with strong bust
-      try {
-        const fallbackUrl = `${CSV_PREFIX}${gameweek}.csv?v=${bust()}`;
-        const r2 = await fetch(fallbackUrl, { method: 'GET', cache: 'no-store', signal });
-        if (!r2.ok) throw new Error(`HTTP ${r2.status} for ${fallbackUrl}`);
-        const csvText = await r2.text();
-        return parseCsvToManagers(csvText, gameweek);
-      } catch (e2) {
-        if (err?.name !== 'AbortError' && e2?.name !== 'AbortError') {
-          console.error(`GW${gameweek} fetch failed:`, err, e2);
-        }
-        return [];
+      if (err?.name !== 'AbortError') {
+        console.error(`GW${gameweek} fetch failed:`, err);
       }
+      return []; // Return empty array on failure for this GW
     }
-  }, [fetchLatestCsvUrl, parseCsvToManagers]);
+  }, [parseCsvToManagers]);
 
   const fetchData = useCallback(async () => {
-    // abort any prior cycle, set a new one
     if (cycleAbortRef.current) cycleAbortRef.current.abort();
     const abort = new AbortController();
     cycleAbortRef.current = abort;
@@ -168,51 +147,39 @@ const useFplData = () => {
 
     setLoading(true);
     try {
-      // Discover available GWs: prefer pointer; fallback HEAD on legacy CSV (all without custom headers)
-      const available = [1];
-      for (let gw = 2; gw <= MAX_GAMEWEEK_TO_CHECK; gw++) {
-        let ok = false;
-        try {
-          const res = await fetch(`${POINTER_PREFIX}${gw}-latest.json?v=${bust()}`, { method: 'GET', cache: 'no-store', signal: abort.signal });
-          ok = res.ok;
-        } catch (e) {
-          if (e?.name === 'AbortError') return;
-        }
-        if (!ok) {
-          try {
-            const head = await fetch(`${CSV_PREFIX}${gw}.csv?v=${bust()}`, { method: 'HEAD', cache: 'no-store', signal: abort.signal });
-            ok = head.ok;
-          } catch (e) {
-            if (e?.name === 'AbortError') return;
-          }
-        }
-        if (ok) available.push(gw); else break;
-      }
-      if (available.length === 0) throw new Error("No gameweek data found.");
+      // ** STEP 1: Fetch the manifest file, which is the single source of truth **
+      const manifestRes = await fetch(`${MANIFEST_URL}?v=${bust()}`, { method: 'GET', cache: 'no-store', signal: abort.signal });
+      if (!manifestRes.ok) throw new Error(`Could not load league manifest (${manifestRes.status})`);
+      const manifest = await manifestRes.json();
+
+      // ** STEP 2: Determine available gameweeks from the manifest **
+      const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
+      const available = [...new Set([1, ...remoteGameweeks])].sort((a, b) => a - b);
+      
+      if (available.length === 0) throw new Error("No gameweek data found in manifest.");
 
       const currentLatestGw = available[available.length - 1];
 
-      // Fetch all available GWs in parallel for this cycle
+      // ** STEP 3: Fetch all available GWs in parallel **
       const results = await Promise.all(
         available.map(async (gw) => {
-          const data = await processGameweekData(gw, abort.signal);
+          const data = await processGameweekData(gw, manifest, abort.signal);
           return { gameweek: gw, data };
         })
       );
 
-      // run guard: only the latest cycle may update state
-      if (fetchCycleIdRef.current !== myId) return;
+      // Guard: only the latest fetch cycle may update state
+      if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
 
       const newGameweekData = Object.fromEntries(results.map(({ gameweek, data }) => [gameweek, data]));
       setGameweekData(newGameweekData);
       setAvailableGameweeks(available);
       setLatestGameweek(currentLatestGw);
 
-      // Build combined standings using GW1 roster as manager list
+      // Build combined standings
       if (newGameweekData[1]?.length) {
         const managerNames = newGameweekData[1].map(m => m.manager_name);
-        const newCombinedData = managerNames
-          .map(name => {
+        const newCombinedData = managerNames.map(name => {
             let cumulativePoints = 0;
             const managerEntry = { manager_name: name };
             available.forEach(gw => {
@@ -221,24 +188,21 @@ const useFplData = () => {
               cumulativePoints += pts;
               managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
               managerEntry[`gw${gw}_points`] = pts;
-              managerEntry[`gw${gw}_position`] = gwStats?.position;
             });
             managerEntry.total_points = cumulativePoints;
-            const gw1Position = newGameweekData[1]?.find(m => m.manager_name === name)?.position || 0;
-            const latestPosition = newGameweekData[currentLatestGw]?.find(m => m.manager_name === name)?.position || 0;
-            managerEntry.overall_position_change = gw1Position - latestPosition;
             return managerEntry;
           })
           .sort((a, b) => b.total_points - a.total_points)
-          .map((manager, index) => ({
-            ...manager,
-            current_position: index + 1,
-            overall_position_change: (newGameweekData[1]?.find(m => m.manager_name === manager.manager_name)?.position || 0) - (index + 1)
-          }));
-
+          .map((manager, index) => {
+            const gw1Position = newGameweekData[1]?.find(m => m.manager_name === manager.manager_name)?.position || 0;
+            return {
+              ...manager,
+              current_position: index + 1,
+              overall_position_change: gw1Position ? gw1Position - (index + 1) : 0,
+            };
+          });
         setCombinedData(newCombinedData);
       }
-
       setError(null);
     } catch (err) {
       if (err?.name !== 'AbortError') {
@@ -262,6 +226,7 @@ const useFplData = () => {
 
   return { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData };
 };
+
 
 // --- Helper Components (UI unchanged) ---
 const getPositionChangeIcon = (change) => {
@@ -449,7 +414,11 @@ const FPLMultiGameweekDashboard = () => {
 
   useEffect(() => {
     if (!loading && availableGameweeks.length > 0) {
+      // Default to the latest available gameweek view
       setSelectedView(`gw${latestGameweek}`);
+    } else if (loading) {
+      // While loading, default to combined to avoid flicker
+      setSelectedView('combined');
     }
   }, [loading, availableGameweeks, latestGameweek]);
 
@@ -459,7 +428,7 @@ const FPLMultiGameweekDashboard = () => {
     return gameweekData[gwNumber] || [];
   }, [selectedView, combinedData, gameweekData]);
 
-  if (loading && !error) {
+  if (loading && Object.keys(gameweekData).length === 0) {
     return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">Loading FPL Dashboard...</div>;
   }
   if (error) {
