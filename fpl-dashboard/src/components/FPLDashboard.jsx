@@ -2,13 +2,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 // --- Constants ---
-const CSV_PREFIX = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw';
-const POINTER_PREFIX = CSV_PREFIX; // Pointer and legacy CSV share a prefix
+const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
+const MANIFEST_URL = `${PUBLIC_BASE}fpl-league-manifest.json`;
 const REFRESH_INTERVAL_MS = 300000; // 5 minutes
-const MAX_GAMEWEEK_TO_CHECK = 38;
 
 // --- Helper Functions ---
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const normalizeStr = (s) => (s ?? '').toString().normalize('NFC').replace(/\u00A0/g, ' ').trim();
 
 // --- Main Dashboard Component ---
 const FPLMultiGameweekDashboard = () => {
@@ -24,26 +24,59 @@ const FPLMultiGameweekDashboard = () => {
 
   // Load PapaParse script from a CDN
   useEffect(() => {
-    const scriptId = 'papaparse-script';
-    if (document.getElementById(scriptId) || window.Papa) {
-        setPapaReady(true);
-        return;
+    if (window.Papa) {
+      setPapaReady(true);
+      return;
     }
     const script = document.createElement('script');
-    script.id = scriptId;
+    script.id = 'papaparse-script';
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
     script.async = true;
     script.onload = () => setPapaReady(true);
     script.onerror = () => {
-        setError("Error: Failed to load the data parsing library.");
-        setLoading(false);
+      setError("Error: Failed to load data parsing library.");
+      setLoading(false);
     };
     document.body.appendChild(script);
+  }, []);
 
-    return () => {
-        const el = document.getElementById(scriptId);
-        if (el) document.body.removeChild(el);
-    };
+  // Process gameweek data using manifest system
+  const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
+    try {
+      const pointerUrl = manifest?.gameweeks?.[gameweek];
+      if (!pointerUrl) throw new Error(`No pointer URL for GW${gameweek} in manifest`);
+
+      // Fetch the unique pointer file
+      const pointerRes = await fetch(`${pointerUrl}?v=${bust()}`, { cache: 'no-store', signal });
+      if (!pointerRes.ok) throw new Error(`Could not fetch pointer for GW${gameweek} (${pointerRes.status})`);
+      const pointerData = await pointerRes.json();
+      
+      const csvUrl = pointerData?.url;
+      if (!csvUrl) throw new Error(`Malformed pointer for GW${gameweek}`);
+
+      // Fetch the final versioned CSV
+      const csvRes = await fetch(csvUrl, { cache: 'no-store', signal });
+      if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for ${csvUrl}`);
+      const csvText = await csvRes.text();
+      
+      if (csvText.trim() === "The game is being updated.") return [];
+
+      // Parse CSV data
+      const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
+      if (parsed.errors?.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
+
+      // Apply any necessary data normalization
+      parsed.data.forEach(row => {
+        if (row.player === 'JoÃ£o Pedro Junqueira de Jesus') row.player = 'JoÃ£o Pedro';
+      });
+
+      return parsed.data;
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        console.error(`GW${gameweek} fetch failed:`, err);
+      }
+      return [];
+    }
   }, []);
 
   // --- Advanced Data Fetching & Processing ---
@@ -55,70 +88,68 @@ const FPLMultiGameweekDashboard = () => {
     const myId = ++fetchCycleIdRef.current;
 
     setLoading(true);
+    setError(null);
 
     try {
-      // 1. Discover available Gameweeks (check for pointer first, then fallback to legacy)
-      const available = [];
-      for (let gw = 1; gw <= MAX_GAMEWEEK_TO_CHECK; gw++) {
-        let ok = false;
-        try { // Check for pointer JSON
-          const res = await fetch(`${POINTER_PREFIX}${gw}-latest.json?v=${bust()}`, { method: 'GET', cache: 'no-store', signal: abort.signal });
-          ok = res.ok;
-        } catch (e) {
-          if (e?.name === 'AbortError') return;
-        }
-        if (!ok) {
-          try { // Fallback: Check for legacy CSV
-            const head = await fetch(`${CSV_PREFIX}${gw}.csv?v=${bust()}`, { method: 'HEAD', cache: 'no-store', signal: abort.signal });
-            ok = head.ok;
-          } catch (e) {
-            if (e?.name === 'AbortError') return;
-          }
-        }
-        if (ok) available.push(gw); else break;
+      // Step 1: Fetch the manifest file
+      const manifestRes = await fetch(`${MANIFEST_URL}?v=${bust()}`, { 
+        method: 'GET', 
+        cache: 'no-store', 
+        signal: abort.signal 
+      });
+      
+      if (!manifestRes.ok) {
+        throw new Error(`Could not load league manifest (${manifestRes.status})`);
+      }
+      
+      const manifest = await manifestRes.json();
+
+      // Step 2: Determine available gameweeks from the manifest
+      const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
+      const available = [...new Set([1, ...remoteGameweeks])].sort((a, b) => a - b);
+      
+      if (available.length === 0) {
+        throw new Error("No gameweek data found in manifest.");
       }
 
-      if (available.length === 0) throw new Error("No gameweek data found.");
-      if (fetchCycleIdRef.current !== myId) return; // Abort if a newer fetch has started
+      // Guard: only the latest fetch cycle may update state
+      if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
       setAvailableGameweeks(available);
 
-      // 2. Fetch and parse data for each available gameweek
+      // Step 3: Fetch all gameweeks in parallel
       const gameweekPromises = available.map(async (gw) => {
-        let csvText = '';
-        try {
-          // Attempt to fetch via pointer
-          const pointerUrl = `${POINTER_PREFIX}${gw}-latest.json?v=${bust()}`;
-          const pointerRes = await fetch(pointerUrl, { cache: 'no-store', signal: abort.signal });
-          if (!pointerRes.ok) throw new Error(`Pointer for GW${gw} not found.`);
-          const pointerJson = await pointerRes.json();
-          if (!pointerJson?.url) throw new Error(`Malformed pointer for GW${gw}.`);
-          
-          const dataRes = await fetch(pointerJson.url, { cache: 'no-store', signal: abort.signal });
-          if (!dataRes.ok) throw new Error(`Failed to fetch data from pointer URL for GW${gw}.`);
-          csvText = await dataRes.text();
-
-        } catch (err) {
-          // Fallback to legacy CSV path
-          console.warn(`Pointer fetch failed for GW${gw}, falling back to legacy path.`, err);
-          const fallbackUrl = `${CSV_PREFIX}${gw}.csv?v=${bust()}`;
-          const fallbackRes = await fetch(fallbackUrl, { cache: 'no-store', signal: abort.signal });
-          if (!fallbackRes.ok) return []; // If fallback also fails, return empty
-          csvText = await fallbackRes.text();
+        if (gw === 1) {
+          // Hardcoded GW1 data for reliability
+          return [
+            { manager_name: "Garrett Kunkel", entry_team_name: "kunkel_fpl", player: "TOTAL", points_applied: 78, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Andrew Vidal", entry_team_name: "Las Cucarachas", player: "TOTAL", points_applied: 76, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Brett Swikle", entry_team_name: "swikle_time", player: "TOTAL", points_applied: 74, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "John Matthew", entry_team_name: "matthewfpl", player: "TOTAL", points_applied: 73, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Jared Alexander", entry_team_name: "Jared's Jinxes", player: "TOTAL", points_applied: 67, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Joe Curran", entry_team_name: "Curran's Crew", player: "TOTAL", points_applied: 64, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "John Sebastian", entry_team_name: "Sebastian Squad", player: "TOTAL", points_applied: 62, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Nate Cohen", entry_team_name: "Cohen's Corner", player: "TOTAL", points_applied: 60, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Chris Munoz", entry_team_name: "Munoz Magic", player: "TOTAL", points_applied: 60, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Evan Bagheri", entry_team_name: "Bagheri's Best", player: "TOTAL", points_applied: 57, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Dean Maghsadi", entry_team_name: "Dean's Dream", player: "TOTAL", points_applied: 55, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Brian Pleines", entry_team_name: "Pleines Power", player: "TOTAL", points_applied: 53, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Max Maier", entry_team_name: "Maier's Marvels", player: "TOTAL", points_applied: 53, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Adrian McLoughlin", entry_team_name: "McLoughlin FC", player: "TOTAL", points_applied: 52, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Wes H", entry_team_name: "Wes Warriors", player: "TOTAL", points_applied: 50, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Kevin Tomek", entry_team_name: "Tomek's Team", player: "TOTAL", points_applied: 48, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Kevin K", entry_team_name: "Kevin's Kicks", player: "TOTAL", points_applied: 41, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Tony Tharakan", entry_team_name: "Tharakan's Threat", player: "TOTAL", points_applied: 39, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "JP Fischer", entry_team_name: "Fischer's Force", player: "TOTAL", points_applied: 35, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Patrick McCleary", entry_team_name: "McCleary's Might", player: "TOTAL", points_applied: 34, is_captain: 'False', multiplier: 1, points_gw: 0 }
+          ];
         }
-
-        if (csvText.trim() === "The game is being updated.") return [];
-        
-        const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
-        parsed.data.forEach(row => {
-            if (row.player === 'JoÃ£o Pedro Junqueira de Jesus') row.player = 'JoÃ£o Pedro';
-        });
-        return parsed.data;
+        return await processGameweekData(gw, manifest, abort.signal);
       });
       
       const results = await Promise.all(gameweekPromises);
 
       // --- This data aggregation logic is preserved from the original FPLDashboard ---
-      // 3. Aggregate data across all gameweeks into a cumulative total
+      // Aggregate data across all gameweeks into a cumulative total
       const managerData = {};
 
       results.forEach((gwData, gwIndex) => {
@@ -133,7 +164,7 @@ const FPLMultiGameweekDashboard = () => {
                     total_points: 0,
                     bench_points: 0,
                     captain_player: 'N/A',
-                    team_name: row.entry_team_name
+                    team_name: normalizeStr(row.entry_team_name)
                 };
             }
 
@@ -167,7 +198,7 @@ const FPLMultiGameweekDashboard = () => {
         });
       });
       
-      // 4. Sort and add league designations for the chart
+      // Sort and add league designations for the chart
       const combinedData = Object.values(managerData);
       const sortedData = combinedData
         .sort((a, b) => {
@@ -188,21 +219,21 @@ const FPLMultiGameweekDashboard = () => {
           return { ...item, rank: index + 1, designation, displayName: item.manager_name };
         });
 
-      if (fetchCycleIdRef.current === myId) { // Final check to ensure this is the latest fetch cycle
+      if (fetchCycleIdRef.current === myId && !abort.signal.aborted) {
         setData(sortedData);
         setError(null);
       }
     } catch (err) {
       if (err?.name !== 'AbortError') {
         console.error('Error loading data:', err);
-        setError(err.message);
+        if (fetchCycleIdRef.current === myId) setError(err.message);
       }
     } finally {
-      if (fetchCycleIdRef.current === myId) {
+      if (fetchCycleIdRef.current === myId && !abort.signal.aborted) {
         setLoading(false);
       }
     }
-  }, [papaReady]);
+  }, [processGameweekData]);
 
   // Effect to run fetchData on mount and at a set interval
   useEffect(() => {
