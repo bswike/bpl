@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import Papa from 'papaparse';
 
-// ---- Constants (pointer-first + legacy fallback) ----
-const CSV_PREFIX = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw'; // legacy CSV path
-const POINTER_PREFIX = CSV_PREFIX; // pointer: fpl_rosters_points_gw{gw}-latest.json
-const MAX_GAMEWEEK_TO_CHECK = 38;
+// ---- Constants ----
+const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
+const MANIFEST_URL = `${PUBLIC_BASE}fpl-league-manifest.json`;
 
+// Cache busting utility
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-// ✨ NEW: Skeleton Loader Component
+// Skeleton Loader Component
 const ChartSkeleton = ({ progress, total }) => (
   <div className="space-y-6 animate-pulse">
     {/* Header Skeleton */}
@@ -49,7 +49,6 @@ const ChartSkeleton = ({ progress, total }) => (
   </div>
 );
 
-
 const DarkFPLPositionChart = () => {
   const [chartData, setChartData] = useState([]);
   const [managers, setManagers] = useState([]);
@@ -59,16 +58,17 @@ const DarkFPLPositionChart = () => {
   const [error, setError] = useState(null);
   const [selectedManager, setSelectedManager] = useState(null);
 
-  // enter animation trigger (fade + lift when the chart first appears)
+  // Animation trigger
   const [enter, setEnter] = useState(false);
 
-  // ✨ NEW: State for loading progress
+  // Loading progress
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
 
-  // Abort the current fetch cycle if the component unmounts / refetch happens
+  // Abort controller for fetch cycles
   const abortRef = useRef(null);
+  const fetchCycleIdRef = useRef(0);
 
-  // Hardcoded GW1 data to avoid intermittent loading issues (extracted from actual CSV)
+  // Hardcoded GW1 data
   const hardcodedGW1Data = {
     totals: [
       { manager_name: "Garrett Kunkel", total_points: 78, gameweek: 1 },
@@ -162,39 +162,35 @@ const DarkFPLPositionChart = () => {
     return <circle cx={cx} cy={cy} r={4} fill={fill} />;
   };
 
-  const fetchLatestCsvUrl = async (gw, signal) => {
-    const pointerUrl = `${POINTER_PREFIX}${gw}-latest.json?v=${bust()}`;
-    const res = await fetch(pointerUrl, { method: 'GET', cache: 'no-store', signal });
-    if (!res.ok) throw new Error(`No latest pointer for GW${gw} (${res.status})`);
-    const j = await res.json();
-    if (!j?.url) throw new Error(`Malformed pointer for GW${gw}`);
-    return j.url;
-  };
-
-  const processGameweekData = async (gameweek, signal) => {
+  // Process gameweek data using manifest system
+  const processGameweekData = async (gameweek, manifest, signal) => {
     if (gameweek === 1) return hardcodedGW1Data;
 
     try {
-      const dataUrl = await fetchLatestCsvUrl(gameweek, signal);
-      const response = await fetch(dataUrl, { cache: 'no-store', signal });
-      if (!response.ok) throw new Error(`HTTP ${response.status} for ${dataUrl}`);
-      const csvData = await response.text();
-      if (csvData.trim() === "The game is being updated.") return { totals: [], bench: [] };
-      return parseCsv(csvData, gameweek);
+      const pointerUrl = manifest?.gameweeks?.[gameweek];
+      if (!pointerUrl) throw new Error(`No pointer URL for GW${gameweek} in manifest`);
+
+      // Fetch the unique pointer file
+      const pointerRes = await fetch(`${pointerUrl}?v=${bust()}`, { cache: 'no-store', signal });
+      if (!pointerRes.ok) throw new Error(`Could not fetch pointer for GW${gameweek} (${pointerRes.status})`);
+      const pointerData = await pointerRes.json();
+      
+      const csvUrl = pointerData?.url;
+      if (!csvUrl) throw new Error(`Malformed pointer for GW${gameweek}`);
+
+      // Fetch the final versioned CSV
+      const csvRes = await fetch(csvUrl, { cache: 'no-store', signal });
+      if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for ${csvUrl}`);
+      const csvText = await csvRes.text();
+      
+      if (csvText.trim() === "The game is being updated.") return { totals: [], bench: [] };
+      
+      return parseCsv(csvText, gameweek);
     } catch (err) {
-      try {
-        const legacyUrl = `${CSV_PREFIX}${gameweek}.csv?v=${bust()}`;
-        const r2 = await fetch(legacyUrl, { method: 'GET', cache: 'no-store', signal });
-        if (!r2.ok) throw new Error(`HTTP ${r2.status} for ${legacyUrl}`);
-        const csvData = await r2.text();
-        if (csvData.trim() === "The game is being updated.") return { totals: [], bench: [] };
-        return parseCsv(csvData, gameweek);
-      } catch (e2) {
-        if (err?.name !== 'AbortError' && e2?.name !== 'AbortError') {
-          console.error(`GW${gameweek} fetch failed:`, err, e2);
-        }
-        return { totals: [], bench: [] };
+      if (err?.name !== 'AbortError') {
+        console.error(`GW${gameweek} fetch failed:`, err);
       }
+      return { totals: [], bench: [] };
     }
   };
 
@@ -230,40 +226,12 @@ const DarkFPLPositionChart = () => {
     };
   };
 
-  const findAvailableGameweeks = async (signal) => {
-    // ✨ IMPROVEMENT: Check for all gameweeks in parallel for speed.
-    const gameweekChecks = Array.from({ length: MAX_GAMEWEEK_TO_CHECK - 1 }, (_, i) => i + 2);
-    
-    const results = await Promise.all(
-      gameweekChecks.map(async (gw) => {
-        try {
-          const res = await fetch(`${POINTER_PREFIX}${gw}-latest.json?v=${bust()}`, { method: 'GET', cache: 'no-store', signal });
-          if (res.ok) return { gw, ok: true };
-          
-          const head = await fetch(`${CSV_PREFIX}${gw}.csv?v=${bust()}`, { method: 'HEAD', cache: 'no-store', signal });
-          return { gw, ok: head.ok };
-        } catch (e) {
-          if (e?.name === 'AbortError') throw e;
-          return { gw, ok: false };
-        }
-      })
-    );
-
-    const available = [1];
-    for (const result of results) {
-      if (result.ok) {
-        available.push(result.gw);
-      } else {
-        break; // Stop at the first unavailable gameweek
-      }
-    }
-    return available;
-  };
-
   const fetchData = async () => {
+    // Abort any existing fetch
     if (abortRef.current) abortRef.current.abort();
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
+    const abort = new AbortController();
+    abortRef.current = abort;
+    const myId = ++fetchCycleIdRef.current;
 
     setLoading(true);
     setError(null);
@@ -271,27 +239,50 @@ const DarkFPLPositionChart = () => {
     setProgress({ loaded: 0, total: 0 });
 
     try {
-      const availableGws = await findAvailableGameweeks(ctrl.signal);
-      const latestGW = availableGws[availableGws.length - 1];
+      // Step 1: Fetch the manifest file
+      const manifestRes = await fetch(`${MANIFEST_URL}?v=${bust()}`, { 
+        method: 'GET', 
+        cache: 'no-store', 
+        signal: abort.signal 
+      });
+      
+      if (!manifestRes.ok) {
+        throw new Error(`Could not load league manifest (${manifestRes.status})`);
+      }
+      
+      const manifest = await manifestRes.json();
+
+      // Step 2: Determine available gameweeks from the manifest
+      const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
+      const availableGameweeks = [...new Set([1, ...remoteGameweeks])].sort((a, b) => a - b);
+      
+      if (availableGameweeks.length === 0) {
+        throw new Error("No gameweek data found in manifest.");
+      }
+
+      const latestGW = availableGameweeks[availableGameweeks.length - 1];
       setProgress({ loaded: 0, total: latestGW });
 
-      // ✨ IMPROVEMENT: Fetch all gameweek data in parallel, not sequentially.
-      const gameweekPromises = availableGws.map(gw =>
-        processGameweekData(gw, ctrl.signal).then(result => {
+      // Step 3: Fetch all gameweeks in parallel
+      const results = await Promise.all(
+        availableGameweeks.map(async (gw) => {
+          const data = await processGameweekData(gw, manifest, abort.signal);
           // Update progress as each gameweek finishes loading
           setProgress(p => ({ ...p, loaded: p.loaded + 1 }));
-          return { ...result, gw }; // Add gw to result for easier sorting
+          return { ...data, gw };
         })
       );
-      
-      const results = await Promise.all(gameweekPromises);
 
-      // Sort results by gameweek number to ensure correct order
+      // Guard: only the latest fetch cycle may update state
+      if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
+
+      // Sort results by gameweek number
       const allGameweekData = results.sort((a, b) => a.gw - b.gw);
 
       const firstValidIndex = allGameweekData.findIndex(d => d?.totals?.length > 0);
       if (firstValidIndex === -1) throw new Error('No valid gameweek data found');
 
+      // Build cumulative data
       const cumulativeData = allGameweekData[firstValidIndex].totals.map(firstManager => {
         const managerData = { manager_name: firstManager.manager_name };
         let runningTotal = 0;
@@ -306,6 +297,7 @@ const DarkFPLPositionChart = () => {
         return managerData;
       });
 
+      // Build bench points data
       const benchPoints = allGameweekData[firstValidIndex].totals.map(manager => {
         const row = { manager_name: manager.manager_name, total_bench_points: 0 };
         for (let gw = 1; gw <= latestGW; gw++) {
@@ -322,6 +314,7 @@ const DarkFPLPositionChart = () => {
         .slice(0, 10);
       setBenchData(sortedBenchData);
 
+      // Calculate rankings for each gameweek
       const rankedData = [];
       for (let gw = 1; gw <= latestGW; gw++) {
         const gwRanked = [...cumulativeData]
@@ -333,6 +326,7 @@ const DarkFPLPositionChart = () => {
       const allManagers = rankedData[0].map(m => m.manager_name);
       setManagers(allManagers);
 
+      // Build manager stats lookup
       const statsLookup = {};
       rankedData[0].forEach(m => {
         const s = { manager_name: m.manager_name };
@@ -347,6 +341,7 @@ const DarkFPLPositionChart = () => {
       });
       setManagerStats(statsLookup);
 
+      // Build chart data points
       const chartPoints = [];
       for (let gw = 1; gw <= latestGW; gw++) {
         const point = { gameweek: gw };
@@ -357,14 +352,15 @@ const DarkFPLPositionChart = () => {
       }
       setChartData(chartPoints);
 
-      setLoading(false); // Set loading to false before animation starts
+      setError(null);
+      setLoading(false);
       requestAnimationFrame(() => setEnter(true));
 
-    } catch (e) {
-      if (e?.name !== 'AbortError') {
-        console.error('Error loading data:', e);
-        setError(e.message || 'Unknown error');
-        setLoading(false);
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        console.error('Error loading data:', err);
+        setError(err.message || 'Unknown error');
+        if (fetchCycleIdRef.current === myId) setLoading(false);
       }
     }
   };
@@ -386,7 +382,6 @@ const DarkFPLPositionChart = () => {
   };
 
   if (loading) {
-    // ✨ USE SKELETON LOADER
     return <ChartSkeleton progress={progress.loaded} total={progress.total} />;
   }
 
@@ -409,7 +404,6 @@ const DarkFPLPositionChart = () => {
       </div>
 
       <div
-        // ✨ UPDATED: Added duration-700 for a slightly slower, smoother feel
         className={`bg-gray-800/40 backdrop-blur-xl rounded-xl border border-gray-700/50 overflow-hidden transform transition-all duration-700 ease-out ${
           enter ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
@@ -484,7 +478,6 @@ const DarkFPLPositionChart = () => {
 
       {benchData.length > 0 && (
         <div
-          // ✨ IMPROVEMENT: Staggered animation with a delay
           className={`bg-gray-800/40 backdrop-blur-xl rounded-xl border border-red-700/50 overflow-hidden transform transition-all duration-700 ease-out delay-150 ${
             enter ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
