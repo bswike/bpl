@@ -1,12 +1,12 @@
-// FPLMultiGameweekDashboard.jsx
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 // --- Constants ---
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const MANIFEST_URL = `${PUBLIC_BASE}fpl-league-manifest.json`;
-const REFRESH_INTERVAL_MS = 300000; // 5 minutes
+const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
+const FALLBACK_POLL_INTERVAL_MS = 300000; // 5 minutes fallback
 
-// --- Hardcoded GW1 Data (extracted from actual CSV) ---
+// --- Hardcoded GW1 Data ---
 const HARDCODED_GW1_DATA = [
   { manager_name: "Garrett Kunkel", team_name: "kunkel_fpl", total_points: 78, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 1, gameweek: 1 },
   { manager_name: "Andrew Vidal", team_name: "Las Cucarachas", total_points: 76, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 2, gameweek: 1 },
@@ -30,11 +30,41 @@ const HARDCODED_GW1_DATA = [
   { manager_name: "Patrick McCleary", team_name: "McCleary's Might", total_points: 34, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 6, position: 20, gameweek: 1 }
 ];
 
-// --- Helpers ---
+// --- Enhanced Cache-Busting Helpers ---
+const superBust = () => {
+  const now = Date.now();
+  const random = Math.random().toString(36).slice(2);
+  const micro = Math.floor(performance.now() * 1000) % 1000000;
+  return `v=${now}&r=${random}&t=${micro}&cb=${Math.abs(now.toString().split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0)) % 999999}`;
+};
+
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const truthy = (v) => v === true || v === 'True' || v === 'true' || v === 1 || v === '1';
 const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const normalizeStr = (s) => (s ?? '').toString().normalize('NFC').replace(/\u00A0/g, ' ').trim();
+
+const fetchWithNoCaching = async (url, signal) => {
+  return fetch(url, {
+    method: 'GET',
+    cache: 'no-store',
+    signal
+  });
+};
+
+const fetchWithVersionCheck = async (url, signal) => {
+  try {
+    const versionUrl = `${PUBLIC_BASE}fpl-data-version.txt?${superBust()}`;
+    const versionRes = await fetchWithNoCaching(versionUrl, signal);
+    if (versionRes.ok) {
+      const versionData = await versionRes.text();
+      const currentVersion = versionData.trim().split('\n')[0];
+      console.log(`Current data version: ${currentVersion}`);
+    }
+  } catch (e) {
+    console.warn('Version check failed, proceeding with normal fetch', e);
+  }
+  return fetchWithNoCaching(`${url}?${superBust()}`, signal);
+};
 
 // --- Custom Hook ---
 const useFplData = () => {
@@ -45,9 +75,14 @@ const useFplData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [papaReady, setPapaReady] = useState(false);
-
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [lastUpdate, setLastUpdate] = useState(null);
+  
   const cycleAbortRef = useRef(null);
   const fetchCycleIdRef = useRef(0);
+  const eventSourceRef = useRef(null);
+  const manifestVersionRef = useRef(null);
+  const fallbackIntervalRef = useRef(null);
 
   // Lazy-load PapaParse
   useEffect(() => {
@@ -64,19 +99,14 @@ const useFplData = () => {
     document.body.appendChild(script);
   }, []);
 
-  // --- CSV -> managers ---
   const parseCsvToManagers = useCallback((csvText, gameweek) => {
     if (!csvText || csvText.trim() === "The game is being updated.") return [];
-
     const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
     if (parsed.errors?.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
-
     const managerStats = Object.create(null);
-
     for (const raw of parsed.data) {
       const manager = normalizeStr(raw.manager_name);
       if (!manager) continue;
-
       if (!managerStats[manager]) {
         managerStats[manager] = {
           manager_name: manager,
@@ -86,7 +116,6 @@ const useFplData = () => {
           players_live: 0, players_upcoming: 0, bench_points: 0
         };
       }
-      
       const player = normalizeStr(raw.player);
       if (player !== "TOTAL") {
         if (truthy(raw.is_captain) && !managerStats[manager].captain_player) {
@@ -105,40 +134,35 @@ const useFplData = () => {
         managerStats[manager].total_points = toNum(raw.points_applied);
       }
     }
-
     return Object.values(managerStats)
       .filter(m => toNum(m.total_points) > 0)
       .sort((a, b) => b.total_points - a.total_points)
       .map((m, i) => ({ ...m, position: i + 1, gameweek }));
   }, []);
 
-  // --- fetch one GW using manifest ---
   const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     if (gameweek === 1) return HARDCODED_GW1_DATA;
-
     try {
       const pointerUrl = manifest?.gameweeks?.[gameweek];
       if (!pointerUrl) throw new Error(`No pointer URL for GW${gameweek} in manifest`);
-
-      // Fetch the unique pointer file
-      const pointerRes = await fetch(`${pointerUrl}?v=${bust()}`, { cache: 'no-store', signal });
+      const pointerRes = await fetchWithVersionCheck(pointerUrl, signal);
       if (!pointerRes.ok) throw new Error(`Could not fetch pointer for GW${gameweek} (${pointerRes.status})`);
       const pointerData = await pointerRes.json();
-      
       const csvUrl = pointerData?.url;
       if (!csvUrl) throw new Error(`Malformed pointer for GW${gameweek}`);
-
-      // Fetch the final versioned CSV
-      const csvRes = await fetch(csvUrl, { cache: 'no-store', signal });
+      const pointerTimestamp = pointerData?.timestamp;
+      if (pointerTimestamp && Date.now() - (pointerTimestamp * 1000) > 3600000) {
+        console.warn(`Pointer for GW${gameweek} is over 1 hour old`);
+      }
+      const csvRes = await fetchWithNoCaching(`${csvUrl}?${superBust()}`, signal);
       if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for ${csvUrl}`);
       const csvText = await csvRes.text();
-      
       return parseCsvToManagers(csvText, gameweek);
     } catch (err) {
       if (err?.name !== 'AbortError') {
         console.error(`GW${gameweek} fetch failed:`, err);
       }
-      return []; // Return empty array on failure for this GW
+      return [];
     }
   }, [parseCsvToManagers]);
 
@@ -147,54 +171,52 @@ const useFplData = () => {
     const abort = new AbortController();
     cycleAbortRef.current = abort;
     const myId = ++fetchCycleIdRef.current;
-
     setLoading(true);
     try {
-      // ** STEP 1: Fetch the manifest file, which is the single source of truth **
-      const manifestRes = await fetch(`${MANIFEST_URL}?v=${bust()}`, { method: 'GET', cache: 'no-store', signal: abort.signal });
+      const manifestRes = await fetchWithVersionCheck(MANIFEST_URL, abort.signal);
       if (!manifestRes.ok) throw new Error(`Could not load league manifest (${manifestRes.status})`);
       const manifest = await manifestRes.json();
-
-      // ** STEP 2: Determine available gameweeks from the manifest **
+      
+      // Store manifest version for SSE comparison
+      manifestVersionRef.current = manifest.version;
+      
+      const manifestTimestamp = manifest?.timestamp;
+      if (manifestTimestamp && Date.now() - (manifestTimestamp * 1000) > 3600000) {
+        console.warn('Manifest is over 1 hour old, may contain stale data');
+      }
+      if (manifest?.version) {
+        console.log(`Loaded manifest version: ${manifest.version}`);
+      }
       const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
       const available = [...new Set([1, ...remoteGameweeks])].sort((a, b) => a - b);
-      
       if (available.length === 0) throw new Error("No gameweek data found in manifest.");
-
       const currentLatestGw = available[available.length - 1];
-
-      // ** STEP 3: Fetch all available GWs in parallel **
       const results = await Promise.all(
         available.map(async (gw) => {
           const data = await processGameweekData(gw, manifest, abort.signal);
           return { gameweek: gw, data };
         })
       );
-
-      // Guard: only the latest fetch cycle may update state
       if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
-
       const newGameweekData = Object.fromEntries(results.map(({ gameweek, data }) => [gameweek, data]));
       setGameweekData(newGameweekData);
       setAvailableGameweeks(available);
       setLatestGameweek(currentLatestGw);
-
-      // Build combined standings
       if (newGameweekData[1]?.length) {
         const managerNames = newGameweekData[1].map(m => m.manager_name);
         const newCombinedData = managerNames.map(name => {
-            let cumulativePoints = 0;
-            const managerEntry = { manager_name: name };
-            available.forEach(gw => {
-              const gwStats = newGameweekData[gw]?.find(m => m.manager_name === name);
-              const pts = gwStats?.total_points || 0;
-              cumulativePoints += pts;
-              managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
-              managerEntry[`gw${gw}_points`] = pts;
-            });
-            managerEntry.total_points = cumulativePoints;
-            return managerEntry;
-          })
+          let cumulativePoints = 0;
+          const managerEntry = { manager_name: name };
+          available.forEach(gw => {
+            const gwStats = newGameweekData[gw]?.find(m => m.manager_name === name);
+            const pts = gwStats?.total_points || 0;
+            cumulativePoints += pts;
+            managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
+            managerEntry[`gw${gw}_points`] = pts;
+          });
+          managerEntry.total_points = cumulativePoints;
+          return managerEntry;
+        })
           .sort((a, b) => b.total_points - a.total_points)
           .map((manager, index) => {
             const gw1Position = newGameweekData[1]?.find(m => m.manager_name === manager.manager_name)?.position || 0;
@@ -207,6 +229,7 @@ const useFplData = () => {
         setCombinedData(newCombinedData);
       }
       setError(null);
+      setLastUpdate(new Date());
     } catch (err) {
       if (err?.name !== 'AbortError') {
         console.error("Failed to load FPL data:", err);
@@ -217,25 +240,90 @@ const useFplData = () => {
     }
   }, [processGameweekData]);
 
+  // SSE Connection Effect
   useEffect(() => {
     if (!papaReady) return;
+
+    // Initial data fetch
     fetchData();
-    const intervalId = setInterval(fetchData, REFRESH_INTERVAL_MS);
+
+    // Setup SSE connection
+    console.log('Attempting SSE connection to:', SSE_URL);
+    const eventSource = new EventSource(SSE_URL);
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      console.log('SSE connection established');
+      setConnectionStatus('connected');
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
+      }
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('SSE message received:', message);
+
+        switch (message.type) {
+          case 'connected':
+            console.log('SSE connected at', message.timestamp);
+            break;
+          
+          case 'heartbeat':
+            break;
+          
+          case 'gameweek_updated':
+            console.log('Gameweek update detected:', message.data);
+            if (message.data.manifest_version !== manifestVersionRef.current) {
+              console.log('New data version detected, refreshing...');
+              fetchData();
+            }
+            break;
+          
+          default:
+            console.log('Unknown SSE message type:', message.type);
+        }
+      } catch (err) {
+        console.error('Error parsing SSE message:', err);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      setConnectionStatus('disconnected');
+      
+      if (!fallbackIntervalRef.current) {
+        console.log('SSE failed, falling back to polling every 5 minutes');
+        fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+      }
+    };
+
     return () => {
-      clearInterval(intervalId);
-      if (cycleAbortRef.current) cycleAbortRef.current.abort();
+      console.log('Cleaning up SSE connection');
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
+      }
+      if (cycleAbortRef.current) {
+        cycleAbortRef.current.abort();
+      }
     };
   }, [fetchData, papaReady]);
 
-  return { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData };
+  return { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate };
 };
-
 
 // --- Helper Components ---
 const getCaptainStatusIcon = (manager) => {
-  if (!manager.captain_fixture_started) return '⏳'; // Yet to play
-  if (manager.captain_fixture_started && !manager.captain_fixture_finished) return '🟡'; // Currently playing
-  return '✅'; // Finished playing
+  if (!manager.captain_fixture_started) return '⏳';
+  if (manager.captain_fixture_started && !manager.captain_fixture_finished) return '🟡';
+  return '✅';
 };
 
 const getPositionChangeIcon = (change) => {
@@ -265,7 +353,6 @@ const ViewToggleButtons = React.memo(({ availableGameweeks, selectedView, onSele
     const base = 'px-2 py-1 rounded-md font-semibold transition-colors duration-200 text-xs';
     return isSelected ? `${base} ${colorMap.selected[viewKey] || colorMap.selected.combined}` : `${base} ${colorMap.default}`;
   };
-
   return (
     <div className="flex justify-center flex-wrap gap-1.5 mb-3">
       {availableGameweeks.map(gw => (
@@ -286,11 +373,11 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
   const totalPoints = manager.total_points;
 
   const gridColsMap = { 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6', 7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10', 11: 'md:grid-cols-11', 12: 'md:grid-cols-12' };
-  const desktopGridClass = isCombined ? (gridColsMap[4 + availableGameweeks.length] || 'md:grid-cols-12') : 'md:grid-cols-8';
+  const combinedCols = 3 + availableGameweeks.length + 1;
+  const desktopGridClass = isCombined ? (gridColsMap[combinedCols] || `md:grid-cols-12`) : 'md:grid-cols-7';
 
   return (
     <div className="bg-slate-800/30 rounded-md p-1.5 border border-slate-700">
-      {/* Mobile */}
       <div className="md:hidden">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -346,9 +433,7 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
           </div>
         )}
       </div>
-
-      {/* Desktop */}
-      <div className={`hidden md:grid ${desktopGridClass} gap-3 items-center text-sm`}>
+      <div className={`hidden md:grid ${desktopGridClass} gap-3 items-center text-sm px-3 py-1`}>
         <div className="md:col-span-2 flex items-center gap-3">
           <span className="flex-shrink-0 w-7 h-7 bg-slate-700 rounded-md text-sm font-bold flex items-center justify-center">{position}</span>
           <div>
@@ -364,9 +449,9 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
           </>
         ) : (
           <>
-            <div className="text-center">
-              <p className="text-white font-medium">{manager.captain_player || 'N/A'}</p>
-              <p className="text-cyan-400 text-xs">{manager.captain_points || 0} pts</p>
+            <div className="text-center col-span-2">
+              <p className="text-white font-medium truncate">{manager.captain_player || 'N/A'}</p>
+              <p className="text-cyan-400 text-xs">{manager.captain_points || 0} pts {getCaptainStatusIcon(manager)}</p>
             </div>
             <div className="text-center">
               <p className="text-green-400 font-bold text-lg">{manager.players_live || 0}</p>
@@ -390,7 +475,8 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
 const Leaderboard = ({ data, view, availableGameweeks }) => {
   const isCombined = view === 'combined';
   const gridColsMap = { 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6', 7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10', 11: 'md:grid-cols-11', 12: 'md:grid-cols-12' };
-  const desktopGridClass = isCombined ? (gridColsMap[4 + availableGameweeks.length] || 'md:grid-cols-12') : 'md:grid-cols-8';
+  const combinedCols = 3 + availableGameweeks.length + 1;
+  const desktopGridClass = isCombined ? (gridColsMap[combinedCols] || `md:grid-cols-12`) : 'md:grid-cols-7';
 
   return (
     <div className="space-y-1">
@@ -404,7 +490,7 @@ const Leaderboard = ({ data, view, availableGameweeks }) => {
           </>
         ) : (
           <>
-            <div className="text-center">Captain</div>
+            <div className="text-center col-span-2">Captain</div>
             <div className="text-center">Live</div>
             <div className="text-center">Upcoming</div>
             <div className="text-center">Bench</div>
@@ -412,7 +498,7 @@ const Leaderboard = ({ data, view, availableGameweeks }) => {
         )}
       </div>
       {data.map((manager) => (
-        <ManagerRow key={manager.manager_name} {...{ manager, view, availableGameweeks }} />
+        <ManagerRow key={manager.manager_name} manager={manager} view={view} availableGameweeks={availableGameweeks} />
       ))}
     </div>
   );
@@ -420,15 +506,13 @@ const Leaderboard = ({ data, view, availableGameweeks }) => {
 
 // --- Main Dashboard Component ---
 const FPLMultiGameweekDashboard = () => {
-  const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData } = useFplData();
+  const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate } = useFplData();
   const [selectedView, setSelectedView] = useState('combined');
 
   useEffect(() => {
     if (!loading && availableGameweeks.length > 0) {
-      // Default to the latest available gameweek view
       setSelectedView(`gw${latestGameweek}`);
     } else if (loading) {
-      // While loading, default to combined to avoid flicker
       setSelectedView('combined');
     }
   }, [loading, availableGameweeks, latestGameweek]);
@@ -442,12 +526,18 @@ const FPLMultiGameweekDashboard = () => {
   if (loading && Object.keys(gameweekData).length === 0) {
     return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">Loading FPL Dashboard...</div>;
   }
+
   if (error) {
     return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-red-400 text-xl p-4 text-center">{error}</div>;
   }
 
   const leader = currentData[0];
   const averageScore = currentData.length > 0 ? Math.round(currentData.reduce((sum, m) => sum + (m.total_points || 0), 0) / currentData.length) : 0;
+
+  const statusColor = connectionStatus === 'connected' ? 'bg-green-500' : 
+                     connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500';
+  const statusText = connectionStatus === 'connected' ? 'Live' : 
+                    connectionStatus === 'disconnected' ? 'Polling' : 'Connecting';
 
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
@@ -458,20 +548,34 @@ const FPLMultiGameweekDashboard = () => {
             <button
               onClick={fetchData}
               disabled={loading}
-              className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 bg-slate-200 text-slate-800 rounded-full shadow-md border border-slate-400 hover:bg-slate-300 active:shadow-inner active:bg-slate-400 disabled:shadow-none disabled:bg-slate-400 disabled:text-slate-600 disabled:cursor-not-allowed transition-all">
+              className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 bg-slate-200 text-slate-800 rounded-full shadow-md border border-slate-400 hover:bg-slate-300 active:shadow-inner active:bg-slate-400 disabled:shadow-none disabled:bg-slate-400 disabled:text-slate-600 disabled:cursor-not-allowed transition-all"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
               </svg>
             </button>
           </div>
-          <ViewToggleButtons {...{ availableGameweeks, selectedView, onSelectView: setSelectedView }} />
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${statusColor} ${connectionStatus === 'connected' ? 'animate-pulse' : ''}`}></div>
+              <span className="text-xs text-gray-400">{statusText}</span>
+            </div>
+            {lastUpdate && (
+              <span className="text-xs text-gray-500">
+                • Last updated: {lastUpdate.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+          <ViewToggleButtons
+            availableGameweeks={availableGameweeks}
+            selectedView={selectedView}
+            onSelectView={setSelectedView}
+          />
         </header>
-
         <section className="grid grid-cols-2 gap-2 sm:gap-6 mb-4 sm:mb-8">
           <StatCard icon="👑" title="Leader" value={leader?.manager_name || 'N/A'} unit={`${leader?.total_points || 0} pts`} />
           <StatCard icon="📊" title="Average" value={averageScore} unit="Points" />
         </section>
-
         <main>
           <Leaderboard data={currentData} view={selectedView} availableGameweeks={availableGameweeks} />
         </main>

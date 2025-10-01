@@ -4,7 +4,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 // --- Constants ---
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const MANIFEST_URL = `${PUBLIC_BASE}fpl-league-manifest.json`;
-const REFRESH_INTERVAL_MS = 300000; // 5 minutes
+const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
+const FALLBACK_POLL_INTERVAL_MS = 300000; // 5 minutes fallback
 
 // --- Helper Functions ---
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -17,10 +18,15 @@ const FPLMultiGameweekDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [papaReady, setPapaReady] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [lastUpdate, setLastUpdate] = useState(null);
 
   // Refs for managing fetch cycles and preventing race conditions
   const cycleAbortRef = useRef(null);
   const fetchCycleIdRef = useRef(0);
+  const eventSourceRef = useRef(null);
+  const manifestVersionRef = useRef(null);
+  const fallbackIntervalRef = useRef(null);
 
   // Load PapaParse script from a CDN
   useEffect(() => {
@@ -46,7 +52,6 @@ const FPLMultiGameweekDashboard = () => {
       const pointerUrl = manifest?.gameweeks?.[gameweek];
       if (!pointerUrl) throw new Error(`No pointer URL for GW${gameweek} in manifest`);
 
-      // Fetch the unique pointer file
       const pointerRes = await fetch(`${pointerUrl}?v=${bust()}`, { cache: 'no-store', signal });
       if (!pointerRes.ok) throw new Error(`Could not fetch pointer for GW${gameweek} (${pointerRes.status})`);
       const pointerData = await pointerRes.json();
@@ -54,20 +59,17 @@ const FPLMultiGameweekDashboard = () => {
       const csvUrl = pointerData?.url;
       if (!csvUrl) throw new Error(`Malformed pointer for GW${gameweek}`);
 
-      // Fetch the final versioned CSV
       const csvRes = await fetch(csvUrl, { cache: 'no-store', signal });
       if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for ${csvUrl}`);
       const csvText = await csvRes.text();
       
       if (csvText.trim() === "The game is being updated.") return [];
 
-      // Parse CSV data
       const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
       if (parsed.errors?.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
 
-      // Apply any necessary data normalization
       parsed.data.forEach(row => {
-        if (row.player === 'JoÃ£o Pedro Junqueira de Jesus') row.player = 'JoÃ£o Pedro';
+        if (row.player === 'João Pedro Junqueira de Jesus') row.player = 'João Pedro';
       });
 
       return parsed.data;
@@ -81,7 +83,6 @@ const FPLMultiGameweekDashboard = () => {
 
   // --- Advanced Data Fetching & Processing ---
   const fetchData = useCallback(async () => {
-    // Abort any previous fetch cycle and start a new one
     if (cycleAbortRef.current) cycleAbortRef.current.abort();
     const abort = new AbortController();
     cycleAbortRef.current = abort;
@@ -91,7 +92,6 @@ const FPLMultiGameweekDashboard = () => {
     setError(null);
 
     try {
-      // Step 1: Fetch the manifest file
       const manifestRes = await fetch(`${MANIFEST_URL}?v=${bust()}`, { 
         method: 'GET', 
         cache: 'no-store', 
@@ -103,8 +103,10 @@ const FPLMultiGameweekDashboard = () => {
       }
       
       const manifest = await manifestRes.json();
+      
+      // Store manifest version to detect changes via SSE
+      manifestVersionRef.current = manifest.version;
 
-      // Step 2: Determine available gameweeks from the manifest
       const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
       const available = [...new Set([1, ...remoteGameweeks])].sort((a, b) => a - b);
       
@@ -112,14 +114,11 @@ const FPLMultiGameweekDashboard = () => {
         throw new Error("No gameweek data found in manifest.");
       }
 
-      // Guard: only the latest fetch cycle may update state
       if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
       setAvailableGameweeks(available);
 
-      // Step 3: Fetch all gameweeks in parallel
       const gameweekPromises = available.map(async (gw) => {
         if (gw === 1) {
-          // Hardcoded GW1 data for reliability
           return [
             { manager_name: "Garrett Kunkel", entry_team_name: "kunkel_fpl", player: "TOTAL", points_applied: 78, is_captain: 'False', multiplier: 1, points_gw: 0 },
             { manager_name: "Andrew Vidal", entry_team_name: "Las Cucarachas", player: "TOTAL", points_applied: 76, is_captain: 'False', multiplier: 1, points_gw: 0 },
@@ -148,8 +147,6 @@ const FPLMultiGameweekDashboard = () => {
       
       const results = await Promise.all(gameweekPromises);
 
-      // --- This data aggregation logic is preserved from the original FPLDashboard ---
-      // Aggregate data across all gameweeks into a cumulative total
       const managerData = {};
 
       results.forEach((gwData, gwIndex) => {
@@ -198,15 +195,12 @@ const FPLMultiGameweekDashboard = () => {
         });
       });
       
-      // Sort and add league designations for the chart
       const combinedData = Object.values(managerData);
       const sortedData = combinedData
         .sort((a, b) => {
-          // Primary sort: by total_points descending
           if (b.total_points !== a.total_points) {
             return b.total_points - a.total_points;
           }
-          // Secondary sort (tie-breaker): by manager_name alphabetically
           return a.manager_name.localeCompare(b.manager_name);
         })
         .map((item, index) => {
@@ -222,6 +216,7 @@ const FPLMultiGameweekDashboard = () => {
       if (fetchCycleIdRef.current === myId && !abort.signal.aborted) {
         setData(sortedData);
         setError(null);
+        setLastUpdate(new Date());
       }
     } catch (err) {
       if (err?.name !== 'AbortError') {
@@ -235,19 +230,88 @@ const FPLMultiGameweekDashboard = () => {
     }
   }, [processGameweekData]);
 
-  // Effect to run fetchData on mount and at a set interval
+  // SSE Connection Effect
   useEffect(() => {
-    if (papaReady) {
-        fetchData();
-        const intervalId = setInterval(fetchData, REFRESH_INTERVAL_MS);
-        return () => {
-          clearInterval(intervalId);
-          if (cycleAbortRef.current) cycleAbortRef.current.abort(); // Cleanup on unmount
-        };
-    }
+    if (!papaReady) return;
+
+    // Initial data fetch
+    fetchData();
+
+    // Setup SSE connection
+    console.log('Attempting SSE connection to:', SSE_URL);
+    const eventSource = new EventSource(SSE_URL);
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      console.log('SSE connection established');
+      setConnectionStatus('connected');
+      // Clear any fallback polling since SSE is working
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
+      }
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('SSE message received:', message);
+
+        switch (message.type) {
+          case 'connected':
+            console.log('SSE connected at', message.timestamp);
+            break;
+          
+          case 'heartbeat':
+            // Connection is alive
+            break;
+          
+          case 'gameweek_updated':
+            console.log('Gameweek update detected:', message.data);
+            
+            // Check if this is a new version
+            if (message.data.manifest_version !== manifestVersionRef.current) {
+              console.log('New data version detected, refreshing...');
+              fetchData();
+            }
+            break;
+          
+          default:
+            console.log('Unknown SSE message type:', message.type);
+        }
+      } catch (err) {
+        console.error('Error parsing SSE message:', err);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      setConnectionStatus('disconnected');
+      
+      // Setup fallback polling if SSE fails
+      if (!fallbackIntervalRef.current) {
+        console.log('SSE failed, falling back to polling every 5 minutes');
+        fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+      }
+    };
+
+    // Cleanup on unmount
+    return () => {
+      console.log('Cleaning up SSE connection');
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
+      }
+      if (cycleAbortRef.current) {
+        cycleAbortRef.current.abort();
+      }
+    };
   }, [papaReady, fetchData]);
 
-  // --- UI Components (Unchanged) ---
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -273,12 +337,29 @@ const FPLMultiGameweekDashboard = () => {
 
   const gameweekRangeText = availableGameweeks.length > 0 ? `GW${availableGameweeks[0]}-${availableGameweeks[availableGameweeks.length - 1]}` : '';
 
+  // Connection status indicator color and text
+  const statusColor = connectionStatus === 'connected' ? 'bg-green-500' : 
+                     connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500';
+  const statusText = connectionStatus === 'connected' ? 'Live' : 
+                    connectionStatus === 'disconnected' ? 'Polling' : 'Connecting';
+
   return (
     <div className="min-h-screen bg-slate-900 p-2 sm:p-4 font-sans text-gray-100">
       <div className="max-w-7xl mx-auto">
         <header className="text-center mb-4">
-          <h1 className="text-xl sm:text-3xl font-light text-white mb-2">BPL Season Chart</h1>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h1 className="text-xl sm:text-3xl font-light text-white">BPL Season Chart</h1>
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${statusColor} ${connectionStatus === 'connected' ? 'animate-pulse' : ''}`}></div>
+              <span className="text-xs text-gray-400">{statusText}</span>
+            </div>
+          </div>
           <p className="text-sm text-gray-400">{gameweekRangeText}</p>
+          {lastUpdate && (
+            <p className="text-xs text-gray-500 mt-1">
+              Last updated: {lastUpdate.toLocaleTimeString()}
+            </p>
+          )}
         </header>
 
         <main>
@@ -298,7 +379,7 @@ const FPLMultiGameweekDashboard = () => {
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}/>
                 <Bar dataKey="total_points" radius={[2, 2, 0, 0]}>
                   {data.map((entry, index) => {
-                    let color = '#6B7280'; // Mid-table
+                    let color = '#6B7280';
                     if (entry.designation === 'Champions League') color = '#2563EB';
                     if (entry.designation === 'Europa League') color = '#EA580C';
                     if (entry.designation === 'Relegation') color = '#DC2626';
