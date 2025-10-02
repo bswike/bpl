@@ -5,6 +5,8 @@ import Papa from 'papaparse';
 // ---- Constants ----
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const MANIFEST_URL = `${PUBLIC_BASE}fpl-league-manifest.json`;
+const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
+const FALLBACK_POLL_INTERVAL_MS = 300000; // 5 minutes
 
 // Cache busting utility
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -12,13 +14,10 @@ const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 // Skeleton Loader Component
 const ChartSkeleton = ({ progress, total }) => (
   <div className="space-y-6 animate-pulse">
-    {/* Header Skeleton */}
     <div className="text-center">
       <div className="h-8 bg-gray-700/80 rounded-md w-1/3 mx-auto mb-3"></div>
       <div className="h-5 bg-gray-700/80 rounded-md w-1/4 mx-auto"></div>
     </div>
-
-    {/* Main Chart Skeleton */}
     <div className="bg-gray-800/40 rounded-xl border border-gray-700/50">
       <div className="p-6 border-b border-gray-700/50">
         <div className="h-7 bg-gray-700/80 rounded-md w-1/2"></div>
@@ -32,8 +31,6 @@ const ChartSkeleton = ({ progress, total }) => (
         )}
       </div>
     </div>
-
-    {/* Bench Champions Skeleton */}
     <div className="bg-gray-800/40 rounded-xl border border-red-700/50">
       <div className="p-6 border-b border-red-700/50">
         <div className="h-7 bg-gray-700/80 rounded-md w-1/3"></div>
@@ -57,18 +54,18 @@ const DarkFPLPositionChart = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedManager, setSelectedManager] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [lastUpdate, setLastUpdate] = useState(null);
 
-  // Animation trigger
   const [enter, setEnter] = useState(false);
-
-  // Loading progress
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
 
-  // Abort controller for fetch cycles
   const abortRef = useRef(null);
   const fetchCycleIdRef = useRef(0);
+  const eventSourceRef = useRef(null);
+  const manifestVersionRef = useRef(null);
+  const fallbackIntervalRef = useRef(null);
 
-  // Hardcoded GW1 data
   const hardcodedGW1Data = {
     totals: [
       { manager_name: "Garrett Kunkel", total_points: 78, gameweek: 1 },
@@ -162,7 +159,6 @@ const DarkFPLPositionChart = () => {
     return <circle cx={cx} cy={cy} r={4} fill={fill} />;
   };
 
-  // Process gameweek data using manifest system
   const processGameweekData = async (gameweek, manifest, signal) => {
     if (gameweek === 1) return hardcodedGW1Data;
 
@@ -170,7 +166,6 @@ const DarkFPLPositionChart = () => {
       const pointerUrl = manifest?.gameweeks?.[gameweek];
       if (!pointerUrl) throw new Error(`No pointer URL for GW${gameweek} in manifest`);
 
-      // Fetch the unique pointer file
       const pointerRes = await fetch(`${pointerUrl}?v=${bust()}`, { cache: 'no-store', signal });
       if (!pointerRes.ok) throw new Error(`Could not fetch pointer for GW${gameweek} (${pointerRes.status})`);
       const pointerData = await pointerRes.json();
@@ -178,7 +173,6 @@ const DarkFPLPositionChart = () => {
       const csvUrl = pointerData?.url;
       if (!csvUrl) throw new Error(`Malformed pointer for GW${gameweek}`);
 
-      // Fetch the final versioned CSV
       const csvRes = await fetch(csvUrl, { cache: 'no-store', signal });
       if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for ${csvUrl}`);
       const csvText = await csvRes.text();
@@ -227,7 +221,6 @@ const DarkFPLPositionChart = () => {
   };
 
   const fetchData = async () => {
-    // Abort any existing fetch
     if (abortRef.current) abortRef.current.abort();
     const abort = new AbortController();
     abortRef.current = abort;
@@ -239,7 +232,6 @@ const DarkFPLPositionChart = () => {
     setProgress({ loaded: 0, total: 0 });
 
     try {
-      // Step 1: Fetch the manifest file
       const manifestRes = await fetch(`${MANIFEST_URL}?v=${bust()}`, { 
         method: 'GET', 
         cache: 'no-store', 
@@ -251,8 +243,10 @@ const DarkFPLPositionChart = () => {
       }
       
       const manifest = await manifestRes.json();
+      
+      // Store manifest version for SSE comparison
+      manifestVersionRef.current = manifest.version;
 
-      // Step 2: Determine available gameweeks from the manifest
       const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
       const availableGameweeks = [...new Set([1, ...remoteGameweeks])].sort((a, b) => a - b);
       
@@ -263,26 +257,21 @@ const DarkFPLPositionChart = () => {
       const latestGW = availableGameweeks[availableGameweeks.length - 1];
       setProgress({ loaded: 0, total: latestGW });
 
-      // Step 3: Fetch all gameweeks in parallel
       const results = await Promise.all(
         availableGameweeks.map(async (gw) => {
           const data = await processGameweekData(gw, manifest, abort.signal);
-          // Update progress as each gameweek finishes loading
           setProgress(p => ({ ...p, loaded: p.loaded + 1 }));
           return { ...data, gw };
         })
       );
 
-      // Guard: only the latest fetch cycle may update state
       if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
 
-      // Sort results by gameweek number
       const allGameweekData = results.sort((a, b) => a.gw - b.gw);
 
       const firstValidIndex = allGameweekData.findIndex(d => d?.totals?.length > 0);
       if (firstValidIndex === -1) throw new Error('No valid gameweek data found');
 
-      // Build cumulative data
       const cumulativeData = allGameweekData[firstValidIndex].totals.map(firstManager => {
         const managerData = { manager_name: firstManager.manager_name };
         let runningTotal = 0;
@@ -297,7 +286,6 @@ const DarkFPLPositionChart = () => {
         return managerData;
       });
 
-      // Build bench points data
       const benchPoints = allGameweekData[firstValidIndex].totals.map(manager => {
         const row = { manager_name: manager.manager_name, total_bench_points: 0 };
         for (let gw = 1; gw <= latestGW; gw++) {
@@ -314,7 +302,6 @@ const DarkFPLPositionChart = () => {
         .slice(0, 10);
       setBenchData(sortedBenchData);
 
-      // Calculate rankings for each gameweek
       const rankedData = [];
       for (let gw = 1; gw <= latestGW; gw++) {
         const gwRanked = [...cumulativeData]
@@ -326,7 +313,6 @@ const DarkFPLPositionChart = () => {
       const allManagers = rankedData[0].map(m => m.manager_name);
       setManagers(allManagers);
 
-      // Build manager stats lookup
       const statsLookup = {};
       rankedData[0].forEach(m => {
         const s = { manager_name: m.manager_name };
@@ -341,7 +327,6 @@ const DarkFPLPositionChart = () => {
       });
       setManagerStats(statsLookup);
 
-      // Build chart data points
       const chartPoints = [];
       for (let gw = 1; gw <= latestGW; gw++) {
         const point = { gameweek: gw };
@@ -354,6 +339,7 @@ const DarkFPLPositionChart = () => {
 
       setError(null);
       setLoading(false);
+      setLastUpdate(new Date());
       requestAnimationFrame(() => setEnter(true));
 
     } catch (err) {
@@ -365,12 +351,76 @@ const DarkFPLPositionChart = () => {
     }
   };
 
+  // SSE Connection Effect
   useEffect(() => {
     fetchData();
-    return () => {
-      if (abortRef.current) abortRef.current.abort();
+
+    console.log('Attempting SSE connection to:', SSE_URL);
+    const eventSource = new EventSource(SSE_URL);
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      console.log('SSE connection established');
+      setConnectionStatus('connected');
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('SSE message received:', message);
+
+        switch (message.type) {
+          case 'connected':
+            console.log('SSE connected at', message.timestamp);
+            break;
+          
+          case 'heartbeat':
+            break;
+          
+          case 'gameweek_updated':
+            console.log('Gameweek update detected:', message.data);
+            if (message.data.manifest_version !== manifestVersionRef.current) {
+              console.log('New data version detected, refreshing...');
+              fetchData();
+            }
+            break;
+          
+          default:
+            console.log('Unknown SSE message type:', message.type);
+        }
+      } catch (err) {
+        console.error('Error parsing SSE message:', err);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      setConnectionStatus('disconnected');
+      
+      if (!fallbackIntervalRef.current) {
+        console.log('SSE failed, falling back to polling every 5 minutes');
+        fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+      }
+    };
+
+    return () => {
+      console.log('Cleaning up SSE connection');
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+        fallbackIntervalRef.current = null;
+      }
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+    };
   }, []);
 
   const maxGameweek = chartData.length > 0 ? chartData.length : 1;
@@ -380,6 +430,11 @@ const DarkFPLPositionChart = () => {
     for (let i = 1; i <= maxGW; i++) ticks.push(i);
     return ticks;
   };
+
+  const statusColor = connectionStatus === 'connected' ? 'bg-green-500' : 
+                     connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500';
+  const statusText = connectionStatus === 'connected' ? 'Live' : 
+                    connectionStatus === 'disconnected' ? 'Polling' : 'Connecting';
 
   if (loading) {
     return <ChartSkeleton progress={progress.loaded} total={progress.total} />;
@@ -400,7 +455,18 @@ const DarkFPLPositionChart = () => {
     <div className="space-y-6">
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-100 mb-2">Position Tracker</h1>
-        <p className="text-gray-400">GW 1-{maxGameweek} • {managers.length} managers</p>
+        <div className="flex items-center justify-center gap-2">
+          <p className="text-gray-400">GW 1-{maxGameweek} • {managers.length} managers</p>
+          <div className="flex items-center gap-1.5">
+            <div className={`w-2 h-2 rounded-full ${statusColor} ${connectionStatus === 'connected' ? 'animate-pulse' : ''}`}></div>
+            <span className="text-xs text-gray-400">{statusText}</span>
+          </div>
+        </div>
+        {lastUpdate && (
+          <p className="text-xs text-gray-500 mt-1">
+            Last updated: {lastUpdate.toLocaleTimeString()}
+          </p>
+        )}
       </div>
 
       <div
