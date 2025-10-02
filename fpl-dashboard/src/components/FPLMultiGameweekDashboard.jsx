@@ -4,33 +4,32 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const MANIFEST_URL = `${PUBLIC_BASE}fpl-league-manifest.json`;
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
-const FALLBACK_POLL_INTERVAL_MS = 300000; // 5 minutes fallback
+const FALLBACK_POLL_INTERVAL_MS = 300000;
 
 // --- Hardcoded GW1 Data ---
 const HARDCODED_GW1_DATA = [
-  { manager_name: "Garrett Kunkel", team_name: "kunkel_fpl", total_points: 78, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 1, gameweek: 1 },
-  { manager_name: "Andrew Vidal", team_name: "Las Cucarachas", total_points: 76, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 2, gameweek: 1 },
-  { manager_name: "Brett Swikle", team_name: "swikle_time", total_points: 74, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 3, gameweek: 1 },
-  { manager_name: "John Matthew", team_name: "matthewfpl", total_points: 73, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 4, gameweek: 1 },
-  { manager_name: "Jared Alexander", team_name: "Jared's Jinxes", total_points: 67, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 5, gameweek: 1 },
-  { manager_name: "Joe Curran", team_name: "Curran's Crew", total_points: 64, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 11, position: 6, gameweek: 1 },
-  { manager_name: "John Sebastian", team_name: "Sebastian Squad", total_points: 62, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 11, position: 7, gameweek: 1 },
-  { manager_name: "Nate Cohen", team_name: "Cohen's Corner", total_points: 60, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 8, gameweek: 1 },
-  { manager_name: "Chris Munoz", team_name: "Munoz Magic", total_points: 60, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 9, gameweek: 1 },
-  { manager_name: "Evan Bagheri", team_name: "Bagheri's Best", total_points: 57, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 13, position: 10, gameweek: 1 },
-  { manager_name: "Dean Maghsadi", team_name: "Dean's Dream", total_points: 55, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 11, gameweek: 1 },
-  { manager_name: "Brian Pleines", team_name: "Pleines Power", total_points: 53, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 10, position: 12, gameweek: 1 },
-  { manager_name: "Max Maier", team_name: "Maier's Marvels", total_points: 53, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 19, position: 13, gameweek: 1 },
-  { manager_name: "Adrian McLoughlin", team_name: "McLoughlin FC", total_points: 52, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 14, gameweek: 1 },
-  { manager_name: "Wes H", team_name: "Wes Warriors", total_points: 50, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 15, gameweek: 1 },
-  { manager_name: "Kevin Tomek", team_name: "Tomek's Team", total_points: 48, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 22, position: 16, gameweek: 1 },
-  { manager_name: "Kevin K", team_name: "Kevin's Kicks", total_points: 41, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 10, position: 17, gameweek: 1 },
-  { manager_name: "Tony Tharakan", team_name: "Tharakan's Threat", total_points: 39, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 4, position: 18, gameweek: 1 },
-  { manager_name: "JP Fischer", team_name: "Fischer's Force", total_points: 35, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 13, position: 19, gameweek: 1 },
-  { manager_name: "Patrick McCleary", team_name: "McCleary's Might", total_points: 34, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 6, position: 20, gameweek: 1 }
+  { manager_name: "Garrett Kunkel", team_name: "kunkel_fpl", total_points: 78, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 1, gameweek: 1, players: [] },
+  { manager_name: "Andrew Vidal", team_name: "Las Cucarachas", total_points: 76, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 2, gameweek: 1, players: [] },
+  { manager_name: "Brett Swikle", team_name: "swikle_time", total_points: 74, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 3, gameweek: 1, players: [] },
+  { manager_name: "John Matthew", team_name: "matthewfpl", total_points: 73, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 4, gameweek: 1, players: [] },
+  { manager_name: "Jared Alexander", team_name: "Jared's Jinxes", total_points: 67, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 5, gameweek: 1, players: [] },
+  { manager_name: "Joe Curran", team_name: "Curran's Crew", total_points: 64, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 11, position: 6, gameweek: 1, players: [] },
+  { manager_name: "John Sebastian", team_name: "Sebastian Squad", total_points: 62, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 11, position: 7, gameweek: 1, players: [] },
+  { manager_name: "Nate Cohen", team_name: "Cohen's Corner", total_points: 60, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 8, gameweek: 1, players: [] },
+  { manager_name: "Chris Munoz", team_name: "Munoz Magic", total_points: 60, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 9, gameweek: 1, players: [] },
+  { manager_name: "Evan Bagheri", team_name: "Bagheri's Best", total_points: 57, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 13, position: 10, gameweek: 1, players: [] },
+  { manager_name: "Dean Maghsadi", team_name: "Dean's Dream", total_points: 55, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 11, gameweek: 1, players: [] },
+  { manager_name: "Brian Pleines", team_name: "Pleines Power", total_points: 53, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 10, position: 12, gameweek: 1, players: [] },
+  { manager_name: "Max Maier", team_name: "Maier's Marvels", total_points: 53, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 19, position: 13, gameweek: 1, players: [] },
+  { manager_name: "Adrian McLoughlin", team_name: "McLoughlin FC", total_points: 52, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 14, gameweek: 1, players: [] },
+  { manager_name: "Wes H", team_name: "Wes Warriors", total_points: 50, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 15, gameweek: 1, players: [] },
+  { manager_name: "Kevin Tomek", team_name: "Tomek's Team", total_points: 48, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 22, position: 16, gameweek: 1, players: [] },
+  { manager_name: "Kevin K", team_name: "Kevin's Kicks", total_points: 41, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 10, position: 17, gameweek: 1, players: [] },
+  { manager_name: "Tony Tharakan", team_name: "Tharakan's Threat", total_points: 39, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 4, position: 18, gameweek: 1, players: [] },
+  { manager_name: "JP Fischer", team_name: "Fischer's Force", total_points: 35, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 13, position: 19, gameweek: 1, players: [] },
+  { manager_name: "Patrick McCleary", team_name: "McCleary's Might", total_points: 34, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 6, position: 20, gameweek: 1, players: [] }
 ];
 
-// --- Enhanced Cache-Busting Helpers ---
 const superBust = () => {
   const now = Date.now();
   const random = Math.random().toString(36).slice(2);
@@ -44,11 +43,7 @@ const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const normalizeStr = (s) => (s ?? '').toString().normalize('NFC').replace(/\u00A0/g, ' ').trim();
 
 const fetchWithNoCaching = async (url, signal) => {
-  return fetch(url, {
-    method: 'GET',
-    cache: 'no-store',
-    signal
-  });
+  return fetch(url, { method: 'GET', cache: 'no-store', signal });
 };
 
 const fetchWithVersionCheck = async (url, signal) => {
@@ -66,7 +61,6 @@ const fetchWithVersionCheck = async (url, signal) => {
   return fetchWithNoCaching(`${url}?${superBust()}`, signal);
 };
 
-// --- Custom Hook ---
 const useFplData = () => {
   const [gameweekData, setGameweekData] = useState({});
   const [combinedData, setCombinedData] = useState([]);
@@ -84,7 +78,6 @@ const useFplData = () => {
   const manifestVersionRef = useRef(null);
   const fallbackIntervalRef = useRef(null);
 
-  // Lazy-load PapaParse
   useEffect(() => {
     if (window.Papa) {
       setPapaReady(true);
@@ -113,11 +106,26 @@ const useFplData = () => {
           team_name: normalizeStr(raw.entry_team_name),
           total_points: 0, captain_points: 0, captain_player: '',
           captain_fixture_started: false, captain_fixture_finished: false,
-          players_live: 0, players_upcoming: 0, bench_points: 0
+          players_live: 0, players_upcoming: 0, bench_points: 0,
+          players: []
         };
       }
       const player = normalizeStr(raw.player);
       if (player !== "TOTAL") {
+        const playerData = {
+          name: player,
+          position: normalizeStr(raw.position),
+          team: normalizeStr(raw.team),
+          points_gw: toNum(raw.points_gw),
+          points_applied: toNum(raw.points_applied),
+          multiplier: toNum(raw.multiplier),
+          is_captain: truthy(raw.is_captain),
+          fixture_started: truthy(raw.fixture_started),
+          fixture_finished: truthy(raw.fixture_finished),
+          status: normalizeStr(raw.status)
+        };
+        managerStats[manager].players.push(playerData);
+        
         if (truthy(raw.is_captain) && !managerStats[manager].captain_player) {
           managerStats[manager].captain_player = player;
           managerStats[manager].captain_points = toNum(raw.points_applied);
@@ -177,7 +185,6 @@ const useFplData = () => {
       if (!manifestRes.ok) throw new Error(`Could not load league manifest (${manifestRes.status})`);
       const manifest = await manifestRes.json();
       
-      // Store manifest version for SSE comparison
       manifestVersionRef.current = manifest.version;
       
       const manifestTimestamp = manifest?.timestamp;
@@ -240,14 +247,9 @@ const useFplData = () => {
     }
   }, [processGameweekData]);
 
-  // SSE Connection Effect
   useEffect(() => {
     if (!papaReady) return;
-
-    // Initial data fetch
     fetchData();
-
-    // Setup SSE connection
     console.log('Attempting SSE connection to:', SSE_URL);
     const eventSource = new EventSource(SSE_URL);
     eventSourceRef.current = eventSource;
@@ -265,15 +267,12 @@ const useFplData = () => {
       try {
         const message = JSON.parse(event.data);
         console.log('SSE message received:', message);
-
         switch (message.type) {
           case 'connected':
             console.log('SSE connected at', message.timestamp);
             break;
-          
           case 'heartbeat':
             break;
-          
           case 'gameweek_updated':
             console.log('Gameweek update detected:', message.data);
             if (message.data.manifest_version !== manifestVersionRef.current) {
@@ -281,7 +280,6 @@ const useFplData = () => {
               fetchData();
             }
             break;
-          
           default:
             console.log('Unknown SSE message type:', message.type);
         }
@@ -293,7 +291,6 @@ const useFplData = () => {
     eventSource.onerror = (error) => {
       console.error('SSE connection error:', error);
       setConnectionStatus('disconnected');
-      
       if (!fallbackIntervalRef.current) {
         console.log('SSE failed, falling back to polling every 5 minutes');
         fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
@@ -319,7 +316,6 @@ const useFplData = () => {
   return { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate };
 };
 
-// --- Helper Components ---
 const getCaptainStatusIcon = (manager) => {
   if (!manager.captain_fixture_started) return '⏳';
   if (manager.captain_fixture_started && !manager.captain_fixture_finished) return '🟡';
@@ -330,6 +326,118 @@ const getPositionChangeIcon = (change) => {
   if (change > 0) return <span className="text-green-400">↗️ +{change}</span>;
   if (change < 0) return <span className="text-red-400">↘️ {change}</span>;
   return <span className="text-gray-400">➡️ 0</span>;
+};
+
+const PlayerDetailsModal = ({ manager, onClose, filterType = 'all' }) => {
+  if (!manager) return null;
+
+  const getPlayerStatusBadge = (player) => {
+    if (player.multiplier === 0) return <span className="text-[10px] px-1 py-0.5 bg-slate-700 text-gray-400 rounded">Bench</span>;
+    if (!player.fixture_started) return <span className="text-[10px] px-1 py-0.5 bg-yellow-600 text-white rounded">Upcoming</span>;
+    if (player.fixture_started && !player.fixture_finished) return <span className="text-[10px] px-1 py-0.5 bg-green-600 text-white rounded">Live</span>;
+    return <span className="text-[10px] px-1 py-0.5 bg-blue-600 text-white rounded">Finished</span>;
+  };
+
+  const getPositionColor = (pos) => {
+    const colors = { GK: 'text-yellow-400', DEF: 'text-blue-400', MID: 'text-green-400', FWD: 'text-red-400' };
+    return colors[pos] || 'text-gray-400';
+  };
+
+  const allPlayers = manager.players || [];
+  const starters = allPlayers.filter(p => p.multiplier >= 1);
+  const livePlayers = starters.filter(p => p.fixture_started && !p.fixture_finished);
+  const upcomingPlayers = starters.filter(p => !p.fixture_started);
+  const bench = allPlayers.filter(p => p.multiplier === 0);
+
+  let displayPlayers = [];
+  let modalTitle = '';
+  let modalIcon = '';
+  let modalColor = '';
+
+  switch (filterType) {
+    case 'live':
+      displayPlayers = livePlayers;
+      modalTitle = 'Live Players';
+      modalIcon = '🟢';
+      modalColor = 'text-green-400';
+      break;
+    case 'upcoming':
+      displayPlayers = upcomingPlayers;
+      modalTitle = 'Upcoming Players';
+      modalIcon = '⏰';
+      modalColor = 'text-yellow-400';
+      break;
+    case 'bench':
+      displayPlayers = bench;
+      modalTitle = 'Bench Players';
+      modalIcon = '🪑';
+      modalColor = 'text-orange-400';
+      break;
+    default:
+      displayPlayers = allPlayers;
+      modalTitle = 'All Players';
+      modalIcon = '⚽';
+      modalColor = 'text-cyan-400';
+  }
+
+  const totalPoints = filterType === 'all' 
+    ? manager.total_points 
+    : displayPlayers.reduce((sum, p) => sum + (filterType === 'bench' ? p.points_gw : p.points_applied), 0);
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-2" onClick={onClose}>
+      <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[95vh] overflow-hidden shadow-2xl border border-slate-700" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-2.5 md:p-4 flex justify-between items-center">
+          <div className="flex-1 min-w-0 pr-2">
+            <h2 className="text-base md:text-xl font-bold text-white truncate">{manager.manager_name}</h2>
+            <p className="text-xs md:text-sm text-gray-400 truncate">"{manager.team_name}" • GW{manager.gameweek}</p>
+            <p className={`text-xs md:text-sm font-semibold mt-0.5 ${modalColor}`}>{modalIcon} {modalTitle}</p>
+          </div>
+          <div className="text-right mx-2 flex-shrink-0">
+            <p className="text-xl md:text-2xl font-bold text-cyan-400">{totalPoints}</p>
+            <p className="text-[10px] md:text-xs text-gray-400 whitespace-nowrap">{filterType === 'all' ? 'Total' : modalTitle} Pts</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors flex-shrink-0">
+            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="overflow-y-auto max-h-[calc(95vh-70px)] md:max-h-[calc(95vh-85px)] p-2 md:p-4">
+          {displayPlayers.length === 0 ? (
+            <div className="text-center py-6 text-gray-400">
+              <p className="text-sm md:text-base">No {modalTitle.toLowerCase()} at this time</p>
+            </div>
+          ) : (
+            <div className="space-y-1 md:space-y-2">
+              {displayPlayers.map((player, idx) => (
+                <div key={idx} className="bg-slate-700/50 rounded-lg p-1.5 md:p-3 flex items-center justify-between hover:bg-slate-700 transition-colors">
+                  <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0">
+                    <span className={`font-bold text-xs md:text-sm ${getPositionColor(player.position)} w-8 md:w-10 flex-shrink-0`}>{player.position}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
+                      <p className="text-[10px] md:text-xs text-gray-400 truncate">{player.team}</p>
+                    </div>
+                    {player.is_captain && (
+                      <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 bg-cyan-600 text-white rounded font-bold flex-shrink-0">C</span>
+                    )}
+                    <div className="flex-shrink-0">
+                      {getPlayerStatusBadge(player)}
+                    </div>
+                  </div>
+                  <div className="text-right ml-2 md:ml-3 flex-shrink-0">
+                    <p className="text-base md:text-xl font-bold text-white">{filterType === 'bench' ? player.points_gw : player.points_applied}</p>
+                    <p className="text-[10px] md:text-xs text-gray-400">pts</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const StatCard = React.memo(({ title, value, unit, icon }) => (
@@ -367,7 +475,7 @@ const ViewToggleButtons = React.memo(({ availableGameweeks, selectedView, onSele
   );
 });
 
-const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
+const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerClick, onFilteredClick }) => {
   const isCombined = view === 'combined';
   const position = isCombined ? manager.current_position : manager.position;
   const totalPoints = manager.total_points;
@@ -383,8 +491,10 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
           <div className="flex items-center gap-2">
             <span className="flex-shrink-0 w-6 h-6 bg-slate-700 rounded-md text-xs font-bold flex items-center justify-center">{position}</span>
             <div>
-              <p className="text-white font-bold text-xs">{manager.manager_name}</p>
-              <p className="text-gray-400 text-[10px]">"{manager.team_name}"</p>
+              <button onClick={() => onManagerClick(manager)} className="text-left hover:text-cyan-400 transition-colors">
+                <p className="text-white font-bold text-xs">{manager.manager_name}</p>
+                <p className="text-gray-400 text-[10px]">"{manager.team_name}"</p>
+              </button>
             </div>
           </div>
           <div className="text-right">
@@ -409,7 +519,7 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
               </p>
               <p className="text-gray-200 truncate">{manager.captain_player?.split(' ').pop() || 'N/A'}</p>
             </div>
-            <div className="bg-slate-900/50 p-0.5 rounded">
+            <button onClick={() => onFilteredClick(manager, 'live')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
               <p className="font-semibold text-green-400 flex items-center justify-center gap-1">
                 Live
                 <span className="relative flex h-2 w-2">
@@ -419,27 +529,27 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
               </p>
               <p className="text-gray-200 font-bold text-xs">{manager.players_live || 0}</p>
               <p className="text-gray-500 text-[9px] -mt-1">players</p>
-            </div>
-            <div className="bg-slate-900/50 p-0.5 rounded">
+            </button>
+            <button onClick={() => onFilteredClick(manager, 'upcoming')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
               <p className="font-semibold text-yellow-400">Upcoming</p>
               <p className="text-gray-200 font-bold text-xs">{manager.players_upcoming || 0}</p>
               <p className="text-gray-500 text-[9px] -mt-1">players</p>
-            </div>
-            <div className="bg-slate-900/50 p-0.5 rounded">
+            </button>
+            <button onClick={() => onFilteredClick(manager, 'bench')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
               <p className="font-semibold text-orange-400">Bench</p>
               <p className="text-gray-200 font-bold text-xs">{Math.round(manager.bench_points) || 0}</p>
               <p className="text-gray-500 text-[9px] -mt-1">pts</p>
-            </div>
+            </button>
           </div>
         )}
       </div>
       <div className={`hidden md:grid ${desktopGridClass} gap-3 items-center text-sm px-3 py-1`}>
         <div className="md:col-span-2 flex items-center gap-3">
           <span className="flex-shrink-0 w-7 h-7 bg-slate-700 rounded-md text-sm font-bold flex items-center justify-center">{position}</span>
-          <div>
+          <button onClick={() => onManagerClick(manager)} className="text-left hover:text-cyan-400 transition-colors">
             <p className="text-white font-medium truncate">{manager.manager_name}</p>
             <p className="text-gray-400 text-xs truncate">"{manager.team_name}"</p>
-          </div>
+          </button>
         </div>
         <div className="text-white font-bold text-lg text-center">{totalPoints}</div>
         {isCombined ? (
@@ -453,18 +563,18 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
               <p className="text-white font-medium truncate">{manager.captain_player || 'N/A'}</p>
               <p className="text-cyan-400 text-xs">{manager.captain_points || 0} pts {getCaptainStatusIcon(manager)}</p>
             </div>
-            <div className="text-center">
+            <button onClick={() => onFilteredClick(manager, 'live')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
               <p className="text-green-400 font-bold text-lg">{manager.players_live || 0}</p>
               <p className="text-gray-400 text-xs -mt-1">players</p>
-            </div>
-            <div className="text-center">
+            </button>
+            <button onClick={() => onFilteredClick(manager, 'upcoming')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
               <p className="text-yellow-400 font-bold text-lg">{manager.players_upcoming || 0}</p>
               <p className="text-gray-400 text-xs -mt-1">players</p>
-            </div>
-            <div className="text-center">
+            </button>
+            <button onClick={() => onFilteredClick(manager, 'bench')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
               <p className="text-orange-400 font-bold text-lg">{Math.round(manager.bench_points) || 0}</p>
               <p className="text-gray-400 text-xs -mt-1">pts</p>
-            </div>
+            </button>
           </>
         )}
       </div>
@@ -472,7 +582,7 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks }) => {
   );
 });
 
-const Leaderboard = ({ data, view, availableGameweeks }) => {
+const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFilteredClick }) => {
   const isCombined = view === 'combined';
   const gridColsMap = { 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6', 7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10', 11: 'md:grid-cols-11', 12: 'md:grid-cols-12' };
   const combinedCols = 3 + availableGameweeks.length + 1;
@@ -498,16 +608,17 @@ const Leaderboard = ({ data, view, availableGameweeks }) => {
         )}
       </div>
       {data.map((manager) => (
-        <ManagerRow key={manager.manager_name} manager={manager} view={view} availableGameweeks={availableGameweeks} />
+        <ManagerRow key={manager.manager_name} manager={manager} view={view} availableGameweeks={availableGameweeks} onManagerClick={onManagerClick} onFilteredClick={onFilteredClick} />
       ))}
     </div>
   );
 };
 
-// --- Main Dashboard Component ---
 const FPLMultiGameweekDashboard = () => {
   const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate } = useFplData();
   const [selectedView, setSelectedView] = useState('combined');
+  const [selectedManager, setSelectedManager] = useState(null);
+  const [filterType, setFilterType] = useState('all');
 
   useEffect(() => {
     if (!loading && availableGameweeks.length > 0) {
@@ -517,11 +628,42 @@ const FPLMultiGameweekDashboard = () => {
     }
   }, [loading, availableGameweeks, latestGameweek]);
 
+   // --- NEW CODE STARTS HERE ---
+  // This effect will prevent the background from scrolling when the modal is open
+  useEffect(() => {
+    if (selectedManager) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    // Cleanup function to ensure scrolling is restored if the component unmounts
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedManager]); // This effect runs whenever 'selectedManager' changes
+  // --- NEW CODE ENDS HERE ---
+
+
   const currentData = useMemo(() => {
     if (selectedView === 'combined') return combinedData;
     const gwNumber = parseInt(selectedView.replace('gw', ''), 10);
     return gameweekData[gwNumber] || [];
   }, [selectedView, combinedData, gameweekData]);
+
+  const handleManagerClick = useCallback((manager) => {
+    setSelectedManager(manager);
+    setFilterType('all');
+  }, []);
+
+  const handleFilteredClick = useCallback((manager, type) => {
+    setSelectedManager(manager);
+    setFilterType(type);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedManager(null);
+    setFilterType('all');
+  }, []);
 
   if (loading && Object.keys(gameweekData).length === 0) {
     return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">Loading FPL Dashboard...</div>;
@@ -541,6 +683,7 @@ const FPLMultiGameweekDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
+      {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} />}
       <div className="max-w-7xl mx-auto p-2 sm:p-6">
         <header className="text-center mb-4 sm:mb-8">
           <div className="relative flex justify-center items-center max-w-md mx-auto mb-3">
@@ -577,7 +720,7 @@ const FPLMultiGameweekDashboard = () => {
           <StatCard icon="📊" title="Average" value={averageScore} unit="Points" />
         </section>
         <main>
-          <Leaderboard data={currentData} view={selectedView} availableGameweeks={availableGameweeks} />
+          <Leaderboard data={currentData} view={selectedView} availableGameweeks={availableGameweeks} onManagerClick={handleManagerClick} onFilteredClick={handleFilteredClick} />
         </main>
       </div>
     </div>
