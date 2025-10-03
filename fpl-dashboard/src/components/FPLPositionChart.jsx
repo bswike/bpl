@@ -232,7 +232,7 @@ const DarkFPLPositionChart = () => {
     setProgress({ loaded: 0, total: 0 });
 
     try {
-      const manifestRes = await fetch(`${PUBLIC_BASE}fpl-league-manifest.json?${bust()}`, {
+      const manifestRes = await fetch(`${PUBLIC_BASE}fpl-league-manifest.json?`, {
         method: 'GET', 
         cache: 'no-store', 
         signal: abort.signal 

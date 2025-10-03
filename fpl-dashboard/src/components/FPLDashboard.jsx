@@ -92,7 +92,7 @@ const FPLMultiGameweekDashboard = () => {
     setError(null);
 
     try {
-      const manifestRes = await fetch(`${PUBLIC_BASE}fpl-league-manifest.json?v=${bust()}`, {
+      const manifestRes = await fetch(`${PUBLIC_BASE}fpl-league-manifest.json?v=`, {
         method: 'GET', 
         cache: 'no-store', 
         signal: abort.signal 

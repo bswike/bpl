@@ -276,7 +276,7 @@ useEffect(() => {
     setLoading(true);
     try {
       const manifestRes = await fetchWithVersionCheck(
-  `${PUBLIC_BASE}fpl-league-manifest.json?${superBust()}`, 
+  `${PUBLIC_BASE}fpl-league-manifest.json?`, 
   abort.signal
 );
       if (!manifestRes.ok) throw new Error(`Could not load league manifest (${manifestRes.status})`);
