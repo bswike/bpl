@@ -4,7 +4,6 @@ import Papa from 'papaparse';
 
 // ---- Constants ----
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
-const MANIFEST_URL = `${PUBLIC_BASE}fpl-league-manifest.json`;
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
 const FALLBACK_POLL_INTERVAL_MS = 300000; // 5 minutes
 
@@ -233,7 +232,7 @@ const DarkFPLPositionChart = () => {
     setProgress({ loaded: 0, total: 0 });
 
     try {
-      const manifestRes = await fetch(`${MANIFEST_URL}?v=${bust()}`, { 
+      const manifestRes = await fetch(`${PUBLIC_BASE}fpl-league-manifest.json?${bust()}`, {
         method: 'GET', 
         cache: 'no-store', 
         signal: abort.signal 

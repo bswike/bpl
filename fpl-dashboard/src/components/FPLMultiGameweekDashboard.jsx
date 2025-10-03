@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 
 // --- Constants ---
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
-const MANIFEST_URL = `${PUBLIC_BASE}fpl-league-manifest.json`;
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
 const FALLBACK_POLL_INTERVAL_MS = 300000;
 
@@ -276,7 +275,10 @@ useEffect(() => {
     const myId = ++fetchCycleIdRef.current;
     setLoading(true);
     try {
-      const manifestRes = await fetchWithVersionCheck(MANIFEST_URL, abort.signal);
+      const manifestRes = await fetchWithVersionCheck(
+  `${PUBLIC_BASE}fpl-league-manifest.json?${superBust()}`, 
+  abort.signal
+);
       if (!manifestRes.ok) throw new Error(`Could not load league manifest (${manifestRes.status})`);
       const manifest = await manifestRes.json();
       
