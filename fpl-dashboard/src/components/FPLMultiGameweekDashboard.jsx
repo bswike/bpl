@@ -90,17 +90,11 @@ const fetchFixtureData = async () => {
 };
 
 const getFixtureInfo = (playerTeam, fixtures, teamMap) => {
-  // Only look at fixtures that haven't been fully processed yet (started=true means live/upcoming for current GW)
+  // Look for any fixture for this team (upcoming, live, or finished)
   const fixture = fixtures.find(f => {
     const homeTeam = teamMap[f.team_h];
     const awayTeam = teamMap[f.team_a];
-    const isTeamMatch = homeTeam === playerTeam || awayTeam === playerTeam;
-    
-    // Only consider fixtures that are either upcoming or currently live
-    // finished_provisional means the fixture has ended but bonus points aren't finalized
-    const isRelevant = !f.finished_provisional && !f.finished;
-    
-    return isTeamMatch && isRelevant;
+    return homeTeam === playerTeam || awayTeam === playerTeam;
   });
   
   if (!fixture || !fixture.kickoff_time) return null;
@@ -123,17 +117,20 @@ const getFixtureInfo = (playerTeam, fixtures, teamMap) => {
       kickoff: etTime,
       minutesLeft: 90
     };
-  } else if (minutesElapsed <= 90) {
+  } else if (minutesElapsed <= 90 && !fixture.finished && !fixture.finished_provisional) {
     return {
       status: 'live',
       kickoff: etTime,
       minutesLeft: Math.max(0, 90 - minutesElapsed)
     };
   } else {
-    return null; // Return null for finished matches so they don't show timing
+    return {
+      status: 'finished',
+      kickoff: etTime,
+      minutesLeft: 0
+    };
   }
 };
-
 const useFplData = () => {
   const [gameweekData, setGameweekData] = useState({});
   const [combinedData, setCombinedData] = useState([]);
@@ -480,7 +477,7 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData 
     return colors[pos] || 'text-gray-400';
   };
 
-const getFixtureTimingText = (player) => {
+const getFixtureTimingText = (player, currentGameweek) => {
   if (!fixtureData.fixtures.length || !fixtureData.playerTeamMap) {
     return null;
   }
@@ -488,7 +485,7 @@ const getFixtureTimingText = (player) => {
   // Try to find team using different name formats
   let playerTeam = fixtureData.playerTeamMap[player.name];
   
-  // If not found, try last name only (split by space and take last part)
+  // If not found, try last name only
   if (!playerTeam && player.name.includes(' ')) {
     const lastName = player.name.split(' ').pop();
     playerTeam = fixtureData.playerTeamMap[lastName];
@@ -498,19 +495,69 @@ const getFixtureTimingText = (player) => {
     return null;
   }
   
-  const fixtureInfo = getFixtureInfo(playerTeam, fixtureData.fixtures, fixtureData.teamMap);
-  if (!fixtureInfo) return null;
+  // Find fixture for THIS specific gameweek
+  const fixture = fixtureData.fixtures.find(f => {
+    const homeTeam = fixtureData.teamMap[f.team_h];
+    const awayTeam = fixtureData.teamMap[f.team_a];
+    const isTeamMatch = homeTeam === playerTeam || awayTeam === playerTeam;
+    const isCorrectGameweek = f.event === currentGameweek;
+    
+    return isTeamMatch && isCorrectGameweek;
+  });
   
-  if (fixtureInfo.status === 'upcoming') {
+  if (!fixture || !fixture.kickoff_time) return null;
+  
+  const kickoffTime = new Date(fixture.kickoff_time);
+  const now = new Date();
+  
+  const homeTeam = fixtureData.teamMap[fixture.team_h];
+  const awayTeam = fixtureData.teamMap[fixture.team_a];
+  const opponent = playerTeam === homeTeam ? awayTeam : homeTeam;
+  const isHome = playerTeam === homeTeam;
+  
+  // Format date as MM/DD/YY
+  const dateStr = kickoffTime.toLocaleDateString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: '2-digit'
+  });
+  
+  const etTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).format(kickoffTime);
+  
+  const minutesElapsed = Math.floor((now - kickoffTime) / (1000 * 60));
+  
+  if (minutesElapsed < 0) {
+    // Upcoming
     return (
-      <span className="text-[9px] text-gray-500">
-        {fixtureInfo.kickoff} • 90'
+      <span className="text-[9px] text-gray-400">
+        {dateStr} • {isHome ? 'vs' : '@'} {opponent} • {etTime}
       </span>
     );
-  } else if (fixtureInfo.status === 'live') {
+  } else if (minutesElapsed <= 105 && !fixture.finished && !fixture.finished_provisional) {
+    // Live - use actual match minute from API
+    const matchMinute = fixture.minutes || 0;
+    
+    const homeScore = fixture.team_h_score || 0;
+    const awayScore = fixture.team_a_score || 0;
+    
     return (
-      <span className="text-[9px] text-yellow-400">
-        {fixtureInfo.minutesLeft}' left
+      <span className="text-[9px] text-yellow-400 font-semibold">
+        {matchMinute}' • {isHome ? 'vs' : '@'} {opponent} • {homeScore}-{awayScore}
+      </span>
+    );
+  } else if (fixture.finished || fixture.finished_provisional) {
+    // Finished
+    const homeScore = fixture.team_h_score || 0;
+    const awayScore = fixture.team_a_score || 0;
+    
+    return (
+      <span className="text-[9px] text-gray-500">
+        {isHome ? 'vs' : '@'} {opponent} • {homeScore}-{awayScore}
       </span>
     );
   }
@@ -551,7 +598,7 @@ const getFixtureTimingText = (player) => {
           <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
           <div className="flex items-center gap-2">
             <p className="text-[10px] md:text-xs text-gray-400 truncate">{player.team}</p>
-            {getFixtureTimingText(player)}
+            {getFixtureTimingText(player, manager.gameweek)}
           </div>
         </div>
         {player.is_captain && (
