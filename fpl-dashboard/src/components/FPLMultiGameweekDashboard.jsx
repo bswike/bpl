@@ -275,9 +275,9 @@ useEffect(() => {
     const myId = ++fetchCycleIdRef.current;
     setLoading(true);
     try {
-      const manifestRes = await fetchWithVersionCheck(
-  `${PUBLIC_BASE}fpl-league-manifest.json?`, 
-  abort.signal
+      const manifestRes = await fetch(
+  'https://bpl-red-sun-894.fly.dev/api/manifest',
+  { cache: 'no-store', signal: abort.signal }
 );
       if (!manifestRes.ok) throw new Error(`Could not load league manifest (${manifestRes.status})`);
       const manifest = await manifestRes.json();

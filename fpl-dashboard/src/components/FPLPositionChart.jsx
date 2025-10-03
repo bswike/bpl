@@ -232,11 +232,10 @@ const DarkFPLPositionChart = () => {
     setProgress({ loaded: 0, total: 0 });
 
     try {
-      const manifestRes = await fetch(`${PUBLIC_BASE}fpl-league-manifest.json?`, {
-        method: 'GET', 
-        cache: 'no-store', 
-        signal: abort.signal 
-      });
+      const manifestRes = await fetch(
+  'https://bpl-red-sun-894.fly.dev/api/manifest',
+  { cache: 'no-store', signal: abort.signal }
+);
       
       if (!manifestRes.ok) {
         throw new Error(`Could not load league manifest (${manifestRes.status})`);
