@@ -61,7 +61,7 @@ CORS(app, origins=[
     "http://localhost:5173",
     "https://*.vercel.app",
     os.getenv("FRONTEND_URL", "*")
-])
+], resources={r"/*": {"origins": "*"}})
 
 # ====== UTILITIES ======
 def log(msg: str):
@@ -199,6 +199,56 @@ def root():
             'push_notifications': REDIS_ENABLED
         }
     }
+
+@app.route('/api/fixtures')
+def get_fixtures():
+    """Fetch and return FPL fixture data with player mappings"""
+    try:
+        # Fetch bootstrap data (includes teams and players)
+        bootstrap_response = requests.get(
+            'https://fantasy.premierleague.com/api/bootstrap-static/',
+            timeout=10
+        )
+        bootstrap_response.raise_for_status()
+        bootstrap_data = bootstrap_response.json()
+        
+        # Fetch fixtures
+        fixtures_response = requests.get(
+            'https://fantasy.premierleague.com/api/fixtures/',
+            timeout=10
+        )
+        fixtures_response.raise_for_status()
+        fixtures_data = fixtures_response.json()
+        
+        # Build team map
+        team_map = {str(team['id']): team['short_name'] for team in bootstrap_data['teams']}
+        
+        # Build player-to-team map with multiple name formats
+        player_team_map = {}
+        for player in bootstrap_data['elements']:
+            team_name = team_map[str(player['team'])]
+            
+            # Add web_name (short name)
+            player_team_map[player['web_name']] = team_name
+            
+            # Add full name
+            full_name = f"{player['first_name']} {player['second_name']}"
+            player_team_map[full_name] = team_name
+            
+            # Add second_name only (most common in your CSV)
+            player_team_map[player['second_name']] = team_name
+        
+        log(f"[fixtures] Served {len(fixtures_data)} fixtures with {len(team_map)} teams and {len(player_team_map)} player mappings")
+        
+        return {
+            'fixtures': fixtures_data,
+            'teamMap': team_map,
+            'playerTeamMap': player_team_map
+        }, 200
+        
+    except Exception as e:
+        log(f"[fixtures] Error fetching data: {e}")
+        return {'error': 'Failed to fetch fixture data'}, 500
 
 # ====== YOUR EXISTING SCRAPER LOGIC ======
 def smart_upload_bytes(blob_name: str, data: bytes, content_type: str = "text/plain", headers: dict = None) -> bool:
@@ -364,10 +414,14 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
             manifest_data['timestamp'] = timestamp
 
             manifest_uploaded = smart_upload_bytes(
-                manifest_name,
-                json.dumps(manifest_data, indent=2).encode("utf-8"),
-                content_type="application/json"
-            )
+    manifest_name,
+    json.dumps(manifest_data, indent=2).encode("utf-8"),
+    content_type="application/json",
+    headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+        "CDN-Cache-Control": "no-cache"
+    }
+)
             
             if manifest_uploaded:
                 log(f"SUCCESS: Updated manifest for GW{gw}")
