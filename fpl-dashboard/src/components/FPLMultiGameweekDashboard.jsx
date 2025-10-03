@@ -219,7 +219,7 @@ const useFplData = () => {
       }
     }
     return Object.values(managerStats)
-      .filter(m => toNum(m.total_points) > 0)
+      .filter(m => toNum(m.total_points) >= 0)
       .sort((a, b) => b.total_points - a.total_points)
       .map((m, i) => ({ ...m, position: i + 1, gameweek }));
   }, []);
@@ -454,96 +454,96 @@ const getPositionChangeIcon = (change) => {
 const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData }) => {
   if (!manager) return null;
 
-  const getPlayerStatusBadge = (player) => {
-    if (player.multiplier === 0) return <span className="text-[10px] px-1 py-0.5 bg-slate-700 text-gray-400 rounded">Bench</span>;
-    if (!player.fixture_started) return <span className="text-[10px] px-1 py-0.5 bg-yellow-600 text-white rounded">Upcoming</span>;
-    if (player.fixture_started && !player.fixture_finished) return <span className="text-[10px] px-1 py-0.5 bg-green-600 text-white rounded">Live</span>;
-    return <span className="text-[10px] px-1 py-0.5 bg-blue-600 text-white rounded">Finished</span>;
-  };
-
   const getPositionColor = (pos) => {
     const colors = { GK: 'text-yellow-400', DEF: 'text-blue-400', MID: 'text-green-400', FWD: 'text-red-400' };
     return colors[pos] || 'text-gray-400';
   };
 
-const getFixtureTimingText = (player) => {
-  if (!fixtureData.fixtures.length) return null;
-  
-  const fixtureInfo = getFixtureInfo(player.team, fixtureData.fixtures, fixtureData.teamMap);
-  if (!fixtureInfo) return null;
-  
-  if (fixtureInfo.status === 'upcoming') {
-    return (
-      <span className="text-[9px] text-gray-500">
-        {fixtureInfo.kickoff} • 90'
-      </span>
-    );
-  } else if (fixtureInfo.status === 'live') {
-    return (
-      <span className="text-[9px] text-yellow-400">
-        {fixtureInfo.minutesLeft}' left
-      </span>
-    );
-  }
-  
-  // Return null for finished games - don't show anything
-  return null;
-};
+  const getFixtureTimingText = (player) => {
+    if (!fixtureData.fixtures.length) return null;
+    
+    const fixtureInfo = getFixtureInfo(player.team, fixtureData.fixtures, fixtureData.teamMap);
+    if (!fixtureInfo) return null;
+    
+    if (fixtureInfo.status === 'upcoming') {
+      return (
+        <span className="text-[9px] text-gray-500">
+          {fixtureInfo.kickoff} • 90'
+        </span>
+      );
+    } else if (fixtureInfo.status === 'live') {
+      return (
+        <span className="text-[9px] text-yellow-400">
+          {fixtureInfo.minutesLeft}' left
+        </span>
+      );
+    }
+    
+    return null;
+  };
 
   const allPlayers = manager.players || [];
   const starters = allPlayers.filter(p => p.multiplier >= 1);
-  const livePlayers = starters.filter(p => p.fixture_started && !p.fixture_finished);
-  const upcomingPlayers = starters.filter(p => !p.fixture_started);
   const bench = allPlayers.filter(p => p.multiplier === 0);
-
-  let displayPlayers = [];
-  let modalTitle = '';
-  let modalIcon = '';
-  let modalColor = '';
-
-  switch (filterType) {
-    case 'live':
-      displayPlayers = livePlayers;
-      modalTitle = 'Live Players';
-      modalIcon = '🟢';
-      modalColor = 'text-green-400';
-      break;
-    case 'upcoming':
-      displayPlayers = upcomingPlayers;
-      modalTitle = 'Upcoming Players';
-      modalIcon = '⏰';
-      modalColor = 'text-yellow-400';
-      break;
-    case 'bench':
-      displayPlayers = bench;
-      modalTitle = 'Bench Players';
-      modalIcon = '🪑';
-      modalColor = 'text-orange-400';
-      break;
-    default:
-      displayPlayers = allPlayers;
-      modalTitle = 'All Players';
-      modalIcon = '⚽';
-      modalColor = 'text-cyan-400';
+  
+  // Apply filtering based on filterType
+  let filteredStarters = starters;
+  let filteredBench = bench;
+  let modalTitle = 'All Players';
+  let modalSubtitle = null;
+  
+  if (filterType === 'live') {
+    filteredStarters = starters.filter(p => p.fixture_started && !p.fixture_finished);
+    filteredBench = [];
+    modalTitle = 'Live Players';
+    modalSubtitle = `${filteredStarters.length} player${filteredStarters.length !== 1 ? 's' : ''} currently playing`;
+  } else if (filterType === 'upcoming') {
+    filteredStarters = starters.filter(p => !p.fixture_started);
+    filteredBench = [];
+    modalTitle = 'Upcoming Players';
+    modalSubtitle = `${filteredStarters.length} player${filteredStarters.length !== 1 ? 's' : ''} yet to play`;
+  } else if (filterType === 'bench') {
+    filteredStarters = [];
+    modalTitle = 'Bench Players';
+    modalSubtitle = `${filteredBench.length} player${filteredBench.length !== 1 ? 's' : ''} on the bench`;
   }
 
-  const totalPoints = filterType === 'all' 
-    ? manager.total_points 
-    : displayPlayers.reduce((sum, p) => sum + (filterType === 'bench' ? p.points_gw : p.points_applied), 0);
+  const renderPlayerRow = (player, idx) => (
+    <div key={idx} className="flex items-center justify-between py-2 md:py-2.5 hover:bg-slate-700/30 transition-colors px-2 md:px-3">
+      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+        <span className={`font-bold text-xs md:text-sm ${getPositionColor(player.position)} w-8 md:w-10 flex-shrink-0`}>{player.position}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] md:text-xs text-gray-400 truncate">{player.team}</p>
+            {getFixtureTimingText(player)}
+          </div>
+        </div>
+        {player.is_captain && (
+          <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 bg-cyan-600 text-white rounded font-bold flex-shrink-0">C</span>
+        )}
+      </div>
+      <div className="text-right ml-2 md:ml-3 flex-shrink-0">
+        <p className="text-base md:text-xl font-bold text-white">{player.multiplier === 0 ? player.points_gw : player.points_applied}</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 pb-24 md:p-6 md:pb-6" onClick={onClose}>
-      <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[calc(100vh-10rem)] md:max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700 flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-slate-800 rounded-lg max-w-5xl w-full max-h-[75vh] md:max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700 flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Fixed header */}
         <div className="flex-shrink-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-2.5 md:p-4 flex justify-between items-center">
           <div className="flex-1 min-w-0 pr-2">
             <h2 className="text-base md:text-xl font-bold text-white truncate">{manager.manager_name}</h2>
             <p className="text-xs md:text-sm text-gray-400 truncate">"{manager.team_name}" • GW{manager.gameweek}</p>
-            <p className={`text-xs md:text-sm font-semibold mt-0.5 ${modalColor}`}>{modalIcon} {modalTitle}</p>
+            {modalSubtitle && (
+              <p className="text-xs md:text-sm text-cyan-400 mt-0.5">{modalSubtitle}</p>
+            )}
           </div>
           <div className="text-right mx-2 flex-shrink-0">
-            <p className="text-xl md:text-2xl font-bold text-cyan-400">{totalPoints}</p>
-            <p className="text-[10px] md:text-xs text-gray-400 whitespace-nowrap">{filterType === 'all' ? 'Total' : modalTitle} Pts</p>
+            <p className="text-xl md:text-2xl font-bold text-cyan-400">{manager.total_points}</p>
+            <p className="text-[10px] md:text-xs text-gray-400 whitespace-nowrap">Total Pts</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors flex-shrink-0">
             <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,37 +553,46 @@ const getFixtureTimingText = (player) => {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-2 md:p-4">
-          {displayPlayers.length === 0 ? (
-            <div className="text-center py-6 text-gray-400">
-              <p className="text-sm md:text-base">No {modalTitle.toLowerCase()} at this time</p>
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          {filterType === 'all' ? (
+            <div className="grid md:grid-cols-2 gap-4 p-3 md:p-4">
+              {/* Starters */}
+              <div className="bg-slate-900/30 rounded-lg overflow-hidden">
+                <div className="bg-slate-900/80 px-3 py-2 border-b border-slate-700">
+                  <h3 className="text-sm md:text-base font-bold text-white">Starters</h3>
+                </div>
+                <div className="divide-y divide-slate-700/50">
+                  {filteredStarters.map((player, idx) => renderPlayerRow(player, idx))}
+                </div>
+              </div>
+
+              {/* Bench */}
+              <div className="bg-slate-900/30 rounded-lg overflow-hidden">
+                <div className="bg-slate-900/80 px-3 py-2 border-b border-slate-700">
+                  <h3 className="text-sm md:text-base font-bold text-white">Bench</h3>
+                </div>
+                <div className="divide-y divide-slate-700/50">
+                  {filteredBench.map((player, idx) => renderPlayerRow(player, idx))}
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="space-y-1 md:space-y-2 pb-4">
-              {displayPlayers.map((player, idx) => (
-                <div key={idx} className="bg-slate-700/50 rounded-lg p-1.5 md:p-3 flex items-center justify-between hover:bg-slate-700 transition-colors">
-                  <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0">
-                    <span className={`font-bold text-xs md:text-sm ${getPositionColor(player.position)} w-8 md:w-10 flex-shrink-0`}>{player.position}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-[10px] md:text-xs text-gray-400 truncate">{player.team}</p>
-                        {getFixtureTimingText(player)}
-                      </div>
-                    </div>
-                    {player.is_captain && (
-                      <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 bg-cyan-600 text-white rounded font-bold flex-shrink-0">C</span>
-                    )}
-                    <div className="flex-shrink-0">
-                      {getPlayerStatusBadge(player)}
-                    </div>
-                  </div>
-                  <div className="text-right ml-2 md:ml-3 flex-shrink-0">
-                    <p className="text-base md:text-xl font-bold text-white">{filterType === 'bench' ? player.points_gw : player.points_applied}</p>
-                    <p className="text-[10px] md:text-xs text-gray-400">pts</p>
-                  </div>
+            <div className="p-3 md:p-4">
+              {/* Single column for filtered views */}
+              <div className="bg-slate-900/30 rounded-lg overflow-hidden">
+                <div className="bg-slate-900/80 px-3 py-2 border-b border-slate-700">
+                  <h3 className="text-sm md:text-base font-bold text-white">{modalTitle}</h3>
                 </div>
-              ))}
+                {filteredStarters.length === 0 && filteredBench.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <p className="text-sm md:text-base">No {modalTitle.toLowerCase()} at this time</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-700/50">
+                    {[...filteredStarters, ...filteredBench].map((player, idx) => renderPlayerRow(player, idx))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
