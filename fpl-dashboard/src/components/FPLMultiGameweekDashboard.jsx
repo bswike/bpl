@@ -469,8 +469,32 @@ const getPositionChangeIcon = (change) => {
   return <span className="text-gray-400">➡️ 0</span>;
 };
 
-const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData }) => {
+const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData, gameweekData }) => {
   if (!manager) return null;
+
+  const calculateLeagueOwnership = (playerName) => {
+  if (!manager || !manager.gameweek) return null;
+  
+  // Get all managers' data for this gameweek from the parent component
+  // We need to pass gameweekData as a prop to the modal
+  const currentGwData = gameweekData[manager.gameweek];
+  if (!currentGwData || currentGwData.length === 0) return null;
+  
+  let ownersCount = 0;
+  const totalManagers = currentGwData.length;
+  
+  currentGwData.forEach(mgr => {
+    if (mgr.players && mgr.players.length > 0) {
+      const ownsPlayer = mgr.players.some(p => p.name === playerName);
+      if (ownsPlayer) ownersCount++;
+    }
+  });
+  
+  if (totalManagers === 0) return null;
+  
+  const ownershipPct = ((ownersCount / totalManagers) * 100).toFixed(1);
+  return ownershipPct;
+};
 
   const getPositionColor = (pos) => {
     const colors = { GK: 'text-yellow-400', DEF: 'text-blue-400', MID: 'text-green-400', FWD: 'text-red-400' };
@@ -590,12 +614,22 @@ const getFixtureTimingText = (player, currentGameweek) => {
     modalSubtitle = `${filteredBench.length} player${filteredBench.length !== 1 ? 's' : ''} on the bench`;
   }
 
-  const renderPlayerRow = (player, idx) => (
+const renderPlayerRow = (player, idx) => {
+  const leagueOwnership = calculateLeagueOwnership(player.name);
+
+  return (
     <div key={idx} className="flex items-center justify-between py-2 md:py-2.5 hover:bg-slate-700/30 transition-colors px-2 md:px-3">
       <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
         <span className={`font-bold text-xs md:text-sm ${getPositionColor(player.position)} w-8 md:w-10 flex-shrink-0`}>{player.position}</span>
         <div className="flex-1 min-w-0">
-          <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
+            {leagueOwnership && (
+              <span className="text-[9px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
+                {leagueOwnership}%
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <p className="text-[10px] md:text-xs text-gray-400 truncate">{player.team}</p>
             {getFixtureTimingText(player, manager.gameweek)}
@@ -610,6 +644,7 @@ const getFixtureTimingText = (player, currentGameweek) => {
       </div>
     </div>
   );
+};
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 pb-24 md:p-6 md:pb-6" onClick={onClose}>
@@ -921,7 +956,7 @@ const FPLMultiGameweekDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
-      {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} fixtureData={fixtureData} />}
+      {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} fixtureData={fixtureData} gameweekData={gameweekData} />}
       <div className="max-w-7xl mx-auto p-2 sm:p-6">
         <header className="text-center mb-4 sm:mb-8">
           <div className="relative flex justify-center items-center max-w-md mx-auto mb-3">
