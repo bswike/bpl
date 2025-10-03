@@ -2,11 +2,25 @@ app = "bpl-red-sun-894"
 primary_region = "mia"
 
 [build]
-  dockerfile = "Dockerfile"   # ensure we build your Dockerfile
+  dockerfile = "Dockerfile"
 
-# No [http_service] or [[services]] blocks for a background job
+[http_service]
+  internal_port = 5000
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.timeouts]
+    idle_timeout = "1h"
+    hard_timeout = "2h"
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200
 
 [vm]
-  memory = "512mb"            # 512MB is plenty for Python+requests; bump if needed
+  memory = "512mb"
   cpu_kind = "shared"
   cpus = 1

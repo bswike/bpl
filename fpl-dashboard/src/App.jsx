@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import FPLDashboard from './components/FPLDashboard';
 import LeagueAnalysis from './components/LeagueAnalysis';
@@ -9,63 +8,56 @@ import './App.css';
 const Navigation = ({ currentPage, setCurrentPage }) => {
   const navItems = [
     { id: 'position-chart', label: 'Positions', icon: '📈' },
-    { id: 'multi-gw', label: 'GW Stats', icon: '🔢' },
-    { id: 'dashboard', label: 'League Table', icon: '📊' },
-   // { id: 'analysis', label: 'Analysis', icon: '🧠' },
-    
+    { id: 'multi-gw', label: 'Stats', icon: '🔢' },
+    { id: 'dashboard', label: 'Table', icon: '📊' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50">
-      {/* Subtle gradient overlay for depth */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/90 to-transparent backdrop-blur-2xl" />
-      
-      {/* Main navigation container */}
-      <div className="relative px-6 py-3">
-        <div className="flex justify-center">
-          <div className="flex bg-gray-900/80 backdrop-blur-xl rounded-2xl p-2 border border-gray-700/50 shadow-2xl">
-            {navItems.map((item, index) => (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
+      {/* Backdrop blur container */}
+      <div className="relative border-t border-gray-800/50 bg-gray-900/95 backdrop-blur-xl shadow-2xl">
+        <div className="max-w-md mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-around py-2">
+            {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setCurrentPage(item.id)}
-                className={`relative flex flex-col items-center px-6 py-3 mx-1 rounded-xl transition-all duration-300 ease-out group ${
+                className={`relative flex flex-col items-center justify-center min-w-[70px] sm:min-w-[80px] py-2 px-3 rounded-xl transition-all duration-200 ${
                   currentPage === item.id
-                    ? 'bg-gradient-to-b from-cyan-500 to-cyan-600 text-white shadow-lg shadow-cyan-500/25 transform scale-105'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/60'
+                    ? 'text-cyan-400'
+                    : 'text-gray-500 hover:text-gray-300 active:scale-95'
                 }`}
               >
-                {/* Active indicator dot */}
+                {/* Active indicator */}
                 {currentPage === item.id && (
-                  <div className="absolute -top-1 w-1 h-1 bg-white rounded-full opacity-80" />
+                  <div className="absolute inset-0 bg-cyan-500/10 rounded-xl" />
                 )}
                 
-                {/* Icon container */}
-                <div className={`w-6 h-6 mb-1 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                  currentPage === item.id 
-                    ? 'bg-white/20 shadow-inner' 
-                    : 'bg-transparent group-hover:bg-gray-700/40'
+                {/* Icon */}
+                <div className={`relative text-lg sm:text-xl mb-0.5 transition-transform duration-200 ${
+                  currentPage === item.id ? 'scale-110' : ''
                 }`}>
-                  <span className="text-sm font-medium">{item.icon}</span>
+                  {item.icon}
                 </div>
                 
                 {/* Label */}
-                <span className="text-xs font-medium tracking-wide">
+                <span className={`relative text-[10px] sm:text-xs font-medium transition-all duration-200 ${
+                  currentPage === item.id ? 'opacity-100' : 'opacity-70'
+                }`}>
                   {item.label}
                 </span>
                 
-                {/* Subtle glow effect for active item */}
+                {/* Active dot indicator */}
                 {currentPage === item.id && (
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-cyan-400/10 to-transparent pointer-events-none" />
+                  <div className="absolute -bottom-0.5 w-1 h-1 bg-cyan-400 rounded-full" />
                 )}
               </button>
             ))}
           </div>
         </div>
         
-        {/* Home indicator */}
-        <div className="flex justify-center mt-2">
-          <div className="w-32 h-1 bg-white/20 rounded-full" />
-        </div>
+        {/* iOS home indicator space */}
+        <div className="h-safe-bottom" />
       </div>
     </nav>
   );
@@ -78,8 +70,6 @@ function App() {
     switch (currentPage) {
       case 'dashboard':
         return <FPLDashboard />;
-      /*case 'analysis':
-        return <LeagueAnalysis />;*/
       case 'multi-gw':
         return <FPLMultiGameweekDashboard />;
       case 'position-chart':

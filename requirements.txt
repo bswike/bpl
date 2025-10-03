@@ -1,1 +1,16 @@
-requests
+# Web framework for SSE server
+flask==3.0.0
+flask-cors==4.0.0
+
+# Redis client for Upstash
+redis==5.0.1
+
+# HTTP requests
+requests==2.31.0
+
+# Your existing scraper dependencies (if you have any)
+# Add any other packages your fpl_scrape_rosters.py needs here
+# For example:
+# beautifulsoup4==4.12.2
+# selenium==4.15.0
+# pandas==2.1.3

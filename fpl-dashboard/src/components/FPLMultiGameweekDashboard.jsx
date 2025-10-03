@@ -61,6 +61,69 @@ const fetchWithVersionCheck = async (url, signal) => {
   return fetchWithNoCaching(`${url}?${superBust()}`, signal);
 };
 
+// --- Fixture Data Functions ---
+const fetchFixtureData = async () => {
+  try {
+    const response = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/');
+    const data = await response.json();
+    
+    const fixturesResponse = await fetch('https://fantasy.premierleague.com/api/fixtures/');
+    const fixtures = await fixturesResponse.json();
+    
+    const teamMap = {};
+    data.teams.forEach(team => {
+      teamMap[team.id] = team.short_name;
+    });
+    
+    return { fixtures, teamMap };
+  } catch (error) {
+    console.error('Failed to fetch fixture data:', error);
+    return { fixtures: [], teamMap: {} };
+  }
+};
+
+const getFixtureInfo = (playerTeam, fixtures, teamMap) => {
+  const fixture = fixtures.find(f => {
+    const homeTeam = teamMap[f.team_h];
+    const awayTeam = teamMap[f.team_a];
+    return homeTeam === playerTeam || awayTeam === playerTeam;
+  });
+  
+  if (!fixture || !fixture.kickoff_time) return null;
+  
+  const kickoffTime = new Date(fixture.kickoff_time);
+  const now = new Date();
+  
+  const etTime = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).format(kickoffTime);
+  
+  const minutesElapsed = Math.floor((now - kickoffTime) / (1000 * 60));
+  
+  if (minutesElapsed < 0) {
+    return {
+      status: 'upcoming',
+      kickoff: etTime,
+      minutesLeft: 90
+    };
+  } else if (minutesElapsed <= 90) {
+    return {
+      status: 'live',
+      kickoff: etTime,
+      minutesLeft: Math.max(0, 90 - minutesElapsed)
+    };
+  } else {
+    return {
+      status: 'finished',
+      kickoff: etTime,
+      minutesLeft: 0
+    };
+  }
+};
+
 const useFplData = () => {
   const [gameweekData, setGameweekData] = useState({});
   const [combinedData, setCombinedData] = useState([]);
@@ -71,6 +134,7 @@ const useFplData = () => {
   const [papaReady, setPapaReady] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [fixtureData, setFixtureData] = useState({ fixtures: [], teamMap: {} });
   
   const cycleAbortRef = useRef(null);
   const fetchCycleIdRef = useRef(0);
@@ -91,6 +155,17 @@ const useFplData = () => {
     script.onload = () => setPapaReady(true);
     script.onerror = () => { setError("Error: Failed to load data parsing library."); setLoading(false); };
     document.body.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    const loadFixtures = async () => {
+      const data = await fetchFixtureData();
+      setFixtureData(data);
+    };
+    loadFixtures();
+    
+    const interval = setInterval(loadFixtures, 300000);
+    return () => clearInterval(interval);
   }, []);
 
   const parseCsvToManagers = useCallback((csvText, gameweek) => {
@@ -350,7 +425,18 @@ const useFplData = () => {
     };
   }, [papaReady, setupSSE, fetchData]);
 
-  return { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate };
+  return { 
+    loading, 
+    error, 
+    gameweekData, 
+    combinedData, 
+    availableGameweeks, 
+    latestGameweek, 
+    fetchData, 
+    connectionStatus, 
+    lastUpdate,
+    fixtureData 
+  };
 };
 
 const getCaptainStatusIcon = (manager) => {
@@ -365,7 +451,7 @@ const getPositionChangeIcon = (change) => {
   return <span className="text-gray-400">➡️ 0</span>;
 };
 
-const PlayerDetailsModal = ({ manager, onClose, filterType = 'all' }) => {
+const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData }) => {
   if (!manager) return null;
 
   const getPlayerStatusBadge = (player) => {
@@ -379,6 +465,30 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all' }) => {
     const colors = { GK: 'text-yellow-400', DEF: 'text-blue-400', MID: 'text-green-400', FWD: 'text-red-400' };
     return colors[pos] || 'text-gray-400';
   };
+
+const getFixtureTimingText = (player) => {
+  if (!fixtureData.fixtures.length) return null;
+  
+  const fixtureInfo = getFixtureInfo(player.team, fixtureData.fixtures, fixtureData.teamMap);
+  if (!fixtureInfo) return null;
+  
+  if (fixtureInfo.status === 'upcoming') {
+    return (
+      <span className="text-[9px] text-gray-500">
+        {fixtureInfo.kickoff} • 90'
+      </span>
+    );
+  } else if (fixtureInfo.status === 'live') {
+    return (
+      <span className="text-[9px] text-yellow-400">
+        {fixtureInfo.minutesLeft}' left
+      </span>
+    );
+  }
+  
+  // Return null for finished games - don't show anything
+  return null;
+};
 
   const allPlayers = manager.players || [];
   const starters = allPlayers.filter(p => p.multiplier >= 1);
@@ -422,9 +532,10 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all' }) => {
     : displayPlayers.reduce((sum, p) => sum + (filterType === 'bench' ? p.points_gw : p.points_applied), 0);
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-2" onClick={onClose}>
-      <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[95vh] overflow-hidden shadow-2xl border border-slate-700" onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-2.5 md:p-4 flex justify-between items-center">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 pb-24 md:p-6 md:pb-6" onClick={onClose}>
+      <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[calc(100vh-10rem)] md:max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700 flex flex-col" onClick={(e) => e.stopPropagation()}>
+        {/* Fixed header */}
+        <div className="flex-shrink-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-2.5 md:p-4 flex justify-between items-center">
           <div className="flex-1 min-w-0 pr-2">
             <h2 className="text-base md:text-xl font-bold text-white truncate">{manager.manager_name}</h2>
             <p className="text-xs md:text-sm text-gray-400 truncate">"{manager.team_name}" • GW{manager.gameweek}</p>
@@ -441,20 +552,24 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all' }) => {
           </button>
         </div>
 
-        <div className="overflow-y-auto max-h-[calc(95vh-70px)] md:max-h-[calc(95vh-85px)] p-2 md:p-4">
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-2 md:p-4">
           {displayPlayers.length === 0 ? (
             <div className="text-center py-6 text-gray-400">
               <p className="text-sm md:text-base">No {modalTitle.toLowerCase()} at this time</p>
             </div>
           ) : (
-            <div className="space-y-1 md:space-y-2">
+            <div className="space-y-1 md:space-y-2 pb-4">
               {displayPlayers.map((player, idx) => (
                 <div key={idx} className="bg-slate-700/50 rounded-lg p-1.5 md:p-3 flex items-center justify-between hover:bg-slate-700 transition-colors">
                   <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0">
                     <span className={`font-bold text-xs md:text-sm ${getPositionColor(player.position)} w-8 md:w-10 flex-shrink-0`}>{player.position}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
-                      <p className="text-[10px] md:text-xs text-gray-400 truncate">{player.team}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[10px] md:text-xs text-gray-400 truncate">{player.team}</p>
+                        {getFixtureTimingText(player)}
+                      </div>
                     </div>
                     {player.is_captain && (
                       <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 bg-cyan-600 text-white rounded font-bold flex-shrink-0">C</span>
@@ -652,7 +767,7 @@ const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFiltere
 };
 
 const FPLMultiGameweekDashboard = () => {
-  const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate } = useFplData();
+  const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate, fixtureData } = useFplData();
   const [selectedView, setSelectedView] = useState('combined');
   const [selectedManager, setSelectedManager] = useState(null);
   const [filterType, setFilterType] = useState('all');
@@ -715,7 +830,7 @@ const FPLMultiGameweekDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
-      {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} />}
+      {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} fixtureData={fixtureData} />}
       <div className="max-w-7xl mx-auto p-2 sm:p-6">
         <header className="text-center mb-4 sm:mb-8">
           <div className="relative flex justify-center items-center max-w-md mx-auto mb-3">

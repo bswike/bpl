@@ -1,6 +1,34 @@
-import os, time, requests, sys, signal, subprocess, hashlib, json, uuid
+"""
+Unified FPL app for Fly.io + Upstash Redis
+Combines your existing scraper with SSE server
+"""
+
+import os, time, requests, signal, subprocess, hashlib, json, uuid, threading
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from flask import Flask, Response
+from flask_cors import CORS
+
+# ====== REDIS CONNECTION (Upstash) ======
+try:
+    import redis
+    redis_client = redis.Redis(
+        host=os.getenv('REDIS_HOST', 'localhost'),
+        port=int(os.getenv('REDIS_PORT', 6379)),
+        password=os.getenv('REDIS_PASSWORD'),
+        decode_responses=True,
+        ssl=True,
+        ssl_cert_reqs=None,
+        socket_connect_timeout=5,
+        socket_timeout=5,
+        retry_on_timeout=True
+    )
+    redis_client.ping()
+    REDIS_ENABLED = True
+    print("[redis] Connected to Upstash successfully", flush=True)
+except Exception as e:
+    REDIS_ENABLED = False
+    print(f"[redis] Connection failed: {e}. Push notifications disabled.", flush=True)
 
 # ====== CONFIG ======
 UPLOAD_ENDPOINT = os.getenv("BASE_UPLOAD_ENDPOINT", "https://swikle.com/api/upload-csv")
@@ -13,27 +41,29 @@ def _int_env(name, default):
     except Exception:
         return default
 
-GAMEDAY_INTERVAL = _int_env("GAMEDAY_INTERVAL_SECONDS", 300)
-NON_GAMEDAY_INTERVAL = _int_env("NON_GAMEDAY_INTERVAL_SECONDS", 10000)
+GAMEDAY_INTERVAL = _int_env("GAMEDAY_INTERVAL_SECONDS", 120)
+NON_GAMEDAY_INTERVAL = _int_env("NON_GAMEDAY_INTERVAL_SECONDS", 600)
 STATIC_INTERVAL = _int_env("INTERVAL_SECONDS", 0)
-
 ACTIVE = os.getenv("ACTIVE", "1")
 MAX_GAMEWEEK = _int_env("MAX_GAMEWEEK", 38)
+CHANNEL_NAME = 'fpl_updates'
 
 # ====== STATE ======
 file_hashes = {}
-running = True
+scraper_running = True
 
-# ====== SIGNALS ======
-def _stop(signum, frame):
-    global running
-    print("[shutdown] SIGINT/SIGTERM received, stopping after current cycle…", flush=True)
-    running = False
+# ====== FLASK SSE SERVER ======
+app = Flask(__name__)
 
-signal.signal(signal.SIGINT, _stop)
-signal.signal(signal.SIGTERM, _stop)
+# Configure CORS for your frontend
+CORS(app, origins=[
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://*.vercel.app",
+    os.getenv("FRONTEND_URL", "*")
+])
 
-# ====== UTILS ======
+# ====== UTILITIES ======
 def log(msg: str):
     print(f"[{datetime.utcnow().isoformat()}] {msg}", flush=True)
 
@@ -43,6 +73,134 @@ def bust():
 def get_file_hash(data: bytes) -> str:
     return hashlib.md5(data).hexdigest()
 
+# ====== PUSH NOTIFICATION ======
+def publish_update(event_type: str, data: dict):
+    """Publish update event to Redis for SSE clients"""
+    if not REDIS_ENABLED:
+        return
+    
+    try:
+        message = {
+            'type': event_type,
+            'timestamp': int(time.time()),
+            'data': data
+        }
+        redis_client.publish(CHANNEL_NAME, json.dumps(message))
+        log(f"[push] Published {event_type} event")
+    except Exception as e:
+        log(f"[push] Failed to publish: {e}")
+
+# ====== SSE ROUTES ======
+def event_stream():
+    """Generator that yields SSE formatted messages with reconnection handling"""
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        pubsub = None
+        try:
+            pubsub = redis_client.pubsub()
+            pubsub.subscribe(CHANNEL_NAME)
+            
+            # Send initial connection message
+            yield f"data: {json.dumps({'type': 'connected', 'timestamp': int(time.time())})}\n\n"
+            
+            last_heartbeat = time.time()
+            last_message = time.time()
+            
+            for message in pubsub.listen():
+                current_time = time.time()
+                last_message = current_time
+                
+                # Send heartbeat every 30 seconds
+                if current_time - last_heartbeat > 30:
+                    yield f"data: {json.dumps({'type': 'heartbeat', 'timestamp': int(current_time)})}\n\n"
+                    last_heartbeat = current_time
+                
+                # Check for stale connection (no messages for 5 minutes)
+                if current_time - last_message > 300:
+                    log("[SSE] Connection appears stale, reconnecting...")
+                    raise ConnectionError("Stale connection detected")
+                
+                # Process actual messages
+                if message['type'] == 'message':
+                    try:
+                        yield f"data: {message['data']}\n\n"
+                    except:
+                        continue
+                        
+        except Exception as e:
+            log(f"[SSE] Stream error: {e}, retrying... ({retry_count + 1}/{max_retries})")
+            retry_count += 1
+            if retry_count < max_retries:
+                time.sleep(2 ** retry_count)
+            else:
+                yield f"data: {json.dumps({'type': 'error', 'message': 'Connection lost'})}\n\n"
+                break
+        finally:
+            if pubsub:
+                try:
+                    pubsub.close()
+                except:
+                    pass
+
+@app.route('/sse/fpl-updates')
+def sse_endpoint():
+    """SSE endpoint that clients connect to"""
+    if not REDIS_ENABLED:
+        return {'error': 'Redis not available'}, 503
+    
+    return Response(
+        event_stream(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache, no-transform',
+            'X-Accel-Buffering': 'no',
+            'Connection': 'keep-alive',
+            'Content-Type': 'text/event-stream'
+        }
+    )
+
+@app.route('/health')
+def health():
+    """Health check endpoint"""
+    redis_status = 'unknown'
+    try:
+        if REDIS_ENABLED:
+            redis_client.ping()
+            redis_status = 'connected'
+        else:
+            redis_status = 'disabled'
+    except:
+        redis_status = 'error'
+    
+    status = {
+        'status': 'healthy' if redis_status in ['connected', 'disabled'] else 'degraded',
+        'redis': redis_status,
+        'scraper': 'running' if scraper_running else 'stopped',
+        'timestamp': int(time.time())
+    }
+    
+    code = 200 if status['status'] == 'healthy' else 503
+    return status, code
+
+@app.route('/')
+def root():
+    """Info page"""
+    return {
+        'service': 'FPL Dashboard Backend',
+        'version': '2.0-sse',
+        'endpoints': {
+            'sse': '/sse/fpl-updates',
+            'health': '/health'
+        },
+        'features': {
+            'redis': REDIS_ENABLED,
+            'push_notifications': REDIS_ENABLED
+        }
+    }
+
+# ====== YOUR EXISTING SCRAPER LOGIC ======
 def smart_upload_bytes(blob_name: str, data: bytes, content_type: str = "text/plain", headers: dict = None) -> bool:
     new_hash = get_file_hash(data)
     if blob_name in file_hashes and file_hashes[blob_name] == new_hash:
@@ -50,7 +208,10 @@ def smart_upload_bytes(blob_name: str, data: bytes, content_type: str = "text/pl
         return False
 
     try:
-        request_headers = {"Content-Type": content_type}
+        request_headers = {
+            "Content-Type": content_type,
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0"
+        }
         if headers:
             request_headers.update(headers)
 
@@ -66,30 +227,6 @@ def smart_upload_bytes(blob_name: str, data: bytes, content_type: str = "text/pl
 
 def smart_upload_csv(blob_name: str, data: bytes) -> bool:
     return smart_upload_bytes(blob_name, data, content_type="text/csv")
-
-def verify_file_accessible(blob_name: str, max_retries: int = 3, delay_seconds: float = 2.0) -> bool:
-    verify_url = f"{PUBLIC_BASE}{blob_name}?v={bust()}"
-    
-    for attempt in range(1, max_retries + 1):
-        try:
-            log(f"Verifying {blob_name} accessibility (attempt {attempt}/{max_retries})")
-            resp = requests.get(verify_url, timeout=15)
-            
-            if resp.status_code == 200:
-                log(f"Verified {blob_name} is accessible")
-                return True
-            else:
-                log(f"Verification failed for {blob_name}: HTTP {resp.status_code}")
-                
-        except Exception as e:
-            log(f"Verification attempt {attempt} failed for {blob_name}: {e}")
-        
-        if attempt < max_retries:
-            time.sleep(delay_seconds)
-            delay_seconds *= 1.5
-    
-    log(f"Failed to verify {blob_name} after {max_retries} attempts")
-    return False
 
 def run_scraper(cmd: list[str], expect_file: Path, timeout_sec: int = 90) -> bytes:
     try:
@@ -116,17 +253,6 @@ def run_scraper(cmd: list[str], expect_file: Path, timeout_sec: int = 90) -> byt
 def get_output_file_path(file_type: str, gw: int) -> Path:
     return Path(f"/app/fpl_{file_type}_gw{gw}.csv")
 
-# ----- Blob naming helpers -----
-def legacy_rosters_name(gw: int) -> str:
-    return f"fpl_rosters_points_gw{gw}.csv"
-
-def versioned_rosters_name(gw: int, content_hash: str) -> str:
-    return f"fpl_rosters_points_gw{gw}-{content_hash[:10]}.csv"
-
-def manifest_name() -> str:
-    return "fpl-league-manifest.json"
-
-# ====== SCRAPERS (No changes needed here) ======
 def scrape_rosters_bytes(gw: int) -> bytes:
     output_file = get_output_file_path("rosters_points", gw)
     return run_scraper([
@@ -138,7 +264,6 @@ def scrape_rosters_bytes(gw: int) -> bytes:
         "5898648", "872442", "468791", "8592148"
     ], output_file)
 
-# ====== GW DETECTION & GAME DAY (No changes needed here) ======
 def detect_current_gameweek() -> int:
     log("Detecting current gameweek...")
     latest_gw = 1
@@ -159,99 +284,138 @@ def detect_current_gameweek() -> int:
 
 def is_game_day() -> bool:
     now_utc = datetime.now(timezone.utc)
-    # Simple check for UK DST
     is_dst = 3 <= now_utc.month <= 10 and now_utc.replace(month=3, day=31).weekday() <= now_utc.weekday()
     uk_offset = 1 if is_dst else 0
     uk_time = now_utc.replace(tzinfo=None) + timedelta(hours=uk_offset)
     weekday = uk_time.weekday()
     hour = uk_time.hour
+    minute = uk_time.minute
+    
     is_weekend = weekday in [5, 6] and 12 <= hour <= 22
     is_midweek = weekday in [1, 2, 3] and 18 <= hour <= 22
-    return is_weekend or is_midweek
+    
+    # Friday 8pm-10:30pm UK time (3pm-5:30pm EST)
+    is_friday_early = weekday == 4 and (hour == 20 or hour == 21 or (hour == 22 and minute <= 30))
+    
+    return is_weekend or is_midweek or is_friday_early
 
 def get_dynamic_interval() -> int:
     if STATIC_INTERVAL > 0:
         return STATIC_INTERVAL
     return GAMEDAY_INTERVAL if is_game_day() else NON_GAMEDAY_INTERVAL
 
-# ====== MAIN UPLOAD STEP (VERSIONED + MANIFEST) ======
+# ====== ENHANCED UPLOAD WITH PUSH ======
 def scrape_and_upload_gameweek(gw: int) -> bool:
     try:
         rosters_data = scrape_rosters_bytes(gw)
         h = get_file_hash(rosters_data)
 
-        # Upload to LEGACY path (optional, for backward compatibility)
-        smart_upload_csv(legacy_rosters_name(gw), rosters_data)
+        # Upload to legacy path
+        smart_upload_csv(f"fpl_rosters_points_gw{gw}.csv", rosters_data)
 
-        # Upload to VERSIONED path (immutable)
-        ver_name = versioned_rosters_name(gw, h)
+        # Upload to versioned path
+        ver_name = f"fpl_rosters_points_gw{gw}-{h[:10]}.csv"
         ver_url = f"{PUBLIC_BASE}{ver_name}"
         version_uploaded = smart_upload_csv(ver_name, rosters_data)
 
         if version_uploaded:
             log(f"New version uploaded for GW{gw}, updating manifest...")
             
-            if not verify_file_accessible(ver_name):
-                log(f"ERROR: Versioned file {ver_name} not accessible, aborting manifest update")
-                return False
-
-            # **STEP 1: Create a uniquely named pointer file for this new version**
-            pointer_content = { "gw": gw, "url": ver_url, "hash": h, "updated": datetime.utcnow().isoformat() + "Z" }
+            # Create timestamped pointer
+            timestamp = int(time.time())
             unique_id = str(uuid.uuid4())[:8]
-            versioned_pointer_name = f"fpl_rosters_points_gw{gw}-latest-{unique_id}.json"
+            pointer_name = f"fpl_rosters_points_gw{gw}-{timestamp}-{unique_id}.json"
+            pointer_content = {
+                "gw": gw,
+                "url": ver_url,
+                "hash": h,
+                "timestamp": timestamp,
+                "updated": datetime.utcnow().isoformat() + "Z",
+                "version": unique_id
+            }
             
-            smart_upload_bytes(
-                versioned_pointer_name,
+            pointer_uploaded = smart_upload_bytes(
+                pointer_name,
                 json.dumps(pointer_content).encode("utf-8"),
                 content_type="application/json"
             )
-            versioned_pointer_url = f"{PUBLIC_BASE}{versioned_pointer_name}"
-            log(f"Uploaded versioned pointer: {versioned_pointer_name}")
+            
+            if not pointer_uploaded:
+                log(f"ERROR: Failed to upload pointer for GW{gw}")
+                return False
+                
+            pointer_url = f"{PUBLIC_BASE}{pointer_name}"
 
-            # **STEP 2: Update the central manifest file to point to the new unique pointer**
-            manifest_url = f"{PUBLIC_BASE}{manifest_name()}?v={bust()}"
+            # Update manifest
+            manifest_name = "fpl-league-manifest.json"
+            manifest_url = f"{PUBLIC_BASE}{manifest_name}?v={bust()}"
             try:
-                r = requests.get(manifest_url)
+                r = requests.get(manifest_url, timeout=10)
                 manifest_data = r.json() if r.ok else {}
             except Exception:
                 manifest_data = {}
             
-            if 'gameweeks' not in manifest_data: manifest_data['gameweeks'] = {}
-            manifest_data['gameweeks'][str(gw)] = versioned_pointer_url
+            if 'gameweeks' not in manifest_data: 
+                manifest_data['gameweeks'] = {}
+            
+            manifest_data['gameweeks'][str(gw)] = pointer_url
             manifest_data['updated'] = datetime.utcnow().isoformat() + "Z"
+            manifest_data['version'] = str(timestamp)
+            manifest_data['timestamp'] = timestamp
 
-            # **STEP 3: Upload the manifest with NO-CACHE headers**
-            no_cache_headers = {"x-cache-control": "max-age=0, no-cache, must-revalidate"}
             manifest_uploaded = smart_upload_bytes(
-                manifest_name(),
+                manifest_name,
                 json.dumps(manifest_data, indent=2).encode("utf-8"),
-                content_type="application/json",
-                headers=no_cache_headers
+                content_type="application/json"
             )
             
             if manifest_uploaded:
-                log(f"SUCCESS: Updated manifest for GW{gw} to point to {versioned_pointer_name}")
-            else:
-                log(f"ERROR: Failed to upload manifest for GW{gw}")
-                return False
+                log(f"SUCCESS: Updated manifest for GW{gw}")
+                
+                # Push notification to all connected clients
+                publish_update('gameweek_updated', {
+                    'gameweek': gw,
+                    'manifest_version': manifest_data['version'],
+                    'updated_at': manifest_data['updated']
+                })
+                
+                return True
         else:
-            log(f"GW{gw} content unchanged, manifest not updated")
+            log(f"GW{gw} content unchanged, no updates needed")
 
         return True
 
     except Exception as e:
         log(f"GW{gw} ERROR: {e}")
         try:
-            smart_upload_csv(legacy_rosters_name(gw), b"The game is being updated.")
+            smart_upload_csv(f"fpl_rosters_points_gw{gw}.csv", b"The game is being updated.")
         except Exception as upload_err:
             log(f"Failed to upload updating sentinel for GW{gw}: {upload_err}")
         return False
 
-# ====== LOOP ======
-if __name__ == "__main__":
-    log("Booting dynamic FPL scraper worker (versioned uploads + manifest system)…")
+# ====== BACKGROUND WORKERS ======
+def redis_health_check():
+    """Background thread to monitor Redis connection"""
+    while scraper_running:
+        try:
+            if REDIS_ENABLED:
+                redis_client.ping()
+        except Exception as e:
+            log(f"[redis] Health check failed: {e}, attempting reconnect...")
+            try:
+                redis_client.connection_pool.disconnect()
+                redis_client.ping()
+                log("[redis] Reconnected successfully")
+            except Exception as reconnect_err:
+                log(f"[redis] Reconnect failed: {reconnect_err}")
+        time.sleep(60)
 
-    while running:
+def scraper_worker():
+    """Background thread that runs the scraper"""
+    global scraper_running
+    log("Scraper worker started")
+    
+    while scraper_running:
         cycle_start_time = datetime.utcnow()
         try:
             if ACTIVE != "1":
@@ -273,8 +437,44 @@ if __name__ == "__main__":
         if sleep_time > 0:
             log(f"Sleeping for {sleep_time:.1f}s")
             slept = 0
-            while running and slept < sleep_time:
+            while scraper_running and slept < sleep_time:
                 time.sleep(1)
                 slept += 1
+    
+    log("Scraper worker stopped")
 
-    log("Exited cleanly.")
+# ====== SIGNAL HANDLERS ======
+def stop_gracefully(signum, frame):
+    global scraper_running
+    log("Received shutdown signal, stopping gracefully...")
+    scraper_running = False
+
+signal.signal(signal.SIGINT, stop_gracefully)
+signal.signal(signal.SIGTERM, stop_gracefully)
+
+# ====== STARTUP ======
+if __name__ == '__main__':
+    log("=" * 60)
+    log("Starting FPL Dashboard Backend v2.1")
+    log("Features: SSE Push Notifications + Background Scraper")
+    log(f"Redis: {'ENABLED (Upstash)' if REDIS_ENABLED else 'DISABLED'}")
+    log("=" * 60)
+    
+    # Start Redis health check thread
+    if REDIS_ENABLED:
+        health_thread = threading.Thread(target=redis_health_check, daemon=True)
+        health_thread.start()
+        log("Redis health monitor started")
+    
+    # Start scraper in background thread
+    scraper_thread = threading.Thread(target=scraper_worker, daemon=True)
+    scraper_thread.start()
+    log("Background scraper started")
+    
+    # Start Flask SSE server
+    port = int(os.getenv('PORT', 5000))
+    log(f"Starting SSE server on port {port}")
+    log(f"SSE endpoint: http://0.0.0.0:{port}/sse/fpl-updates")
+    log(f"Health check: http://0.0.0.0:{port}/health")
+    
+    app.run(host='0.0.0.0', port=port, threaded=True)
