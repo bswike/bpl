@@ -40,7 +40,7 @@ const FPLMultiGameweekDashboard = () => {
     script.async = true;
     script.onload = () => setPapaReady(true);
     script.onerror = () => {
-      setError("Error: Failed to load data parsing library.");
+      setError("Errors: Failed to load data parsing library.");
       setLoading(false);
     };
     document.body.appendChild(script);
