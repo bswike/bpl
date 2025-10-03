@@ -718,10 +718,16 @@ const renderPlayerRow = (player, idx) => {
   );
 };
 
-const StatCard = React.memo(({ title, value, unit, icon }) => (
+const StatCard = React.memo(({ title, value, unit, icon, onClick, isClickable }) => (
   <div className="bg-slate-800/50 rounded-lg p-2 shadow-lg border border-slate-700 text-center">
     <h3 className="text-xs font-bold text-cyan-300">{icon} {title}</h3>
-    <p className="text-lg sm:text-xl font-bold text-white break-words">{value}</p>
+    {isClickable ? (
+      <button onClick={onClick} className="text-lg sm:text-xl font-bold text-white break-words hover:text-cyan-400 transition-colors">
+        {value}
+      </button>
+    ) : (
+      <p className="text-lg sm:text-xl font-bold text-white break-words">{value}</p>
+    )}
     <p className="text-xs text-gray-400">{unit}</p>
   </div>
 ));
@@ -989,7 +995,14 @@ const FPLMultiGameweekDashboard = () => {
           />
         </header>
         <section className="grid grid-cols-2 gap-2 sm:gap-6 mb-4 sm:mb-8">
-          <StatCard icon="👑" title="Leader" value={leader?.manager_name || 'NA'} unit={`${leader?.total_points || 0} pts`} />
+          <StatCard 
+            icon="👑" 
+            title="Leader" 
+            value={leader?.manager_name || 'NA'} 
+            unit={`${leader?.total_points || 0} pts`} 
+            onClick={() => leader && handleManagerClick(leader)}
+            isClickable={!!leader}
+          />
           <StatCard icon="📊" title="Average" value={averageScore} unit="Points" />
         </section>
         <main>
