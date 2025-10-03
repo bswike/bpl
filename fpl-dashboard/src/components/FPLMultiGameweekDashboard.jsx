@@ -64,29 +64,44 @@ const fetchWithVersionCheck = async (url, signal) => {
 // --- Fixture Data Functions ---
 const fetchFixtureData = async () => {
   try {
-    const response = await fetch('https://fantasy.premierleague.com/api/bootstrap-static/');
+    console.log('Fetching fixture data from backend...');
+    const response = await fetch('https://bpl-red-sun-894.fly.dev/api/fixtures');
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
     const data = await response.json();
     
-    const fixturesResponse = await fetch('https://fantasy.premierleague.com/api/fixtures/');
-    const fixtures = await fixturesResponse.json();
-    
-    const teamMap = {};
-    data.teams.forEach(team => {
-      teamMap[team.id] = team.short_name;
+    console.log('Fixture data loaded successfully:', { 
+      fixturesCount: data.fixtures?.length || 0,
+      teamsCount: Object.keys(data.teamMap || {}).length,
+      playersCount: Object.keys(data.playerTeamMap || {}).length
     });
     
-    return { fixtures, teamMap };
+    return { 
+      fixtures: data.fixtures || [], 
+      teamMap: data.teamMap || {},
+      playerTeamMap: data.playerTeamMap || {}
+    };
   } catch (error) {
     console.error('Failed to fetch fixture data:', error);
-    return { fixtures: [], teamMap: {} };
+    return { fixtures: [], teamMap: {}, playerTeamMap: {} };
   }
 };
 
 const getFixtureInfo = (playerTeam, fixtures, teamMap) => {
+  // Only look at fixtures that haven't been fully processed yet (started=true means live/upcoming for current GW)
   const fixture = fixtures.find(f => {
     const homeTeam = teamMap[f.team_h];
     const awayTeam = teamMap[f.team_a];
-    return homeTeam === playerTeam || awayTeam === playerTeam;
+    const isTeamMatch = homeTeam === playerTeam || awayTeam === playerTeam;
+    
+    // Only consider fixtures that are either upcoming or currently live
+    // finished_provisional means the fixture has ended but bonus points aren't finalized
+    const isRelevant = !f.finished_provisional && !f.finished;
+    
+    return isTeamMatch && isRelevant;
   });
   
   if (!fixture || !fixture.kickoff_time) return null;
@@ -116,11 +131,7 @@ const getFixtureInfo = (playerTeam, fixtures, teamMap) => {
       minutesLeft: Math.max(0, 90 - minutesElapsed)
     };
   } else {
-    return {
-      status: 'finished',
-      kickoff: etTime,
-      minutesLeft: 0
-    };
+    return null; // Return null for finished matches so they don't show timing
   }
 };
 
@@ -134,7 +145,7 @@ const useFplData = () => {
   const [papaReady, setPapaReady] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [lastUpdate, setLastUpdate] = useState(null);
-  const [fixtureData, setFixtureData] = useState({ fixtures: [], teamMap: {} });
+  const [fixtureData, setFixtureData] = useState({ fixtures: [], teamMap: {}, playerTeamMap: {} });
   
   const cycleAbortRef = useRef(null);
   const fetchCycleIdRef = useRef(0);
@@ -157,16 +168,24 @@ const useFplData = () => {
     document.body.appendChild(script);
   }, []);
 
-  useEffect(() => {
-    const loadFixtures = async () => {
-      const data = await fetchFixtureData();
-      setFixtureData(data);
-    };
-    loadFixtures();
-    
-    const interval = setInterval(loadFixtures, 300000);
-    return () => clearInterval(interval);
-  }, []);
+useEffect(() => {
+  const loadFixtures = async () => {
+    console.log('Loading fixtures...');
+    const data = await fetchFixtureData();
+    console.log('Fixtures loaded:', {
+      fixturesCount: data.fixtures.length,
+      teamsCount: Object.keys(data.teamMap).length
+    });
+    setFixtureData(data);
+  };
+  
+  // Load immediately
+  loadFixtures();
+  
+  // Refresh every 5 minutes
+  const interval = setInterval(loadFixtures, 300000);
+  return () => clearInterval(interval);
+}, []);
 
   const parseCsvToManagers = useCallback((csvText, gameweek) => {
     if (!csvText || csvText.trim() === "The game is being updated.") return [];
@@ -459,29 +478,43 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData 
     return colors[pos] || 'text-gray-400';
   };
 
-  const getFixtureTimingText = (player) => {
-    if (!fixtureData.fixtures.length) return null;
-    
-    const fixtureInfo = getFixtureInfo(player.team, fixtureData.fixtures, fixtureData.teamMap);
-    if (!fixtureInfo) return null;
-    
-    if (fixtureInfo.status === 'upcoming') {
-      return (
-        <span className="text-[9px] text-gray-500">
-          {fixtureInfo.kickoff} • 90'
-        </span>
-      );
-    } else if (fixtureInfo.status === 'live') {
-      return (
-        <span className="text-[9px] text-yellow-400">
-          {fixtureInfo.minutesLeft}' left
-        </span>
-      );
-    }
-    
+const getFixtureTimingText = (player) => {
+  if (!fixtureData.fixtures.length || !fixtureData.playerTeamMap) {
     return null;
-  };
-
+  }
+  
+  // Try to find team using different name formats
+  let playerTeam = fixtureData.playerTeamMap[player.name];
+  
+  // If not found, try last name only (split by space and take last part)
+  if (!playerTeam && player.name.includes(' ')) {
+    const lastName = player.name.split(' ').pop();
+    playerTeam = fixtureData.playerTeamMap[lastName];
+  }
+  
+  if (!playerTeam) {
+    return null;
+  }
+  
+  const fixtureInfo = getFixtureInfo(playerTeam, fixtureData.fixtures, fixtureData.teamMap);
+  if (!fixtureInfo) return null;
+  
+  if (fixtureInfo.status === 'upcoming') {
+    return (
+      <span className="text-[9px] text-gray-500">
+        {fixtureInfo.kickoff} • 90'
+      </span>
+    );
+  } else if (fixtureInfo.status === 'live') {
+    return (
+      <span className="text-[9px] text-yellow-400">
+        {fixtureInfo.minutesLeft}' left
+      </span>
+    );
+  }
+  
+  return null;
+};
   const allPlayers = manager.players || [];
   const starters = allPlayers.filter(p => p.multiplier >= 1);
   const bench = allPlayers.filter(p => p.multiplier === 0);
