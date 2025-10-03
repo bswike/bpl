@@ -27,6 +27,7 @@ const FPLMultiGameweekDashboard = () => {
   const eventSourceRef = useRef(null);
   const manifestVersionRef = useRef(null);
   const fallbackIntervalRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
 
   // Load PapaParse script from a CDN
   useEffect(() => {
@@ -230,22 +231,23 @@ const FPLMultiGameweekDashboard = () => {
     }
   }, [processGameweekData]);
 
-  // SSE Connection Effect
-  useEffect(() => {
-    if (!papaReady) return;
+  // SSE Connection Setup with Reconnection Logic
+  const setupSSE = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
 
-    // Initial data fetch
-    fetchData();
-
-    // Setup SSE connection
     console.log('Attempting SSE connection to:', SSE_URL);
     const eventSource = new EventSource(SSE_URL);
     eventSourceRef.current = eventSource;
+    
+    const maxReconnectAttempts = 5;
 
     eventSource.onopen = () => {
       console.log('SSE connection established');
       setConnectionStatus('connected');
-      // Clear any fallback polling since SSE is working
+      reconnectAttemptsRef.current = 0;
+      
       if (fallbackIntervalRef.current) {
         clearInterval(fallbackIntervalRef.current);
         fallbackIntervalRef.current = null;
@@ -263,17 +265,18 @@ const FPLMultiGameweekDashboard = () => {
             break;
           
           case 'heartbeat':
-            // Connection is alive
             break;
           
           case 'gameweek_updated':
             console.log('Gameweek update detected:', message.data);
-            
-            // Check if this is a new version
             if (message.data.manifest_version !== manifestVersionRef.current) {
               console.log('New data version detected, refreshing...');
               fetchData();
             }
+            break;
+          
+          case 'error':
+            console.error('SSE error message:', message.message);
             break;
           
           default:
@@ -287,17 +290,41 @@ const FPLMultiGameweekDashboard = () => {
     eventSource.onerror = (error) => {
       console.error('SSE connection error:', error);
       setConnectionStatus('disconnected');
+      eventSource.close();
       
-      // Setup fallback polling if SSE fails
-      if (!fallbackIntervalRef.current) {
-        console.log('SSE failed, falling back to polling every 5 minutes');
-        fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+        console.log(`SSE reconnecting in ${delay}ms... (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
+        reconnectAttemptsRef.current++;
+        
+        setTimeout(() => {
+          if (!eventSourceRef.current || eventSourceRef.current.readyState !== EventSource.OPEN) {
+            setupSSE();
+          }
+        }, delay);
+      } else {
+        console.log('Max SSE reconnection attempts reached, falling back to polling');
+        if (!fallbackIntervalRef.current) {
+          fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+        }
       }
     };
 
-    // Cleanup on unmount
+    return eventSource;
+  }, [fetchData]);
+
+  // SSE Connection Effect
+  useEffect(() => {
+    if (!papaReady) return;
+
+    fetchData();
+    const eventSource = setupSSE();
+
     return () => {
       console.log('Cleaning up SSE connection');
+      if (eventSource) {
+        eventSource.close();
+      }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
@@ -310,7 +337,7 @@ const FPLMultiGameweekDashboard = () => {
         cycleAbortRef.current.abort();
       }
     };
-  }, [papaReady, fetchData]);
+  }, [papaReady, setupSSE, fetchData]);
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -337,7 +364,6 @@ const FPLMultiGameweekDashboard = () => {
 
   const gameweekRangeText = availableGameweeks.length > 0 ? `GW${availableGameweeks[0]}-${availableGameweeks[availableGameweeks.length - 1]}` : '';
 
-  // Connection status indicator color and text
   const statusColor = connectionStatus === 'connected' ? 'bg-green-500' : 
                      connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500';
   const statusText = connectionStatus === 'connected' ? 'Live' : 

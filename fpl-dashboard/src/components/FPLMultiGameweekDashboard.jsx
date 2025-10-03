@@ -77,6 +77,7 @@ const useFplData = () => {
   const eventSourceRef = useRef(null);
   const manifestVersionRef = useRef(null);
   const fallbackIntervalRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
 
   useEffect(() => {
     if (window.Papa) {
@@ -247,16 +248,22 @@ const useFplData = () => {
     }
   }, [processGameweekData]);
 
-  useEffect(() => {
-    if (!papaReady) return;
-    fetchData();
+  const setupSSE = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+
     console.log('Attempting SSE connection to:', SSE_URL);
     const eventSource = new EventSource(SSE_URL);
     eventSourceRef.current = eventSource;
+    
+    const maxReconnectAttempts = 5;
 
     eventSource.onopen = () => {
       console.log('SSE connection established');
       setConnectionStatus('connected');
+      reconnectAttemptsRef.current = 0;
+      
       if (fallbackIntervalRef.current) {
         clearInterval(fallbackIntervalRef.current);
         fallbackIntervalRef.current = null;
@@ -267,6 +274,7 @@ const useFplData = () => {
       try {
         const message = JSON.parse(event.data);
         console.log('SSE message received:', message);
+        
         switch (message.type) {
           case 'connected':
             console.log('SSE connected at', message.timestamp);
@@ -280,6 +288,9 @@ const useFplData = () => {
               fetchData();
             }
             break;
+          case 'error':
+            console.error('SSE error message:', message.message);
+            break;
           default:
             console.log('Unknown SSE message type:', message.type);
         }
@@ -291,14 +302,40 @@ const useFplData = () => {
     eventSource.onerror = (error) => {
       console.error('SSE connection error:', error);
       setConnectionStatus('disconnected');
-      if (!fallbackIntervalRef.current) {
-        console.log('SSE failed, falling back to polling every 5 minutes');
-        fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+      eventSource.close();
+      
+      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+        console.log(`SSE reconnecting in ${delay}ms... (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
+        reconnectAttemptsRef.current++;
+        
+        setTimeout(() => {
+          if (!eventSourceRef.current || eventSourceRef.current.readyState !== EventSource.OPEN) {
+            setupSSE();
+          }
+        }, delay);
+      } else {
+        console.log('Max SSE reconnection attempts reached, falling back to polling');
+        if (!fallbackIntervalRef.current) {
+          fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+        }
       }
     };
 
+    return eventSource;
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (!papaReady) return;
+    
+    fetchData();
+    const eventSource = setupSSE();
+
     return () => {
       console.log('Cleaning up SSE connection');
+      if (eventSource) {
+        eventSource.close();
+      }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
@@ -311,7 +348,7 @@ const useFplData = () => {
         cycleAbortRef.current.abort();
       }
     };
-  }, [fetchData, papaReady]);
+  }, [papaReady, setupSSE, fetchData]);
 
   return { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate };
 };
@@ -628,21 +665,16 @@ const FPLMultiGameweekDashboard = () => {
     }
   }, [loading, availableGameweeks, latestGameweek]);
 
-   // --- NEW CODE STARTS HERE ---
-  // This effect will prevent the background from scrolling when the modal is open
   useEffect(() => {
     if (selectedManager) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
-    // Cleanup function to ensure scrolling is restored if the component unmounts
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [selectedManager]); // This effect runs whenever 'selectedManager' changes
-  // --- NEW CODE ENDS HERE ---
-
+  }, [selectedManager]);
 
   const currentData = useMemo(() => {
     if (selectedView === 'combined') return combinedData;

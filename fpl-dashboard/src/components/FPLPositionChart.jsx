@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import Papa from 'papaparse';
 
@@ -65,6 +65,7 @@ const DarkFPLPositionChart = () => {
   const eventSourceRef = useRef(null);
   const manifestVersionRef = useRef(null);
   const fallbackIntervalRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
 
   const hardcodedGW1Data = {
     totals: [
@@ -159,7 +160,7 @@ const DarkFPLPositionChart = () => {
     return <circle cx={cx} cy={cy} r={4} fill={fill} />;
   };
 
-  const processGameweekData = async (gameweek, manifest, signal) => {
+  const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     if (gameweek === 1) return hardcodedGW1Data;
 
     try {
@@ -186,7 +187,7 @@ const DarkFPLPositionChart = () => {
       }
       return { totals: [], bench: [] };
     }
-  };
+  }, []);
 
   const parseCsv = (csvText, gameweek) => {
     const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
@@ -220,7 +221,7 @@ const DarkFPLPositionChart = () => {
     };
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (abortRef.current) abortRef.current.abort();
     const abort = new AbortController();
     abortRef.current = abort;
@@ -244,7 +245,6 @@ const DarkFPLPositionChart = () => {
       
       const manifest = await manifestRes.json();
       
-      // Store manifest version for SSE comparison
       manifestVersionRef.current = manifest.version;
 
       const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
@@ -349,19 +349,24 @@ const DarkFPLPositionChart = () => {
         if (fetchCycleIdRef.current === myId) setLoading(false);
       }
     }
-  };
+  }, [processGameweekData]);
 
-  // SSE Connection Effect
-  useEffect(() => {
-    fetchData();
+  const setupSSE = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
 
     console.log('Attempting SSE connection to:', SSE_URL);
     const eventSource = new EventSource(SSE_URL);
     eventSourceRef.current = eventSource;
+    
+    const maxReconnectAttempts = 5;
 
     eventSource.onopen = () => {
       console.log('SSE connection established');
       setConnectionStatus('connected');
+      reconnectAttemptsRef.current = 0;
+      
       if (fallbackIntervalRef.current) {
         clearInterval(fallbackIntervalRef.current);
         fallbackIntervalRef.current = null;
@@ -389,6 +394,10 @@ const DarkFPLPositionChart = () => {
             }
             break;
           
+          case 'error':
+            console.error('SSE error message:', message.message);
+            break;
+          
           default:
             console.log('Unknown SSE message type:', message.type);
         }
@@ -400,15 +409,38 @@ const DarkFPLPositionChart = () => {
     eventSource.onerror = (error) => {
       console.error('SSE connection error:', error);
       setConnectionStatus('disconnected');
+      eventSource.close();
       
-      if (!fallbackIntervalRef.current) {
-        console.log('SSE failed, falling back to polling every 5 minutes');
-        fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+        console.log(`SSE reconnecting in ${delay}ms... (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
+        reconnectAttemptsRef.current++;
+        
+        setTimeout(() => {
+          if (!eventSourceRef.current || eventSourceRef.current.readyState !== EventSource.OPEN) {
+            setupSSE();
+          }
+        }, delay);
+      } else {
+        console.log('Max SSE reconnection attempts reached, falling back to polling');
+        if (!fallbackIntervalRef.current) {
+          fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+        }
       }
     };
 
+    return eventSource;
+  }, [fetchData]);
+
+  useEffect(() => {
+    fetchData();
+    const eventSource = setupSSE();
+
     return () => {
       console.log('Cleaning up SSE connection');
+      if (eventSource) {
+        eventSource.close();
+      }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
@@ -421,7 +453,7 @@ const DarkFPLPositionChart = () => {
         abortRef.current.abort();
       }
     };
-  }, []);
+  }, [fetchData, setupSSE]);
 
   const maxGameweek = chartData.length > 0 ? chartData.length : 1;
 
@@ -551,7 +583,7 @@ const DarkFPLPositionChart = () => {
           <div className="p-6 border-b border-red-700/50 bg-gradient-to-r from-red-900/20 to-red-800/20">
             <h2 className="text-lg font-semibold text-gray-100">Bench Champions</h2>
             <p className="text-gray-400 text-sm">Highest unused substitute points</p>
-          </div>
+            </div>
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {benchData.slice(0, 6).map((manager, index) => (
