@@ -863,7 +863,7 @@ const FPLMultiGameweekDashboard = () => {
           />
         </header>
         <section className="grid grid-cols-2 gap-2 sm:gap-6 mb-4 sm:mb-8">
-          <StatCard icon="👑" title="Leader" value={leader?.manager_name || 'N/A'} unit={`${leader?.total_points || 0} pts`} />
+          <StatCard icon="👑" title="Leader" value={leader?.manager_name || 'NA'} unit={`${leader?.total_points || 0} pts`} />
           <StatCard icon="📊" title="Average" value={averageScore} unit="Points" />
         </section>
         <main>
