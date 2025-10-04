@@ -239,22 +239,22 @@ useEffect(() => {
       .map((m, i) => ({ ...m, position: i + 1, gameweek }));
   }, []);
 
-  const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
+const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     if (gameweek === 1) return HARDCODED_GW1_DATA;
     try {
-      const pointerUrl = manifest?.gameweeks?.[gameweek];
-      if (!pointerUrl) throw new Error(`No pointer URL for GW${gameweek} in manifest`);
-      const pointerRes = await fetchWithVersionCheck(pointerUrl, signal);
-      if (!pointerRes.ok) throw new Error(`Could not fetch pointer for GW${gameweek} (${pointerRes.status})`);
-      const pointerData = await pointerRes.json();
-      const csvUrl = pointerData?.url;
-      if (!csvUrl) throw new Error(`Malformed pointer for GW${gameweek}`);
-      const pointerTimestamp = pointerData?.timestamp;
-      if (pointerTimestamp && Date.now() - (pointerTimestamp * 1000) > 3600000) {
-        console.warn(`Pointer for GW${gameweek} is over 1 hour old`);
+      // Get gameweek info directly from manifest (no more pointer files!)
+      const gwInfo = manifest?.gameweeks?.[String(gameweek)];
+      if (!gwInfo) throw new Error(`No data for GW${gameweek} in manifest`);
+      
+      const gwTimestamp = gwInfo?.timestamp;
+      if (gwTimestamp && Date.now() - (gwTimestamp * 1000) > 3600000) {
+        console.warn(`Data for GW${gameweek} is over 1 hour old`);
       }
-      const csvRes = await fetchWithNoCaching(`${csvUrl}?${superBust()}`, signal);
-      if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for ${csvUrl}`);
+      
+      // Fetch CSV through backend proxy to bypass CDN caching
+      const proxyUrl = `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
+      const csvRes = await fetchWithNoCaching(proxyUrl, signal);
+      if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for GW${gameweek}`);
       const csvText = await csvRes.text();
       return parseCsvToManagers(csvText, gameweek);
     } catch (err) {
