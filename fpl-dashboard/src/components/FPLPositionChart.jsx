@@ -159,34 +159,35 @@ const DarkFPLPositionChart = () => {
     return <circle cx={cx} cy={cy} r={4} fill={fill} />;
   };
 
-  const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
-    if (gameweek === 1) return hardcodedGW1Data;
+const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
+  if (gameweek === 1) return hardcodedGW1Data;
 
-    try {
-      const pointerUrl = manifest?.gameweeks?.[gameweek];
-      if (!pointerUrl) throw new Error(`No pointer URL for GW${gameweek} in manifest`);
-
-      const pointerRes = await fetch(`${pointerUrl}?v=${bust()}`, { cache: 'no-store', signal });
-      if (!pointerRes.ok) throw new Error(`Could not fetch pointer for GW${gameweek} (${pointerRes.status})`);
-      const pointerData = await pointerRes.json();
-      
-      const csvUrl = pointerData?.url;
-      if (!csvUrl) throw new Error(`Malformed pointer for GW${gameweek}`);
-
-      const csvRes = await fetch(csvUrl, { cache: 'no-store', signal });
-      if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for ${csvUrl}`);
-      const csvText = await csvRes.text();
-      
-      if (csvText.trim() === "The game is being updated.") return { totals: [], bench: [] };
-      
-      return parseCsv(csvText, gameweek);
-    } catch (err) {
-      if (err?.name !== 'AbortError') {
-        console.error(`GW${gameweek} fetch failed:`, err);
-      }
-      return { totals: [], bench: [] };
+  try {
+    // Get gameweek info directly from manifest (no more pointer files!)
+    const gwInfo = manifest?.gameweeks?.[String(gameweek)];
+    if (!gwInfo) throw new Error(`No data for GW${gameweek} in manifest`);
+    
+    const gwTimestamp = gwInfo?.timestamp;
+    if (gwTimestamp && Date.now() - (gwTimestamp * 1000) > 3600000) {
+      console.warn(`Data for GW${gameweek} is over 1 hour old`);
     }
-  }, []);
+    
+    // Fetch CSV through backend proxy to bypass CDN caching
+    const proxyUrl = `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
+    const csvRes = await fetch(proxyUrl, { cache: 'no-store', signal });
+    if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for GW${gameweek}`);
+    const csvText = await csvRes.text();
+    
+    if (csvText.trim() === "The game is being updated.") return { totals: [], bench: [] };
+    
+    return parseCsv(csvText, gameweek);
+  } catch (err) {
+    if (err?.name !== 'AbortError') {
+      console.error(`GW${gameweek} fetch failed:`, err);
+    }
+    return { totals: [], bench: [] };
+  }
+}, []);
 
   const parseCsv = (csvText, gameweek) => {
     const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
