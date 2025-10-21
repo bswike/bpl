@@ -13,7 +13,7 @@ const normalizeStr = (s) => (s ?? '').toString().normalize('NFC').replace(/\u00A
 const ChipsManagerRow = React.memo(({ manager, rank, data, onManagerClick }) => {
   // manager is from chipsData: { manager_name, chips: [...] }
   // data is the main mergedData state: [{ manager_name, team_name, gameweeks: {...} }, ...]
-  
+
   const managerFullData = data.find(m => m.manager_name === manager.manager_name);
   const totalChips = manager.chips.length;
 
@@ -60,28 +60,24 @@ const ChipsManagerRow = React.memo(({ manager, rank, data, onManagerClick }) => 
         </div>
         <div className="grid grid-cols-4 gap-1 text-center text-[10px] mt-1">
           <div className="bg-slate-900/50 p-0.5 rounded">
-            {/* --- CHANGED --- */}
             <p className="font-semibold text-purple-400 truncate">Wildcard</p>
             <div className="text-gray-200 font-medium">{renderChipInfo(wildcards, 'wildcard')}</div>
           </div>
           <div className="bg-slate-900/50 p-0.5 rounded">
-            {/* --- CHANGED --- */}
             <p className="font-semibold text-cyan-400 truncate">Free Hit</p>
             <div className="text-gray-200 font-medium">{renderChipInfo(freehits, 'freehit')}</div>
           </div>
           <div className="bg-slate-900/50 p-0.5 rounded">
-            {/* --- CHANGED --- */}
             <p className="font-semibold text-yellow-400 truncate">Bench Boost</p>
             <div className="text-gray-200 font-medium">{renderChipInfo(bboosts, 'bboost')}</div>
           </div>
           <div className="bg-slate-900/50 p-0.5 rounded">
-            {/* --- CHANGED --- */}
             <p className="font-semibold text-orange-400 truncate">Triple Cap</p>
             <div className="text-gray-200 font-medium">{renderChipInfo(tripleCaps, '3xc')}</div>
           </div>
         </div>
       </div>
-      
+
       {/* Desktop View */}
       <div className="hidden md:grid md:grid-cols-6 gap-3 items-center text-sm px-3 py-1">
         <div className="md:col-span-2 flex items-center gap-3">
@@ -119,8 +115,8 @@ const ChipsLeaderboard = ({ chipsData, data, onManagerClick }) => {
       </div>
       {/* Rows */}
       {sortedChipsData.map((manager, idx) => (
-        <ChipsManagerRow 
-          key={manager.manager_name} 
+        <ChipsManagerRow
+          key={manager.manager_name}
           manager={manager}
           rank={idx + 1}
           data={data} // Pass the main mergedData array
@@ -189,12 +185,12 @@ const FPLMultiGameweekDashboard = () => {
     try {
       const gwInfo = manifest?.gameweeks?.[String(gameweek)];
       if (!gwInfo) throw new Error(`No data for GW${gameweek} in manifest`);
-      
+
       const proxyUrl = `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
       const csvRes = await fetch(proxyUrl, { cache: 'no-store', signal });
       if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for GW${gameweek}`);
       const csvText = await csvRes.text();
-      
+
       if (csvText.trim() === "The game is being updated.") return [];
 
       const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
@@ -213,6 +209,7 @@ const FPLMultiGameweekDashboard = () => {
     }
   }, []);
 
+  // *** CORRECTED fetchData ***
   const fetchData = useCallback(async () => {
     if (cycleAbortRef.current) cycleAbortRef.current.abort();
     const abort = new AbortController();
@@ -227,17 +224,17 @@ const FPLMultiGameweekDashboard = () => {
         'https://bpl-red-sun-894.fly.dev/api/manifest',
         { cache: 'no-store', signal: abort.signal }
       );
-      
+
       if (!manifestRes.ok) {
         throw new Error(`Could not load league manifest (${manifestRes.status})`);
       }
-      
+
       const manifest = await manifestRes.json();
       manifestVersionRef.current = manifest.version;
 
       const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
       const available = [...new Set([1, ...remoteGameweeks])].sort((a, b) => a - b);
-      
+
       if (available.length === 0) {
         throw new Error("No gameweek data found in manifest.");
       }
@@ -247,103 +244,135 @@ const FPLMultiGameweekDashboard = () => {
 
       const gameweekPromises = available.map(async (gw) => {
         if (gw === 1) {
+          // GW1 data needs the bench_points field added if your backend adds it
           return [
-            { manager_name: "Garrett Kunkel", entry_team_name: "kunkel_fpl", player: "TOTAL", points_applied: 78, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Andrew Vidal", entry_team_name: "Las Cucarachas", player: "TOTAL", points_applied: 76, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Brett Swikle", entry_team_name: "swikle_time", player: "TOTAL", points_applied: 74, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "John Matthew", entry_team_name: "matthewfpl", player: "TOTAL", points_applied: 73, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Jared Alexander", entry_team_name: "Jared's Jinxes", player: "TOTAL", points_applied: 67, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Joe Curran", entry_team_name: "Curran's Crew", player: "TOTAL", points_applied: 64, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "John Sebastian", entry_team_name: "Sebastian Squad", player: "TOTAL", points_applied: 62, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Nate Cohen", entry_team_name: "Cohen's Corner", player: "TOTAL", points_applied: 60, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Chris Munoz", entry_team_name: "Munoz Magic", player: "TOTAL", points_applied: 60, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Evan Bagheri", entry_team_name: "Bagheri's Best", player: "TOTAL", points_applied: 57, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Dean Maghsadi", entry_team_name: "Dean's Dream", player: "TOTAL", points_applied: 55, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Brian Pleines", entry_team_name: "Pleines Power", player: "TOTAL", points_applied: 53, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Max Maier", entry_team_name: "Maier's Marvels", player: "TOTAL", points_applied: 53, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Adrian McLoughlin", entry_team_name: "McLoughlin FC", player: "TOTAL", points_applied: 52, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Wes H", entry_team_name: "Wes Warriors", player: "TOTAL", points_applied: 50, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Kevin Tomek", entry_team_name: "Tomek's Team", player: "TOTAL", points_applied: 48, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Kevin K", entry_team_name: "Kevin's Kicks", player: "TOTAL", points_applied: 41, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Tony Tharakan", entry_team_name: "Tharakan's Threat", player: "TOTAL", points_applied: 39, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "JP Fischer", entry_team_name: "Fischer's Force", player: "TOTAL", points_applied: 35, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Patrick McCleary", entry_team_name: "McCleary's Might", player: "TOTAL", points_applied: 34, is_captain: 'False', multiplier: 1, points_gw: 0 }
+            { manager_name: "Garrett Kunkel", entry_team_name: "kunkel_fpl", player: "TOTAL", points_applied: 78, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Andrew Vidal", entry_team_name: "Las Cucarachas", player: "TOTAL", points_applied: 76, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Brett Swikle", entry_team_name: "swikle_time", player: "TOTAL", points_applied: 74, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "John Matthew", entry_team_name: "matthewfpl", player: "TOTAL", points_applied: 73, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Jared Alexander", entry_team_name: "Jared's Jinxes", player: "TOTAL", points_applied: 67, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Joe Curran", entry_team_name: "Curran's Crew", player: "TOTAL", points_applied: 64, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "John Sebastian", entry_team_name: "Sebastian Squad", player: "TOTAL", points_applied: 62, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Nate Cohen", entry_team_name: "Cohen's Corner", player: "TOTAL", points_applied: 60, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Chris Munoz", entry_team_name: "Munoz Magic", player: "TOTAL", points_applied: 60, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Evan Bagheri", entry_team_name: "Bagheri's Best", player: "TOTAL", points_applied: 57, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Dean Maghsadi", entry_team_name: "Dean's Dream", player: "TOTAL", points_applied: 55, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Brian Pleines", entry_team_name: "Pleines Power", player: "TOTAL", points_applied: 53, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Max Maier", entry_team_name: "Maier's Marvels", player: "TOTAL", points_applied: 53, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Adrian McLoughlin", entry_team_name: "McLoughlin FC", player: "TOTAL", points_applied: 52, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Wes H", entry_team_name: "Wes Warriors", player: "TOTAL", points_applied: 50, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Kevin Tomek", entry_team_name: "Tomek's Team", player: "TOTAL", points_applied: 48, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Kevin K", entry_team_name: "Kevin's Kicks", player: "TOTAL", points_applied: 41, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Tony Tharakan", entry_team_name: "Tharakan's Threat", player: "TOTAL", points_applied: 39, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "JP Fischer", entry_team_name: "Fischer's Force", player: "TOTAL", points_applied: 35, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+            { manager_name: "Patrick McCleary", entry_team_name: "McCleary's Might", player: "TOTAL", points_applied: 34, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 }
           ];
         }
         return await processGameweekData(gw, manifest, abort.signal);
       });
-      
+
       const results = await Promise.all(gameweekPromises);
-      const managerData = {};
+      const managerData = {}; // Aggregate data across all gameweeks
 
       results.forEach((gwData, gwIndex) => {
         const gameweek = available[gwIndex];
-        const managerStatsThisGw = {};
+        const managerStatsThisGw = {}; // Temporary store for the current gameweek's stats
 
+        // Process each row from the CSV data for the current gameweek
         gwData.forEach(row => {
-          if (!row.manager_name) return;
+          if (!row.manager_name) return; // Skip rows without manager name
 
-          if (!managerStatsThisGw[row.manager_name]) {
-            managerStatsThisGw[row.manager_name] = {
+          const managerName = normalizeStr(row.manager_name);
+          const currentTeamName = normalizeStr(row.entry_team_name);
+
+          // Initialize manager entry for this gameweek if not seen yet
+          if (!managerStatsThisGw[managerName]) {
+            managerStatsThisGw[managerName] = {
               total_points: 0,
-              bench_points: 0,
+              bench_points: 0, // Initialize
               captain_player: 'N/A',
               captain_points: 0,
-              team_name: normalizeStr(row.entry_team_name)
+              team_name: currentTeamName // Initial team name
             };
           }
 
-          if (row.player === 'TOTAL') {
-    managerStatsThisGw[managerName].total_points = row.points_applied;
-    // *** ADD THIS LINE: Read bench_points directly from the TOTAL row ***
-    managerStatsThisGw[managerName].bench_points = parseFloat(row.bench_points) || 0;
-  } else { // Only process player-specific details for non-TOTAL rows
-    if (row.is_captain === 'True') {
-      managerStatsThisGw[managerName].captain_player = row.player;
-      managerStatsThisGw[managerName].captain_points = parseFloat(row.points_gw) || 0;
-    }}
-        });
+          // Always update team name in case it changes or is inconsistent
+          managerStatsThisGw[managerName].team_name = currentTeamName;
 
-        Object.entries(managerStatsThisGw).forEach(([name, stats]) => {
+          // Process the TOTAL row specifically
+          if (row.player === 'TOTAL') {
+            managerStatsThisGw[managerName].total_points = parseFloat(row.points_applied) || 0;
+            // Read bench points directly from the TOTAL row (provided by backend)
+            managerStatsThisGw[managerName].bench_points = parseFloat(row.bench_points) || 0;
+          }
+          // Process player rows (non-TOTAL)
+          else {
+            // Check if this player is the captain
+            const isCaptain = row.is_captain === true || ['True', 'true', 1, '1'].includes(row.is_captain);
+             if (isCaptain) {
+                 managerStatsThisGw[managerName].captain_player = row.player;
+                 // Captain points are their raw GW points (before multiplier)
+                 managerStatsThisGw[managerName].captain_points = parseFloat(row.points_gw) || 0;
+             }
+          }
+        }); // End gwData.forEach
+
+        // Aggregate the stats for this gameweek into the overall managerData
+        Object.entries(managerStatsThisGw).forEach(([name, stats]) => { // 'name' here IS the managerName
+          // Initialize manager in overall data if first time seeing them
           if (!managerData[name]) {
             managerData[name] = {
               manager_name: name,
-              team_name: stats.team_name,
-              total_points: 0,
-              bench_points: 0,
-              gameweeks: {}
+              team_name: stats.team_name, // Set initial overall team name
+              total_points: 0, // Cumulative total points
+              gameweeks: {} // Store per-gameweek details
             };
           }
+
+          // Add this gameweek's points to the cumulative total
           managerData[name].total_points += stats.total_points;
-          managerData[name].bench_points += stats.bench_points;
+          // Update overall team name (usually the latest one encountered)
+          managerData[name].team_name = stats.team_name;
+
+          // Store the detailed stats for this specific gameweek
           managerData[name].gameweeks[gameweek] = {
             points: stats.total_points,
             captain: stats.captain_player,
             captain_points: stats.captain_points,
-            bench_points: stats.bench_points,
-            chip_used: null
+            bench_points: stats.bench_points, // Store the value read from TOTAL row
+            chip_used: null // Will be populated by mergedData later
           };
-        });
-      });
-      
-      const combinedData = Object.values(managerData);
-      
-      const sortedData = combinedData
+        }); // End Object.entries
+
+      }); // End results.forEach
+
+      // Convert aggregated data object to an array
+      const combinedDataArray = Object.values(managerData);
+
+      // Sort managers based on cumulative total points
+       const sortedData = combinedDataArray
         .sort((a, b) => {
           if (b.total_points !== a.total_points) {
             return b.total_points - a.total_points;
           }
-          return a.manager_name.localeCompare(b.manager_name);
+          return a.manager_name.localeCompare(b.manager_name); // Secondary sort by name
         })
         .map((item, index) => {
-          const totalManagers = combinedData.length;
+          // Add rank and designation based on sorted position
+          const totalManagers = combinedDataArray.length;
           let designation = 'Mid-table';
           if (index < 4) designation = 'Champions League';
           else if (index === 4) designation = 'Europa League';
           else if (index >= totalManagers - 3) designation = 'Relegation';
 
-          // Set default chips: [] here. This is the raw data.
-          return { ...item, rank: index + 1, designation, displayName: item.manager_name, chips: [] };
+          // Return the final structure for the raw data state
+          return {
+            ...item,
+            rank: index + 1,
+            designation,
+            displayName: item.manager_name, // Use manager_name for display
+            chips: [] // Initialize chips array (will be merged later)
+          };
         });
 
       if (fetchCycleIdRef.current === myId && !abort.signal.aborted) {
@@ -362,6 +391,7 @@ const FPLMultiGameweekDashboard = () => {
       }
     }
   }, [processGameweekData]);
+  // *** END CORRECTED fetchData ***
 
   // *** FIX: Create a "mergedData" state using useMemo ***
   const mergedData = useMemo(() => {
@@ -462,13 +492,13 @@ const FPLMultiGameweekDashboard = () => {
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      const gwBreakdown = availableGameweeks.map(gw => `GW${gw}: ${data.gameweeks[gw]?.points || 0}`).join(' | ');
+      const tooltipData = payload[0].payload; // Renamed to avoid conflict
+      const gwBreakdown = availableGameweeks.map(gw => `GW${gw}: ${tooltipData.gameweeks[gw]?.points || 0}`).join(' | ');
       return (
         <div className="bg-slate-800 text-white p-2 rounded-md shadow-lg border border-slate-600">
-          <p className="font-bold text-sm">{data.manager_name}</p>
-          <p className="text-gray-400 text-xs mb-1">"{data.team_name}"</p>
-          <p className="font-semibold text-cyan-300 text-xs">Total: {data.total_points} pts</p>
+          <p className="font-bold text-sm">{tooltipData.manager_name}</p>
+          <p className="text-gray-400 text-xs mb-1">"{tooltipData.team_name}"</p>
+          <p className="font-semibold text-cyan-300 text-xs">Total: {tooltipData.total_points} pts</p>
           <p className="text-gray-300 text-[10px] mt-1">{gwBreakdown}</p>
         </div>
       );
@@ -491,16 +521,16 @@ const FPLMultiGameweekDashboard = () => {
     const chipStats = selectedManager.chips?.map(chip => {
       const gwData = selectedManager.gameweeks[chip.event];
       const gwTotalPoints = gwData?.points || 0;
-      
+
       // Calculate actual chip benefit based on chip type
       let chipBenefit = 0;
       let benefitLabel = '';
-      
+
       if (chip.name === '3xc') {
-        chipBenefit = gwData?.captain_points || 0;
-        benefitLabel = `${gwData?.captain || 'N/A'} scored ${chipBenefit} pts`;
+        chipBenefit = gwData?.captain_points || 0; // Captain points ARE the raw points before multiplier
+        benefitLabel = `${gwData?.captain || 'N/A'} scored ${chipBenefit} raw pts (x3)`;
       } else if (chip.name === 'bboost') {
-        chipBenefit = gwData?.bench_points || 0;
+        chipBenefit = gwData?.bench_points || 0; // Use the value read from CSV
         benefitLabel = `Bench scored ${chipBenefit} pts`;
       } else if (chip.name === 'freehit') {
         chipBenefit = gwTotalPoints;
@@ -521,11 +551,11 @@ const FPLMultiGameweekDashboard = () => {
     const totalChipBenefit = chipStats.reduce((sum, chip) => sum + chip.chipBenefit, 0);
 
     return (
-      <div 
+      <div
         className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
         onClick={() => setShowChipModal(false)}
       >
-        <div 
+        <div
           className="bg-slate-800 rounded-lg border-2 border-cyan-500 max-w-md w-full max-h-[80vh] overflow-auto"
           onClick={(e) => e.stopPropagation()}
         >
@@ -556,14 +586,14 @@ const FPLMultiGameweekDashboard = () => {
                     <span className="text-lg font-bold text-cyan-400">{chipStats.length}</span>
                   </div>
                   <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs text-gray-400">Total Chip Points:</span>
+                    <span className="text-xs text-gray-400">Total Chip Points Gain*:</span>
                     <span className="text-sm font-semibold text-green-400">{totalChipBenefit} pts</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   {chipStats.map((chip, idx) => (
-                    <div 
+                    <div
                       key={idx}
                       className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
                     >
@@ -574,8 +604,8 @@ const FPLMultiGameweekDashboard = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold text-cyan-300">{chip.gwPoints} pts</p>
-                          {chip.chipBenefit > 0 && (
-                            <p className="text-[10px] text-green-400">+{chip.chipBenefit} chip</p>
+                          {chip.chipBenefit > 0 && chip.name !== 'freehit' && chip.name !== 'wildcard' && (
+                             <p className="text-[10px] text-green-400">+{chip.chipBenefit} pts gain</p>
                           )}
                         </div>
                       </div>
@@ -587,7 +617,7 @@ const FPLMultiGameweekDashboard = () => {
                 </div>
 
                 <p className="text-[10px] text-gray-500 text-center mt-4 italic">
-                  * Chip points show actual contribution from chip usage
+                  * Chip points gain shows additional points from BB/TC. FH/WC gain is subjective.
                 </p>
               </>
             )}
@@ -597,12 +627,13 @@ const FPLMultiGameweekDashboard = () => {
     );
   };
 
+
   const getChipLabel = (chipName) => {
     const labels = { 'wildcard': 'Wildcard', 'freehit': 'Free Hit', 'bboost': 'Bench Boost', '3xc': 'Triple Captain' };
     return labels[chipName] || chipName;
   };
 
-  if (loading) {
+  if (loading && mergedData.length === 0) { // Check mergedData length during initial load
     return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">Loading Chart Data...</div>;
   }
   if (error) {
@@ -610,9 +641,9 @@ const FPLMultiGameweekDashboard = () => {
   }
 
   const gameweekRangeText = availableGameweeks.length > 0 ? `GW${availableGameweeks[0]}-${availableGameweeks[availableGameweeks.length - 1]}` : '';
-  const statusColor = connectionStatus === 'connected' ? 'bg-green-500' : 
+  const statusColor = connectionStatus === 'connected' ? 'bg-green-500' :
                      connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500';
-  const statusText = connectionStatus === 'connected' ? 'Live' : 
+  const statusText = connectionStatus === 'connected' ? 'Live' :
                     connectionStatus === 'disconnected' ? 'Polling' : 'Connecting';
 
   return (
@@ -642,7 +673,7 @@ const FPLMultiGameweekDashboard = () => {
               <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-gray-500 mr-1.5"></span>Mid-table</div>
               <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-red-600 mr-1.5"></span>Relegation</div>
             </div>
-            
+
             <ResponsiveContainer width="100%" height={300}>
               {/* Use mergedData for the chart */}
               <BarChart data={mergedData} margin={{ top: 5, right: 5, left: -20, bottom: 45 }}>
