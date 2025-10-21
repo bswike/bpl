@@ -435,7 +435,7 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
       }
       if (fallbackIntervalRef.current) {
         clearInterval(fallbackIntervalRef.current);
-        fallbackIntervalRef.current = null;
+        fallbackIntervalRef.current = null; 
       }
       if (cycleAbortRef.current) {
         cycleAbortRef.current.abort();

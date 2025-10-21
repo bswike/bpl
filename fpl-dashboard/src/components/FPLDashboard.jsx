@@ -1,26 +1,149 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-// --- Constants ---
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
-const FALLBACK_POLL_INTERVAL_MS = 300000; // 5 minutes fallback
+const FALLBACK_POLL_INTERVAL_MS = 300000;
 
-// --- Helper Functions ---
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const normalizeStr = (s) => (s ?? '').toString().normalize('NFC').replace(/\u00A0/g, ' ').trim();
 
-// --- Main Dashboard Component ---
+// --- Chips Components (Moved Outside) ---
+
+const ChipsManagerRow = React.memo(({ manager, rank, data, onManagerClick }) => {
+  // manager is from chipsData: { manager_name, chips: [...] }
+  // data is the main mergedData state: [{ manager_name, team_name, gameweeks: {...} }, ...]
+  
+  const managerFullData = data.find(m => m.manager_name === manager.manager_name);
+  const totalChips = manager.chips.length;
+
+  const wildcards = manager.chips.filter(c => c.name === 'wildcard');
+  const freehits = manager.chips.filter(c => c.name === 'freehit');
+  const bboosts = manager.chips.filter(c => c.name === 'bboost');
+  const tripleCaps = manager.chips.filter(c => c.name === '3xc');
+
+  const renderChipInfo = (chips, chipType) => {
+    if (chips.length === 0) return <span className="text-gray-500">—</span>;
+
+    return chips.map(chip => {
+      // Find the gameweek stats from the manager's full data
+      const gwStats = managerFullData?.gameweeks?.[chip.event];
+      let text;
+      if (chipType === 'bboost') {
+        text = `GW${chip.event} (+${gwStats?.bench_points || 0} pts)`;
+      } else if (chipType === '3xc') {
+        text = `GW${chip.event} (+${gwStats?.captain_points || 0} pts)`;
+      } else {
+        text = `GW${chip.event} (${gwStats?.points || 0} pts)`;
+      }
+      return <span key={chip.event} className="block">{text}</span>;
+    });
+  };
+
+  return (
+    <div className="bg-slate-800/30 rounded-md p-1.5 border border-slate-700">
+      {/* Mobile View */}
+      <div className="md:hidden">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <span className="flex-shrink-0 w-6 h-6 bg-slate-700 rounded-md text-xs font-bold flex items-center justify-center">{rank}</span>
+            <div>
+              <button onClick={() => onManagerClick(manager.manager_name)} className="text-left hover:text-cyan-400 transition-colors">
+                <p className="text-white font-bold text-xs">{manager.manager_name}</p>
+                <p className="text-gray-400 text-[10px]">"{managerFullData?.team_name || '...'}"</p>
+              </button>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-white font-bold text-base">{totalChips}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-1 text-center text-[10px] mt-1">
+          <div className="bg-slate-900/50 p-0.5 rounded">
+            {/* --- CHANGED --- */}
+            <p className="font-semibold text-purple-400 truncate">Wildcard</p>
+            <div className="text-gray-200 font-medium">{renderChipInfo(wildcards, 'wildcard')}</div>
+          </div>
+          <div className="bg-slate-900/50 p-0.5 rounded">
+            {/* --- CHANGED --- */}
+            <p className="font-semibold text-cyan-400 truncate">Free Hit</p>
+            <div className="text-gray-200 font-medium">{renderChipInfo(freehits, 'freehit')}</div>
+          </div>
+          <div className="bg-slate-900/50 p-0.5 rounded">
+            {/* --- CHANGED --- */}
+            <p className="font-semibold text-yellow-400 truncate">Bench Boost</p>
+            <div className="text-gray-200 font-medium">{renderChipInfo(bboosts, 'bboost')}</div>
+          </div>
+          <div className="bg-slate-900/50 p-0.5 rounded">
+            {/* --- CHANGED --- */}
+            <p className="font-semibold text-orange-400 truncate">Triple Cap</p>
+            <div className="text-gray-200 font-medium">{renderChipInfo(tripleCaps, '3xc')}</div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Desktop View */}
+      <div className="hidden md:grid md:grid-cols-6 gap-3 items-center text-sm px-3 py-1">
+        <div className="md:col-span-2 flex items-center gap-3">
+          <span className="flex-shrink-0 w-7 h-7 bg-slate-700 rounded-md text-sm font-bold flex items-center justify-center">{rank}</span>
+          <button onClick={() => onManagerClick(manager.manager_name)} className="text-left hover:text-cyan-400 transition-colors">
+            <p className="text-white font-medium truncate">{manager.manager_name}</p>
+            <p className="text-gray-400 text-xs truncate">"{managerFullData?.team_name || '...'}"</p>
+          </button>
+        </div>
+        <div className="text-white font-bold text-lg text-center">{totalChips}</div>
+        <div className="text-center text-gray-300 text-xs">{renderChipInfo(wildcards, 'wildcard')}</div>
+        <div className="text-center text-gray-300 text-xs">{renderChipInfo(freehits, 'freehit')}</div>
+        <div className="text-center text-gray-300 text-xs">{renderChipInfo(bboosts, 'bboost')}</div>
+        <div className="text-center text-gray-300 text-xs">{renderChipInfo(tripleCaps, '3xc')}</div>
+      </div>
+    </div>
+  );
+});
+
+const ChipsLeaderboard = ({ chipsData, data, onManagerClick }) => {
+  const sortedChipsData = useMemo(() => {
+    return [...chipsData].sort((a, b) => b.chips.length - a.chips.length);
+  }, [chipsData]);
+
+  return (
+    <div className="space-y-1">
+      {/* Desktop Header */}
+      <div className="hidden md:grid md:grid-cols-6 gap-3 px-3 py-2 text-xs font-bold text-gray-400 uppercase">
+        <div className="md:col-span-2">Manager</div>
+        <div className="text-center">Total</div>
+        <div className="text-center">Wildcard</div>
+        <div className="text-center">Free Hit</div>
+        <div className="text-center">Bench Boost</div>
+        <div className="text-center">Triple Captain</div>
+      </div>
+      {/* Rows */}
+      {sortedChipsData.map((manager, idx) => (
+        <ChipsManagerRow 
+          key={manager.manager_name} 
+          manager={manager}
+          rank={idx + 1}
+          data={data} // Pass the main mergedData array
+          onManagerClick={onManagerClick}
+        />
+      ))}
+    </div>
+  );
+};
+
+
 const FPLMultiGameweekDashboard = () => {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState([]); // This is the raw data from fetchData
   const [availableGameweeks, setAvailableGameweeks] = useState([]);
+  const [chipsData, setChipsData] = useState([]); // This is the raw data from fetchChips
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [papaReady, setPapaReady] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [selectedManager, setSelectedManager] = useState(null);
+  const [showChipModal, setShowChipModal] = useState(false);
 
-  // Refs for managing fetch cycles and preventing race conditions
   const cycleAbortRef = useRef(null);
   const fetchCycleIdRef = useRef(0);
   const eventSourceRef = useRef(null);
@@ -28,7 +151,6 @@ const FPLMultiGameweekDashboard = () => {
   const fallbackIntervalRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
 
-  // Load PapaParse script from a CDN
   useEffect(() => {
     if (window.Papa) {
       setPapaReady(true);
@@ -46,42 +168,51 @@ const FPLMultiGameweekDashboard = () => {
     document.body.appendChild(script);
   }, []);
 
-const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
-  try {
-    // Get gameweek info directly from manifest (no more pointer files!)
-    const gwInfo = manifest?.gameweeks?.[String(gameweek)];
-    if (!gwInfo) throw new Error(`No data for GW${gameweek} in manifest`);
-    
-    const gwTimestamp = gwInfo?.timestamp;
-    if (gwTimestamp && Date.now() - (gwTimestamp * 1000) > 3600000) {
-      console.warn(`Data for GW${gameweek} is over 1 hour old`);
+  useEffect(() => {
+    const fetchChips = async () => {
+      try {
+        console.log('Fetching chips data...');
+        const response = await fetch('https://bpl-red-sun-894.fly.dev/api/chips');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        console.log('Chips data loaded:', data.chips?.length || 0, 'managers');
+        setChipsData(data.chips || []);
+      } catch (err) {
+        console.error('Failed to fetch chips:', err);
+        setChipsData([]);
+      }
+    };
+    fetchChips();
+  }, []);
+
+  const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
+    try {
+      const gwInfo = manifest?.gameweeks?.[String(gameweek)];
+      if (!gwInfo) throw new Error(`No data for GW${gameweek} in manifest`);
+      
+      const proxyUrl = `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
+      const csvRes = await fetch(proxyUrl, { cache: 'no-store', signal });
+      if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for GW${gameweek}`);
+      const csvText = await csvRes.text();
+      
+      if (csvText.trim() === "The game is being updated.") return [];
+
+      const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
+      if (parsed.errors?.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
+
+      parsed.data.forEach(row => {
+        if (row.player === 'João Pedro Junqueira de Jesus') row.player = 'João Pedro';
+      });
+
+      return parsed.data;
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        console.error(`GW${gameweek} fetch failed:`, err);
+      }
+      return [];
     }
-    
-    // Fetch CSV through backend proxy to bypass CDN caching
-    const proxyUrl = `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
-    const csvRes = await fetch(proxyUrl, { cache: 'no-store', signal });
-    if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for GW${gameweek}`);
-    const csvText = await csvRes.text();
-    
-    if (csvText.trim() === "The game is being updated.") return [];
+  }, []);
 
-    const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
-    if (parsed.errors?.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
-
-    parsed.data.forEach(row => {
-      if (row.player === 'João Pedro Junqueira de Jesus') row.player = 'João Pedro';
-    });
-
-    return parsed.data;
-  } catch (err) {
-    if (err?.name !== 'AbortError') {
-      console.error(`GW${gameweek} fetch failed:`, err);
-    }
-    return [];
-  }
-}, []);
-
-  // --- Advanced Data Fetching & Processing ---
   const fetchData = useCallback(async () => {
     if (cycleAbortRef.current) cycleAbortRef.current.abort();
     const abort = new AbortController();
@@ -93,17 +224,15 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
 
     try {
       const manifestRes = await fetch(
-  'https://bpl-red-sun-894.fly.dev/api/manifest',
-  { cache: 'no-store', signal: abort.signal }
-);
+        'https://bpl-red-sun-894.fly.dev/api/manifest',
+        { cache: 'no-store', signal: abort.signal }
+      );
       
       if (!manifestRes.ok) {
         throw new Error(`Could not load league manifest (${manifestRes.status})`);
       }
       
       const manifest = await manifestRes.json();
-      
-      // Store manifest version to detect changes via SSE
       manifestVersionRef.current = manifest.version;
 
       const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
@@ -145,7 +274,6 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
       });
       
       const results = await Promise.all(gameweekPromises);
-
       const managerData = {};
 
       results.forEach((gwData, gwIndex) => {
@@ -153,48 +281,53 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
         const managerStatsThisGw = {};
 
         gwData.forEach(row => {
-            if (!row.manager_name) return;
+          if (!row.manager_name) return;
 
-            if (!managerStatsThisGw[row.manager_name]) {
-                managerStatsThisGw[row.manager_name] = {
-                    total_points: 0,
-                    bench_points: 0,
-                    captain_player: 'N/A',
-                    team_name: normalizeStr(row.entry_team_name)
-                };
-            }
+          if (!managerStatsThisGw[row.manager_name]) {
+            managerStatsThisGw[row.manager_name] = {
+              total_points: 0,
+              bench_points: 0,
+              captain_player: 'N/A',
+              captain_points: 0,
+              team_name: normalizeStr(row.entry_team_name)
+            };
+          }
 
-            if (row.player === 'TOTAL') {
-                managerStatsThisGw[row.manager_name].total_points = row.points_applied;
-            }
-            if (row.is_captain === 'True') {
-                 managerStatsThisGw[row.manager_name].captain_player = row.player;
-            }
-            if (row.multiplier === 0) {
-                 managerStatsThisGw[row.manager_name].bench_points += parseFloat(row.points_gw) || 0;
-            }
+          if (row.player === 'TOTAL') {
+    managerStatsThisGw[managerName].total_points = row.points_applied;
+    // *** ADD THIS LINE: Read bench_points directly from the TOTAL row ***
+    managerStatsThisGw[managerName].bench_points = parseFloat(row.bench_points) || 0;
+  } else { // Only process player-specific details for non-TOTAL rows
+    if (row.is_captain === 'True') {
+      managerStatsThisGw[managerName].captain_player = row.player;
+      managerStatsThisGw[managerName].captain_points = parseFloat(row.points_gw) || 0;
+    }}
         });
 
         Object.entries(managerStatsThisGw).forEach(([name, stats]) => {
-            if (!managerData[name]) {
-                managerData[name] = {
-                    manager_name: name,
-                    team_name: stats.team_name,
-                    total_points: 0,
-                    bench_points: 0,
-                    gameweeks: {}
-                };
-            }
-            managerData[name].total_points += stats.total_points;
-            managerData[name].bench_points += stats.bench_points;
-            managerData[name].gameweeks[gameweek] = {
-                points: stats.total_points,
-                captain: stats.captain_player
+          if (!managerData[name]) {
+            managerData[name] = {
+              manager_name: name,
+              team_name: stats.team_name,
+              total_points: 0,
+              bench_points: 0,
+              gameweeks: {}
             };
+          }
+          managerData[name].total_points += stats.total_points;
+          managerData[name].bench_points += stats.bench_points;
+          managerData[name].gameweeks[gameweek] = {
+            points: stats.total_points,
+            captain: stats.captain_player,
+            captain_points: stats.captain_points,
+            bench_points: stats.bench_points,
+            chip_used: null
+          };
         });
       });
       
       const combinedData = Object.values(managerData);
+      
       const sortedData = combinedData
         .sort((a, b) => {
           if (b.total_points !== a.total_points) {
@@ -209,11 +342,12 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
           else if (index === 4) designation = 'Europa League';
           else if (index >= totalManagers - 3) designation = 'Relegation';
 
-          return { ...item, rank: index + 1, designation, displayName: item.manager_name };
+          // Set default chips: [] here. This is the raw data.
+          return { ...item, rank: index + 1, designation, displayName: item.manager_name, chips: [] };
         });
 
       if (fetchCycleIdRef.current === myId && !abort.signal.aborted) {
-        setData(sortedData);
+        setData(sortedData); // Set the raw data
         setError(null);
         setLastUpdate(new Date());
       }
@@ -229,23 +363,43 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     }
   }, [processGameweekData]);
 
-  // SSE Connection Setup with Reconnection Logic
+  // *** FIX: Create a "mergedData" state using useMemo ***
+  const mergedData = useMemo(() => {
+    if (data.length === 0) return []; // Return empty if raw data isn't loaded
+
+    // Create a Map for efficient chip lookup
+    const chipsMap = new Map(chipsData.map(c => [c.manager_name, c.chips]));
+
+    return data.map(manager => {
+      const managerChips = chipsMap.get(manager.manager_name) || [];
+      const managerCopy = { ...manager, chips: managerChips };
+
+      // Add chip info to gameweeks
+      managerChips.forEach(chip => {
+        if (managerCopy.gameweeks[chip.event]) {
+          managerCopy.gameweeks[chip.event] = {
+            ...managerCopy.gameweeks[chip.event],
+            chip_used: chip.name
+          };
+        }
+      });
+      return managerCopy;
+    });
+  }, [data, chipsData]);
+
+
   const setupSSE = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
 
-    console.log('Attempting SSE connection to:', SSE_URL);
     const eventSource = new EventSource(SSE_URL);
     eventSourceRef.current = eventSource;
-    
     const maxReconnectAttempts = 5;
 
     eventSource.onopen = () => {
-      console.log('SSE connection established');
       setConnectionStatus('connected');
       reconnectAttemptsRef.current = 0;
-      
       if (fallbackIntervalRef.current) {
         clearInterval(fallbackIntervalRef.current);
         fallbackIntervalRef.current = null;
@@ -255,53 +409,26 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     eventSource.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        console.log('SSE message received:', message);
-
-        switch (message.type) {
-          case 'connected':
-            console.log('SSE connected at', message.timestamp);
-            break;
-          
-          case 'heartbeat':
-            break;
-          
-          case 'gameweek_updated':
-            console.log('Gameweek update detected:', message.data);
-            if (message.data.manifest_version !== manifestVersionRef.current) {
-              console.log('New data version detected, refreshing...');
-              fetchData();
-            }
-            break;
-          
-          case 'error':
-            console.error('SSE error message:', message.message);
-            break;
-          
-          default:
-            console.log('Unknown SSE message type:', message.type);
+        if (message.type === 'gameweek_updated' && message.data.manifest_version !== manifestVersionRef.current) {
+          fetchData();
         }
       } catch (err) {
         console.error('Error parsing SSE message:', err);
       }
     };
 
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
+    eventSource.onerror = () => {
       setConnectionStatus('disconnected');
       eventSource.close();
-      
       if (reconnectAttemptsRef.current < maxReconnectAttempts) {
         const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-        console.log(`SSE reconnecting in ${delay}ms... (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
         reconnectAttemptsRef.current++;
-        
         setTimeout(() => {
           if (!eventSourceRef.current || eventSourceRef.current.readyState !== EventSource.OPEN) {
             setupSSE();
           }
         }, delay);
       } else {
-        console.log('Max SSE reconnection attempts reached, falling back to polling');
         if (!fallbackIntervalRef.current) {
           fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
         }
@@ -311,7 +438,6 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     return eventSource;
   }, [fetchData]);
 
-  // SSE Connection Effect
   useEffect(() => {
     if (!papaReady) return;
 
@@ -319,10 +445,7 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     const eventSource = setupSSE();
 
     return () => {
-      console.log('Cleaning up SSE connection');
-      if (eventSource) {
-        eventSource.close();
-      }
+      if (eventSource) eventSource.close();
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
@@ -353,6 +476,132 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     return null;
   };
 
+  const handleManagerClick = (managerName) => {
+    // Use mergedData to find the manager
+    const manager = mergedData.find(m => m.manager_name === managerName);
+    if (manager) {
+      setSelectedManager(manager);
+      setShowChipModal(true);
+    }
+  };
+
+  const ChipModal = () => {
+    if (!selectedManager) return null;
+
+    const chipStats = selectedManager.chips?.map(chip => {
+      const gwData = selectedManager.gameweeks[chip.event];
+      const gwTotalPoints = gwData?.points || 0;
+      
+      // Calculate actual chip benefit based on chip type
+      let chipBenefit = 0;
+      let benefitLabel = '';
+      
+      if (chip.name === '3xc') {
+        chipBenefit = gwData?.captain_points || 0;
+        benefitLabel = `${gwData?.captain || 'N/A'} scored ${chipBenefit} pts`;
+      } else if (chip.name === 'bboost') {
+        chipBenefit = gwData?.bench_points || 0;
+        benefitLabel = `Bench scored ${chipBenefit} pts`;
+      } else if (chip.name === 'freehit') {
+        chipBenefit = gwTotalPoints;
+        benefitLabel = `Team scored ${chipBenefit} pts`;
+      } else if (chip.name === 'wildcard') {
+        chipBenefit = 0;
+        benefitLabel = 'Squad restructure';
+      }
+
+      return {
+        ...chip,
+        gwPoints: gwTotalPoints,
+        chipBenefit: chipBenefit,
+        benefitLabel: benefitLabel
+      };
+    }) || [];
+
+    const totalChipBenefit = chipStats.reduce((sum, chip) => sum + chip.chipBenefit, 0);
+
+    return (
+      <div 
+        className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        onClick={() => setShowChipModal(false)}
+      >
+        <div 
+          className="bg-slate-800 rounded-lg border-2 border-cyan-500 max-w-md w-full max-h-[80vh] overflow-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-4 border-b border-slate-700 bg-gradient-to-r from-cyan-900/30 to-purple-900/30">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-bold text-white">{selectedManager.manager_name}</h3>
+                <p className="text-sm text-gray-400">"{selectedManager.team_name}"</p>
+                <p className="text-xs text-cyan-400 mt-1">Rank #{selectedManager.rank} • {selectedManager.total_points} pts</p>
+              </div>
+              <button
+                onClick={() => setShowChipModal(false)}
+                className="text-gray-400 hover:text-white text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4">
+            {chipStats.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-8">No chips used yet</p>
+            ) : (
+              <>
+                <div className="mb-4 p-3 bg-purple-900/20 rounded border border-purple-600/30">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-300">Total Chips Used:</span>
+                    <span className="text-lg font-bold text-cyan-400">{chipStats.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-xs text-gray-400">Total Chip Points:</span>
+                    <span className="text-sm font-semibold text-green-400">{totalChipBenefit} pts</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {chipStats.map((chip, idx) => (
+                    <div 
+                      key={idx}
+                      className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-semibold text-white text-sm">{getChipLabel(chip.name)}</p>
+                          <p className="text-xs text-gray-400">Gameweek {chip.event}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-cyan-300">{chip.gwPoints} pts</p>
+                          {chip.chipBenefit > 0 && (
+                            <p className="text-[10px] text-green-400">+{chip.chipBenefit} chip</p>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {chip.benefitLabel}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-[10px] text-gray-500 text-center mt-4 italic">
+                  * Chip points show actual contribution from chip usage
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const getChipLabel = (chipName) => {
+    const labels = { 'wildcard': 'Wildcard', 'freehit': 'Free Hit', 'bboost': 'Bench Boost', '3xc': 'Triple Captain' };
+    return labels[chipName] || chipName;
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">Loading Chart Data...</div>;
   }
@@ -361,7 +610,6 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
   }
 
   const gameweekRangeText = availableGameweeks.length > 0 ? `GW${availableGameweeks[0]}-${availableGameweeks[availableGameweeks.length - 1]}` : '';
-
   const statusColor = connectionStatus === 'connected' ? 'bg-green-500' : 
                      connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500';
   const statusText = connectionStatus === 'connected' ? 'Live' : 
@@ -369,7 +617,7 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
 
   return (
     <div className="min-h-screen bg-slate-900 p-2 sm:p-4 font-sans text-gray-100">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-6">
         <header className="text-center mb-4">
           <div className="flex items-center justify-center gap-2 mb-2">
             <h1 className="text-xl sm:text-3xl font-light text-white">BPL Season Chart</h1>
@@ -386,7 +634,7 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
           )}
         </header>
 
-        <main>
+        <main className="space-y-6">
           <div className="bg-slate-800/50 rounded-lg p-2 sm:p-4 shadow-lg border border-slate-700">
             <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 text-xs mb-3">
               <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-blue-600 mr-1.5"></span>Champions League</div>
@@ -396,13 +644,15 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
             </div>
             
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 45 }}>
+              {/* Use mergedData for the chart */}
+              <BarChart data={mergedData} margin={{ top: 5, right: 5, left: -20, bottom: 45 }}>
                 <CartesianGrid strokeDasharray="2 2" stroke="rgba(148,163,184,0.1)" />
                 <XAxis dataKey="displayName" stroke="#94A3B8" angle={-60} textAnchor="end" height={60} fontSize={10} interval={0} />
                 <YAxis stroke="#94A3B8" fontSize={10} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}/>
                 <Bar dataKey="total_points" radius={[2, 2, 0, 0]}>
-                  {data.map((entry, index) => {
+                  {/* Use mergedData for the cells */}
+                  {mergedData.map((entry, index) => {
                     let color = '#6B7280';
                     if (entry.designation === 'Champions League') color = '#2563EB';
                     if (entry.designation === 'Europa League') color = '#EA580C';
@@ -413,7 +663,28 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
               </BarChart>
             </ResponsiveContainer>
           </div>
+
+          {/* --- REPLACED CHIPS SECTION --- */}
+          {/* FIX: Wait for mergedData to be populated before rendering */}
+          {chipsData.length > 0 && mergedData.length > 0 && (
+            <div className="bg-slate-800/50 rounded-lg shadow-lg border border-purple-700/50 overflow-hidden">
+              <div className="p-3 sm:p-4 border-b border-purple-700/50 bg-gradient-to-r from-purple-900/20 to-purple-800/20">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-100">Chips Used</h2>
+              </div>
+              <div className="p-0 sm:p-1">
+                <ChipsLeaderboard
+                  chipsData={chipsData}
+                  data={mergedData}
+                  onManagerClick={handleManagerClick}
+                />
+              </div>
+            </div>
+          )}
+          {/* --- END REPLACED SECTION --- */}
+
         </main>
+
+        {showChipModal && <ChipModal />}
       </div>
     </div>
   );
