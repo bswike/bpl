@@ -8,6 +8,12 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from flask import Flask, Response
 from flask_cors import CORS
+import concurrent.futures
+
+# Add at top of file with other globals
+chips_cache = {"data": None, "timestamp": 0}
+chips_cache_lock = threading.Lock()
+CHIPS_CACHE_DURATION = 3600  # 1 hour in seconds
 
 # ====== REDIS CONNECTION (Upstash) ======
 try:
@@ -41,7 +47,7 @@ def _int_env(name, default):
     except Exception:
         return default
 
-GAMEDAY_INTERVAL = _int_env("GAMEDAY_INTERVAL_SECONDS", 120)
+GAMEDAY_INTERVAL = _int_env("GAMEDAY_INTERVAL_SECONDS", 30)
 NON_GAMEDAY_INTERVAL = _int_env("NON_GAMEDAY_INTERVAL_SECONDS", 600)
 STATIC_INTERVAL = _int_env("INTERVAL_SECONDS", 0)
 ACTIVE = os.getenv("ACTIVE", "1")
@@ -51,6 +57,8 @@ CHANNEL_NAME = 'fpl_updates'
 # ====== STATE ======
 file_hashes = {}
 scraper_running = True
+current_manifest = {"gameweeks": {}, "version": None, "timestamp": None, "updated": None}
+manifest_lock = threading.Lock()
 
 # ====== FLASK SSE SERVER ======
 app = Flask(__name__)
@@ -72,6 +80,14 @@ def bust():
 
 def get_file_hash(data: bytes) -> str:
     return hashlib.md5(data).hexdigest()
+
+# ====== MANIFEST MANAGEMENT ======
+def update_manifest_in_memory(manifest_data):
+    """Update the in-memory manifest (thread-safe)"""
+    global current_manifest
+    with manifest_lock:
+        current_manifest = manifest_data.copy()
+        log(f"[manifest] Updated in-memory manifest to version {manifest_data.get('version')}")
 
 # ====== PUSH NOTIFICATION ======
 def publish_update(event_type: str, data: dict):
@@ -189,15 +205,34 @@ def root():
     """Info page"""
     return {
         'service': 'FPL Dashboard Backend',
-        'version': '2.0-sse',
+        'version': '2.3-no-pointers',
         'endpoints': {
             'sse': '/sse/fpl-updates',
-            'health': '/health'
+            'health': '/health',
+            'fixtures': '/api/fixtures',
+            'manifest': '/api/manifest',
+            'data': '/api/data/<gameweek>'
         },
         'features': {
             'redis': REDIS_ENABLED,
-            'push_notifications': REDIS_ENABLED
+            'push_notifications': REDIS_ENABLED,
+            'in_memory_manifest': True,
+            'cdn_bypass': True
         }
+    }
+
+@app.route('/api/manifest')
+def get_manifest():
+    """Serve manifest directly from memory with no caching"""
+    with manifest_lock:
+        manifest_copy = current_manifest.copy()
+    
+    log(f"[manifest] Served manifest version {manifest_copy.get('version')}")
+    
+    return manifest_copy, 200, {
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
     }
 
 @app.route('/api/fixtures')
@@ -249,6 +284,111 @@ def get_fixtures():
     except Exception as e:
         log(f"[fixtures] Error fetching data: {e}")
         return {'error': 'Failed to fetch fixture data'}, 500
+
+@app.route('/api/data/<int:gameweek>')
+def get_gameweek_data(gameweek):
+    """Serve CSV data directly through backend to bypass CDN caching"""
+    try:
+        with manifest_lock:
+            gw_entry = current_manifest.get('gameweeks', {}).get(str(gameweek))
+        
+        if not gw_entry:
+            return {'error': f'No data for GW{gameweek}'}, 404
+        
+        # Handle both old (string pointer URL) and new (object) formats
+        if isinstance(gw_entry, str):
+            # Old format: pointer URL - fetch it first
+            log(f"[proxy] GW{gameweek} using old pointer format")
+            pointer_res = requests.get(f"{gw_entry}?_t={int(time.time())}", timeout=10)
+            pointer_res.raise_for_status()
+            gw_info = pointer_res.json()
+        else:
+            # New format: direct object
+            gw_info = gw_entry
+        
+        csv_url = gw_info.get('url')
+        if not csv_url:
+            return {'error': 'Invalid gameweek data'}, 500
+        
+        # Fetch CSV from Vercel Blob with aggressive cache busting
+        bust_param = f"?_t={int(time.time())}&_r={uuid.uuid4().hex[:8]}"
+        response = requests.get(f"{csv_url}{bust_param}", timeout=10)
+        response.raise_for_status()
+        
+        log(f"[proxy] Served GW{gameweek} data ({len(response.content)} bytes)")
+        
+        return response.content, 200, {
+            'Content-Type': 'text/csv',
+            'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }
+        
+    except requests.exceptions.RequestException as e:
+        log(f"[proxy] Error fetching GW{gameweek} from blob: {e}")
+        return {'error': 'Failed to fetch data from storage'}, 500
+    except Exception as e:
+        log(f"[proxy] Error serving GW{gameweek}: {e}")
+        return {'error': 'Internal server error'}, 500
+    
+@app.route('/api/chips')
+def get_chips():
+    """Fetch chip usage for all managers (concurrent + 1-hour cache)"""
+    try:
+        current_time = time.time()
+        
+        # Check cache first
+        with chips_cache_lock:
+            if chips_cache["data"] and (current_time - chips_cache["timestamp"]) < CHIPS_CACHE_DURATION:
+                log(f"[chips] Served from cache ({len(chips_cache['data'])} managers)")
+                return {'chips': chips_cache["data"]}, 200
+        
+        # Cache miss - fetch fresh data concurrently
+        log("[chips] Cache miss, fetching from FPL API concurrently...")
+        entry_ids = [
+            394273, 373574, 650881, 6197529, 1094601, 6256408, 62221, 701623,
+            3405299, 5438502, 5423005, 4807443, 581156, 4912819, 876871, 4070923,
+            5898648, 872442, 468791, 8592148
+        ]
+        
+        def fetch_manager_chips(entry_id):
+            try:
+                entry_res = requests.get(f'https://fantasy.premierleague.com/api/entry/{entry_id}/', timeout=10)
+                entry_res.raise_for_status()
+                entry_data = entry_res.json()
+                
+                manager_name = f"{entry_data['player_first_name']} {entry_data['player_last_name']}"
+                
+                history_res = requests.get(f'https://fantasy.premierleague.com/api/entry/{entry_id}/history/', timeout=10)
+                history_res.raise_for_status()
+                history_data = history_res.json()
+                
+                return {
+                    'manager_name': manager_name,
+                    'entry_id': entry_id,
+                    'chips': history_data.get('chips', [])
+                }
+            except Exception as e:
+                log(f"[chips] Error fetching data for entry {entry_id}: {e}")
+                return None
+        
+        # Fetch all managers concurrently (max 10 parallel requests)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            results = list(executor.map(fetch_manager_chips, entry_ids))
+        
+        chips_data = [r for r in results if r is not None]
+        
+        # Update cache
+        with chips_cache_lock:
+            chips_cache["data"] = chips_data
+            chips_cache["timestamp"] = current_time
+        
+        log(f"[chips] Served fresh data for {len(chips_data)} managers (concurrent fetch), cached for 1 hour")
+        return {'chips': chips_data}, 200
+        
+    except Exception as e:
+        log(f"[chips] Error: {e}")
+        return {'error': 'Failed to fetch chip data'}, 500
 
 # ====== YOUR EXISTING SCRAPER LOGIC ======
 def smart_upload_bytes(blob_name: str, data: bytes, content_type: str = "text/plain", headers: dict = None) -> bool:
@@ -371,32 +511,7 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
         if version_uploaded:
             log(f"New version uploaded for GW{gw}, updating manifest...")
             
-            # Create timestamped pointer
-            timestamp = int(time.time())
-            unique_id = str(uuid.uuid4())[:8]
-            pointer_name = f"fpl_rosters_points_gw{gw}-{timestamp}-{unique_id}.json"
-            pointer_content = {
-                "gw": gw,
-                "url": ver_url,
-                "hash": h,
-                "timestamp": timestamp,
-                "updated": datetime.utcnow().isoformat() + "Z",
-                "version": unique_id
-            }
-            
-            pointer_uploaded = smart_upload_bytes(
-                pointer_name,
-                json.dumps(pointer_content).encode("utf-8"),
-                content_type="application/json"
-            )
-            
-            if not pointer_uploaded:
-                log(f"ERROR: Failed to upload pointer for GW{gw}")
-                return False
-                
-            pointer_url = f"{PUBLIC_BASE}{pointer_name}"
-
-            # Update manifest
+            # Update manifest directly - NO MORE POINTER FILES
             manifest_name = "fpl-league-manifest.json"
             manifest_url = f"{PUBLIC_BASE}{manifest_name}?v={bust()}"
             try:
@@ -408,23 +523,35 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
             if 'gameweeks' not in manifest_data: 
                 manifest_data['gameweeks'] = {}
             
-            manifest_data['gameweeks'][str(gw)] = pointer_url
+            timestamp = int(time.time())
+            
+            # Store full gameweek info directly in manifest
+            manifest_data['gameweeks'][str(gw)] = {
+                'url': ver_url,
+                'hash': h,
+                'timestamp': timestamp,
+                'updated': datetime.utcnow().isoformat() + "Z"
+            }
             manifest_data['updated'] = datetime.utcnow().isoformat() + "Z"
             manifest_data['version'] = str(timestamp)
             manifest_data['timestamp'] = timestamp
 
+            # Upload to Vercel Blob (backup only)
             manifest_uploaded = smart_upload_bytes(
-    manifest_name,
-    json.dumps(manifest_data, indent=2).encode("utf-8"),
-    content_type="application/json",
-    headers={
-        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-        "CDN-Cache-Control": "no-cache"
-    }
-)
+                manifest_name,
+                json.dumps(manifest_data, indent=2).encode("utf-8"),
+                content_type="application/json",
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+                    "CDN-Cache-Control": "no-cache"
+                }
+            )
+            
+            # ALWAYS update in-memory manifest (this is the source of truth now)
+            update_manifest_in_memory(manifest_data)
             
             if manifest_uploaded:
-                log(f"SUCCESS: Updated manifest for GW{gw}")
+                log(f"SUCCESS: Updated manifest for GW{gw} (blob backup + in-memory)")
                 
                 # Push notification to all connected clients
                 publish_update('gameweek_updated', {
@@ -509,8 +636,8 @@ signal.signal(signal.SIGTERM, stop_gracefully)
 # ====== STARTUP ======
 if __name__ == '__main__':
     log("=" * 60)
-    log("Starting FPL Dashboard Backend v2.1")
-    log("Features: SSE Push Notifications + Background Scraper")
+    log("Starting FPL Dashboard Backend v2.3")
+    log("Features: SSE Push + Background Scraper + In-Memory Manifest + CDN Bypass")
     log(f"Redis: {'ENABLED (Upstash)' if REDIS_ENABLED else 'DISABLED'}")
     log("=" * 60)
     
@@ -529,6 +656,8 @@ if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     log(f"Starting SSE server on port {port}")
     log(f"SSE endpoint: http://0.0.0.0:{port}/sse/fpl-updates")
+    log(f"Manifest endpoint: http://0.0.0.0:{port}/api/manifest")
+    log(f"Data proxy: http://0.0.0.0:{port}/api/data/<gameweek>")
     log(f"Health check: http://0.0.0.0:{port}/health")
     
     app.run(host='0.0.0.0', port=port, threaded=True)

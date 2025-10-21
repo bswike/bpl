@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 
 """
-Fetch FPL rosters + weekly points + live status + player costs + global ownership into a single CSV.
+Fetch FPL rosters + weekly points + live status + player costs + global ownership + bench points into a single CSV.
 
 Usage examples:
-  python3 fpl_scrape_rosters_with_points.py --gw 1 --entries 394273
-  python3 fpl_scrape_rosters_with_points.py --gw 1 --entries 394273 123456 999999
-  python3 fpl_scrape_rosters_with_points.py --gw 1 --entries-file league_ids.txt
-  python3 fpl_scrape_rosters_with_points.py --gw 1 --entries 394273 --cookie "pl_profile=...; pl_user=...; ..."
+  python3 fpl_scrape_rosters.py --gw 1 --entries 394273
+  python3 fpl_scrape_rosters.py --gw 1 --entries 394273 123456 999999
+  python3 fpl_scrape_rosters.py --gw 1 --entries-file league_ids.txt
+  python3 fpl_scrape_rosters.py --gw 1 --entries 394273 --cookie "pl_profile=...; pl_user=...; ..."
 
 Output:
-  fpl_rosters_points_gw{gw}.csv (with global ownership data)
+  fpl_rosters_points_gw{gw}.csv (with global ownership data and accurate bench points)
 """
 
 import argparse
@@ -25,13 +25,14 @@ ENTRY_URL_TPL = "https://fantasy.premierleague.com/api/entry/{entry_id}/"
 PICKS_URL_TPL = "https://fantasy.premierleague.com/api/entry/{entry_id}/event/{gw}/picks/"
 LIVE_URL_TPL  = "https://fantasy.premierleague.com/api/event/{gw}/live/"
 FIXTURES_URL_TPL = "https://fantasy.premierleague.com/api/fixtures/?event={gw}"
+HISTORY_URL_TPL = "https://fantasy.premierleague.com/api/entry/{entry_id}/history/" # <-- ADDED
 
 ELEMENT_TYPE = {1: "GK", 2: "DEF", 3: "MID", 4: "FWD"}
 
 def make_session(cookie: Optional[str]) -> requests.Session:
     s = requests.Session()
     s.headers.update({
-        "User-Agent": "Mozilla/5.0 (compatible; FPLRosterBot/1.1)",
+        "User-Agent": "Mozilla/5.0 (compatible; FPLRosterBot/1.2)", # Incremented version
         "Accept": "application/json,text/plain,*/*",
         "Referer": "https://fantasy.premierleague.com/"
     })
@@ -43,19 +44,19 @@ def get_bootstrap(session: requests.Session) -> Dict[str, Any]:
     r = session.get(BOOTSTRAP_URL, timeout=20)
     r.raise_for_status()
     data = r.json()
-    
+
     # Enhanced to include global ownership data
     elements = {}
     for e in data["elements"]:
         player_name = f'{e["first_name"]} {e["second_name"]}'
         elements[e["id"]] = {
-            **e, 
+            **e,
             "cost": e["now_cost"] / 10.0,
             "player_name": player_name,
             "global_ownership": float(e["selected_by_percent"]),
             "global_captain_percent": float(e.get("ep_next", 0)),  # Expected points next (proxy for captain popularity)
         }
-    
+
     return {
         "elements": elements,
         "teams": {t["id"]: t for t in data["teams"]},
@@ -68,6 +69,13 @@ def get_entry(session: requests.Session, entry_id: int) -> Dict[str, Any]:
 
 def get_picks(session: requests.Session, entry_id: int, gw: int) -> Dict[str, Any]:
     r = session.get(PICKS_URL_TPL.format(entry_id=entry_id, gw=gw), timeout=20)
+    r.raise_for_status()
+    return r.json()
+
+# <-- ADDED function to get history -->
+def get_history(session: requests.Session, entry_id: int) -> Dict[str, Any]:
+    """Fetches the manager's season history, including chip usage."""
+    r = session.get(HISTORY_URL_TPL.format(entry_id=entry_id), timeout=20)
     r.raise_for_status()
     return r.json()
 
@@ -161,8 +169,10 @@ def derive_status(minutes: int, fstat: Dict[str, Any]) -> str:
         return "in_progress"
     return "not_started"
 
+# <-- MODIFIED function signature to accept history -->
 def rows_from_picks(entry: Dict[str, Any],
                     picks: Dict[str, Any],
+                    history: Dict[str, Any], # <-- ADDED history
                     dicts: Dict[str, Any],
                     live_snap: Dict[int, Dict[str, int]],
                     team_fixtures: Dict[int, List[Dict[str, Any]]],
@@ -178,7 +188,21 @@ def rows_from_picks(entry: Dict[str, Any],
     team_total = 0
     team_value = 0  # Track total team value
 
-    for p in picks.get("picks", []):
+    # <-- ADDED Bench Boost Detection -->
+    is_bench_boost_active = False
+    for chip in history.get('chips', []):
+        if chip.get('name') == 'bboost' and chip.get('event') == gw:
+            is_bench_boost_active = True
+            break
+    # <-- END Bench Boost Detection -->
+
+    # <-- ADDED Bench Points calculation variables -->
+    calculated_bench_points = 0
+    # <-- END Bench Points calculation variables -->
+
+    pick_list = picks.get("picks", []) # Get picks once
+
+    for p in pick_list:
         el = elements.get(p["element"])
         if not el:
             continue
@@ -191,8 +215,8 @@ def rows_from_picks(entry: Dict[str, Any],
         minutes = snap["minutes"]
 
         applied = raw_pts * p["multiplier"]
-        team_total += applied
-        
+        team_total += applied # Team total always includes all points during BB
+
         # Add player cost to team value
         player_cost = el.get("cost", 0)
         team_value += player_cost
@@ -204,6 +228,12 @@ def rows_from_picks(entry: Dict[str, Any],
 
         # Calculate value ratio (points per million)
         value_ratio = raw_pts / player_cost if player_cost > 0 else 0
+
+        # <-- ADDED: Calculate bench points based on BB status -->
+        # Standard calculation if BB is NOT active
+        if not is_bench_boost_active and p["multiplier"] == 0:
+            calculated_bench_points += raw_pts
+        # <-- END Bench points calculation -->
 
         rows.append({
             "entry_id": entry_id,
@@ -231,7 +261,19 @@ def rows_from_picks(entry: Dict[str, Any],
             "fixture_finished": fstat.get("finished"),
         })
 
-    # Summary row with team value
+    # <-- ADDED: Calculate actual bench points if Bench Boost was active -->
+    if is_bench_boost_active:
+        bench_player_ids = set()
+        for p in pick_list:
+            if 12 <= p["position"] <= 15:
+                 bench_player_ids.add(p["element"])
+
+        for player_id in bench_player_ids:
+            snap = live_snap.get(player_id, {"points": 0})
+            calculated_bench_points += snap["points"]
+    # <-- END BB calculation -->
+
+    # Summary row with team value and calculated bench points
     team_value_ratio = team_total / team_value if team_value > 0 else 0
     rows.append({
         "entry_id": entry_id,
@@ -257,12 +299,13 @@ def rows_from_picks(entry: Dict[str, Any],
         "kickoff_time": "",
         "fixture_started": "",
         "fixture_finished": "",
+        "bench_points": calculated_bench_points # <-- ADDED calculated bench points
     })
 
     return rows
 
 def parse_args():
-    ap = argparse.ArgumentParser(description="Scrape FPL rosters + GW points + live status + player costs + global ownership to CSV.")
+    ap = argparse.ArgumentParser(description="Scrape FPL rosters + GW points + live status + player costs + global ownership + bench points to CSV.")
     ap.add_argument("--gw", type=int, required=True, help="Gameweek number (e.g., 1)")
     ap.add_argument("--entries", type=int, nargs="*", help="List of entry IDs")
     ap.add_argument("--entries-file", type=str, help="Path to text file with one entry ID per line")
@@ -335,29 +378,41 @@ def main():
             print(f"[entry {eid}] picks fetch failed: {e}", file=sys.stderr)
             continue
 
-        all_rows.extend(rows_from_picks(entry, picks, dicts, live_snap, team_fixtures, args.gw))
+        # <-- ADDED Fetching history -->
+        try:
+            history = get_history(session, eid)
+        except requests.HTTPError as e:
+            print(f"[entry {eid}] history fetch failed: {e}", file=sys.stderr)
+            history = {} # Continue with empty history if fetch fails
+        # <-- END Fetching history -->
+
+        # <-- MODIFIED Call to pass history -->
+        all_rows.extend(rows_from_picks(entry, picks, history, dicts, live_snap, team_fixtures, args.gw))
 
     if not all_rows:
         print("No rows collected. Check entry IDs, GW, or cookie auth.", file=sys.stderr)
         sys.exit(3)
 
+    # <-- MODIFIED Fieldnames to include bench_points -->
     fieldnames = [
         "entry_id", "entry_team_name", "manager_name", "gameweek",
         "element_id", "player", "position", "club",
         "player_cost", "value_ratio", "global_ownership", "global_captain_percent",
         "multiplier", "is_captain", "is_vice_captain",
-        "points_gw", "points_applied",
+        "points_gw", "points_applied", "bench_points", # <-- ADDED bench_points here
         "minutes", "status", "opponent_team", "kickoff_time",
         "fixture_started", "fixture_finished",
     ]
+    # <-- END Fieldnames modification -->
+
     with open(out_path, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=fieldnames)
+        w = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore') # Use extrasaction='ignore'
         w.writeheader()
         for r in all_rows:
             w.writerow(r)
 
     print(f"✅ Wrote {len(all_rows)} rows to {out_path}")
-    print(f"📊 Enhanced with global ownership data for league analysis!")
+    print(f"📊 Enhanced with global ownership data and accurate bench points!")
 
 if __name__ == "__main__":
     main()
