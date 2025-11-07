@@ -1,40 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 // --- Constants ---
+
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
 const FALLBACK_POLL_INTERVAL_MS = 300000;
-
-// --- Hardcoded GW1 Data ---
-const HARDCODED_GW1_DATA = [
-  { manager_name: "Garrett Kunkel", team_name: "kunkel_fpl", total_points: 78, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 1, gameweek: 1, players: [] },
-  { manager_name: "Andrew Vidal", team_name: "Las Cucarachas", total_points: 76, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 2, gameweek: 1, players: [] },
-  { manager_name: "Brett Swikle", team_name: "swikle_time", total_points: 74, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 3, gameweek: 1, players: [] },
-  { manager_name: "John Matthew", team_name: "matthewfpl", total_points: 73, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 4, gameweek: 1, players: [] },
-  { manager_name: "Jared Alexander", team_name: "Jared's Jinxes", total_points: 67, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 5, gameweek: 1, players: [] },
-  { manager_name: "Joe Curran", team_name: "Curran's Crew", total_points: 64, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 11, position: 6, gameweek: 1, players: [] },
-  { manager_name: "John Sebastian", team_name: "Sebastian Squad", total_points: 62, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 11, position: 7, gameweek: 1, players: [] },
-  { manager_name: "Nate Cohen", team_name: "Cohen's Corner", total_points: 60, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 7, position: 8, gameweek: 1, players: [] },
-  { manager_name: "Chris Munoz", team_name: "Munoz Magic", total_points: 60, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 8, position: 9, gameweek: 1, players: [] },
-  { manager_name: "Evan Bagheri", team_name: "Bagheri's Best", total_points: 57, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 13, position: 10, gameweek: 1, players: [] },
-  { manager_name: "Dean Maghsadi", team_name: "Dean's Dream", total_points: 55, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 11, gameweek: 1, players: [] },
-  { manager_name: "Brian Pleines", team_name: "Pleines Power", total_points: 53, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 10, position: 12, gameweek: 1, players: [] },
-  { manager_name: "Max Maier", team_name: "Maier's Marvels", total_points: 53, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 19, position: 13, gameweek: 1, players: [] },
-  { manager_name: "Adrian McLoughlin", team_name: "McLoughlin FC", total_points: 52, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 14, gameweek: 1, players: [] },
-  { manager_name: "Wes H", team_name: "Wes Warriors", total_points: 50, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 9, position: 15, gameweek: 1, players: [] },
-  { manager_name: "Kevin Tomek", team_name: "Tomek's Team", total_points: 48, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 22, position: 16, gameweek: 1, players: [] },
-  { manager_name: "Kevin K", team_name: "Kevin's Kicks", total_points: 41, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 10, position: 17, gameweek: 1, players: [] },
-  { manager_name: "Tony Tharakan", team_name: "Tharakan's Threat", total_points: 39, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 4, position: 18, gameweek: 1, players: [] },
-  { manager_name: "JP Fischer", team_name: "Fischer's Force", total_points: 35, captain_points: 0, captain_player: "Haaland", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 13, position: 19, gameweek: 1, players: [] },
-  { manager_name: "Patrick McCleary", team_name: "McCleary's Might", total_points: 34, captain_points: 0, captain_player: "Salah", captain_fixture_started: true, captain_fixture_finished: true, players_live: 0, players_upcoming: 0, bench_points: 6, position: 20, gameweek: 1, players: [] }
-];
-
-const superBust = () => {
-  const now = Date.now();
-  const random = Math.random().toString(36).slice(2);
-  const micro = Math.floor(performance.now() * 1000) % 1000000;
-  return `v=${now}&r=${random}&t=${micro}&cb=${Math.abs(now.toString().split('').reduce((a, b) => ((a << 5) - a + b.charCodeAt(0)) | 0, 0)) % 999999}`;
-};
+const CACHE_VERSION = 'v1'; // Increment this to invalidate all caches
 
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const truthy = (v) => v === true || v === 'True' || v === 'true' || v === 1 || v === '1';
@@ -45,19 +16,45 @@ const fetchWithNoCaching = async (url, signal) => {
   return fetch(url, { method: 'GET', cache: 'no-store', signal });
 };
 
-const fetchWithVersionCheck = async (url, signal) => {
+// --- LocalStorage Cache Utilities ---
+
+const getCacheKey = (gameweek) => `fpl_gw_${gameweek}_${CACHE_VERSION}`;
+
+const getCachedGameweek = (gameweek) => {
   try {
-    const versionUrl = `${PUBLIC_BASE}fpl-data-version.txt?${superBust()}`;
-    const versionRes = await fetchWithNoCaching(versionUrl, signal);
-    if (versionRes.ok) {
-      const versionData = await versionRes.text();
-      const currentVersion = versionData.trim().split('\n')[0];
-      console.log(`Current data version: ${currentVersion}`);
+    const cached = localStorage.getItem(getCacheKey(gameweek));
+    if (cached) {
+      const data = JSON.parse(cached);
+      console.log(`✅ Cache hit for GW${gameweek}`);
+      return data;
     }
   } catch (e) {
-    console.warn('Version check failed, proceeding with normal fetch', e);
+    console.warn(`Failed to read cache for GW${gameweek}:`, e);
   }
-  return fetchWithNoCaching(`${url}?${superBust()}`, signal);
+  return null;
+};
+
+const setCachedGameweek = (gameweek, data) => {
+  try {
+    localStorage.setItem(getCacheKey(gameweek), JSON.stringify(data));
+    console.log(`💾 Cached GW${gameweek} (${data.length} managers)`);
+  } catch (e) {
+    console.warn(`Failed to cache GW${gameweek}:`, e);
+    // If storage is full, clear old caches
+    if (e.name === 'QuotaExceededError') {
+      clearOldCaches();
+    }
+  }
+};
+
+const clearOldCaches = () => {
+  console.log('Clearing old caches...');
+  const keys = Object.keys(localStorage);
+  keys.forEach(key => {
+    if (key.startsWith('fpl_gw_') && !key.includes(CACHE_VERSION)) {
+      localStorage.removeItem(key);
+    }
+  });
 };
 
 // --- Fixture Data Functions ---
@@ -89,48 +86,6 @@ const fetchFixtureData = async () => {
   }
 };
 
-const getFixtureInfo = (playerTeam, fixtures, teamMap) => {
-  // Look for any fixture for this team (upcoming, live, or finished)
-  const fixture = fixtures.find(f => {
-    const homeTeam = teamMap[f.team_h];
-    const awayTeam = teamMap[f.team_a];
-    return homeTeam === playerTeam || awayTeam === playerTeam;
-  });
-  
-  if (!fixture || !fixture.kickoff_time) return null;
-  
-  const kickoffTime = new Date(fixture.kickoff_time);
-  const now = new Date();
-  
-  const etTime = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  }).format(kickoffTime);
-  
-  const minutesElapsed = Math.floor((now - kickoffTime) / (1000 * 60));
-  
-  if (minutesElapsed < 0) {
-    return {
-      status: 'upcoming',
-      kickoff: etTime,
-      minutesLeft: 90
-    };
-  } else if (minutesElapsed <= 90 && !fixture.finished && !fixture.finished_provisional) {
-    return {
-      status: 'live',
-      kickoff: etTime,
-      minutesLeft: Math.max(0, 90 - minutesElapsed)
-    };
-  } else {
-    return {
-      status: 'finished',
-      kickoff: etTime,
-      minutesLeft: 0
-    };
-  }
-};
 const useFplData = () => {
   const [gameweekData, setGameweekData] = useState({});
   const [combinedData, setCombinedData] = useState([]);
@@ -139,9 +94,11 @@ const useFplData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [papaReady, setPapaReady] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [lastUpdate, setLastUpdate] = useState(null);
   const [fixtureData, setFixtureData] = useState({ fixtures: [], teamMap: {}, playerTeamMap: {} });
+  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0, gameweeks: [] });
+
   
   const cycleAbortRef = useRef(null);
   const fetchCycleIdRef = useRef(0);
@@ -149,7 +106,10 @@ const useFplData = () => {
   const manifestVersionRef = useRef(null);
   const fallbackIntervalRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
+  const sseSetupDoneRef = useRef(false);
+  const scrollPositionRef = useRef(0); // Track scroll position to prevent jump
 
+  // Load PapaParse
   useEffect(() => {
     if (window.Papa) {
       setPapaReady(true);
@@ -159,29 +119,41 @@ const useFplData = () => {
     script.id = 'papaparse-script';
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
     script.async = true;
-    script.onload = () => setPapaReady(true);
-    script.onerror = () => { setError("Error: Failed to load data parsing library."); setLoading(false); };
+    script.onload = () => {
+      console.log('PapaParse loaded successfully');
+      setPapaReady(true);
+    };
+    script.onerror = (e) => {
+      console.error('Failed to load PapaParse:', e);
+      setError("Error: Failed to load data parsing library.");
+      setLoading(false);
+    };
     document.body.appendChild(script);
+    
+    return () => {
+      const existingScript = document.getElementById('papaparse-script');
+      if (existingScript) {
+        document.body.removeChild(existingScript);
+      }
+    };
   }, []);
 
-useEffect(() => {
-  const loadFixtures = async () => {
-    console.log('Loading fixtures...');
-    const data = await fetchFixtureData();
-    console.log('Fixtures loaded:', {
-      fixturesCount: data.fixtures.length,
-      teamsCount: Object.keys(data.teamMap).length
-    });
-    setFixtureData(data);
-  };
-  
-  // Load immediately
-  loadFixtures();
-  
-  // Refresh every 5 minutes
-  const interval = setInterval(loadFixtures, 300000);
-  return () => clearInterval(interval);
-}, []);
+  // Load fixtures
+  useEffect(() => {
+    const loadFixtures = async () => {
+      console.log('Loading fixtures...');
+      const data = await fetchFixtureData();
+      console.log('Fixtures loaded:', {
+        fixturesCount: data.fixtures.length,
+        teamsCount: Object.keys(data.teamMap).length
+      });
+      setFixtureData(data);
+    };
+    
+    loadFixtures();
+    const interval = setInterval(loadFixtures, 300000);
+    return () => clearInterval(interval);
+  }, []);
 
   const parseCsvToManagers = useCallback((csvText, gameweek) => {
     if (!csvText || csvText.trim() === "The game is being updated.") return [];
@@ -239,24 +211,42 @@ useEffect(() => {
       .map((m, i) => ({ ...m, position: i + 1, gameweek }));
   }, []);
 
-const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
-    if (gameweek === 1) return HARDCODED_GW1_DATA;
+  const processGameweekData = useCallback(async (gameweek, manifest, signal, isLatestGw, gwIndex, totalGws) => {
+    // Update progress
+    setLoadingProgress(prev => ({
+      current: gwIndex + 1,
+      total: totalGws,
+      gameweeks: [...prev.gameweeks, gameweek]
+    }));
+
+    // Try cache first for non-latest gameweeks
+    if (!isLatestGw) {
+      const cached = getCachedGameweek(gameweek);
+      if (cached) {
+        return cached;
+      }
+    }
+
     try {
-      // Get gameweek info directly from manifest (no more pointer files!)
       const gwInfo = manifest?.gameweeks?.[String(gameweek)];
-      if (!gwInfo) throw new Error(`No data for GW${gameweek} in manifest`);
-      
-      const gwTimestamp = gwInfo?.timestamp;
-      if (gwTimestamp && Date.now() - (gwTimestamp * 1000) > 3600000) {
-        console.warn(`Data for GW${gameweek} is over 1 hour old`);
+      if (!gwInfo) {
+        console.warn(`No data for GW${gameweek} in manifest`);
+        return [];
       }
       
-      // Fetch CSV through backend proxy to bypass CDN caching
       const proxyUrl = `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
+      console.log(`${isLatestGw ? '🔴 LIVE' : '📥'} Fetching GW${gameweek}...`);
       const csvRes = await fetchWithNoCaching(proxyUrl, signal);
       if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for GW${gameweek}`);
       const csvText = await csvRes.text();
-      return parseCsvToManagers(csvText, gameweek);
+      const data = parseCsvToManagers(csvText, gameweek);
+      
+      // Cache finished gameweeks only
+      if (!isLatestGw && data.length > 0) {
+        setCachedGameweek(gameweek, data);
+      }
+      
+      return data;
     } catch (err) {
       if (err?.name !== 'AbortError') {
         console.error(`GW${gameweek} fetch failed:`, err);
@@ -266,45 +256,62 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
   }, [parseCsvToManagers]);
 
   const fetchData = useCallback(async () => {
+    if (!window.Papa) {
+      console.warn('Papa is not ready yet, skipping fetch');
+      return;
+    }
+
     if (cycleAbortRef.current) cycleAbortRef.current.abort();
     const abort = new AbortController();
     cycleAbortRef.current = abort;
     const myId = ++fetchCycleIdRef.current;
     setLoading(true);
+    
     try {
+      console.log('📡 Starting data fetch...');
       const manifestRes = await fetch(
-  'https://bpl-red-sun-894.fly.dev/api/manifest',
-  { cache: 'no-store', signal: abort.signal }
-);
+        'https://bpl-red-sun-894.fly.dev/api/manifest',
+        { cache: 'no-store', signal: abort.signal }
+      );
       if (!manifestRes.ok) throw new Error(`Could not load league manifest (${manifestRes.status})`);
       const manifest = await manifestRes.json();
       
       manifestVersionRef.current = manifest.version;
+      console.log('📋 Manifest loaded, version:', manifest.version);
       
-      const manifestTimestamp = manifest?.timestamp;
-      if (manifestTimestamp && Date.now() - (manifestTimestamp * 1000) > 3600000) {
-        console.warn('Manifest is over 1 hour old, may contain stale data');
-      }
-      if (manifest?.version) {
-        console.log(`Loaded manifest version: ${manifest.version}`);
-      }
       const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
-      const available = [...new Set([1, ...remoteGameweeks])].sort((a, b) => a - b);
+      const available = [...new Set([...remoteGameweeks])].sort((a, b) => a - b);
       if (available.length === 0) throw new Error("No gameweek data found in manifest.");
       const currentLatestGw = available[available.length - 1];
+      
+      console.log(`🎯 Latest gameweek: GW${currentLatestGw}`);
+      
+      // Fetch all gameweeks (cache will be checked automatically)
       const results = await Promise.all(
         available.map(async (gw) => {
-          const data = await processGameweekData(gw, manifest, abort.signal);
+          const isLatestGw = gw === currentLatestGw;
+          const data = await processGameweekData(gw, manifest, abort.signal, isLatestGw);
           return { gameweek: gw, data };
         })
       );
+      
       if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
+      
       const newGameweekData = Object.fromEntries(results.map(({ gameweek, data }) => [gameweek, data]));
+      
+      // Calculate cache hit ratio
+      const cachedCount = results.filter((r, idx) => {
+        const gw = available[idx];
+        return gw !== currentLatestGw && r.data.length > 0;
+      }).length - 1; // Subtract 1 because latest GW isn't cached
+      console.log(`💾 Cache efficiency: ${cachedCount}/${available.length - 1} historical gameweeks cached`);
+      
       setGameweekData(newGameweekData);
       setAvailableGameweeks(available);
       setLatestGameweek(currentLatestGw);
-      if (newGameweekData[1]?.length) {
-        const managerNames = newGameweekData[1].map(m => m.manager_name);
+      
+      if (newGameweekData[available[0]]?.length) {
+        const managerNames = newGameweekData[available[0]].map(m => m.manager_name);
         const newCombinedData = managerNames.map(name => {
           let cumulativePoints = 0;
           const managerEntry = { manager_name: name };
@@ -320,7 +327,7 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
         })
           .sort((a, b) => b.total_points - a.total_points)
           .map((manager, index) => {
-            const gw1Position = newGameweekData[1]?.find(m => m.manager_name === manager.manager_name)?.position || 0;
+            const gw1Position = newGameweekData[available[0]]?.find(m => m.manager_name === manager.manager_name)?.position || 0;
             return {
               ...manager,
               current_position: index + 1,
@@ -329,8 +336,10 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
           });
         setCombinedData(newCombinedData);
       }
+      
       setError(null);
       setLastUpdate(new Date());
+      console.log('✅ Data fetch complete');
     } catch (err) {
       if (err?.name !== 'AbortError') {
         console.error("Failed to load FPL data:", err);
@@ -341,15 +350,34 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     }
   }, [processGameweekData]);
 
-  const setupSSE = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+  // Initial data load
+  useEffect(() => {
+    if (!papaReady) return;
+    
+    console.log('PapaParse ready, loading initial data');
+    fetchData();
+  }, [papaReady, fetchData]);
+
+  // Setup SSE ONLY after we have data
+  useEffect(() => {
+    // Wait until we have data
+    if (Object.keys(gameweekData).length === 0) {
+      console.log('No gameweek data yet, waiting to setup SSE');
+      return;
     }
 
-    console.log('Attempting SSE connection to:', SSE_URL);
+    // Only setup SSE once
+    if (sseSetupDoneRef.current) {
+      console.log('SSE already setup, skipping');
+      return;
+    }
+
+    console.log('Data loaded, setting up SSE connection');
+    sseSetupDoneRef.current = true;
+    setConnectionStatus('connecting');
+
     const eventSource = new EventSource(SSE_URL);
     eventSourceRef.current = eventSource;
-    
     const maxReconnectAttempts = 5;
 
     eventSource.onopen = () => {
@@ -403,45 +431,37 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
         reconnectAttemptsRef.current++;
         
         setTimeout(() => {
-          if (!eventSourceRef.current || eventSourceRef.current.readyState !== EventSource.OPEN) {
-            setupSSE();
+          if (eventSourceRef.current && eventSourceRef.current.readyState !== EventSource.OPEN) {
+            sseSetupDoneRef.current = false; // Allow re-setup
+            // Trigger re-setup by updating a dependency (we'll use a hack here)
+            setConnectionStatus('connecting');
           }
         }, delay);
       } else {
         console.log('Max SSE reconnection attempts reached, falling back to polling');
         if (!fallbackIntervalRef.current) {
-          fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+          fallbackIntervalRef.current = setInterval(() => {
+            fetchData();
+          }, FALLBACK_POLL_INTERVAL_MS);
         }
       }
     };
 
-    return eventSource;
-  }, [fetchData]);
-
-  useEffect(() => {
-    if (!papaReady) return;
-    
-    fetchData();
-    const eventSource = setupSSE();
-
     return () => {
       console.log('Cleaning up SSE connection');
-      if (eventSource) {
-        eventSource.close();
-      }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
       if (fallbackIntervalRef.current) {
         clearInterval(fallbackIntervalRef.current);
-        fallbackIntervalRef.current = null; 
+        fallbackIntervalRef.current = null;
       }
       if (cycleAbortRef.current) {
         cycleAbortRef.current.abort();
       }
     };
-  }, [papaReady, setupSSE, fetchData]);
+  }, [gameweekData, fetchData]); // Run when data first loads
 
   return { 
     loading, 
@@ -473,126 +493,116 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData,
   if (!manager) return null;
 
   const calculateLeagueOwnership = (playerName) => {
-  if (!manager || !manager.gameweek) return null;
-  
-  // Get all managers' data for this gameweek from the parent component
-  // We need to pass gameweekData as a prop to the modal
-  const currentGwData = gameweekData[manager.gameweek];
-  if (!currentGwData || currentGwData.length === 0) return null;
-  
-  let ownersCount = 0;
-  const totalManagers = currentGwData.length;
-  
-  currentGwData.forEach(mgr => {
-    if (mgr.players && mgr.players.length > 0) {
-      const ownsPlayer = mgr.players.some(p => p.name === playerName);
-      if (ownsPlayer) ownersCount++;
-    }
-  });
-  
-  if (totalManagers === 0) return null;
-  
-  const ownershipPct = ((ownersCount / totalManagers) * 100).toFixed(1);
-  return ownershipPct;
-};
+    if (!manager || !manager.gameweek) return null;
+    
+    const currentGwData = gameweekData[manager.gameweek];
+    if (!currentGwData || currentGwData.length === 0) return null;
+    
+    let ownersCount = 0;
+    const totalManagers = currentGwData.length;
+    
+    currentGwData.forEach(mgr => {
+      if (mgr.players && mgr.players.length > 0) {
+        const ownsPlayer = mgr.players.some(p => p.name === playerName);
+        if (ownsPlayer) ownersCount++;
+      }
+    });
+    
+    if (totalManagers === 0) return null;
+    
+    const ownershipPct = ((ownersCount / totalManagers) * 100).toFixed(1);
+    return ownershipPct;
+  };
 
   const getPositionColor = (pos) => {
     const colors = { GK: 'text-yellow-400', DEF: 'text-blue-400', MID: 'text-green-400', FWD: 'text-red-400' };
     return colors[pos] || 'text-gray-400';
   };
 
-const getFixtureTimingText = (player, currentGameweek) => {
-  if (!fixtureData.fixtures.length || !fixtureData.playerTeamMap) {
+  const getFixtureTimingText = (player, currentGameweek) => {
+    if (!fixtureData.fixtures.length || !fixtureData.playerTeamMap) {
+      return null;
+    }
+    
+    let playerTeam = fixtureData.playerTeamMap[player.name];
+    
+    if (!playerTeam && player.name.includes(' ')) {
+      const lastName = player.name.split(' ').pop();
+      playerTeam = fixtureData.playerTeamMap[lastName];
+    }
+    
+    if (!playerTeam) {
+      return null;
+    }
+    
+    const fixture = fixtureData.fixtures.find(f => {
+      const homeTeam = fixtureData.teamMap[f.team_h];
+      const awayTeam = fixtureData.teamMap[f.team_a];
+      const isTeamMatch = homeTeam === playerTeam || awayTeam === playerTeam;
+      const isCorrectGameweek = f.event === currentGameweek;
+      
+      return isTeamMatch && isCorrectGameweek;
+    });
+    
+    if (!fixture || !fixture.kickoff_time) return null;
+    
+    const kickoffTime = new Date(fixture.kickoff_time);
+    const now = new Date();
+    
+    const homeTeam = fixtureData.teamMap[fixture.team_h];
+    const awayTeam = fixtureData.teamMap[fixture.team_a];
+    const opponent = playerTeam === homeTeam ? awayTeam : homeTeam;
+    const isHome = playerTeam === homeTeam;
+    
+    const dateStr = kickoffTime.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: '2-digit'
+    });
+    
+    const etTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).format(kickoffTime);
+    
+    const minutesElapsed = Math.floor((now - kickoffTime) / (1000 * 60));
+    
+    if (minutesElapsed < 0) {
+      return (
+        <span className="text-[9px] text-gray-400">
+          {dateStr} • {isHome ? 'vs' : '@'} {opponent} • {etTime}
+        </span>
+      );
+    } else if (minutesElapsed <= 105 && !fixture.finished && !fixture.finished_provisional) {
+      const matchMinute = fixture.minutes || 0;
+      const homeScore = fixture.team_h_score || 0;
+      const awayScore = fixture.team_a_score || 0;
+      
+      return (
+        <span className="text-[9px] text-yellow-400 font-semibold">
+          {matchMinute}' • {isHome ? 'vs' : '@'} {opponent} • {homeScore}-{awayScore}
+        </span>
+      );
+    } else if (fixture.finished || fixture.finished_provisional) {
+      const homeScore = fixture.team_h_score || 0;
+      const awayScore = fixture.team_a_score || 0;
+      
+      return (
+        <span className="text-[9px] text-gray-500">
+          {isHome ? 'vs' : '@'} {opponent} • {homeScore}-{awayScore}
+        </span>
+      );
+    }
+    
     return null;
-  }
-  
-  // Try to find team using different name formats
-  let playerTeam = fixtureData.playerTeamMap[player.name];
-  
-  // If not found, try last name only
-  if (!playerTeam && player.name.includes(' ')) {
-    const lastName = player.name.split(' ').pop();
-    playerTeam = fixtureData.playerTeamMap[lastName];
-  }
-  
-  if (!playerTeam) {
-    return null;
-  }
-  
-  // Find fixture for THIS specific gameweek
-  const fixture = fixtureData.fixtures.find(f => {
-    const homeTeam = fixtureData.teamMap[f.team_h];
-    const awayTeam = fixtureData.teamMap[f.team_a];
-    const isTeamMatch = homeTeam === playerTeam || awayTeam === playerTeam;
-    const isCorrectGameweek = f.event === currentGameweek;
-    
-    return isTeamMatch && isCorrectGameweek;
-  });
-  
-  if (!fixture || !fixture.kickoff_time) return null;
-  
-  const kickoffTime = new Date(fixture.kickoff_time);
-  const now = new Date();
-  
-  const homeTeam = fixtureData.teamMap[fixture.team_h];
-  const awayTeam = fixtureData.teamMap[fixture.team_a];
-  const opponent = playerTeam === homeTeam ? awayTeam : homeTeam;
-  const isHome = playerTeam === homeTeam;
-  
-  // Format date as MM/DD/YY
-  const dateStr = kickoffTime.toLocaleDateString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    year: '2-digit'
-  });
-  
-  const etTime = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  }).format(kickoffTime);
-  
-  const minutesElapsed = Math.floor((now - kickoffTime) / (1000 * 60));
-  
-  if (minutesElapsed < 0) {
-    // Upcoming
-    return (
-      <span className="text-[9px] text-gray-400">
-        {dateStr} • {isHome ? 'vs' : '@'} {opponent} • {etTime}
-      </span>
-    );
-  } else if (minutesElapsed <= 105 && !fixture.finished && !fixture.finished_provisional) {
-    // Live - use actual match minute from API
-    const matchMinute = fixture.minutes || 0;
-    
-    const homeScore = fixture.team_h_score || 0;
-    const awayScore = fixture.team_a_score || 0;
-    
-    return (
-      <span className="text-[9px] text-yellow-400 font-semibold">
-        {matchMinute}' • {isHome ? 'vs' : '@'} {opponent} • {homeScore}-{awayScore}
-      </span>
-    );
-  } else if (fixture.finished || fixture.finished_provisional) {
-    // Finished
-    const homeScore = fixture.team_h_score || 0;
-    const awayScore = fixture.team_a_score || 0;
-    
-    return (
-      <span className="text-[9px] text-gray-500">
-        {isHome ? 'vs' : '@'} {opponent} • {homeScore}-{awayScore}
-      </span>
-    );
-  }
-  
-  return null;
-};
+  };
+
   const allPlayers = manager.players || [];
   const starters = allPlayers.filter(p => p.multiplier >= 1);
   const bench = allPlayers.filter(p => p.multiplier === 0);
   
-  // Apply filtering based on filterType
   let filteredStarters = starters;
   let filteredBench = bench;
   let modalTitle = 'All Players';
@@ -614,42 +624,41 @@ const getFixtureTimingText = (player, currentGameweek) => {
     modalSubtitle = `${filteredBench.length} player${filteredBench.length !== 1 ? 's' : ''} on the bench`;
   }
 
-const renderPlayerRow = (player, idx) => {
-  const leagueOwnership = calculateLeagueOwnership(player.name);
+  const renderPlayerRow = (player, idx) => {
+    const leagueOwnership = calculateLeagueOwnership(player.name);
 
-  return (
-    <div key={idx} className="flex items-center justify-between py-2 md:py-2.5 hover:bg-slate-700/30 transition-colors px-2 md:px-3">
-      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-        <span className={`font-bold text-xs md:text-sm ${getPositionColor(player.position)} w-8 md:w-10 flex-shrink-0`}>{player.position}</span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
-            {leagueOwnership && (
-              <span className="text-[9px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
-                {leagueOwnership}%
-              </span>
-            )}
+    return (
+      <div key={idx} className="flex items-center justify-between py-2 md:py-2.5 hover:bg-slate-700/30 transition-colors px-2 md:px-3">
+        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+          <span className={`font-bold text-xs md:text-sm ${getPositionColor(player.position)} w-8 md:w-10 flex-shrink-0`}>{player.position}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
+              {leagueOwnership && (
+                <span className="text-[9px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
+                  {leagueOwnership}%
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] md:text-xs text-gray-400 truncate">{player.team}</p>
+              {getFixtureTimingText(player, manager.gameweek)}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <p className="text-[10px] md:text-xs text-gray-400 truncate">{player.team}</p>
-            {getFixtureTimingText(player, manager.gameweek)}
-          </div>
+          {player.is_captain && (
+            <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 bg-cyan-600 text-white rounded font-bold flex-shrink-0">C</span>
+          )}
         </div>
-        {player.is_captain && (
-          <span className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 bg-cyan-600 text-white rounded font-bold flex-shrink-0">C</span>
-        )}
+        <div className="text-right ml-2 md:ml-3 flex-shrink-0">
+          <p className="text-base md:text-xl font-bold text-white">{player.multiplier === 0 ? player.points_gw : player.points_applied}</p>
+        </div>
       </div>
-      <div className="text-right ml-2 md:ml-3 flex-shrink-0">
-        <p className="text-base md:text-xl font-bold text-white">{player.multiplier === 0 ? player.points_gw : player.points_applied}</p>
-      </div>
-    </div>
-  );
-};
+    );
+  };
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 pb-24 md:p-6 md:pb-6" onClick={onClose}>
       <div className="bg-slate-800 rounded-lg max-w-5xl w-full max-h-[75vh] md:max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700 flex flex-col" onClick={(e) => e.stopPropagation()}>
-        {/* Fixed header */}
         <div className="flex-shrink-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-2.5 md:p-4 flex justify-between items-center">
           <div className="flex-1 min-w-0 pr-2">
             <h2 className="text-base md:text-xl font-bold text-white truncate">{manager.manager_name}</h2>
@@ -669,11 +678,9 @@ const renderPlayerRow = (player, idx) => {
           </button>
         </div>
 
-        {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto overscroll-contain">
           {filterType === 'all' ? (
             <div className="grid md:grid-cols-2 gap-4 p-3 md:p-4">
-              {/* Starters */}
               <div className="bg-slate-900/30 rounded-lg overflow-hidden">
                 <div className="bg-slate-900/80 px-3 py-2 border-b border-slate-700">
                   <h3 className="text-sm md:text-base font-bold text-white">Starters</h3>
@@ -683,7 +690,6 @@ const renderPlayerRow = (player, idx) => {
                 </div>
               </div>
 
-              {/* Bench */}
               <div className="bg-slate-900/30 rounded-lg overflow-hidden">
                 <div className="bg-slate-900/80 px-3 py-2 border-b border-slate-700">
                   <h3 className="text-sm md:text-base font-bold text-white">Bench</h3>
@@ -695,7 +701,6 @@ const renderPlayerRow = (player, idx) => {
             </div>
           ) : (
             <div className="p-3 md:p-4">
-              {/* Single column for filtered views */}
               <div className="bg-slate-900/30 rounded-lg overflow-hidden">
                 <div className="bg-slate-900/80 px-3 py-2 border-b border-slate-700">
                   <h3 className="text-sm md:text-base font-bold text-white">{modalTitle}</h3>
@@ -949,16 +954,28 @@ const FPLMultiGameweekDashboard = () => {
   }
 
   if (error) {
-    return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-red-400 text-xl p-4 text-center">{error}</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 p-4">
+        <div className="text-red-400 text-xl mb-4 text-center">{error}</div>
+        <button 
+          onClick={fetchData}
+          className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   const leader = currentData[0];
   const averageScore = currentData.length > 0 ? Math.round(currentData.reduce((sum, m) => sum + (m.total_points || 0), 0) / currentData.length) : 0;
 
   const statusColor = connectionStatus === 'connected' ? 'bg-green-500' : 
-                     connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500';
+                     connectionStatus === 'disconnected' ? 'bg-yellow-500' : 
+                     connectionStatus === 'connecting' ? 'bg-blue-500' : 'bg-gray-500';
   const statusText = connectionStatus === 'connected' ? 'Live' : 
-                    connectionStatus === 'disconnected' ? 'Polling' : 'Connecting';
+                    connectionStatus === 'disconnected' ? 'Polling' : 
+                    connectionStatus === 'connecting' ? 'Connecting...' : 'Unknown';
 
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
@@ -979,7 +996,7 @@ const FPLMultiGameweekDashboard = () => {
           </div>
           <div className="flex items-center justify-center gap-2 mb-3">
             <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${statusColor} ${connectionStatus === 'connected' ? 'animate-pulse' : ''}`}></div>
+              <div className={`w-2 h-2 rounded-full ${statusColor} ${connectionStatus === 'connected' ? 'animate-pulse' : connectionStatus === 'connecting' ? 'animate-pulse' : ''}`}></div>
               <span className="text-xs text-gray-400">{statusText}</span>
             </div>
             {lastUpdate && (
