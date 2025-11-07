@@ -519,84 +519,83 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData,
     return colors[pos] || 'text-gray-400';
   };
 
-  const getFixtureTimingText = (player, currentGameweek) => {
-    if (!fixtureData.fixtures.length || !fixtureData.playerTeamMap) {
-      return null;
-    }
+const getFixtureTimingText = (player, currentGameweek) => {
+    if (!fixtureData.fixtures.length || !fixtureData.playerTeamMap) return null;
     
     let playerTeam = fixtureData.playerTeamMap[player.name];
-    
     if (!playerTeam && player.name.includes(' ')) {
-      const lastName = player.name.split(' ').pop();
-      playerTeam = fixtureData.playerTeamMap[lastName];
+      playerTeam = fixtureData.playerTeamMap[player.name.split(' ').pop()];
     }
-    
-    if (!playerTeam) {
-      return null;
-    }
+    if (!playerTeam) return null;
     
     const fixture = fixtureData.fixtures.find(f => {
       const homeTeam = fixtureData.teamMap[f.team_h];
       const awayTeam = fixtureData.teamMap[f.team_a];
-      const isTeamMatch = homeTeam === playerTeam || awayTeam === playerTeam;
-      const isCorrectGameweek = f.event === currentGameweek;
-      
-      return isTeamMatch && isCorrectGameweek;
+      return (homeTeam === playerTeam || awayTeam === playerTeam) && f.event === currentGameweek;
     });
     
     if (!fixture || !fixture.kickoff_time) return null;
     
     const kickoffTime = new Date(fixture.kickoff_time);
     const now = new Date();
-    
     const homeTeam = fixtureData.teamMap[fixture.team_h];
     const awayTeam = fixtureData.teamMap[fixture.team_a];
-    const opponent = playerTeam === homeTeam ? awayTeam : homeTeam;
     const isHome = playerTeam === homeTeam;
     
-    const dateStr = kickoffTime.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: '2-digit'
-    });
-    
-    const etTime = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    }).format(kickoffTime);
-    
-    const minutesElapsed = Math.floor((now - kickoffTime) / (1000 * 60));
-    
-    if (minutesElapsed < 0) {
+    // Future fixtures
+    if (now < kickoffTime) {
       return (
-        <span className="text-[9px] text-gray-400">
-          {dateStr} • {isHome ? 'vs' : '@'} {opponent} • {etTime}
+        <span className="text-[9px] text-gray-400 flex items-center gap-1.5">
+          <span className="truncate">
+            <span className={isHome ? "font-bold text-gray-300" : "text-gray-500"}>{homeTeam}</span>
+            <span className="mx-0.5 opacity-50">v</span>
+            <span className={!isHome ? "font-bold text-gray-300" : "text-gray-500"}>{awayTeam}</span>
+          </span>
+          <span className="opacity-50">•</span>
+          <span>{kickoffTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
         </span>
       );
-    } else if (minutesElapsed <= 105 && !fixture.finished && !fixture.finished_provisional) {
-      const matchMinute = fixture.minutes || 0;
-      const homeScore = fixture.team_h_score || 0;
-      const awayScore = fixture.team_a_score || 0;
-      
-      return (
-        <span className="text-[9px] text-yellow-400 font-semibold">
-          {matchMinute}' • {isHome ? 'vs' : '@'} {opponent} • {homeScore}-{awayScore}
-        </span>
-      );
-    } else if (fixture.finished || fixture.finished_provisional) {
-      const homeScore = fixture.team_h_score || 0;
-      const awayScore = fixture.team_a_score || 0;
-      
-      return (
-        <span className="text-[9px] text-gray-500">
-          {isHome ? 'vs' : '@'} {opponent} • {homeScore}-{awayScore}
-        </span>
-      );
-    }
+    } 
     
-    return null;
+    const homeScore = fixture.team_h_score ?? 0;
+    const awayScore = fixture.team_a_score ?? 0;
+
+    // Scoreboard Pill Component
+    const ScorePill = ({ live }) => (
+      <span className={`inline-flex items-center px-1.5 rounded-sm ml-0.5 ${live ? 'bg-yellow-400/10 border border-yellow-400/20' : 'bg-slate-700/50 border border-slate-600/30'}`}>
+        <span className={isHome ? (live ? "font-extrabold text-yellow-300" : "font-bold text-gray-200") : "opacity-60"}>{homeScore}</span>
+        <span className="mx-0.5 opacity-40">:</span>
+        <span className={!isHome ? (live ? "font-extrabold text-yellow-300" : "font-bold text-gray-200") : "opacity-60"}>{awayScore}</span>
+      </span>
+    );
+
+    // Live fixtures
+    if (!fixture.finished && !fixture.finished_provisional) {
+      return (
+        <span className="text-[9px] text-yellow-400 font-medium flex items-center gap-1.5">
+          <span className="font-bold animate-pulse">{fixture.minutes ?? 0}'</span>
+          <span className="truncate">
+            <span className={isHome ? "font-bold text-yellow-300" : "text-yellow-400/60"}>{homeTeam}</span>
+            <span className="mx-0.5 opacity-50">v</span>
+            <span className={!isHome ? "font-bold text-yellow-300" : "text-yellow-400/60"}>{awayTeam}</span>
+          </span>
+          <ScorePill live={true} />
+        </span>
+      );
+    } 
+    
+    // Finished fixtures
+    return (
+      <span className="text-[9px] text-gray-500 flex items-center gap-1.5">
+        <span>FT</span>
+        <span className="truncate">
+          <span className={isHome ? "font-bold text-gray-300" : "text-gray-500"}>{homeTeam}</span>
+          <span className="mx-0.5 opacity-50">v</span>
+          <span className={!isHome ? "font-bold text-gray-300" : "text-gray-500"}>{awayTeam}</span>
+        </span>
+        <ScorePill live={false} />
+      </span>
+    );
   };
 
   const allPlayers = manager.players || [];
@@ -641,7 +640,7 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData,
               )}
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-[10px] md:text-xs text-gray-400 truncate">{player.team}</p>
+              <p className="text-[10px] md:text-xs text-gray-300 font-bold truncate">{player.team}</p>
               {getFixtureTimingText(player, manager.gameweek)}
             </div>
           </div>
@@ -650,7 +649,9 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData,
           )}
         </div>
         <div className="text-right ml-2 md:ml-3 flex-shrink-0">
-          <p className="text-base md:text-xl font-bold text-white">{player.multiplier === 0 ? player.points_gw : player.points_applied}</p>
+          <p className="text-base md:text-xl font-bold text-white">
+            {!player.fixture_started ? '-' : (player.multiplier === 0 ? player.points_gw : player.points_applied)}
+          </p>
         </div>
       </div>
     );
