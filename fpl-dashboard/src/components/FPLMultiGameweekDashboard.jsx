@@ -990,6 +990,10 @@ const getFixtureTimingText = (player, currentGameweek) => {
     
     // Future fixtures
     if (now < kickoffTime) {
+      // Create separate strings for date and time, just like in the captain modal
+      const dateStr = kickoffTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+      const timeStr = kickoffTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
       return (
         <span className="text-[9px] text-gray-400 flex items-center gap-1.5">
           <span className="truncate">
@@ -998,7 +1002,8 @@ const getFixtureTimingText = (player, currentGameweek) => {
             <span className={!isHome ? "font-bold text-gray-300" : "text-gray-500"}>{awayTeam}</span>
           </span>
           <span className="opacity-50">•</span>
-          <span>{kickoffTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+          {/* Combine the date and time strings here */}
+          <span>{dateStr} • {timeStr}</span>
         </span>
       );
     } 
