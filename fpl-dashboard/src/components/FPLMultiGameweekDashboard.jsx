@@ -1,24 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 // In your src/main.jsx (or src/index.js)
 
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-// 1. Import your dashboard (you are already doing this)
-import FPLMultiGameweekDashboard from './FPLMultiGameweekDashboard'; 
-// 2. Import Analytics (this is new)
-import { Analytics } from '@vercel/analytics/react';
-import './index.css';
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    {/* 3. Your dashboard component is already here */}
-    <FPLMultiGameweekDashboard />
-    
-    {/* 4. Add the Analytics component right here */}
-    <Analytics /> 
-  </React.StrictMode>
-);
-
 // Chip emoji mapping
 const CHIP_EMOJIS = {
   'freehit': '🆓',
