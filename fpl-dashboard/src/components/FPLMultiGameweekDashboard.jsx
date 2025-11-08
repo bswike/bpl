@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
 const FALLBACK_POLL_INTERVAL_MS = 300000;
-const CACHE_VERSION = 'v1'; // Increment this to invalidate all caches
+const CACHE_VERSION = 'v2'; // Increment this to invalidate all caches
 
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const truthy = (v) => v === true || v === 'True' || v === 'true' || v === 1 || v === '1';
@@ -277,10 +277,10 @@ const useFplData = () => {
         managerStats[manager].players.push(playerData);
         
         if (truthy(raw.is_captain) && !managerStats[manager].captain_player) {
-          managerStats[manager].captain_player = player;
-          managerStats[manager].captain_points = toNum(raw.points_applied);
-          managerStats[manager].captain_fixture_started = truthy(raw.fixture_started);
-          managerStats[manager].captain_fixture_finished = truthy(raw.fixture_finished);
+  managerStats[manager].captain_player = player;
+  managerStats[manager].captain_points = toNum(raw.points_gw); // <-- This is the correct value
+  managerStats[manager].captain_fixture_started = truthy(raw.fixture_started);
+  managerStats[manager].captain_fixture_finished = truthy(raw.fixture_finished);
           
           // Track captain choice
           if (!captainChoices[player]) {
@@ -294,10 +294,11 @@ const useFplData = () => {
           else if (!truthy(raw.fixture_started)) managerStats[manager].players_upcoming++;
         }
         if (mult === 0) managerStats[manager].bench_points += toNum(raw.points_gw);
-      } else {
-        managerStats[manager].total_points = toNum(raw.points_applied);
-      }
-    }
+      } else { // This block handles the player === "TOTAL" row
+    managerStats[manager].total_points = toNum(raw.points_applied);
+    managerStats[manager].bench_points = toNum(raw.bench_points); // <-- Add this correct line
+  }
+}
     
     // Return both managers and captain stats
     return { 
