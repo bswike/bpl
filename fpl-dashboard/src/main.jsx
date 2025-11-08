@@ -1,24 +1,14 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
-// In your src/main.js (or src/main.jsx)
-
-import React from 'react';
+import React, { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App'; // Or wherever your main App component is
-import { Analytics } from '@vercel/analytics/react'; // <-- 1. Import
-import './index.css'; // Your global styles
+import App from './App.jsx'; // This is your FPLMultiGameweekDashboard
+import { Analytics } from '@vercel/analytics/react';
+import './index.css';
 
+// This is the one and only render call you need.
+// It includes StrictMode, your App, and Analytics.
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-    <Analytics /> {/* <-- 2. Add the component here */}
-  </React.StrictMode>
-);
-
-createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
-  </StrictMode>,
-)
+    <Analytics />
+  </StrictMode>
+);
