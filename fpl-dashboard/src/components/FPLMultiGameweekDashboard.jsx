@@ -1,16 +1,23 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+// In your src/main.jsx (or src/index.js)
 
-// --- Constants ---
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+// 1. Import your dashboard (you are already doing this)
+import FPLMultiGameweekDashboard from './FPLMultiGameweekDashboard'; 
+// 2. Import Analytics (this is new)
+import { Analytics } from '@vercel/analytics/react';
+import './index.css';
 
-const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
-const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
-const FALLBACK_POLL_INTERVAL_MS = 300000;
-const CACHE_VERSION = 'v2'; // Increment this to invalidate all caches
-
-const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const truthy = (v) => v === true || v === 'True' || v === 'true' || v === 1 || v === '1';
-const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-const normalizeStr = (s) => (s ?? '').toString().normalize('NFC').replace(/\u00A0/g, ' ').trim();
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    {/* 3. Your dashboard component is already here */}
+    <FPLMultiGameweekDashboard />
+    
+    {/* 4. Add the Analytics component right here */}
+    <Analytics /> 
+  </React.StrictMode>
+);
 
 // Chip emoji mapping
 const CHIP_EMOJIS = {
