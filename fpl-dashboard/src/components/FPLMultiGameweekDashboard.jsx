@@ -739,7 +739,7 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
                     <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
                       <span className="text-xs md:text-base font-bold text-white truncate">{captain.player}</span>
                       {idx === 0 && (
-                        <span className="text-[9px] md:text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded flex-shrink-0">Most Popular</span>
+                        <span className="text-[9px] md:text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded flex-shrink-0">-🐓Most Popular-🐓</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
