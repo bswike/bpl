@@ -627,9 +627,12 @@ const ChipPopup = ({ chipData, managerName, gameweekData, onClose, position }) =
   let benefitLabel = '';
   
   if (chipData.name === '3xc') {
-    chipBenefit = managerGwData?.captain_points || 0;
-    benefitLabel = `Captain scored ${chipBenefit} raw pts (×3 = ${chipBenefit * 3})`;
+    // Triple Captain: extra captain points (captain gets 3x instead of 2x)
+    const captainRawPoints = managerGwData?.captain_points || 0;
+    chipBenefit = captainRawPoints; // The benefit is the extra 1x multiplier
+    benefitLabel = `Captain scored ${captainRawPoints} raw pts (×3 = ${captainRawPoints * 3})`;
   } else if (chipData.name === 'bboost') {
+    // Bench Boost: bench_points is already calculated as sum of all bench players' points_gw
     chipBenefit = Math.round(managerGwData?.bench_points || 0);
     benefitLabel = `Bench contributed ${chipBenefit} extra pts`;
   } else if (chipData.name === 'freehit') {
@@ -881,7 +884,7 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
                     <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
                       <span className="text-xs md:text-base font-bold text-white truncate">{captain.player}</span>
                       {idx === 0 && (
-                        <span className="text-[9px] md:text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded flex-shrink-0">Most Popular</span>
+                        <span className="text-[9px] md:text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded flex-shrink-0">🐓Most Popular🐓</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
