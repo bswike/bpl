@@ -129,6 +129,7 @@ const FPLMultiGameweekDashboard = () => {
   const [availableGameweeks, setAvailableGameweeks] = useState([]);
   const [chipsData, setChipsData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [chipsLoading, setChipsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [papaReady, setPapaReady] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
@@ -144,7 +145,7 @@ const FPLMultiGameweekDashboard = () => {
   const reconnectAttemptsRef = useRef(0);
   const initialLoadDoneRef = useRef(false);
 
-  // FIX 1: Load PapaParse first before anything else
+  // Load PapaParse first before anything else
   useEffect(() => {
     if (window.Papa) {
       setPapaReady(true);
@@ -174,15 +175,17 @@ const FPLMultiGameweekDashboard = () => {
     };
   }, []);
 
-  // FIX 2: Load chips data independently with better error handling
+  // Load chips data independently with better error handling
   useEffect(() => {
     const fetchChips = async () => {
+      setChipsLoading(true);
       try {
         console.log('Fetching chips data...');
         const response = await fetch('https://bpl-red-sun-894.fly.dev/api/chips');
         if (!response.ok) {
           console.warn(`Chips API returned ${response.status}, continuing without chips data`);
           setChipsData([]);
+          setChipsLoading(false);
           return;
         }
         const data = await response.json();
@@ -191,6 +194,8 @@ const FPLMultiGameweekDashboard = () => {
       } catch (err) {
         console.warn('Failed to fetch chips (non-critical):', err);
         setChipsData([]);
+      } finally {
+        setChipsLoading(false);
       }
     };
     
@@ -237,7 +242,7 @@ const FPLMultiGameweekDashboard = () => {
   }, []);
 
   const fetchData = useCallback(async () => {
-    // FIX 3: Check if Papa is ready before proceeding
+    // Check if Papa is ready before proceeding
     if (!window.Papa) {
       console.warn('Papa is not ready yet, skipping fetch');
       return;
@@ -418,8 +423,13 @@ const FPLMultiGameweekDashboard = () => {
   }, [processGameweekData]);
 
   const mergedData = useMemo(() => {
-    if (data.length === 0) return [];
+    // CRITICAL FIX: Only merge if BOTH data sources are ready and non-empty
+    if (data.length === 0 || chipsLoading) {
+      console.log('Skipping merge: data empty or chips still loading', { dataLength: data.length, chipsLoading });
+      return [];
+    }
 
+    console.log('Merging data:', { managers: data.length, chips: chipsData.length });
     const chipsMap = new Map(chipsData.map(c => [c.manager_name, c.chips]));
 
     return data.map(manager => {
@@ -436,10 +446,10 @@ const FPLMultiGameweekDashboard = () => {
       });
       return managerCopy;
     });
-  }, [data, chipsData]);
+  }, [data, chipsData, chipsLoading]);
 
   const setupSSE = useCallback(() => {
-    // FIX 4: Only setup SSE after initial data load
+    // Only setup SSE after initial data load
     if (!initialLoadDoneRef.current) {
       console.log('Skipping SSE setup until initial load is done');
       return null;
@@ -500,9 +510,9 @@ const FPLMultiGameweekDashboard = () => {
     };
 
     return eventSource;
-  }, []); // Empty dependencies - fetchData is called directly, not as a dependency
+  }, [fetchData]);
 
-  // FIX 5: Separate effect for initial data load
+  // Separate effect for initial data load
   useEffect(() => {
     if (!papaReady) {
       console.log('Waiting for PapaParse to be ready...');
@@ -513,7 +523,7 @@ const FPLMultiGameweekDashboard = () => {
     fetchData();
   }, [papaReady, fetchData]);
 
-  // FIX 6: Separate effect for SSE setup after initial load
+  // Separate effect for SSE setup after initial load
   useEffect(() => {
     if (!initialLoadDoneRef.current) {
       return;
@@ -539,7 +549,7 @@ const FPLMultiGameweekDashboard = () => {
         cycleAbortRef.current.abort();
       }
     };
-  }, [setupSSE]); // REMOVED data.length dependency that was causing remount
+  }, [setupSSE]);
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -681,7 +691,7 @@ const FPLMultiGameweekDashboard = () => {
     return labels[chipName] || chipName;
   };
 
-  // FIX 7: Better loading state handling
+  // Better loading state handling
   if (!papaReady) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">
@@ -690,7 +700,7 @@ const FPLMultiGameweekDashboard = () => {
     );
   }
 
-  if (loading && mergedData.length === 0) {
+  if (loading && data.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">
         Loading Chart Data...
@@ -721,6 +731,9 @@ const FPLMultiGameweekDashboard = () => {
                      connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500';
   const statusText = connectionStatus === 'connected' ? 'Live' :
                     connectionStatus === 'disconnected' ? 'Polling' : 'Connecting';
+
+  // CRITICAL FIX: Only show chips section when mergedData is actually populated
+  const showChipsSection = mergedData.length > 0 && !chipsLoading && chipsData.length > 0;
 
   return (
     <div className="min-h-screen bg-slate-900 p-2 sm:p-4 font-sans text-gray-100">
@@ -769,7 +782,7 @@ const FPLMultiGameweekDashboard = () => {
             </ResponsiveContainer>
           </div>
 
-          {chipsData.length > 0 && mergedData.length > 0 && (
+          {showChipsSection && (
             <div className="bg-slate-800/50 rounded-lg shadow-lg border border-purple-700/50 overflow-hidden">
               <div className="p-3 sm:p-4 border-b border-purple-700/50 bg-gradient-to-r from-purple-900/20 to-purple-800/20">
                 <h2 className="text-base sm:text-lg font-semibold text-gray-100">Chips Used</h2>
@@ -781,6 +794,12 @@ const FPLMultiGameweekDashboard = () => {
                   onManagerClick={handleManagerClick}
                 />
               </div>
+            </div>
+          )}
+
+          {chipsLoading && (
+            <div className="bg-slate-800/50 rounded-lg shadow-lg border border-purple-700/50 p-8 text-center">
+              <p className="text-gray-400 animate-pulse">Loading chips data...</p>
             </div>
           )}
         </main>
