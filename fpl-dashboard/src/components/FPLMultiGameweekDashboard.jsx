@@ -662,18 +662,18 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
   const ManagersList = ({ managers, expanded, onToggle }) => {
     if (managers.length <= 2) {
       return (
-        <div className="text-[10px] text-gray-400 mt-1">
+        <div className="text-[9px] md:text-[10px] text-gray-400 mt-0.5 md:mt-1">
           {managers.join(', ')}
         </div>
       );
     }
 
     return (
-      <div className="mt-1">
+      <div className="mt-0.5 md:mt-1">
         {!expanded ? (
           <button
             onClick={onToggle}
-            className="text-[10px] text-cyan-400 hover:text-cyan-300 underline"
+            className="text-[9px] md:text-[10px] text-cyan-400 hover:text-cyan-300 underline"
           >
             Show {managers.length} managers →
           </button>
@@ -681,13 +681,13 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
           <div>
             <button
               onClick={onToggle}
-              className="text-[10px] text-cyan-400 hover:text-cyan-300 underline mb-1"
+              className="text-[9px] md:text-[10px] text-cyan-400 hover:text-cyan-300 underline mb-0.5 md:mb-1"
             >
               Hide managers ↑
             </button>
-            <div className="text-[10px] text-gray-400 max-h-24 overflow-y-auto">
+            <div className="text-[9px] md:text-[10px] text-gray-400 max-h-20 md:max-h-24 overflow-y-auto leading-tight">
               {managers.map((mgr, idx) => (
-                <div key={idx}>{mgr}</div>
+                <div key={idx} className="py-0.5">{mgr}</div>
               ))}
             </div>
           </div>
@@ -706,69 +706,69 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 pb-24 md:p-6 md:pb-6" onClick={onClose}>
-      <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[75vh] md:max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700 flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-2 md:p-6" onClick={onClose}>
+      <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[80vh] md:max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700 flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex-shrink-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-2.5 md:p-4 flex justify-between items-center">
+        <div className="flex-shrink-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-2 md:p-4 flex justify-between items-center">
           <div className="flex-1 min-w-0 pr-2">
-            <h2 className="text-base md:text-xl font-bold text-white">Captain Choices</h2>
-            <p className="text-xs md:text-sm text-gray-400">Gameweek {gameweek} • {totalManagers} managers</p>
+            <h2 className="text-sm md:text-xl font-bold text-white">Captain Choices</h2>
+            <p className="text-[10px] md:text-sm text-gray-400">Gameweek {gameweek} • {totalManagers} managers</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors flex-shrink-0">
-            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-3 md:p-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-2 md:p-4">
           {sortedCaptains.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
-              <p className="text-sm md:text-base">No captain data available</p>
+              <p className="text-xs md:text-base">No captain data available</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5 md:space-y-2">
               {sortedCaptains.map((captain, idx) => (
                 <div
                   key={idx}
-                  className="bg-slate-900/30 rounded-lg border border-slate-700 overflow-hidden"
+                  className="bg-slate-900/30 rounded-md md:rounded-lg border border-slate-700 overflow-hidden"
                 >
                   {/* Captain Header */}
-                  <div className="bg-slate-900/80 px-3 py-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-sm md:text-base font-bold text-white truncate">{captain.player}</span>
+                  <div className="bg-slate-900/80 px-2 py-1.5 md:px-3 md:py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
+                      <span className="text-xs md:text-base font-bold text-white truncate">{captain.player}</span>
                       {idx === 0 && (
-                        <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded flex-shrink-0">Most Popular</span>
+                        <span className="text-[9px] md:text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded flex-shrink-0">Most Popular</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
                       <div className="text-right">
-                        <div className="text-xl md:text-2xl font-bold text-cyan-400">{captain.percentage}%</div>
-                        <div className="text-[10px] text-gray-400">{captain.count} {captain.count === 1 ? 'manager' : 'managers'}</div>
+                        <div className="text-base md:text-2xl font-bold text-cyan-400">{captain.percentage}%</div>
+                        <div className="text-[8px] md:text-[10px] text-gray-400 leading-tight">{captain.count} {captain.count === 1 ? 'mgr' : 'mgrs'}</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Captain Details */}
-                  <div className="p-3 space-y-2">
+                  <div className="p-2 md:p-3 space-y-1.5 md:space-y-2">
                     {/* Fixture and Points Row */}
-                    <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-700/50">
+                    <div className="flex items-center justify-between gap-2 md:gap-3 pb-1.5 md:pb-2 border-b border-slate-700/50">
                       <div className="flex-1 min-w-0">
-                        {captain.fixtureText || <span className="text-xs text-gray-500">No fixture info</span>}
+                        {captain.fixtureText || <span className="text-[9px] md:text-xs text-gray-500">No fixture info</span>}
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="text-[10px] text-gray-400 mb-0.5">Points</div>
-                        <div className={`text-xl md:text-2xl font-bold ${captain.points === '-' ? 'text-gray-500' : 'text-white'}`}>
+                        <div className="text-[8px] md:text-[10px] text-gray-400 mb-0.5">Pts</div>
+                        <div className={`text-base md:text-2xl font-bold ${captain.points === '-' ? 'text-gray-500' : 'text-white'}`}>
                           {captain.points}
                         </div>
                       </div>
                     </div>
 
                     {/* Visual percentage bar */}
-                    <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div className="w-full bg-slate-700 rounded-full h-1.5 md:h-2">
                       <div 
-                        className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                        className="bg-gradient-to-r from-cyan-500 to-blue-500 h-1.5 md:h-2 rounded-full transition-all duration-300"
                         style={{ width: `${captain.percentage}%` }}
                       ></div>
                     </div>
