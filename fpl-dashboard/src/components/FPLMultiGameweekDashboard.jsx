@@ -12,6 +12,21 @@ const truthy = (v) => v === true || v === 'True' || v === 'true' || v === 1 || v
 const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const normalizeStr = (s) => (s ?? '').toString().normalize('NFC').replace(/\u00A0/g, ' ').trim();
 
+// Chip emoji mapping
+const CHIP_EMOJIS = {
+  'freehit': '🆓',
+  'wildcard': '🃏',
+  '3xc': '🧑‍✈️',
+  'bboost': '🚀'
+};
+
+const CHIP_NAMES = {
+  'freehit': 'Free Hit',
+  'wildcard': 'Wildcard',
+  '3xc': 'Triple Captain',
+  'bboost': 'Bench Boost'
+};
+
 const fetchWithNoCaching = async (url, signal) => {
   return fetch(url, { method: 'GET', cache: 'no-store', signal });
 };
@@ -105,6 +120,26 @@ const fetchFixtureData = async () => {
   }
 };
 
+// --- Chips Data Function ---
+const fetchChipsData = async () => {
+  try {
+    console.log('Fetching chips data from backend...');
+    const response = await fetch('https://bpl-red-sun-894.fly.dev/api/chips');
+    
+    if (!response.ok) {
+      console.warn(`Chips API returned ${response.status}, continuing without chips data`);
+      return [];
+    }
+    
+    const data = await response.json();
+    console.log('Chips data loaded successfully:', data.chips?.length || 0, 'managers');
+    return data.chips || [];
+  } catch (error) {
+    console.warn('Failed to fetch chips data (non-critical):', error);
+    return [];
+  }
+};
+
 const useFplData = () => {
   const [gameweekData, setGameweekData] = useState({});
   const [combinedData, setCombinedData] = useState([]);
@@ -117,7 +152,8 @@ const useFplData = () => {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [fixtureData, setFixtureData] = useState({ fixtures: [], teamMap: {}, playerTeamMap: {} });
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0, gameweeks: [] });
-  const [captainStats, setCaptainStats] = useState({}); // NEW: Store captain statistics
+  const [captainStats, setCaptainStats] = useState({}); // Store captain statistics
+  const [chipsData, setChipsData] = useState([]); // NEW: Store chips data
 
   
   const cycleAbortRef = useRef(null);
@@ -179,12 +215,37 @@ const useFplData = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // NEW: Load chips data
+  useEffect(() => {
+    const loadChips = async () => {
+      console.log('Loading chips...');
+      const data = await fetchChipsData();
+      console.log('Chips data received:', data);
+      if (data.length > 0) {
+        console.log('Sample chip entry:', data[0]);
+        console.log('Total managers with chips:', data.length);
+        // Log chips for GW11 specifically
+        data.forEach(mgr => {
+          const gw11Chips = mgr.chips.filter(c => c.event === 11);
+          if (gw11Chips.length > 0) {
+            console.log(`${mgr.manager_name} has chips in GW11:`, gw11Chips);
+          }
+        });
+      }
+      setChipsData(data);
+    };
+    
+    loadChips();
+    const interval = setInterval(loadChips, 300000);
+    return () => clearInterval(interval);
+  }, []);
+
   const parseCsvToManagers = useCallback((csvText, gameweek) => {
     if (!csvText || csvText.trim() === "The game is being updated.") return [];
     const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
     if (parsed.errors?.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
     const managerStats = Object.create(null);
-    const captainChoices = {}; // NEW: Track captain choices for this gameweek
+    const captainChoices = {}; // Track captain choices for this gameweek
     
     for (const raw of parsed.data) {
       const manager = normalizeStr(raw.manager_name);
@@ -221,7 +282,7 @@ const useFplData = () => {
           managerStats[manager].captain_fixture_started = truthy(raw.fixture_started);
           managerStats[manager].captain_fixture_finished = truthy(raw.fixture_finished);
           
-          // NEW: Track captain choice
+          // Track captain choice
           if (!captainChoices[player]) {
             captainChoices[player] = 0;
           }
@@ -238,7 +299,7 @@ const useFplData = () => {
       }
     }
     
-    // NEW: Return both managers and captain stats
+    // Return both managers and captain stats
     return { 
       managers: Object.values(managerStats)
         .filter(m => toNum(m.total_points) >= 0)
@@ -331,9 +392,9 @@ const useFplData = () => {
       
       // Fetch all gameweeks (cache will be checked automatically)
       const results = await Promise.all(
-        available.map(async (gw) => {
+        available.map(async (gw, idx) => {
           const isLatestGw = gw === currentLatestGw;
-          const data = await processGameweekData(gw, manifest, abort.signal, isLatestGw);
+          const data = await processGameweekData(gw, manifest, abort.signal, isLatestGw, idx, available.length);
           // Ensure data has correct structure
           return { 
             gameweek: gw, 
@@ -360,7 +421,7 @@ const useFplData = () => {
       console.log(`💾 Cache efficiency: ${cachedCount}/${available.length - 1} historical gameweeks cached`);
       
       setGameweekData(newGameweekData);
-      setCaptainStats(newCaptainStats); // NEW: Store captain stats
+      setCaptainStats(newCaptainStats);
       setAvailableGameweeks(available);
       setLatestGameweek(currentLatestGw);
       
@@ -528,7 +589,8 @@ const useFplData = () => {
     connectionStatus, 
     lastUpdate,
     fixtureData,
-    captainStats // NEW: Return captain stats
+    captainStats,
+    chipsData // NEW: Return chips data
   };
 };
 
@@ -541,10 +603,90 @@ const getCaptainStatusIcon = (manager) => {
 const getPositionChangeIcon = (change) => {
   if (change > 0) return <span className="text-green-400">↗️ +{change}</span>;
   if (change < 0) return <span className="text-red-400">↘️ {change}</span>;
-  return <span className="text-gray-400">➡️ 0</span>;
+  return <span className="text-gray-400">➡️ 0</span>
 };
 
-// NEW: Captain Statistics Modal Component
+// NEW: Chip Popup Component
+const ChipPopup = ({ chipData, managerName, gameweekData, onClose, position }) => {
+  console.log('ChipPopup rendering!', { chipData, managerName, position });
+  
+  if (!chipData) {
+    console.log('ChipPopup: no chipData, returning null');
+    return null;
+  }
+
+  const chipName = CHIP_NAMES[chipData.name] || chipData.name;
+  const chipEmoji = CHIP_EMOJIS[chipData.name] || '🎯';
+  
+  // Get gameweek data for this chip from the gameweekData state
+  const gwNumber = chipData.event;
+  const managerGwData = gameweekData[gwNumber]?.find(m => m.manager_name === managerName);
+  const gwPoints = managerGwData?.total_points || 0;
+  
+  let chipBenefit = 0;
+  let benefitLabel = '';
+  
+  if (chipData.name === '3xc') {
+    chipBenefit = managerGwData?.captain_points || 0;
+    benefitLabel = `Captain scored ${chipBenefit} raw pts (×3 = ${chipBenefit * 3})`;
+  } else if (chipData.name === 'bboost') {
+    chipBenefit = Math.round(managerGwData?.bench_points || 0);
+    benefitLabel = `Bench contributed ${chipBenefit} extra pts`;
+  } else if (chipData.name === 'freehit') {
+    benefitLabel = `Team scored ${gwPoints} pts this week`;
+  } else if (chipData.name === 'wildcard') {
+    benefitLabel = 'Squad restructured';
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 z-40" 
+        onClick={onClose}
+      />
+      
+      {/* Popup */}
+      <div
+        className="fixed z-50 bg-slate-800 rounded-lg border-2 border-purple-500 shadow-2xl p-3 w-[90vw] max-w-[280px]"
+        style={{
+          left: position.x > 0 ? `${position.x}px` : '50%',
+          top: position.y > 0 ? `${position.y}px` : '20vh',
+          transform: position.x > 0 ? 'translate(-50%, calc(-100% - 12px))' : 'translate(-50%, 0)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-2xl">{chipEmoji}</span>
+          <div>
+            <h4 className="text-white font-bold text-sm">{chipName}</h4>
+            <p className="text-xs text-gray-400">Gameweek {chipData.event}</p>
+          </div>
+        </div>
+        
+        <div className="space-y-1 text-xs">
+          <div className="flex justify-between items-center py-1 border-t border-slate-700">
+            <span className="text-gray-400">GW Points:</span>
+            <span className="text-white font-bold">{gwPoints}</span>
+          </div>
+          
+          {chipBenefit > 0 && chipData.name !== 'freehit' && chipData.name !== 'wildcard' && (
+            <div className="flex justify-between items-center py-1">
+              <span className="text-gray-400">Chip Gain:</span>
+              <span className="text-green-400 font-bold">+{chipBenefit}</span>
+            </div>
+          )}
+          
+          <p className="text-gray-300 text-[10px] pt-1 border-t border-slate-700/50">
+            {benefitLabel}
+          </p>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// Captain Statistics Modal Component
 const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixtureData }) => {
   if (!gameweek || !captainStats || !captainStats[gameweek]) return null;
 
@@ -739,7 +881,7 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
                     <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
                       <span className="text-xs md:text-base font-bold text-white truncate">{captain.player}</span>
                       {idx === 0 && (
-                        <span className="text-[9px] md:text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded flex-shrink-0">-🐓Most Popular-🐓</span>
+                        <span className="text-[9px] md:text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded flex-shrink-0">Most Popular</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
@@ -1066,158 +1208,248 @@ const ViewToggleButtons = React.memo(({ availableGameweeks, selectedView, onSele
   );
 });
 
-const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerClick, onFilteredClick, onCaptainClick }) => {
+const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerClick, onFilteredClick, onCaptainClick, chipsData, gameweekData }) => {
   const isCombined = view === 'combined';
   const position = isCombined ? manager.current_position : manager.position;
   const totalPoints = manager.total_points;
+  const [chipPopup, setChipPopup] = useState(null);
+  const chipButtonRef = useRef(null);
+
+  // NEW: Find chip for current gameweek
+  const currentGameweek = isCombined ? null : manager.gameweek;
+  const managerChips = chipsData.find(c => c.manager_name === manager.manager_name);
+  const currentChip = currentGameweek && managerChips 
+    ? managerChips.chips.find(chip => chip.event === currentGameweek)
+    : null;
+
+  // Debug logging
+  if (currentGameweek === 11) {
+    console.log('GW11 Manager:', manager.manager_name);
+    console.log('Manager chips object:', managerChips);
+    console.log('Current chip:', currentChip);
+    console.log('Chips data length:', chipsData.length);
+    console.log('chipPopup state:', chipPopup);
+  }
+
+  // Log when chipPopup changes
+  useEffect(() => {
+    if (chipPopup) {
+      console.log('Chip popup is now open:', chipPopup);
+    }
+  }, [chipPopup]);
+
+  const handleChipClick = (e) => {
+    console.log('handleChipClick called!', e.type);
+    e.stopPropagation();
+    
+    // Use the event target directly for more reliable positioning
+    const target = e.currentTarget;
+    const rect = target.getBoundingClientRect();
+    console.log('Button rect:', rect);
+    
+    const newPopup = {
+      x: rect.left + rect.width / 2,
+      y: rect.top
+    };
+    console.log('About to set chipPopup state to:', newPopup);
+    setChipPopup(newPopup);
+  };
 
   const gridColsMap = { 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6', 7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10', 11: 'md:grid-cols-11', 12: 'md:grid-cols-12' };
   const combinedCols = 3 + availableGameweeks.length + 1;
   const desktopGridClass = isCombined ? (gridColsMap[combinedCols] || `md:grid-cols-12`) : 'md:grid-cols-7';
 
   return (
-    <div className="bg-slate-800/30 rounded-md p-1.5 border border-slate-700">
-      <div className="md:hidden">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="flex-shrink-0 w-6 h-6 bg-slate-700 rounded-md text-xs font-bold flex items-center justify-center">{position}</span>
-            <div>
-              <button onClick={() => onManagerClick(manager)} className="text-left hover:text-cyan-400 transition-colors">
-                <p className="text-white font-bold text-xs">{manager.manager_name}</p>
-                <p className="text-gray-400 text-[10px]">"{manager.team_name}"</p>
-              </button>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-white font-bold text-base">{totalPoints}</p>
-          </div>
-        </div>
-        {isCombined ? (
-          <div className="mt-2">
-            {/* Scrollable gameweek scores */}
-            <div className="relative">
-              <div 
-                className="flex gap-1.5 overflow-x-auto pb-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-              >
-                {availableGameweeks.map((gw, idx) => {
-                  const points = manager[`gw${gw}_points`];
-                  const isHighest = points === Math.max(...availableGameweeks.map(g => manager[`gw${g}_points`] || 0));
-                  const isLowest = points === Math.min(...availableGameweeks.map(g => manager[`gw${g}_points`] || 0));
-                  
-                  return (
-                    <div 
-                      key={gw} 
-                      className={`flex-shrink-0 snap-start bg-slate-900/50 p-1.5 rounded min-w-[60px] text-center border ${
-                        isHighest && points > 0 ? 'border-green-500/30 bg-green-900/10' : 
-                        isLowest ? 'border-red-500/30 bg-red-900/10' : 
-                        'border-slate-700/30'
-                      }`}
-                    >
-                      <p className="font-semibold text-gray-400 text-[9px] uppercase tracking-wide">GW{gw}</p>
-                      <p className={`font-bold text-sm ${
-                        isHighest && points > 0 ? 'text-green-400' : 
-                        isLowest ? 'text-red-400' : 
-                        'text-gray-200'
-                      }`}>
-                        {points}
-                      </p>
-                    </div>
-                  );
-                })}
+    <>
+      <div className="bg-slate-800/30 rounded-md p-1.5 border border-slate-700">
+        <div className="md:hidden">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="flex-shrink-0 w-6 h-6 bg-slate-700 rounded-md text-xs font-bold flex items-center justify-center">{position}</span>
+              <div className="flex items-center gap-1.5">
+                <button onClick={() => onManagerClick(manager)} className="text-left hover:text-cyan-400 transition-colors">
+                  <p className="text-white font-bold text-xs">{manager.manager_name}</p>
+                  <p className="text-gray-400 text-[10px]">"{manager.team_name}"</p>
+                </button>
+                {currentChip && (
+                  <button
+                    ref={chipButtonRef}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('Mobile chip CLICKED!');
+                      handleChipClick(e);
+                    }}
+                    className="text-sm transition-transform active:scale-110 p-1 -ml-1 touch-manipulation"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    title={CHIP_NAMES[currentChip.name]}
+                  >
+                    {CHIP_EMOJIS[currentChip.name]}
+                  </button>
+                )}
               </div>
-              {/* Scroll indicator */}
-              {availableGameweeks.length > 4 && (
-                <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-slate-800/90 to-transparent pointer-events-none flex items-center justify-end pr-1">
-                  <span className="text-gray-400 text-xs">→</span>
+            </div>
+            <div className="text-right">
+              <p className="text-white font-bold text-base">{totalPoints}</p>
+            </div>
+          </div>
+          {isCombined ? (
+            <div className="mt-2">
+              {/* Scrollable gameweek scores */}
+              <div className="relative">
+                <div 
+                  className="flex gap-1.5 overflow-x-auto pb-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                >
+                  {availableGameweeks.map((gw, idx) => {
+                    const points = manager[`gw${gw}_points`];
+                    const isHighest = points === Math.max(...availableGameweeks.map(g => manager[`gw${g}_points`] || 0));
+                    const isLowest = points === Math.min(...availableGameweeks.map(g => manager[`gw${g}_points`] || 0));
+                    
+                    return (
+                      <div 
+                        key={gw} 
+                        className={`flex-shrink-0 snap-start bg-slate-900/50 p-1.5 rounded min-w-[60px] text-center border ${
+                          isHighest && points > 0 ? 'border-green-500/30 bg-green-900/10' : 
+                          isLowest ? 'border-red-500/30 bg-red-900/10' : 
+                          'border-slate-700/30'
+                        }`}
+                      >
+                        <p className="font-semibold text-gray-400 text-[9px] uppercase tracking-wide">GW{gw}</p>
+                        <p className={`font-bold text-sm ${
+                          isHighest && points > 0 ? 'text-green-400' : 
+                          isLowest ? 'text-red-400' : 
+                          'text-gray-200'
+                        }`}>
+                          {points}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
+                {/* Scroll indicator */}
+                {availableGameweeks.length > 4 && (
+                  <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-slate-800/90 to-transparent pointer-events-none flex items-center justify-end pr-1">
+                    <span className="text-gray-400 text-xs">→</span>
+                  </div>
+                )}
+              </div>
+              {/* Position change indicator */}
+              <div className="flex items-center justify-between mt-1 px-1">
+                <span className="text-[9px] text-gray-500">Overall Movement</span>
+                <div className="text-[10px]">{getPositionChangeIcon(manager.overall_position_change)}</div>
+              </div>
             </div>
-            {/* Position change indicator */}
-            <div className="flex items-center justify-between mt-1 px-1">
-              <span className="text-[9px] text-gray-500">Overall Movement</span>
-              <div className="text-[10px]">{getPositionChangeIcon(manager.overall_position_change)}</div>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-1 text-center text-[10px] mt-1">
-            <button 
-              onClick={() => onCaptainClick(manager.gameweek)}
-              className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors"
-            >
-              <p className="font-semibold text-cyan-400 flex items-center justify-center gap-1">
-                Captain {getCaptainStatusIcon(manager)}
-              </p>
-              <p className="text-purple-300 underline truncate">{manager.captain_player?.split(' ').pop() || 'N/A'}</p>
-            </button>
-            <button onClick={() => onFilteredClick(manager, 'live')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
-              <p className="font-semibold text-green-400 flex items-center justify-center gap-1">
-                Live
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-              </p>
-              <p className="text-gray-200 font-bold text-xs">{manager.players_live || 0}</p>
-              <p className="text-gray-500 text-[9px] -mt-1">players</p>
-            </button>
-            <button onClick={() => onFilteredClick(manager, 'upcoming')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
-              <p className="font-semibold text-yellow-400">Upcoming</p>
-              <p className="text-gray-200 font-bold text-xs">{manager.players_upcoming || 0}</p>
-              <p className="text-gray-500 text-[9px] -mt-1">players</p>
-            </button>
-            <button onClick={() => onFilteredClick(manager, 'bench')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
-              <p className="font-semibold text-orange-400">Bench</p>
-              <p className="text-gray-200 font-bold text-xs">{Math.round(manager.bench_points) || 0}</p>
-              <p className="text-gray-500 text-[9px] -mt-1">pts</p>
-            </button>
-          </div>
-        )}
-      </div>
-      <div className={`hidden md:grid ${desktopGridClass} gap-3 items-center text-sm px-3 py-1`}>
-        <div className="md:col-span-2 flex items-center gap-3">
-          <span className="flex-shrink-0 w-7 h-7 bg-slate-700 rounded-md text-sm font-bold flex items-center justify-center">{position}</span>
-          <button onClick={() => onManagerClick(manager)} className="text-left hover:text-cyan-400 transition-colors">
-            <p className="text-white font-medium truncate">{manager.manager_name}</p>
-            <p className="text-gray-400 text-xs truncate">"{manager.team_name}"</p>
-          </button>
-        </div>
-        <div className="text-white font-bold text-lg text-center">{totalPoints}</div>
-        {isCombined ? (
-          <>
-            {availableGameweeks.map(gw => <div key={gw} className="text-center text-gray-300">{manager[`gw${gw}_points`]}</div>)}
-            <div className="text-xs text-center">{getPositionChangeIcon(manager.overall_position_change)}</div>
-          </>
-        ) : (
-          <>
-            <div className="text-center col-span-2">
+          ) : (
+            <div className="grid grid-cols-4 gap-1 text-center text-[10px] mt-1">
               <button 
                 onClick={() => onCaptainClick(manager.gameweek)}
-                className="hover:text-purple-300 transition-colors"
+                className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors"
               >
-                <p className="text-white font-medium truncate underline decoration-purple-400">{manager.captain_player || 'N/A'}</p>
-                <p className="text-cyan-400 text-xs">{manager.captain_points || 0} pts {getCaptainStatusIcon(manager)}</p>
+                <p className="font-semibold text-cyan-400 flex items-center justify-center gap-1">
+                  Captain {getCaptainStatusIcon(manager)}
+                </p>
+                <p className="text-purple-300 underline truncate">{manager.captain_player?.split(' ').pop() || 'N/A'}</p>
+              </button>
+              <button onClick={() => onFilteredClick(manager, 'live')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
+                <p className="font-semibold text-green-400 flex items-center justify-center gap-1">
+                  Live
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                </p>
+                <p className="text-gray-200 font-bold text-xs">{manager.players_live || 0}</p>
+                <p className="text-gray-500 text-[9px] -mt-1">players</p>
+              </button>
+              <button onClick={() => onFilteredClick(manager, 'upcoming')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
+                <p className="font-semibold text-yellow-400">Upcoming</p>
+                <p className="text-gray-200 font-bold text-xs">{manager.players_upcoming || 0}</p>
+                <p className="text-gray-500 text-[9px] -mt-1">players</p>
+              </button>
+              <button onClick={() => onFilteredClick(manager, 'bench')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
+                <p className="font-semibold text-orange-400">Bench</p>
+                <p className="text-gray-200 font-bold text-xs">{Math.round(manager.bench_points) || 0}</p>
+                <p className="text-gray-500 text-[9px] -mt-1">pts</p>
               </button>
             </div>
-            <button onClick={() => onFilteredClick(manager, 'live')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
-              <p className="text-green-400 font-bold text-lg">{manager.players_live || 0}</p>
-              <p className="text-gray-400 text-xs -mt-1">players</p>
+          )}
+        </div>
+        <div className={`hidden md:grid ${desktopGridClass} gap-3 items-center text-sm px-3 py-1`}>
+          <div className="md:col-span-2 flex items-center gap-3">
+            <span className="flex-shrink-0 w-7 h-7 bg-slate-700 rounded-md text-sm font-bold flex items-center justify-center">{position}</span>
+            <button onClick={() => onManagerClick(manager)} className="text-left hover:text-cyan-400 transition-colors">
+              <div className="flex items-center gap-2">
+                <p className="text-white font-medium truncate">{manager.manager_name}</p>
+                {currentChip && (
+                  <button
+                    ref={chipButtonRef}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('Desktop chip CLICKED!');
+                      handleChipClick(e);
+                    }}
+                    className="text-lg transition-transform active:scale-110 touch-manipulation"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    title={CHIP_NAMES[currentChip.name]}
+                  >
+                    {CHIP_EMOJIS[currentChip.name]}
+                  </button>
+                )}
+              </div>
+              <p className="text-gray-400 text-xs truncate">"{manager.team_name}"</p>
             </button>
-            <button onClick={() => onFilteredClick(manager, 'upcoming')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
-              <p className="text-yellow-400 font-bold text-lg">{manager.players_upcoming || 0}</p>
-              <p className="text-gray-400 text-xs -mt-1">players</p>
-            </button>
-            <button onClick={() => onFilteredClick(manager, 'bench')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
-              <p className="text-orange-400 font-bold text-lg">{Math.round(manager.bench_points) || 0}</p>
-              <p className="text-gray-400 text-xs -mt-1">pts</p>
-            </button>
-          </>
-        )}
+          </div>
+          <div className="text-white font-bold text-lg text-center">{totalPoints}</div>
+          {isCombined ? (
+            <>
+              {availableGameweeks.map(gw => <div key={gw} className="text-center text-gray-300">{manager[`gw${gw}_points`]}</div>)}
+              <div className="text-xs text-center">{getPositionChangeIcon(manager.overall_position_change)}</div>
+            </>
+          ) : (
+            <>
+              <div className="text-center col-span-2">
+                <button 
+                  onClick={() => onCaptainClick(manager.gameweek)}
+                  className="hover:text-purple-300 transition-colors"
+                >
+                  <p className="text-white font-medium truncate underline decoration-purple-400">{manager.captain_player || 'N/A'}</p>
+                  <p className="text-cyan-400 text-xs">{manager.captain_points || 0} pts {getCaptainStatusIcon(manager)}</p>
+                </button>
+              </div>
+              <button onClick={() => onFilteredClick(manager, 'live')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
+                <p className="text-green-400 font-bold text-lg">{manager.players_live || 0}</p>
+                <p className="text-gray-400 text-xs -mt-1">players</p>
+              </button>
+              <button onClick={() => onFilteredClick(manager, 'upcoming')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
+                <p className="text-yellow-400 font-bold text-lg">{manager.players_upcoming || 0}</p>
+                <p className="text-gray-400 text-xs -mt-1">players</p>
+              </button>
+              <button onClick={() => onFilteredClick(manager, 'bench')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
+                <p className="text-orange-400 font-bold text-lg">{Math.round(manager.bench_points) || 0}</p>
+                <p className="text-gray-400 text-xs -mt-1">pts</p>
+              </button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Chip Popup */}
+      {(() => {
+        console.log('Rendering chip popup section:', { chipPopup, currentChip });
+        return chipPopup && currentChip ? (
+          <ChipPopup
+            chipData={currentChip}
+            managerName={manager.manager_name}
+            gameweekData={gameweekData}
+            onClose={() => setChipPopup(null)}
+            position={chipPopup}
+          />
+        ) : null;
+      })()}
+    </>
   );
 });
 
-const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFilteredClick, onCaptainClick }) => {
+const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFilteredClick, onCaptainClick, chipsData, gameweekData }) => {
   const isCombined = view === 'combined';
   const gridColsMap = { 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6', 7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10', 11: 'md:grid-cols-11', 12: 'md:grid-cols-12' };
   const combinedCols = 3 + availableGameweeks.length + 1;
@@ -1251,6 +1483,8 @@ const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFiltere
           onManagerClick={onManagerClick} 
           onFilteredClick={onFilteredClick}
           onCaptainClick={onCaptainClick}
+          chipsData={chipsData}
+          gameweekData={gameweekData}
         />
       ))}
     </div>
@@ -1258,7 +1492,7 @@ const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFiltere
 };
 
 const FPLMultiGameweekDashboard = () => {
-  const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate, fixtureData, captainStats } = useFplData();
+  const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate, fixtureData, captainStats, chipsData } = useFplData();
   const [selectedView, setSelectedView] = useState('combined');
   const [selectedManager, setSelectedManager] = useState(null);
   const [filterType, setFilterType] = useState('all');
@@ -1402,6 +1636,8 @@ const FPLMultiGameweekDashboard = () => {
             onManagerClick={handleManagerClick} 
             onFilteredClick={handleFilteredClick}
             onCaptainClick={handleCaptainClick}
+            chipsData={chipsData}
+            gameweekData={gameweekData}
           />
         </main>
       </div>
