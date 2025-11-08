@@ -136,6 +136,8 @@ const FPLMultiGameweekDashboard = () => {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [selectedManager, setSelectedManager] = useState(null);
   const [showChipModal, setShowChipModal] = useState(false);
+  const [showCaptainModal, setShowCaptainModal] = useState(false);
+  const [selectedCaptainGW, setSelectedCaptainGW] = useState(null);
 
   const cycleAbortRef = useRef(null);
   const fetchCycleIdRef = useRef(0);
@@ -318,10 +320,16 @@ const FPLMultiGameweekDashboard = () => {
       console.log('All gameweek data fetched');
       
       const managerData = {};
+      const captainStats = {}; // Track captain choices per gameweek
 
       results.forEach((gwData, gwIndex) => {
         const gameweek = available[gwIndex];
         const managerStatsThisGw = {};
+        
+        // Initialize captain tracking for this gameweek
+        if (!captainStats[gameweek]) {
+          captainStats[gameweek] = {};
+        }
 
         gwData.forEach(row => {
           if (!row.manager_name) return;
@@ -347,8 +355,15 @@ const FPLMultiGameweekDashboard = () => {
           } else {
             const isCaptain = row.is_captain === true || ['True', 'true', 1, '1'].includes(row.is_captain);
             if (isCaptain) {
-              managerStatsThisGw[managerName].captain_player = row.player;
+              const playerName = row.player;
+              managerStatsThisGw[managerName].captain_player = playerName;
               managerStatsThisGw[managerName].captain_points = parseFloat(row.points_gw) || 0;
+              
+              // Track captain choice
+              if (!captainStats[gameweek][playerName]) {
+                captainStats[gameweek][playerName] = 0;
+              }
+              captainStats[gameweek][playerName]++;
             }
           }
         });
@@ -375,6 +390,9 @@ const FPLMultiGameweekDashboard = () => {
           };
         });
       });
+
+      // Store captain stats in a ref so we can access it later
+      window.captainStatsData = captainStats;
 
       const combinedDataArray = Object.values(managerData);
 
@@ -581,6 +599,11 @@ const FPLMultiGameweekDashboard = () => {
     }
   };
 
+  const handleCaptainClick = (gameweek) => {
+    setSelectedCaptainGW(gameweek);
+    setShowCaptainModal(true);
+  };
+
   const ChipModal = () => {
     if (!selectedManager) return null;
 
@@ -593,7 +616,21 @@ const FPLMultiGameweekDashboard = () => {
 
       if (chip.name === '3xc') {
         chipBenefit = gwData?.captain_points || 0;
-        benefitLabel = `${gwData?.captain || 'N/A'} scored ${chipBenefit} raw pts (x3)`;
+        const captainName = gwData?.captain || 'N/A';
+        benefitLabel = (
+          <span>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCaptainClick(chip.event);
+              }}
+              className="text-purple-400 hover:text-purple-300 underline font-semibold"
+            >
+              {captainName}
+            </button>
+            {' '}scored {chipBenefit} raw pts (x3)
+          </span>
+        );
       } else if (chip.name === 'bboost') {
         chipBenefit = gwData?.bench_points || 0;
         benefitLabel = `Bench scored ${chipBenefit} pts`;
@@ -695,6 +732,89 @@ const FPLMultiGameweekDashboard = () => {
   const getChipLabel = (chipName) => {
     const labels = { 'wildcard': 'Wildcard', 'freehit': 'Free Hit', 'bboost': 'Bench Boost', '3xc': 'Triple Captain' };
     return labels[chipName] || chipName;
+  };
+
+  const CaptainStatsModal = () => {
+    if (!selectedCaptainGW || !window.captainStatsData) return null;
+
+    const captainData = window.captainStatsData[selectedCaptainGW] || {};
+    const totalManagers = Object.values(captainData).reduce((sum, count) => sum + count, 0);
+    
+    // Sort by count descending
+    const sortedCaptains = Object.entries(captainData)
+      .map(([player, count]) => ({
+        player,
+        count,
+        percentage: totalManagers > 0 ? ((count / totalManagers) * 100).toFixed(1) : 0
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return (
+      <div
+        className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        onClick={() => setShowCaptainModal(false)}
+      >
+        <div
+          className="bg-slate-800 rounded-lg border-2 border-purple-500 max-w-md w-full max-h-[80vh] overflow-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-4 border-b border-slate-700 bg-gradient-to-r from-purple-900/30 to-pink-900/30">
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-bold text-white">Captain Choices</h3>
+                <p className="text-sm text-gray-400">Gameweek {selectedCaptainGW}</p>
+                <p className="text-xs text-purple-400 mt-1">{totalManagers} managers</p>
+              </div>
+              <button
+                onClick={() => setShowCaptainModal(false)}
+                className="text-gray-400 hover:text-white text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4">
+            {sortedCaptains.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-8">No captain data available</p>
+            ) : (
+              <div className="space-y-2">
+                {sortedCaptains.map((captain, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-white">{captain.player}</span>
+                          {idx === 0 && (
+                            <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">Most Popular</span>
+                          )}
+                        </div>
+                        <div className="mt-1 text-xs text-gray-400">
+                          {captain.count} {captain.count === 1 ? 'manager' : 'managers'}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-purple-400">{captain.percentage}%</div>
+                      </div>
+                    </div>
+                    {/* Visual percentage bar */}
+                    <div className="mt-2 w-full bg-slate-600 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${captain.percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Better loading state handling
@@ -811,6 +931,7 @@ const FPLMultiGameweekDashboard = () => {
         </main>
 
         {showChipModal && <ChipModal />}
+        {showCaptainModal && <CaptainStatsModal />}
       </div>
     </div>
   );

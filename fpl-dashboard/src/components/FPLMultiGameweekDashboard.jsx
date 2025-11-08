@@ -51,8 +51,27 @@ const clearOldCaches = () => {
   console.log('Clearing old caches...');
   const keys = Object.keys(localStorage);
   keys.forEach(key => {
-    if (key.startsWith('fpl_gw_') && !key.includes(CACHE_VERSION)) {
-      localStorage.removeItem(key);
+    if (key.startsWith('fpl_gw_')) {
+      // Clear all old caches that don't match current version
+      if (!key.includes(CACHE_VERSION)) {
+        localStorage.removeItem(key);
+      } else {
+        // Also check if cache has old format (array instead of object)
+        try {
+          const cached = localStorage.getItem(key);
+          if (cached) {
+            const data = JSON.parse(cached);
+            if (Array.isArray(data)) {
+              // Old format, remove it
+              console.log(`Removing old format cache: ${key}`);
+              localStorage.removeItem(key);
+            }
+          }
+        } catch (e) {
+          // Invalid cache, remove it
+          localStorage.removeItem(key);
+        }
+      }
     }
   });
 };
@@ -98,6 +117,7 @@ const useFplData = () => {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [fixtureData, setFixtureData] = useState({ fixtures: [], teamMap: {}, playerTeamMap: {} });
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0, gameweeks: [] });
+  const [captainStats, setCaptainStats] = useState({}); // NEW: Store captain statistics
 
   
   const cycleAbortRef = useRef(null);
@@ -115,6 +135,10 @@ const useFplData = () => {
       setPapaReady(true);
       return;
     }
+    
+    // Clear old caches on first load
+    clearOldCaches();
+    
     const script = document.createElement('script');
     script.id = 'papaparse-script';
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
@@ -160,6 +184,8 @@ const useFplData = () => {
     const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
     if (parsed.errors?.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
     const managerStats = Object.create(null);
+    const captainChoices = {}; // NEW: Track captain choices for this gameweek
+    
     for (const raw of parsed.data) {
       const manager = normalizeStr(raw.manager_name);
       if (!manager) continue;
@@ -194,6 +220,12 @@ const useFplData = () => {
           managerStats[manager].captain_points = toNum(raw.points_applied);
           managerStats[manager].captain_fixture_started = truthy(raw.fixture_started);
           managerStats[manager].captain_fixture_finished = truthy(raw.fixture_finished);
+          
+          // NEW: Track captain choice
+          if (!captainChoices[player]) {
+            captainChoices[player] = 0;
+          }
+          captainChoices[player]++;
         }
         const mult = toNum(raw.multiplier);
         if (mult >= 1 && raw.status !== "dnp") {
@@ -205,10 +237,15 @@ const useFplData = () => {
         managerStats[manager].total_points = toNum(raw.points_applied);
       }
     }
-    return Object.values(managerStats)
-      .filter(m => toNum(m.total_points) >= 0)
-      .sort((a, b) => b.total_points - a.total_points)
-      .map((m, i) => ({ ...m, position: i + 1, gameweek }));
+    
+    // NEW: Return both managers and captain stats
+    return { 
+      managers: Object.values(managerStats)
+        .filter(m => toNum(m.total_points) >= 0)
+        .sort((a, b) => b.total_points - a.total_points)
+        .map((m, i) => ({ ...m, position: i + 1, gameweek })),
+      captainChoices
+    };
   }, []);
 
   const processGameweekData = useCallback(async (gameweek, manifest, signal, isLatestGw, gwIndex, totalGws) => {
@@ -223,7 +260,13 @@ const useFplData = () => {
     if (!isLatestGw) {
       const cached = getCachedGameweek(gameweek);
       if (cached) {
-        return cached;
+        // Ensure cached data has the right structure
+        if (cached.managers && cached.captainChoices) {
+          return cached;
+        } else if (Array.isArray(cached)) {
+          // Old cache format, return it as managers with empty captain choices
+          return { managers: cached, captainChoices: {} };
+        }
       }
     }
 
@@ -231,7 +274,7 @@ const useFplData = () => {
       const gwInfo = manifest?.gameweeks?.[String(gameweek)];
       if (!gwInfo) {
         console.warn(`No data for GW${gameweek} in manifest`);
-        return [];
+        return { managers: [], captainChoices: {} };
       }
       
       const proxyUrl = `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
@@ -239,19 +282,19 @@ const useFplData = () => {
       const csvRes = await fetchWithNoCaching(proxyUrl, signal);
       if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for GW${gameweek}`);
       const csvText = await csvRes.text();
-      const data = parseCsvToManagers(csvText, gameweek);
+      const result = parseCsvToManagers(csvText, gameweek);
       
       // Cache finished gameweeks only
-      if (!isLatestGw && data.length > 0) {
-        setCachedGameweek(gameweek, data);
+      if (!isLatestGw && result.managers.length > 0) {
+        setCachedGameweek(gameweek, result);
       }
       
-      return data;
+      return result;
     } catch (err) {
       if (err?.name !== 'AbortError') {
         console.error(`GW${gameweek} fetch failed:`, err);
       }
-      return [];
+      return { managers: [], captainChoices: {} };
     }
   }, [parseCsvToManagers]);
 
@@ -291,22 +334,33 @@ const useFplData = () => {
         available.map(async (gw) => {
           const isLatestGw = gw === currentLatestGw;
           const data = await processGameweekData(gw, manifest, abort.signal, isLatestGw);
-          return { gameweek: gw, data };
+          // Ensure data has correct structure
+          return { 
+            gameweek: gw, 
+            managers: data.managers || data || [], 
+            captainChoices: data.captainChoices || {} 
+          };
         })
       );
       
       if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
       
-      const newGameweekData = Object.fromEntries(results.map(({ gameweek, data }) => [gameweek, data]));
+      const newGameweekData = Object.fromEntries(
+        results.map(({ gameweek, managers }) => [gameweek, managers])
+      );
+      const newCaptainStats = Object.fromEntries(
+        results.map(({ gameweek, captainChoices }) => [gameweek, captainChoices || {}])
+      );
       
       // Calculate cache hit ratio
       const cachedCount = results.filter((r, idx) => {
         const gw = available[idx];
-        return gw !== currentLatestGw && r.data.length > 0;
+        return gw !== currentLatestGw && r.managers.length > 0;
       }).length - 1; // Subtract 1 because latest GW isn't cached
       console.log(`💾 Cache efficiency: ${cachedCount}/${available.length - 1} historical gameweeks cached`);
       
       setGameweekData(newGameweekData);
+      setCaptainStats(newCaptainStats); // NEW: Store captain stats
       setAvailableGameweeks(available);
       setLatestGameweek(currentLatestGw);
       
@@ -473,7 +527,8 @@ const useFplData = () => {
     fetchData, 
     connectionStatus, 
     lastUpdate,
-    fixtureData 
+    fixtureData,
+    captainStats // NEW: Return captain stats
   };
 };
 
@@ -487,6 +542,90 @@ const getPositionChangeIcon = (change) => {
   if (change > 0) return <span className="text-green-400">↗️ +{change}</span>;
   if (change < 0) return <span className="text-red-400">↘️ {change}</span>;
   return <span className="text-gray-400">➡️ 0</span>;
+};
+
+// NEW: Captain Statistics Modal Component
+const CaptainStatsModal = ({ gameweek, captainStats, onClose }) => {
+  if (!gameweek || !captainStats || !captainStats[gameweek]) return null;
+
+  const captainData = captainStats[gameweek] || {};
+  const totalManagers = Object.values(captainData).reduce((sum, count) => sum + count, 0);
+  
+  // Sort by count descending
+  const sortedCaptains = Object.entries(captainData)
+    .map(([player, count]) => ({
+      player,
+      count,
+      percentage: totalManagers > 0 ? ((count / totalManagers) * 100).toFixed(1) : 0
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-slate-800 rounded-lg border-2 border-purple-500 max-w-md w-full max-h-[80vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-4 border-b border-slate-700 bg-gradient-to-r from-purple-900/30 to-pink-900/30">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-bold text-white">Captain Choices</h3>
+              <p className="text-sm text-gray-400">Gameweek {gameweek}</p>
+              <p className="text-xs text-purple-400 mt-1">{totalManagers} managers</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white text-2xl leading-none"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4">
+          {sortedCaptains.length === 0 ? (
+            <p className="text-gray-400 text-sm text-center py-8">No captain data available</p>
+          ) : (
+            <div className="space-y-2">
+              {sortedCaptains.map((captain, idx) => (
+                <div
+                  key={idx}
+                  className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-white">{captain.player}</span>
+                        {idx === 0 && (
+                          <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">Most Popular</span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-gray-400">
+                        {captain.count} {captain.count === 1 ? 'manager' : 'managers'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-purple-400">{captain.percentage}%</div>
+                    </div>
+                  </div>
+                  {/* Visual percentage bar */}
+                  <div className="mt-2 w-full bg-slate-600 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${captain.percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData, gameweekData }) => {
@@ -765,7 +904,7 @@ const ViewToggleButtons = React.memo(({ availableGameweeks, selectedView, onSele
   );
 });
 
-const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerClick, onFilteredClick }) => {
+const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerClick, onFilteredClick, onCaptainClick }) => {
   const isCombined = view === 'combined';
   const position = isCombined ? manager.current_position : manager.position;
   const totalPoints = manager.total_points;
@@ -803,12 +942,15 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-1 text-center text-[10px] mt-1">
-            <div className="bg-slate-900/50 p-0.5 rounded">
+            <button 
+              onClick={() => onCaptainClick(manager.gameweek)}
+              className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors"
+            >
               <p className="font-semibold text-cyan-400 flex items-center justify-center gap-1">
                 Captain {getCaptainStatusIcon(manager)}
               </p>
-              <p className="text-gray-200 truncate">{manager.captain_player?.split(' ').pop() || 'N/A'}</p>
-            </div>
+              <p className="text-purple-300 underline truncate">{manager.captain_player?.split(' ').pop() || 'N/A'}</p>
+            </button>
             <button onClick={() => onFilteredClick(manager, 'live')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
               <p className="font-semibold text-green-400 flex items-center justify-center gap-1">
                 Live
@@ -850,8 +992,13 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
         ) : (
           <>
             <div className="text-center col-span-2">
-              <p className="text-white font-medium truncate">{manager.captain_player || 'N/A'}</p>
-              <p className="text-cyan-400 text-xs">{manager.captain_points || 0} pts {getCaptainStatusIcon(manager)}</p>
+              <button 
+                onClick={() => onCaptainClick(manager.gameweek)}
+                className="hover:text-purple-300 transition-colors"
+              >
+                <p className="text-white font-medium truncate underline decoration-purple-400">{manager.captain_player || 'N/A'}</p>
+                <p className="text-cyan-400 text-xs">{manager.captain_points || 0} pts {getCaptainStatusIcon(manager)}</p>
+              </button>
             </div>
             <button onClick={() => onFilteredClick(manager, 'live')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
               <p className="text-green-400 font-bold text-lg">{manager.players_live || 0}</p>
@@ -872,7 +1019,7 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
   );
 });
 
-const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFilteredClick }) => {
+const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFilteredClick, onCaptainClick }) => {
   const isCombined = view === 'combined';
   const gridColsMap = { 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6', 7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10', 11: 'md:grid-cols-11', 12: 'md:grid-cols-12' };
   const combinedCols = 3 + availableGameweeks.length + 1;
@@ -898,17 +1045,27 @@ const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFiltere
         )}
       </div>
       {data.map((manager) => (
-        <ManagerRow key={manager.manager_name} manager={manager} view={view} availableGameweeks={availableGameweeks} onManagerClick={onManagerClick} onFilteredClick={onFilteredClick} />
+        <ManagerRow 
+          key={manager.manager_name} 
+          manager={manager} 
+          view={view} 
+          availableGameweeks={availableGameweeks} 
+          onManagerClick={onManagerClick} 
+          onFilteredClick={onFilteredClick}
+          onCaptainClick={onCaptainClick}
+        />
       ))}
     </div>
   );
 };
 
 const FPLMultiGameweekDashboard = () => {
-  const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate, fixtureData } = useFplData();
+  const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate, fixtureData, captainStats } = useFplData();
   const [selectedView, setSelectedView] = useState('combined');
   const [selectedManager, setSelectedManager] = useState(null);
   const [filterType, setFilterType] = useState('all');
+  const [showCaptainModal, setShowCaptainModal] = useState(false);
+  const [selectedCaptainGW, setSelectedCaptainGW] = useState(null);
 
   useEffect(() => {
     if (!loading && availableGameweeks.length > 0) {
@@ -919,7 +1076,7 @@ const FPLMultiGameweekDashboard = () => {
   }, [loading, availableGameweeks, latestGameweek]);
 
   useEffect(() => {
-    if (selectedManager) {
+    if (selectedManager || showCaptainModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -927,7 +1084,7 @@ const FPLMultiGameweekDashboard = () => {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [selectedManager]);
+  }, [selectedManager, showCaptainModal]);
 
   const currentData = useMemo(() => {
     if (selectedView === 'combined') return combinedData;
@@ -948,6 +1105,21 @@ const FPLMultiGameweekDashboard = () => {
   const handleCloseModal = useCallback(() => {
     setSelectedManager(null);
     setFilterType('all');
+  }, []);
+
+  const handleCaptainClick = useCallback((gameweek) => {
+    // Don't open modal if captain stats aren't loaded for this gameweek
+    if (!captainStats || !captainStats[gameweek]) {
+      console.warn(`Captain stats not available for GW${gameweek}`);
+      return;
+    }
+    setSelectedCaptainGW(gameweek);
+    setShowCaptainModal(true);
+  }, [captainStats]);
+
+  const handleCloseCaptainModal = useCallback(() => {
+    setShowCaptainModal(false);
+    setSelectedCaptainGW(null);
   }, []);
 
   if (loading && Object.keys(gameweekData).length === 0) {
@@ -981,6 +1153,7 @@ const FPLMultiGameweekDashboard = () => {
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
       {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} fixtureData={fixtureData} gameweekData={gameweekData} />}
+      {showCaptainModal && <CaptainStatsModal gameweek={selectedCaptainGW} captainStats={captainStats} onClose={handleCloseCaptainModal} />}
       <div className="max-w-7xl mx-auto p-2 sm:p-6">
         <header className="text-center mb-4 sm:mb-8">
           <div className="relative flex justify-center items-center max-w-md mx-auto mb-3">
@@ -1024,7 +1197,14 @@ const FPLMultiGameweekDashboard = () => {
           <StatCard icon="📊" title="Average" value={averageScore} unit="Points" />
         </section>
         <main>
-          <Leaderboard data={currentData} view={selectedView} availableGameweeks={availableGameweeks} onManagerClick={handleManagerClick} onFilteredClick={handleFilteredClick} />
+          <Leaderboard 
+            data={currentData} 
+            view={selectedView} 
+            availableGameweeks={availableGameweeks} 
+            onManagerClick={handleManagerClick} 
+            onFilteredClick={handleFilteredClick}
+            onCaptainClick={handleCaptainClick}
+          />
         </main>
       </div>
     </div>
