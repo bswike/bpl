@@ -673,7 +673,7 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
         {!expanded ? (
           <button
             onClick={onToggle}
-            className="text-[10px] text-purple-400 hover:text-purple-300 underline"
+            className="text-[10px] text-cyan-400 hover:text-cyan-300 underline"
           >
             Show {managers.length} managers →
           </button>
@@ -681,7 +681,7 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
           <div>
             <button
               onClick={onToggle}
-              className="text-[10px] text-purple-400 hover:text-purple-300 underline mb-1"
+              className="text-[10px] text-cyan-400 hover:text-cyan-300 underline mb-1"
             >
               Hide managers ↑
             </button>
@@ -706,84 +706,80 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-slate-800 rounded-lg border-2 border-purple-500 max-w-md w-full max-h-[80vh] overflow-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-4 border-b border-slate-700 bg-gradient-to-r from-purple-900/30 to-pink-900/30">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="text-lg font-bold text-white">Captain Choices</h3>
-              <p className="text-sm text-gray-400">Gameweek {gameweek}</p>
-              <p className="text-xs text-purple-400 mt-1">{totalManagers} managers</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white text-2xl leading-none"
-            >
-              ×
-            </button>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 pb-24 md:p-6 md:pb-6" onClick={onClose}>
+      <div className="bg-slate-800 rounded-lg max-w-4xl w-full max-h-[75vh] md:max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700 flex flex-col" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex-shrink-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-2.5 md:p-4 flex justify-between items-center">
+          <div className="flex-1 min-w-0 pr-2">
+            <h2 className="text-base md:text-xl font-bold text-white">Captain Choices</h2>
+            <p className="text-xs md:text-sm text-gray-400">Gameweek {gameweek} • {totalManagers} managers</p>
           </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors flex-shrink-0">
+            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        <div className="p-4">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-3 md:p-4">
           {sortedCaptains.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">No captain data available</p>
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-sm md:text-base">No captain data available</p>
+            </div>
           ) : (
             <div className="space-y-2">
               {sortedCaptains.map((captain, idx) => (
                 <div
                   key={idx}
-                  className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
+                  className="bg-slate-900/30 rounded-lg border border-slate-700 overflow-hidden"
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold text-white">{captain.player}</span>
-                        {idx === 0 && (
-                          <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">Most Popular</span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {captain.count} {captain.count === 1 ? 'manager' : 'managers'}
-                      </div>
+                  {/* Captain Header */}
+                  <div className="bg-slate-900/80 px-3 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-sm md:text-base font-bold text-white truncate">{captain.player}</span>
+                      {idx === 0 && (
+                        <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded flex-shrink-0">Most Popular</span>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-purple-400">{captain.percentage}%</div>
-                    </div>
-                  </div>
-
-                  {/* Points and Fixture Info */}
-                  <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-600/50">
-                    <div className="flex-1">
-                      {captain.fixtureText}
-                    </div>
-                    <div className="text-right ml-3">
-                      <div className="text-xs text-gray-400">Points</div>
-                      <div className={`text-xl font-bold ${captain.points === '-' ? 'text-gray-500' : 'text-cyan-400'}`}>
-                        {captain.points}
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="text-right">
+                        <div className="text-xl md:text-2xl font-bold text-cyan-400">{captain.percentage}%</div>
+                        <div className="text-[10px] text-gray-400">{captain.count} {captain.count === 1 ? 'manager' : 'managers'}</div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Visual percentage bar */}
-                  <div className="mb-2 w-full bg-slate-600 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${captain.percentage}%` }}
-                    ></div>
-                  </div>
+                  {/* Captain Details */}
+                  <div className="p-3 space-y-2">
+                    {/* Fixture and Points Row */}
+                    <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-700/50">
+                      <div className="flex-1 min-w-0">
+                        {captain.fixtureText || <span className="text-xs text-gray-500">No fixture info</span>}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-[10px] text-gray-400 mb-0.5">Points</div>
+                        <div className={`text-xl md:text-2xl font-bold ${captain.points === '-' ? 'text-gray-500' : 'text-white'}`}>
+                          {captain.points}
+                        </div>
+                      </div>
+                    </div>
 
-                  {/* Managers list */}
-                  <ManagersList 
-                    managers={captain.managers}
-                    expanded={expandedCaptains[captain.player]}
-                    onToggle={() => toggleExpanded(captain.player)}
-                  />
+                    {/* Visual percentage bar */}
+                    <div className="w-full bg-slate-700 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-cyan-500 to-blue-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${captain.percentage}%` }}
+                      ></div>
+                    </div>
+
+                    {/* Managers list */}
+                    <ManagersList 
+                      managers={captain.managers}
+                      expanded={expandedCaptains[captain.player]}
+                      onToggle={() => toggleExpanded(captain.player)}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
