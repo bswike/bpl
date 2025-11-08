@@ -1094,17 +1094,53 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
           </div>
           <div className="text-right">
             <p className="text-white font-bold text-base">{totalPoints}</p>
-            {isCombined && <div className="text-[10px]">{getPositionChangeIcon(manager.overall_position_change)}</div>}
           </div>
         </div>
         {isCombined ? (
-          <div className="grid grid-cols-4 gap-1 text-center text-[10px] mt-1">
-            {availableGameweeks.slice(0, 4).map(gw => (
-              <div key={gw} className="bg-slate-900/50 p-0.5 rounded">
-                <p className="font-semibold text-gray-400">GW{gw}</p>
-                <p className="text-gray-200 font-medium">{manager[`gw${gw}_points`]}</p>
+          <div className="mt-2">
+            {/* Scrollable gameweek scores */}
+            <div className="relative">
+              <div 
+                className="flex gap-1.5 overflow-x-auto pb-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              >
+                {availableGameweeks.map((gw, idx) => {
+                  const points = manager[`gw${gw}_points`];
+                  const isHighest = points === Math.max(...availableGameweeks.map(g => manager[`gw${g}_points`] || 0));
+                  const isLowest = points === Math.min(...availableGameweeks.map(g => manager[`gw${g}_points`] || 0));
+                  
+                  return (
+                    <div 
+                      key={gw} 
+                      className={`flex-shrink-0 snap-start bg-slate-900/50 p-1.5 rounded min-w-[60px] text-center border ${
+                        isHighest && points > 0 ? 'border-green-500/30 bg-green-900/10' : 
+                        isLowest ? 'border-red-500/30 bg-red-900/10' : 
+                        'border-slate-700/30'
+                      }`}
+                    >
+                      <p className="font-semibold text-gray-400 text-[9px] uppercase tracking-wide">GW{gw}</p>
+                      <p className={`font-bold text-sm ${
+                        isHighest && points > 0 ? 'text-green-400' : 
+                        isLowest ? 'text-red-400' : 
+                        'text-gray-200'
+                      }`}>
+                        {points}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+              {/* Scroll indicator */}
+              {availableGameweeks.length > 4 && (
+                <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-slate-800/90 to-transparent pointer-events-none flex items-center justify-end pr-1">
+                  <span className="text-gray-400 text-xs">→</span>
+                </div>
+              )}
+            </div>
+            {/* Position change indicator */}
+            <div className="flex items-center justify-between mt-1 px-1">
+              <span className="text-[9px] text-gray-500">Overall Movement</span>
+              <div className="text-[10px]">{getPositionChangeIcon(manager.overall_position_change)}</div>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-4 gap-1 text-center text-[10px] mt-1">
