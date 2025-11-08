@@ -1,5 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-// In your src/main.jsx (or src/index.js)
+
+// --- Constants ---
+
+const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
+const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
+const FALLBACK_POLL_INTERVAL_MS = 300000;
+const CACHE_VERSION = 'v2'; // Increment this to invalidate all caches
+
+const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const truthy = (v) => v === true || v === 'True' || v === 'true' || v === 1 || v === '1';
+const toNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+const normalizeStr = (s) => (s ?? '').toString().normalize('NFC').replace(/\u00A0/g, ' ').trim();
 
 // Chip emoji mapping
 const CHIP_EMOJIS = {
