@@ -512,6 +512,12 @@ const FPLMultiGameweekDashboard = () => {
     return eventSource;
   }, [fetchData]);
 
+  // Create stable reference to setupSSE that won't change
+  const setupSSERef = useRef(setupSSE);
+  useEffect(() => {
+    setupSSERef.current = setupSSE;
+  }, [setupSSE]);
+
   // Separate effect for initial data load
   useEffect(() => {
     if (!papaReady) {
@@ -530,7 +536,7 @@ const FPLMultiGameweekDashboard = () => {
     }
 
     console.log('Initial load complete, setting up SSE');
-    const eventSource = setupSSE();
+    const eventSource = setupSSERef.current();
 
     return () => {
       if (eventSource) {
@@ -549,7 +555,7 @@ const FPLMultiGameweekDashboard = () => {
         cycleAbortRef.current.abort();
       }
     };
-  }, [setupSSE]);
+  }, [data.length]); // Trigger when data loads
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
