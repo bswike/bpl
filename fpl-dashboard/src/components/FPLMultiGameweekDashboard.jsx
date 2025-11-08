@@ -545,20 +545,165 @@ const getPositionChangeIcon = (change) => {
 };
 
 // NEW: Captain Statistics Modal Component
-const CaptainStatsModal = ({ gameweek, captainStats, onClose }) => {
+const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixtureData }) => {
   if (!gameweek || !captainStats || !captainStats[gameweek]) return null;
 
   const captainData = captainStats[gameweek] || {};
+  const currentGwData = gameweekData[gameweek] || [];
   const totalManagers = Object.values(captainData).reduce((sum, count) => sum + count, 0);
+  
+  // Get managers for each captain
+  const getCaptainManagers = (playerName) => {
+    return currentGwData
+      .filter(mgr => mgr.captain_player === playerName)
+      .map(mgr => mgr.manager_name);
+  };
+
+  // Get captain's fixture and points info
+  const getCaptainInfo = (playerName) => {
+    const manager = currentGwData.find(mgr => mgr.captain_player === playerName);
+    if (!manager) return { points: '-', fixtureText: null, fixtureStarted: false };
+
+    const captainPlayerData = manager.players?.find(p => p.name === playerName);
+    if (!captainPlayerData) return { points: '-', fixtureText: null, fixtureStarted: false };
+
+    const points = captainPlayerData.fixture_started ? captainPlayerData.points_gw : '-';
+    const fixtureStarted = captainPlayerData.fixture_started;
+
+    // Get fixture info
+    let fixtureText = null;
+    if (fixtureData.fixtures.length && fixtureData.playerTeamMap) {
+      let playerTeam = fixtureData.playerTeamMap[playerName];
+      if (!playerTeam && playerName.includes(' ')) {
+        playerTeam = fixtureData.playerTeamMap[playerName.split(' ').pop()];
+      }
+
+      if (playerTeam) {
+        const fixture = fixtureData.fixtures.find(f => {
+          const homeTeam = fixtureData.teamMap[f.team_h];
+          const awayTeam = fixtureData.teamMap[f.team_a];
+          return (homeTeam === playerTeam || awayTeam === playerTeam) && f.event === gameweek;
+        });
+
+        if (fixture && fixture.kickoff_time) {
+          const kickoffTime = new Date(fixture.kickoff_time);
+          const now = new Date();
+          const homeTeam = fixtureData.teamMap[fixture.team_h];
+          const awayTeam = fixtureData.teamMap[fixture.team_a];
+          const isHome = playerTeam === homeTeam;
+
+          if (now < kickoffTime) {
+            // Future fixture
+            const dateStr = kickoffTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+            const timeStr = kickoffTime.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            fixtureText = (
+              <div className="text-[10px] text-gray-400">
+                <div className="font-semibold">
+                  <span className={isHome ? "text-gray-200" : ""}>{homeTeam}</span>
+                  <span className="mx-1">v</span>
+                  <span className={!isHome ? "text-gray-200" : ""}>{awayTeam}</span>
+                </div>
+                <div>{dateStr} • {timeStr}</div>
+              </div>
+            );
+          } else if (!fixture.finished && !fixture.finished_provisional) {
+            // Live fixture
+            const homeScore = fixture.team_h_score ?? 0;
+            const awayScore = fixture.team_a_score ?? 0;
+            fixtureText = (
+              <div className="text-[10px] text-yellow-400">
+                <div className="font-semibold">
+                  <span className={isHome ? "text-yellow-300" : ""}>{homeTeam}</span>
+                  <span className="mx-1">{homeScore}-{awayScore}</span>
+                  <span className={!isHome ? "text-yellow-300" : ""}>{awayTeam}</span>
+                </div>
+                <div className="animate-pulse">{fixture.minutes ?? 0}' LIVE</div>
+              </div>
+            );
+          } else {
+            // Finished fixture
+            const homeScore = fixture.team_h_score ?? 0;
+            const awayScore = fixture.team_a_score ?? 0;
+            fixtureText = (
+              <div className="text-[10px] text-gray-500">
+                <div className="font-semibold">
+                  <span className={isHome ? "text-gray-300" : ""}>{homeTeam}</span>
+                  <span className="mx-1">{homeScore}-{awayScore}</span>
+                  <span className={!isHome ? "text-gray-300" : ""}>{awayTeam}</span>
+                </div>
+                <div>FT</div>
+              </div>
+            );
+          }
+        }
+      }
+    }
+
+    return { points, fixtureText, fixtureStarted };
+  };
   
   // Sort by count descending
   const sortedCaptains = Object.entries(captainData)
-    .map(([player, count]) => ({
-      player,
-      count,
-      percentage: totalManagers > 0 ? ((count / totalManagers) * 100).toFixed(1) : 0
-    }))
+    .map(([player, count]) => {
+      const managers = getCaptainManagers(player);
+      const info = getCaptainInfo(player);
+      return {
+        player,
+        count,
+        percentage: totalManagers > 0 ? ((count / totalManagers) * 100).toFixed(1) : 0,
+        managers,
+        points: info.points,
+        fixtureText: info.fixtureText,
+        fixtureStarted: info.fixtureStarted
+      };
+    })
     .sort((a, b) => b.count - a.count);
+
+  const ManagersList = ({ managers, expanded, onToggle }) => {
+    if (managers.length <= 2) {
+      return (
+        <div className="text-[10px] text-gray-400 mt-1">
+          {managers.join(', ')}
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-1">
+        {!expanded ? (
+          <button
+            onClick={onToggle}
+            className="text-[10px] text-purple-400 hover:text-purple-300 underline"
+          >
+            Show {managers.length} managers →
+          </button>
+        ) : (
+          <div>
+            <button
+              onClick={onToggle}
+              className="text-[10px] text-purple-400 hover:text-purple-300 underline mb-1"
+            >
+              Hide managers ↑
+            </button>
+            <div className="text-[10px] text-gray-400 max-h-24 overflow-y-auto">
+              {managers.map((mgr, idx) => (
+                <div key={idx}>{mgr}</div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const [expandedCaptains, setExpandedCaptains] = React.useState({});
+
+  const toggleExpanded = (playerName) => {
+    setExpandedCaptains(prev => ({
+      ...prev,
+      [playerName]: !prev[playerName]
+    }));
+  };
 
   return (
     <div
@@ -595,15 +740,15 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose }) => {
                   key={idx}
                   className="bg-slate-700/50 rounded-lg p-3 border border-slate-600"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-semibold text-white">{captain.player}</span>
                         {idx === 0 && (
                           <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">Most Popular</span>
                         )}
                       </div>
-                      <div className="mt-1 text-xs text-gray-400">
+                      <div className="text-xs text-gray-400">
                         {captain.count} {captain.count === 1 ? 'manager' : 'managers'}
                       </div>
                     </div>
@@ -611,13 +756,34 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose }) => {
                       <div className="text-2xl font-bold text-purple-400">{captain.percentage}%</div>
                     </div>
                   </div>
+
+                  {/* Points and Fixture Info */}
+                  <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-600/50">
+                    <div className="flex-1">
+                      {captain.fixtureText}
+                    </div>
+                    <div className="text-right ml-3">
+                      <div className="text-xs text-gray-400">Points</div>
+                      <div className={`text-xl font-bold ${captain.points === '-' ? 'text-gray-500' : 'text-cyan-400'}`}>
+                        {captain.points}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Visual percentage bar */}
-                  <div className="mt-2 w-full bg-slate-600 rounded-full h-2">
+                  <div className="mb-2 w-full bg-slate-600 rounded-full h-2">
                     <div 
                       className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${captain.percentage}%` }}
                     ></div>
                   </div>
+
+                  {/* Managers list */}
+                  <ManagersList 
+                    managers={captain.managers}
+                    expanded={expandedCaptains[captain.player]}
+                    onToggle={() => toggleExpanded(captain.player)}
+                  />
                 </div>
               ))}
             </div>
@@ -1153,7 +1319,7 @@ const FPLMultiGameweekDashboard = () => {
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
       {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} fixtureData={fixtureData} gameweekData={gameweekData} />}
-      {showCaptainModal && <CaptainStatsModal gameweek={selectedCaptainGW} captainStats={captainStats} onClose={handleCloseCaptainModal} />}
+      {showCaptainModal && <CaptainStatsModal gameweek={selectedCaptainGW} captainStats={captainStats} onClose={handleCloseCaptainModal} gameweekData={gameweekData} fixtureData={fixtureData} />}
       <div className="max-w-7xl mx-auto p-2 sm:p-6">
         <header className="text-center mb-4 sm:mb-8">
           <div className="relative flex justify-center items-center max-w-md mx-auto mb-3">
