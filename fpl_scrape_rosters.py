@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Fetch FPL rosters + weekly points + live status + player costs + global ownership + bench points into a single CSV.
+Fetch FPL rosters + weekly points + live status + player costs + global ownership + bench points + TRANSFER COSTS into a single CSV.
 
 Usage examples:
   python3 fpl_scrape_rosters.py --gw 1 --entries 394273
@@ -11,7 +11,7 @@ Usage examples:
   python3 fpl_scrape_rosters.py --gw 1 --entries 394273 --cookie "pl_profile=...; pl_user=...; ..."
 
 Output:
-  fpl_rosters_points_gw{gw}.csv (with global ownership data and accurate bench points)
+  fpl_rosters_points_gw{gw}.csv (with global ownership data, accurate bench points, and transfer costs)
 """
 
 import argparse
@@ -25,14 +25,14 @@ ENTRY_URL_TPL = "https://fantasy.premierleague.com/api/entry/{entry_id}/"
 PICKS_URL_TPL = "https://fantasy.premierleague.com/api/entry/{entry_id}/event/{gw}/picks/"
 LIVE_URL_TPL  = "https://fantasy.premierleague.com/api/event/{gw}/live/"
 FIXTURES_URL_TPL = "https://fantasy.premierleague.com/api/fixtures/?event={gw}"
-HISTORY_URL_TPL = "https://fantasy.premierleague.com/api/entry/{entry_id}/history/" # <-- ADDED
+HISTORY_URL_TPL = "https://fantasy.premierleague.com/api/entry/{entry_id}/history/"
 
 ELEMENT_TYPE = {1: "GK", 2: "DEF", 3: "MID", 4: "FWD"}
 
 def make_session(cookie: Optional[str]) -> requests.Session:
     s = requests.Session()
     s.headers.update({
-        "User-Agent": "Mozilla/5.0 (compatible; FPLRosterBot/1.2)", # Incremented version
+        "User-Agent": "Mozilla/5.0 (compatible; FPLRosterBot/1.3)",  # Incremented version
         "Accept": "application/json,text/plain,*/*",
         "Referer": "https://fantasy.premierleague.com/"
     })
@@ -54,7 +54,7 @@ def get_bootstrap(session: requests.Session) -> Dict[str, Any]:
             "cost": e["now_cost"] / 10.0,
             "player_name": player_name,
             "global_ownership": float(e["selected_by_percent"]),
-            "global_captain_percent": float(e.get("ep_next", 0)),  # Expected points next (proxy for captain popularity)
+            "global_captain_percent": float(e.get("ep_next", 0)),
         }
 
     return {
@@ -72,7 +72,6 @@ def get_picks(session: requests.Session, entry_id: int, gw: int) -> Dict[str, An
     r.raise_for_status()
     return r.json()
 
-# <-- ADDED function to get history -->
 def get_history(session: requests.Session, entry_id: int) -> Dict[str, Any]:
     """Fetches the manager's season history, including chip usage."""
     r = session.get(HISTORY_URL_TPL.format(entry_id=entry_id), timeout=20)
@@ -124,7 +123,6 @@ def choose_fixture_status(team_id: int, team_fixtures: Dict[int, List[Dict[str, 
     if not flist:
         return {"started": False, "finished": False, "kickoff_time": None, "opponent_team": None}
 
-    # Normalize flags
     def norm(f):
         started = bool(f.get("started"))
         finished = bool(f.get("finished") or f.get("finished_provisional"))
@@ -169,10 +167,9 @@ def derive_status(minutes: int, fstat: Dict[str, Any]) -> str:
         return "in_progress"
     return "not_started"
 
-# <-- MODIFIED function signature to accept history -->
 def rows_from_picks(entry: Dict[str, Any],
                     picks: Dict[str, Any],
-                    history: Dict[str, Any], # <-- ADDED history
+                    history: Dict[str, Any],
                     dicts: Dict[str, Any],
                     live_snap: Dict[int, Dict[str, int]],
                     team_fixtures: Dict[int, List[Dict[str, Any]]],
@@ -186,21 +183,24 @@ def rows_from_picks(entry: Dict[str, Any],
 
     rows: List[Dict[str, Any]] = []
     team_total = 0
-    team_value = 0  # Track total team value
+    team_value = 0
 
-    # <-- ADDED Bench Boost Detection -->
+    # ===== TRANSFER COST EXTRACTION =====
+    # The picks endpoint includes entry_history with event_transfers_cost
+    entry_history = picks.get("entry_history", {})
+    transfer_cost = int(entry_history.get("event_transfers_cost", 0) or 0)
+    event_transfers = int(entry_history.get("event_transfers", 0) or 0)
+    # ===================================
+
+    # Bench Boost Detection
     is_bench_boost_active = False
     for chip in history.get('chips', []):
         if chip.get('name') == 'bboost' and chip.get('event') == gw:
             is_bench_boost_active = True
             break
-    # <-- END Bench Boost Detection -->
 
-    # <-- ADDED Bench Points calculation variables -->
     calculated_bench_points = 0
-    # <-- END Bench Points calculation variables -->
-
-    pick_list = picks.get("picks", []) # Get picks once
+    pick_list = picks.get("picks", [])
 
     for p in pick_list:
         el = elements.get(p["element"])
@@ -215,9 +215,8 @@ def rows_from_picks(entry: Dict[str, Any],
         minutes = snap["minutes"]
 
         applied = raw_pts * p["multiplier"]
-        team_total += applied # Team total always includes all points during BB
+        team_total += applied
 
-        # Add player cost to team value
         player_cost = el.get("cost", 0)
         team_value += player_cost
 
@@ -225,15 +224,11 @@ def rows_from_picks(entry: Dict[str, Any],
         opp_name = teams.get(fstat.get("opponent_team"), {}).get("name")
 
         status = derive_status(minutes, fstat)
-
-        # Calculate value ratio (points per million)
         value_ratio = raw_pts / player_cost if player_cost > 0 else 0
 
-        # <-- ADDED: Calculate bench points based on BB status -->
-        # Standard calculation if BB is NOT active
+        # Calculate bench points based on BB status
         if not is_bench_boost_active and p["multiplier"] == 0:
             calculated_bench_points += raw_pts
-        # <-- END Bench points calculation -->
 
         rows.append({
             "entry_id": entry_id,
@@ -261,7 +256,7 @@ def rows_from_picks(entry: Dict[str, Any],
             "fixture_finished": fstat.get("finished"),
         })
 
-    # <-- ADDED: Calculate actual bench points if Bench Boost was active -->
+    # Calculate actual bench points if Bench Boost was active
     if is_bench_boost_active:
         bench_player_ids = set()
         for p in pick_list:
@@ -271,10 +266,13 @@ def rows_from_picks(entry: Dict[str, Any],
         for player_id in bench_player_ids:
             snap = live_snap.get(player_id, {"points": 0})
             calculated_bench_points += snap["points"]
-    # <-- END BB calculation -->
 
-    # Summary row with team value and calculated bench points
+    # Summary row with team value, bench points, AND TRANSFER COST
     team_value_ratio = team_total / team_value if team_value > 0 else 0
+    
+    # Calculate net points (total minus transfer hits)
+    net_points = team_total - transfer_cost
+    
     rows.append({
         "entry_id": entry_id,
         "entry_team_name": team_name,
@@ -292,20 +290,23 @@ def rows_from_picks(entry: Dict[str, Any],
         "is_captain": "",
         "is_vice_captain": "",
         "points_gw": "",
-        "points_applied": team_total,
+        "points_applied": net_points,  # <-- NOW INCLUDES TRANSFER COST DEDUCTION
         "minutes": "",
         "status": "",
         "opponent_team": "",
         "kickoff_time": "",
         "fixture_started": "",
         "fixture_finished": "",
-        "bench_points": calculated_bench_points # <-- ADDED calculated bench points
+        "bench_points": calculated_bench_points,
+        "transfer_cost": transfer_cost,      # <-- NEW: Transfer hits for this GW
+        "event_transfers": event_transfers,   # <-- NEW: Number of transfers made
+        "gross_points": team_total,           # <-- NEW: Points before deductions
     })
 
     return rows
 
 def parse_args():
-    ap = argparse.ArgumentParser(description="Scrape FPL rosters + GW points + live status + player costs + global ownership + bench points to CSV.")
+    ap = argparse.ArgumentParser(description="Scrape FPL rosters + GW points + live status + player costs + global ownership + bench points + transfer costs to CSV.")
     ap.add_argument("--gw", type=int, required=True, help="Gameweek number (e.g., 1)")
     ap.add_argument("--entries", type=int, nargs="*", help="List of entry IDs")
     ap.add_argument("--entries-file", type=str, help="Path to text file with one entry ID per line")
@@ -323,7 +324,6 @@ def load_entries(args) -> List[int]:
                 line = line.strip()
                 if not line:
                     continue
-                # allow comments
                 core = line.split("#")[0].strip()
                 if core.isdigit():
                     ids.append(int(core))
@@ -339,7 +339,6 @@ def main():
 
     session = make_session(args.cookie)
 
-    # Reference data (now includes global ownership)
     try:
         dicts = get_bootstrap(session)
         print(f"✅ Fetched global ownership data for {len(dicts['elements'])} players")
@@ -347,7 +346,6 @@ def main():
         print(f"Failed to fetch bootstrap-static: {e}", file=sys.stderr)
         sys.exit(2)
 
-    # Live points + minutes
     try:
         live_snap = get_live_snap(session, args.gw)
         print(f"✅ Fetched live gameweek data")
@@ -355,7 +353,6 @@ def main():
         print(f"Failed to fetch event/{args.gw}/live: {e}", file=sys.stderr)
         sys.exit(2)
 
-    # Fixtures for status
     try:
         fixtures = get_fixtures(session, args.gw)
         team_fixtures = build_team_fixture_index(fixtures)
@@ -365,6 +362,8 @@ def main():
         sys.exit(2)
 
     all_rows: List[Dict[str, Any]] = []
+    total_hits = 0
+    
     for eid in entry_ids:
         try:
             entry = get_entry(session, eid)
@@ -378,41 +377,45 @@ def main():
             print(f"[entry {eid}] picks fetch failed: {e}", file=sys.stderr)
             continue
 
-        # <-- ADDED Fetching history -->
         try:
             history = get_history(session, eid)
         except requests.HTTPError as e:
             print(f"[entry {eid}] history fetch failed: {e}", file=sys.stderr)
-            history = {} # Continue with empty history if fetch fails
-        # <-- END Fetching history -->
+            history = {}
 
-        # <-- MODIFIED Call to pass history -->
-        all_rows.extend(rows_from_picks(entry, picks, history, dicts, live_snap, team_fixtures, args.gw))
+        rows = rows_from_picks(entry, picks, history, dicts, live_snap, team_fixtures, args.gw)
+        all_rows.extend(rows)
+        
+        # Track transfer hits for summary
+        for row in rows:
+            if row.get("player") == "TOTAL" and row.get("transfer_cost"):
+                total_hits += row["transfer_cost"]
 
     if not all_rows:
         print("No rows collected. Check entry IDs, GW, or cookie auth.", file=sys.stderr)
         sys.exit(3)
 
-    # <-- MODIFIED Fieldnames to include bench_points -->
     fieldnames = [
         "entry_id", "entry_team_name", "manager_name", "gameweek",
         "element_id", "player", "position", "club",
         "player_cost", "value_ratio", "global_ownership", "global_captain_percent",
         "multiplier", "is_captain", "is_vice_captain",
-        "points_gw", "points_applied", "bench_points", # <-- ADDED bench_points here
+        "points_gw", "points_applied", "bench_points",
+        "transfer_cost", "event_transfers", "gross_points",  # <-- NEW FIELDS
         "minutes", "status", "opponent_team", "kickoff_time",
         "fixture_started", "fixture_finished",
     ]
-    # <-- END Fieldnames modification -->
 
     with open(out_path, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore') # Use extrasaction='ignore'
+        w = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
         w.writeheader()
         for r in all_rows:
             w.writerow(r)
 
     print(f"✅ Wrote {len(all_rows)} rows to {out_path}")
-    print(f"📊 Enhanced with global ownership data and accurate bench points!")
+    print(f"📊 Enhanced with global ownership data, accurate bench points, and transfer costs!")
+    if total_hits > 0:
+        print(f"⚠️  Total transfer hits this GW: -{total_hits} points across the league")
 
 if __name__ == "__main__":
     main()
