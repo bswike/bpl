@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
 const FALLBACK_POLL_INTERVAL_MS = 300000;
-const CACHE_VERSION = 'v2'; // Increment this to invalidate all caches
+const CACHE_VERSION = 'v3'; // Increment this to invalidate all caches
 
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const truthy = (v) => v === true || v === 'True' || v === 'true' || v === 1 || v === '1';
@@ -35,11 +35,19 @@ const fetchWithNoCaching = async (url, signal) => {
 
 const getCacheKey = (gameweek) => `fpl_gw_${gameweek}_${CACHE_VERSION}`;
 
-const getCachedGameweek = (gameweek) => {
+const getCachedGameweek = (gameweek, expectedHash = null) => {
   try {
     const cached = localStorage.getItem(getCacheKey(gameweek));
     if (cached) {
       const data = JSON.parse(cached);
+      
+      // If we have an expected hash, validate against it
+      if (expectedHash && data.hash !== expectedHash) {
+        console.log(`🔄 Cache invalidated for GW${gameweek} - hash mismatch (cached: ${data.hash?.slice(0,8)}, expected: ${expectedHash?.slice(0,8)})`);
+        localStorage.removeItem(getCacheKey(gameweek));
+        return null;
+      }
+      
       console.log(`✅ Cache hit for GW${gameweek}`);
       return data;
     }
@@ -49,10 +57,12 @@ const getCachedGameweek = (gameweek) => {
   return null;
 };
 
-const setCachedGameweek = (gameweek, data) => {
+const setCachedGameweek = (gameweek, data, hash = null) => {
   try {
-    localStorage.setItem(getCacheKey(gameweek), JSON.stringify(data));
-    console.log(`💾 Cached GW${gameweek} (${data.length} managers)`);
+    // Store hash alongside data for future validation
+    const cacheData = { ...data, hash };
+    localStorage.setItem(getCacheKey(gameweek), JSON.stringify(cacheData));
+    console.log(`💾 Cached GW${gameweek} (${data.managers?.length || data.length} managers, hash: ${hash?.slice(0,8) || 'none'})`);
   } catch (e) {
     console.warn(`Failed to cache GW${gameweek}:`, e);
     // If storage is full, clear old caches
@@ -318,22 +328,24 @@ const useFplData = () => {
       gameweeks: [...prev.gameweeks, gameweek]
     }));
 
-    // Try cache first for non-latest gameweeks
-    if (!isLatestGw) {
-      const cached = getCachedGameweek(gameweek);
-      if (cached) {
-        // Ensure cached data has the right structure
-        if (cached.managers && cached.captainChoices) {
-          return cached;
-        } else if (Array.isArray(cached)) {
-          // Old cache format, return it as managers with empty captain choices
-          return { managers: cached, captainChoices: {} };
-        }
+    // Get the expected hash from manifest
+    const gwInfo = manifest?.gameweeks?.[String(gameweek)];
+    const expectedHash = gwInfo?.hash || null;
+
+    // Try cache first - but validate against manifest hash
+    // This ensures we refetch if backend data has changed
+    const cached = getCachedGameweek(gameweek, expectedHash);
+    if (cached) {
+      // Ensure cached data has the right structure
+      if (cached.managers && cached.captainChoices) {
+        return cached;
+      } else if (Array.isArray(cached)) {
+        // Old cache format, return it as managers with empty captain choices
+        return { managers: cached, captainChoices: {} };
       }
     }
 
     try {
-      const gwInfo = manifest?.gameweeks?.[String(gameweek)];
       if (!gwInfo) {
         console.warn(`No data for GW${gameweek} in manifest`);
         return { managers: [], captainChoices: {} };
@@ -346,9 +358,9 @@ const useFplData = () => {
       const csvText = await csvRes.text();
       const result = parseCsvToManagers(csvText, gameweek);
       
-      // Cache finished gameweeks only
-      if (!isLatestGw && result.managers.length > 0) {
-        setCachedGameweek(gameweek, result);
+      // Cache with hash - will auto-invalidate when hash changes
+      if (result.managers.length > 0) {
+        setCachedGameweek(gameweek, result, expectedHash);
       }
       
       return result;
