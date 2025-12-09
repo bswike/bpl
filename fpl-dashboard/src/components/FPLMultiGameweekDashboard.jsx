@@ -150,6 +150,26 @@ const fetchChipsData = async () => {
   }
 };
 
+// Add this function near the top with other fetch functions (after fetchChipsData)
+const fetchPlayerStats = async (elementId) => {
+  try {
+    console.log(`Fetching stats for player ${elementId}...`);
+    const response = await fetch(`https://bpl-red-sun-894.fly.dev/api/player/${elementId}`);
+    
+    if (!response.ok) {
+      console.warn(`Player API returned ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log('Player stats loaded:', data);
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch player stats:', error);
+    return null;
+  }
+};
+
 const useFplData = () => {
   const [gameweekData, setGameweekData] = useState({});
   const [combinedData, setCombinedData] = useState([]);
@@ -272,18 +292,19 @@ const useFplData = () => {
       }
       const player = normalizeStr(raw.player);
       if (player !== "TOTAL") {
-        const playerData = {
-          name: player,
-          position: normalizeStr(raw.position),
-          team: normalizeStr(raw.team),
-          points_gw: toNum(raw.points_gw),
-          points_applied: toNum(raw.points_applied),
-          multiplier: toNum(raw.multiplier),
-          is_captain: truthy(raw.is_captain),
-          fixture_started: truthy(raw.fixture_started),
-          fixture_finished: truthy(raw.fixture_finished),
-          status: normalizeStr(raw.status)
-        };
+const playerData = {
+  name: player,
+  element_id: toNum(raw.element_id),
+  position: normalizeStr(raw.position),
+  team: normalizeStr(raw.team),
+  points_gw: toNum(raw.points_gw),
+  points_applied: toNum(raw.points_applied),
+  multiplier: toNum(raw.multiplier),
+  is_captain: truthy(raw.is_captain),
+  fixture_started: truthy(raw.fixture_started),
+  fixture_finished: truthy(raw.fixture_finished),
+  status: normalizeStr(raw.status)
+};
         managerStats[manager].players.push(playerData);
         
         if (truthy(raw.is_captain) && !managerStats[manager].captain_player) {
@@ -948,7 +969,210 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
   );
 };
 
-const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData, gameweekData }) => {
+const PlayerStatsModal = ({ elementId, playerName, onClose }) => {
+  const [stats, setStats] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    const loadStats = async () => {
+      setLoading(true);
+      setError(null);
+      const data = await fetchPlayerStats(elementId);
+      if (data) {
+        setStats(data);
+      } else {
+        setError('Failed to load player stats');
+      }
+      setLoading(false);
+    };
+    
+    if (elementId) {
+      loadStats();
+    }
+  }, [elementId]);
+
+  if (!elementId) return null;
+
+  const getPositionColor = (pos) => {
+    const colors = { 'GK': 'text-yellow-400', 'DEF': 'text-green-400', 'MID': 'text-blue-400', 'FWD': 'text-red-400' };
+    return colors[pos] || 'text-gray-400';
+  };
+
+  const StatBox = ({ label, value, highlight = false }) => (
+    <div className={`text-center p-2 rounded ${highlight ? 'bg-cyan-900/30 border border-cyan-700/50' : 'bg-slate-700/30'}`}>
+      <div className={`text-lg md:text-xl font-bold ${highlight ? 'text-cyan-400' : 'text-white'}`}>{value}</div>
+      <div className="text-[10px] md:text-xs text-gray-400">{label}</div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-2 md:p-4" onClick={onClose}>
+      <div 
+        className="bg-slate-800 rounded-lg max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl border border-slate-700 flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex-shrink-0 bg-slate-900 border-b border-slate-700 p-3 md:p-4 flex justify-between items-center">
+          <div className="flex-1 min-w-0">
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-6 bg-slate-700 rounded w-32 mb-1"></div>
+                <div className="h-4 bg-slate-700 rounded w-24"></div>
+              </div>
+            ) : stats?.player_info ? (
+              <>
+                <h2 className="text-lg md:text-xl font-bold text-white truncate">
+                  {stats.player_info.first_name} {stats.player_info.second_name}
+                </h2>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className={`font-bold ${getPositionColor(stats.player_info.position)}`}>
+                    {stats.player_info.position}
+                  </span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-300">{stats.player_info.team}</span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-green-400">£{stats.player_info.now_cost}m</span>
+                </div>
+              </>
+            ) : (
+              <h2 className="text-lg md:text-xl font-bold text-white">{playerName}</h2>
+            )}
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors flex-shrink-0 ml-2">
+            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-3 md:p-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-cyan-400 animate-pulse">Loading player stats...</div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-red-400">{error}</div>
+            </div>
+          ) : stats ? (
+            <div className="space-y-4">
+              {/* Season Overview */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Season Overview</h3>
+                <div className="grid grid-cols-4 gap-2">
+                  <StatBox label="Total Pts" value={stats.player_info.total_points} highlight />
+                  <StatBox label="Form" value={stats.player_info.form} />
+                  <StatBox label="Pts/Game" value={stats.player_info.points_per_game} />
+                  <StatBox label="Ownership" value={`${stats.player_info.selected_by_percent}%`} />
+                </div>
+              </div>
+
+              {/* Season Stats */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Season Stats</h3>
+                <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                  <StatBox label="Minutes" value={stats.season_stats.minutes} />
+                  <StatBox label="Goals" value={stats.season_stats.goals_scored} highlight={stats.season_stats.goals_scored > 0} />
+                  <StatBox label="Assists" value={stats.season_stats.assists} highlight={stats.season_stats.assists > 0} />
+                  <StatBox label="Clean Sheets" value={stats.season_stats.clean_sheets} />
+                  <StatBox label="Bonus" value={stats.season_stats.bonus} />
+                  <StatBox label="Yellow Cards" value={stats.season_stats.yellow_cards} />
+                </div>
+              </div>
+
+              {/* ICT Index */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">ICT Index</h3>
+                <div className="grid grid-cols-4 gap-2">
+                  <StatBox label="ICT Index" value={stats.player_info.ict_index} highlight />
+                  <StatBox label="Influence" value={stats.player_info.influence} />
+                  <StatBox label="Creativity" value={stats.player_info.creativity} />
+                  <StatBox label="Threat" value={stats.player_info.threat} />
+                </div>
+              </div>
+
+              {/* Gameweek History */}
+              {stats.history && stats.history.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Gameweek History</h3>
+                  <div className="bg-slate-900/50 rounded-lg overflow-hidden">
+                    {/* Header */}
+                    <div className="grid grid-cols-8 gap-1 px-2 py-1.5 bg-slate-900 text-[10px] md:text-xs font-bold text-gray-400 border-b border-slate-700">
+                      <div>GW</div>
+                      <div className="text-center">Pts</div>
+                      <div className="text-center">Min</div>
+                      <div className="text-center">G</div>
+                      <div className="text-center">A</div>
+                      <div className="text-center">CS</div>
+                      <div className="text-center">Bon</div>
+                      <div className="text-center">BPS</div>
+                    </div>
+                    {/* Rows - show last 10 gameweeks */}
+                    <div className="max-h-48 overflow-y-auto">
+                      {stats.history.slice(-10).reverse().map((gw, idx) => (
+                        <div 
+                          key={idx} 
+                          className={`grid grid-cols-8 gap-1 px-2 py-1.5 text-[10px] md:text-xs ${idx % 2 === 0 ? 'bg-slate-800/30' : ''} hover:bg-slate-700/30`}
+                        >
+                          <div className="text-gray-400">GW{gw.round}</div>
+                          <div className={`text-center font-bold ${gw.total_points >= 10 ? 'text-green-400' : gw.total_points >= 5 ? 'text-white' : 'text-gray-400'}`}>
+                            {gw.total_points}
+                          </div>
+                          <div className="text-center text-gray-300">{gw.minutes}</div>
+                          <div className={`text-center ${gw.goals_scored > 0 ? 'text-green-400 font-bold' : 'text-gray-500'}`}>
+                            {gw.goals_scored}
+                          </div>
+                          <div className={`text-center ${gw.assists > 0 ? 'text-cyan-400 font-bold' : 'text-gray-500'}`}>
+                            {gw.assists}
+                          </div>
+                          <div className={`text-center ${gw.clean_sheets > 0 ? 'text-blue-400 font-bold' : 'text-gray-500'}`}>
+                            {gw.clean_sheets}
+                          </div>
+                          <div className={`text-center ${gw.bonus > 0 ? 'text-yellow-400 font-bold' : 'text-gray-500'}`}>
+                            {gw.bonus}
+                          </div>
+                          <div className="text-center text-gray-400">{gw.bps}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Upcoming Fixtures */}
+              {stats.fixtures && stats.fixtures.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Upcoming Fixtures</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {stats.fixtures.slice(0, 5).map((fixture, idx) => (
+                      <div 
+                        key={idx}
+                        className={`px-2 py-1 rounded text-xs ${
+                          fixture.difficulty <= 2 ? 'bg-green-900/50 text-green-400 border border-green-700/50' :
+                          fixture.difficulty === 3 ? 'bg-gray-700/50 text-gray-300 border border-gray-600/50' :
+                          fixture.difficulty === 4 ? 'bg-orange-900/50 text-orange-400 border border-orange-700/50' :
+                          'bg-red-900/50 text-red-400 border border-red-700/50'
+                        }`}
+                      >
+                        <span className="font-bold">{fixture.is_home ? 'H' : 'A'}</span>
+                        <span className="mx-1">GW{fixture.event}</span>
+                        <span className="opacity-70">({fixture.difficulty})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData, gameweekData, onPlayerClick }) => {
   if (!manager) return null;
 
   const calculateLeagueOwnership = (playerName) => {
@@ -1091,7 +1315,16 @@ const getFixtureTimingText = (player, currentGameweek) => {
     const leagueOwnership = calculateLeagueOwnership(player.name);
 
     return (
-      <div key={idx} className="flex items-center justify-between py-2 md:py-2.5 hover:bg-slate-700/30 transition-colors px-2 md:px-3">
+      <div 
+        key={idx} 
+        className="flex items-center justify-between py-2 md:py-2.5 hover:bg-slate-700/30 transition-colors px-2 md:px-3 cursor-pointer"
+        onClick={() => {
+  console.log('Player clicked:', player);
+  console.log('Element ID:', player.element_id);
+  console.log('Raw CSV columns available:', Object.keys(player));
+  onPlayerClick && onPlayerClick(player);
+}}
+        >
         <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
           <span className={`font-bold text-xs md:text-sm ${getPositionColor(player.position)} w-8 md:w-10 flex-shrink-0`}>{player.position}</span>
           <div className="flex-1 min-w-0">
@@ -1519,6 +1752,7 @@ const FPLMultiGameweekDashboard = () => {
   const [filterType, setFilterType] = useState('all');
   const [showCaptainModal, setShowCaptainModal] = useState(false);
   const [selectedCaptainGW, setSelectedCaptainGW] = useState(null);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   useEffect(() => {
     if (!loading && availableGameweeks.length > 0) {
@@ -1605,7 +1839,8 @@ const FPLMultiGameweekDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
-      {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} fixtureData={fixtureData} gameweekData={gameweekData} />}
+     {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} fixtureData={fixtureData} gameweekData={gameweekData} onPlayerClick={(player) => setSelectedPlayer(player)} />}
+{selectedPlayer && <PlayerStatsModal elementId={selectedPlayer.element_id} playerName={selectedPlayer.name} onClose={() => setSelectedPlayer(null)} />}
       {showCaptainModal && <CaptainStatsModal gameweek={selectedCaptainGW} captainStats={captainStats} onClose={handleCloseCaptainModal} gameweekData={gameweekData} fixtureData={fixtureData} />}
       <div className="max-w-7xl mx-auto p-2 sm:p-6">
         <header className="text-center mb-4 sm:mb-8">
