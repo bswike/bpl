@@ -972,7 +972,7 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
 // ====== UPDATED PlayerStatsModal with Points Breakdown ======
 // Replace your existing PlayerStatsModal with this version
 
-const PlayerStatsModal = ({ elementId, playerName, onClose }) => {
+const PlayerStatsModal = ({ elementId, playerName, currentGameweek, onClose }) => {
   const [stats, setStats] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
@@ -986,9 +986,12 @@ const PlayerStatsModal = ({ elementId, playerName, onClose }) => {
       if (data) {
         setStats(data);
         // Default to most recent gameweek
-        if (data.history && data.history.length > 0) {
-          setSelectedGW(data.history[data.history.length - 1].round);
-        }
+        // Default to current gameweek being viewed, or most recent if not available
+if (data.history && data.history.length > 0) {
+  const targetGW = currentGameweek || data.history[data.history.length - 1].round;
+  const gwExists = data.history.some(gw => gw.round === targetGW);
+  setSelectedGW(gwExists ? targetGW : data.history[data.history.length - 1].round);
+}
       } else {
         setError('Failed to load player stats');
       }
@@ -2027,7 +2030,7 @@ const FPLMultiGameweekDashboard = () => {
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
      {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} fixtureData={fixtureData} gameweekData={gameweekData} onPlayerClick={(player) => setSelectedPlayer(player)} />}
-{selectedPlayer && <PlayerStatsModal elementId={selectedPlayer.element_id} playerName={selectedPlayer.name} onClose={() => setSelectedPlayer(null)} />}
+{selectedPlayer && <PlayerStatsModal elementId={selectedPlayer.element_id} playerName={selectedPlayer.name} currentGameweek={selectedManager?.gameweek} onClose={() => setSelectedPlayer(null)} />}
       {showCaptainModal && <CaptainStatsModal gameweek={selectedCaptainGW} captainStats={captainStats} onClose={handleCloseCaptainModal} gameweekData={gameweekData} fixtureData={fixtureData} />}
       <div className="max-w-7xl mx-auto p-2 sm:p-6">
         <header className="text-center mb-4 sm:mb-8">
