@@ -969,10 +969,14 @@ const CaptainStatsModal = ({ gameweek, captainStats, onClose, gameweekData, fixt
   );
 };
 
+// ====== UPDATED PlayerStatsModal with Points Breakdown ======
+// Replace your existing PlayerStatsModal with this version
+
 const PlayerStatsModal = ({ elementId, playerName, onClose }) => {
   const [stats, setStats] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const [selectedGW, setSelectedGW] = React.useState(null);
 
   React.useEffect(() => {
     const loadStats = async () => {
@@ -981,6 +985,10 @@ const PlayerStatsModal = ({ elementId, playerName, onClose }) => {
       const data = await fetchPlayerStats(elementId);
       if (data) {
         setStats(data);
+        // Default to most recent gameweek
+        if (data.history && data.history.length > 0) {
+          setSelectedGW(data.history[data.history.length - 1].round);
+        }
       } else {
         setError('Failed to load player stats');
       }
@@ -1005,6 +1013,134 @@ const PlayerStatsModal = ({ elementId, playerName, onClose }) => {
       <div className="text-[10px] md:text-xs text-gray-400">{label}</div>
     </div>
   );
+
+  // Calculate points breakdown for a gameweek
+  const getPointsBreakdown = (gwData, position) => {
+    if (!gwData) return [];
+    
+    const breakdown = [];
+    const pos = position || 'MID';
+    
+    // Minutes
+    if (gwData.minutes >= 60) {
+      breakdown.push({ stat: 'Minutes', value: gwData.minutes, points: 2, desc: '60+ mins played' });
+    } else if (gwData.minutes > 0) {
+      breakdown.push({ stat: 'Minutes', value: gwData.minutes, points: 1, desc: '1-59 mins played' });
+    }
+    
+    // Goals
+    if (gwData.goals_scored > 0) {
+      const goalPts = pos === 'FWD' ? 4 : pos === 'MID' ? 5 : 6;
+      breakdown.push({ 
+        stat: 'Goals', 
+        value: gwData.goals_scored, 
+        points: gwData.goals_scored * goalPts, 
+        desc: `${gwData.goals_scored} × ${goalPts} pts` 
+      });
+    }
+    
+    // Assists
+    if (gwData.assists > 0) {
+      breakdown.push({ 
+        stat: 'Assists', 
+        value: gwData.assists, 
+        points: gwData.assists * 3, 
+        desc: `${gwData.assists} × 3 pts` 
+      });
+    }
+    
+    // Clean sheets
+    if (gwData.clean_sheets > 0) {
+      const csPts = (pos === 'GK' || pos === 'DEF') ? 4 : pos === 'MID' ? 1 : 0;
+      if (csPts > 0) {
+        breakdown.push({ stat: 'Clean Sheet', value: '✓', points: csPts, desc: `${pos} clean sheet` });
+      }
+    }
+    
+    // Saves (GK only, 1 pt per 3 saves)
+    if (gwData.saves > 0) {
+      const savePts = Math.floor(gwData.saves / 3);
+      if (savePts > 0) {
+        breakdown.push({ stat: 'Saves', value: gwData.saves, points: savePts, desc: `${gwData.saves} saves (1pt per 3)` });
+      }
+    }
+    
+    // Penalty saves
+    if (gwData.penalties_saved > 0) {
+      breakdown.push({ 
+        stat: 'Pen Saved', 
+        value: gwData.penalties_saved, 
+        points: gwData.penalties_saved * 5, 
+        desc: `${gwData.penalties_saved} × 5 pts` 
+      });
+    }
+    
+    // Bonus
+    if (gwData.bonus > 0) {
+      breakdown.push({ stat: 'Bonus', value: gwData.bonus, points: gwData.bonus, desc: `${gwData.bonus} bonus pts` });
+    }
+    
+    // Penalties missed
+    if (gwData.penalties_missed > 0) {
+      breakdown.push({ 
+        stat: 'Pen Missed', 
+        value: gwData.penalties_missed, 
+        points: gwData.penalties_missed * -2, 
+        desc: `${gwData.penalties_missed} × -2 pts`,
+        negative: true 
+      });
+    }
+    
+    // Yellow cards
+    if (gwData.yellow_cards > 0) {
+      breakdown.push({ 
+        stat: 'Yellow Card', 
+        value: gwData.yellow_cards, 
+        points: gwData.yellow_cards * -1, 
+        desc: `${gwData.yellow_cards} × -1 pt`,
+        negative: true 
+      });
+    }
+    
+    // Red cards
+    if (gwData.red_cards > 0) {
+      breakdown.push({ 
+        stat: 'Red Card', 
+        value: gwData.red_cards, 
+        points: gwData.red_cards * -3, 
+        desc: `${gwData.red_cards} × -3 pts`,
+        negative: true 
+      });
+    }
+    
+    // Own goals
+    if (gwData.own_goals > 0) {
+      breakdown.push({ 
+        stat: 'Own Goal', 
+        value: gwData.own_goals, 
+        points: gwData.own_goals * -2, 
+        desc: `${gwData.own_goals} × -2 pts`,
+        negative: true 
+      });
+    }
+    
+    // Goals conceded (DEF/GK only, -1 per 2 goals)
+    if (gwData.goals_conceded >= 2 && (pos === 'GK' || pos === 'DEF')) {
+      const gcPts = -Math.floor(gwData.goals_conceded / 2);
+      breakdown.push({ 
+        stat: 'Goals Conceded', 
+        value: gwData.goals_conceded, 
+        points: gcPts, 
+        desc: `${gwData.goals_conceded} conceded (-1 per 2)`,
+        negative: true 
+      });
+    }
+    
+    return breakdown;
+  };
+
+  const selectedGWData = stats?.history?.find(gw => gw.round === selectedGW);
+  const pointsBreakdown = getPointsBreakdown(selectedGWData, stats?.player_info?.position);
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-2 md:p-4" onClick={onClose}>
@@ -1069,6 +1205,87 @@ const PlayerStatsModal = ({ elementId, playerName, onClose }) => {
                 </div>
               </div>
 
+              {/* Gameweek Points Breakdown - NEW SECTION */}
+              {stats.history && stats.history.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Points Breakdown</h3>
+                  
+                  {/* GW Selector */}
+                  <div className="flex gap-1 mb-3 overflow-x-auto pb-2">
+                    {stats.history.slice(-8).map((gw) => (
+                      <button
+                        key={gw.round}
+                        onClick={() => setSelectedGW(gw.round)}
+                        className={`px-3 py-1.5 rounded text-xs font-bold whitespace-nowrap transition-colors ${
+                          selectedGW === gw.round 
+                            ? 'bg-cyan-600 text-white' 
+                            : 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+                        }`}
+                      >
+                        GW{gw.round}
+                        <span className={`ml-1 ${gw.total_points >= 10 ? 'text-green-300' : ''}`}>
+                          ({gw.total_points})
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Points Breakdown Card */}
+                  {selectedGWData && (
+                    <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700">
+                      <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-700">
+                        <span className="text-gray-400 text-sm">Gameweek {selectedGW}</span>
+                        <span className="text-2xl font-bold text-cyan-400">{selectedGWData.total_points} pts</span>
+                      </div>
+                      
+                      {pointsBreakdown.length > 0 ? (
+                        <div className="space-y-2">
+                          {pointsBreakdown.map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-center py-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-white font-medium text-sm">{item.stat}</span>
+                                <span className="text-gray-500 text-xs">({item.desc})</span>
+                              </div>
+                              <span className={`font-bold text-sm ${
+                                item.negative ? 'text-red-400' : 'text-green-400'
+                              }`}>
+                                {item.points > 0 ? '+' : ''}{item.points}
+                              </span>
+                            </div>
+                          ))}
+                          <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-700">
+                            <span className="text-gray-400 font-bold">Total</span>
+                            <span className="text-cyan-400 font-bold text-lg">{selectedGWData.total_points}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-500 py-4">
+                          No points data (did not play)
+                        </div>
+                      )}
+                      
+                      {/* Extra stats row */}
+                      <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-slate-700/50">
+                        <div className="text-center">
+                          <div className="text-xs text-gray-500">Minutes</div>
+                          <div className="text-white font-bold">{selectedGWData.minutes}'</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-gray-500">BPS</div>
+                          <div className="text-white font-bold">{selectedGWData.bps}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-gray-500">xG/xA</div>
+                          <div className="text-white font-bold text-xs">
+                            {selectedGWData.expected_goals || '0.00'}/{selectedGWData.expected_assists || '0.00'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Season Stats */}
               <div>
                 <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Season Stats</h3>
@@ -1092,54 +1309,6 @@ const PlayerStatsModal = ({ elementId, playerName, onClose }) => {
                   <StatBox label="Threat" value={stats.player_info.threat} />
                 </div>
               </div>
-
-              {/* Gameweek History */}
-              {stats.history && stats.history.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Gameweek History</h3>
-                  <div className="bg-slate-900/50 rounded-lg overflow-hidden">
-                    {/* Header */}
-                    <div className="grid grid-cols-8 gap-1 px-2 py-1.5 bg-slate-900 text-[10px] md:text-xs font-bold text-gray-400 border-b border-slate-700">
-                      <div>GW</div>
-                      <div className="text-center">Pts</div>
-                      <div className="text-center">Min</div>
-                      <div className="text-center">G</div>
-                      <div className="text-center">A</div>
-                      <div className="text-center">CS</div>
-                      <div className="text-center">Bon</div>
-                      <div className="text-center">BPS</div>
-                    </div>
-                    {/* Rows - show last 10 gameweeks */}
-                    <div className="max-h-48 overflow-y-auto">
-                      {stats.history.slice(-10).reverse().map((gw, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`grid grid-cols-8 gap-1 px-2 py-1.5 text-[10px] md:text-xs ${idx % 2 === 0 ? 'bg-slate-800/30' : ''} hover:bg-slate-700/30`}
-                        >
-                          <div className="text-gray-400">GW{gw.round}</div>
-                          <div className={`text-center font-bold ${gw.total_points >= 10 ? 'text-green-400' : gw.total_points >= 5 ? 'text-white' : 'text-gray-400'}`}>
-                            {gw.total_points}
-                          </div>
-                          <div className="text-center text-gray-300">{gw.minutes}</div>
-                          <div className={`text-center ${gw.goals_scored > 0 ? 'text-green-400 font-bold' : 'text-gray-500'}`}>
-                            {gw.goals_scored}
-                          </div>
-                          <div className={`text-center ${gw.assists > 0 ? 'text-cyan-400 font-bold' : 'text-gray-500'}`}>
-                            {gw.assists}
-                          </div>
-                          <div className={`text-center ${gw.clean_sheets > 0 ? 'text-blue-400 font-bold' : 'text-gray-500'}`}>
-                            {gw.clean_sheets}
-                          </div>
-                          <div className={`text-center ${gw.bonus > 0 ? 'text-yellow-400 font-bold' : 'text-gray-500'}`}>
-                            {gw.bonus}
-                          </div>
-                          <div className="text-center text-gray-400">{gw.bps}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Upcoming Fixtures */}
               {stats.fixtures && stats.fixtures.length > 0 && (
