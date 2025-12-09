@@ -1079,6 +1079,20 @@ const PlayerStatsModal = ({ elementId, playerName, onClose }) => {
     if (gwData.bonus > 0) {
       breakdown.push({ stat: 'Bonus', value: gwData.bonus, points: gwData.bonus, desc: `${gwData.bonus} bonus pts` });
     }
+
+    // Defensive contributions (2 pts if threshold met)
+if (gwData.defensive_contribution > 0) {
+  const cbit = (gwData.clearances_blocks_interceptions || 0) + (gwData.tackles || 0);
+  const cbirt = cbit + (gwData.recoveries || 0);
+  const threshold = (pos === 'DEF' || pos === 'GK') ? 10 : 12;
+  const statUsed = (pos === 'DEF' || pos === 'GK') ? cbit : cbirt;
+  breakdown.push({ 
+    stat: 'Defensive Contrib', 
+    value: statUsed, 
+    points: gwData.defensive_contribution, 
+    desc: `${statUsed} CBIT${pos !== 'DEF' && pos !== 'GK' ? 'R' : ''} (≥${threshold} = 2pts)` 
+  });
+}
     
     // Penalties missed
     if (gwData.penalties_missed > 0) {
