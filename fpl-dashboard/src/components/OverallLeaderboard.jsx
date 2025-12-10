@@ -555,9 +555,11 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
 const PlayerRow = ({ player, getPositionColor, getDifficultyColor, formatKickoff }) => {
   const fixture = player.next_fixture;
   
-  // Format record as W-D-L
+  // Format record as W-D-L (hide if all zeros)
   const formatRecord = (f) => {
     if (!f || f.opponent_wins === undefined) return null;
+    // Hide if all zeros (data not populated)
+    if (f.opponent_wins === 0 && f.opponent_draws === 0 && f.opponent_losses === 0) return null;
     return `${f.opponent_wins}-${f.opponent_draws}-${f.opponent_losses}`;
   };
   
