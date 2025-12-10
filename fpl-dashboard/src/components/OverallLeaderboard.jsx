@@ -320,70 +320,67 @@ const OverallLeaderboard = () => {
       </header>
 
       {/* Podium - Top 3 */}
-      <div className="flex justify-center items-end gap-3 sm:gap-4 mb-8 px-4">
+      <div className="flex justify-center items-end gap-2 mb-6 px-2">
         {/* 2nd Place */}
         {leaderboardData[1] && (
           <div 
-            className="flex-1 max-w-[140px] cursor-pointer transform hover:scale-105 transition-transform"
+            className="flex-1 max-w-[100px] cursor-pointer transform hover:scale-105 transition-transform"
             onClick={() => handleManagerClick(leaderboardData[1])}
           >
-            <div className="bg-gradient-to-b from-slate-600 to-slate-700 rounded-t-xl p-3 sm:p-4 text-center border border-slate-500/50 h-32 sm:h-36 flex flex-col justify-end">
-              <div className="text-2xl mb-1">🥈</div>
-              <div className="text-white font-bold text-sm sm:text-base truncate">
+            <div className="bg-slate-700/80 rounded-lg p-2 text-center border border-slate-600/50">
+              <div className="text-lg mb-0.5">🥈</div>
+              <div className="text-white font-semibold text-xs truncate">
                 {leaderboardData[1].manager_name.split(' ')[0]}
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-white">
+              <div className="text-lg font-bold text-white">
                 {leaderboardData[1].total_points}
               </div>
-              <div className="text-xs text-gray-400">
+              <div className="text-[10px] text-gray-400">
                 {getPositionChangeDisplay(leaderboardData[1].positionChange)}
               </div>
             </div>
-            <div className="bg-slate-600 h-20 sm:h-24 rounded-b-lg"></div>
           </div>
         )}
 
         {/* 1st Place */}
         {leaderboardData[0] && (
           <div 
-            className="flex-1 max-w-[160px] cursor-pointer transform hover:scale-105 transition-transform"
+            className="flex-1 max-w-[110px] cursor-pointer transform hover:scale-105 transition-transform"
             onClick={() => handleManagerClick(leaderboardData[0])}
           >
-            <div className="bg-gradient-to-b from-yellow-600 to-yellow-700 rounded-t-xl p-3 sm:p-4 text-center border border-yellow-500/50 h-40 sm:h-44 flex flex-col justify-end">
-              <div className="text-3xl mb-1">👑</div>
-              <div className="text-white font-bold text-sm sm:text-base truncate">
+            <div className="bg-gradient-to-b from-yellow-600/30 to-yellow-700/20 rounded-lg p-2 text-center border border-yellow-600/40">
+              <div className="text-xl mb-0.5">👑</div>
+              <div className="text-white font-semibold text-sm truncate">
                 {leaderboardData[0].manager_name.split(' ')[0]}
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-white">
+              <div className="text-xl font-bold text-white">
                 {leaderboardData[0].total_points}
               </div>
-              <div className="text-xs text-gray-300">
+              <div className="text-[10px] text-gray-300">
                 {getPositionChangeDisplay(leaderboardData[0].positionChange)}
               </div>
             </div>
-            <div className="bg-yellow-700 h-28 sm:h-32 rounded-b-lg"></div>
           </div>
         )}
 
         {/* 3rd Place */}
         {leaderboardData[2] && (
           <div 
-            className="flex-1 max-w-[140px] cursor-pointer transform hover:scale-105 transition-transform"
+            className="flex-1 max-w-[100px] cursor-pointer transform hover:scale-105 transition-transform"
             onClick={() => handleManagerClick(leaderboardData[2])}
           >
-            <div className="bg-gradient-to-b from-amber-700 to-amber-800 rounded-t-xl p-3 sm:p-4 text-center border border-amber-600/50 h-28 sm:h-32 flex flex-col justify-end">
-              <div className="text-2xl mb-1">🥉</div>
-              <div className="text-white font-bold text-sm sm:text-base truncate">
+            <div className="bg-slate-700/80 rounded-lg p-2 text-center border border-slate-600/50">
+              <div className="text-lg mb-0.5">🥉</div>
+              <div className="text-white font-semibold text-xs truncate">
                 {leaderboardData[2].manager_name.split(' ')[0]}
               </div>
-              <div className="text-xl sm:text-2xl font-bold text-white">
+              <div className="text-lg font-bold text-white">
                 {leaderboardData[2].total_points}
               </div>
-              <div className="text-xs text-gray-400">
+              <div className="text-[10px] text-gray-400">
                 {getPositionChangeDisplay(leaderboardData[2].positionChange)}
               </div>
             </div>
-            <div className="bg-amber-800 h-16 sm:h-20 rounded-b-lg"></div>
           </div>
         )}
       </div>
@@ -558,6 +555,12 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
 const PlayerRow = ({ player, getPositionColor, getDifficultyColor, formatKickoff }) => {
   const fixture = player.next_fixture;
   
+  // Format record as W-D-L
+  const formatRecord = (f) => {
+    if (!f || f.opponent_wins === undefined) return null;
+    return `${f.opponent_wins}-${f.opponent_draws}-${f.opponent_losses}`;
+  };
+  
   return (
     <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50 hover:border-slate-600/50 transition-colors">
       <div className="flex items-center justify-between">
@@ -592,6 +595,14 @@ const PlayerRow = ({ player, getPositionColor, getDifficultyColor, formatKickoff
                   {fixture.difficulty}
                 </span>
               </div>
+              <div className="text-[10px] text-gray-400 flex items-center justify-end gap-1.5">
+                {fixture.opponent_position > 0 && (
+                  <span className="text-gray-300">{fixture.opponent_position}{getOrdinalSuffix(fixture.opponent_position)}</span>
+                )}
+                {formatRecord(fixture) && (
+                  <span className="text-gray-500">({formatRecord(fixture)})</span>
+                )}
+              </div>
               <div className="text-xs text-gray-500">
                 {formatKickoff(fixture.kickoff_time)}
               </div>
@@ -619,6 +630,13 @@ const PlayerRow = ({ player, getPositionColor, getDifficultyColor, formatKickoff
       </div>
     </div>
   );
+};
+
+// Helper function for ordinal suffix (1st, 2nd, 3rd, etc.)
+const getOrdinalSuffix = (n) => {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
 };
 
 export default OverallLeaderboard;

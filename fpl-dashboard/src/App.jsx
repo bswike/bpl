@@ -11,6 +11,7 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
     { id: 'position-chart', label: 'Positions', icon: '📈' },
     { id: 'multi-gw', label: 'Stats', icon: '🔢' },
     { id: 'standings', label: 'Standings', icon: '🏆' },
+    { id: 'dashboard', label: 'Table', icon: '📊' },
   ];
 
   return (
