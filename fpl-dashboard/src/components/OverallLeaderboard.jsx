@@ -281,7 +281,7 @@ const OverallLeaderboard = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-cyan-400 text-xl animate-pulse">Loading standings...</div>
+        <div className="text-gray-400 text-sm animate-pulse">Loading...</div>
       </div>
     );
   }
@@ -289,128 +289,82 @@ const OverallLeaderboard = () => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="text-red-400 text-xl mb-4">{error}</div>
+        <div className="text-red-400 text-sm">{error}</div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header with countdown */}
-      <header className="text-center mb-8">
-        <h1 className="text-2xl sm:text-3xl font-light text-white tracking-wide mb-2">
-          League Standings
-        </h1>
-        <p className="text-gray-400 mb-4">After Gameweek {latestGW}</p>
+    <div className="max-w-lg mx-auto">
+      {/* Compact Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-lg font-semibold text-white">Standings</h1>
+          <p className="text-xs text-gray-500">GW {latestGW}</p>
+        </div>
         
-        {/* Countdown Card */}
+        {/* Compact Countdown */}
         {gwStatus?.next_gameweek && (
-          <div className="inline-block bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border border-cyan-700/50 rounded-xl px-6 py-4">
-            <div className="text-sm text-cyan-400 mb-1">
-              {gwStatus.next_gameweek.name} Deadline
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
-              {countdown}
-            </div>
-            <div className="text-xs text-gray-400">
-              {formatDeadline(gwStatus.next_gameweek.deadline_time)}
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* Podium - Top 3 */}
-      <div className="flex justify-center items-end gap-2 mb-6 px-2">
-        {/* 2nd Place */}
-        {leaderboardData[1] && (
-          <div 
-            className="flex-1 max-w-[100px] cursor-pointer transform hover:scale-105 transition-transform"
-            onClick={() => handleManagerClick(leaderboardData[1])}
-          >
-            <div className="bg-slate-700/80 rounded-lg p-2 text-center border border-slate-600/50">
-              <div className="text-lg mb-0.5">🥈</div>
-              <div className="text-white font-semibold text-xs truncate">
-                {leaderboardData[1].manager_name.split(' ')[0]}
-              </div>
-              <div className="text-lg font-bold text-white">
-                {leaderboardData[1].total_points}
-              </div>
-              <div className="text-[10px] text-gray-400">
-                {getPositionChangeDisplay(leaderboardData[1].positionChange)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 1st Place */}
-        {leaderboardData[0] && (
-          <div 
-            className="flex-1 max-w-[110px] cursor-pointer transform hover:scale-105 transition-transform"
-            onClick={() => handleManagerClick(leaderboardData[0])}
-          >
-            <div className="bg-gradient-to-b from-yellow-600/30 to-yellow-700/20 rounded-lg p-2 text-center border border-yellow-600/40">
-              <div className="text-xl mb-0.5">👑</div>
-              <div className="text-white font-semibold text-sm truncate">
-                {leaderboardData[0].manager_name.split(' ')[0]}
-              </div>
-              <div className="text-xl font-bold text-white">
-                {leaderboardData[0].total_points}
-              </div>
-              <div className="text-[10px] text-gray-300">
-                {getPositionChangeDisplay(leaderboardData[0].positionChange)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 3rd Place */}
-        {leaderboardData[2] && (
-          <div 
-            className="flex-1 max-w-[100px] cursor-pointer transform hover:scale-105 transition-transform"
-            onClick={() => handleManagerClick(leaderboardData[2])}
-          >
-            <div className="bg-slate-700/80 rounded-lg p-2 text-center border border-slate-600/50">
-              <div className="text-lg mb-0.5">🥉</div>
-              <div className="text-white font-semibold text-xs truncate">
-                {leaderboardData[2].manager_name.split(' ')[0]}
-              </div>
-              <div className="text-lg font-bold text-white">
-                {leaderboardData[2].total_points}
-              </div>
-              <div className="text-[10px] text-gray-400">
-                {getPositionChangeDisplay(leaderboardData[2].positionChange)}
-              </div>
-            </div>
+          <div className="text-right">
+            <div className="text-xs text-gray-500">{gwStatus.next_gameweek.name}</div>
+            <div className="text-sm font-mono text-cyan-400">{countdown}</div>
           </div>
         )}
       </div>
 
-      {/* Rest of leaderboard */}
-      <div className="space-y-2">
-        {leaderboardData.slice(3).map((manager) => (
+      {/* Table Header */}
+      <div className="flex items-center px-3 py-2 text-[10px] text-gray-500 uppercase tracking-wider border-b border-slate-700/50">
+        <div className="w-8 text-center">#</div>
+        <div className="flex-1">Manager</div>
+        <div className="w-10 text-center">+/-</div>
+        <div className="w-14 text-right">Pts</div>
+      </div>
+
+      {/* Leaderboard Rows */}
+      <div className="divide-y divide-slate-800/50">
+        {leaderboardData.map((manager, idx) => (
           <div
             key={manager.manager_name}
             onClick={() => handleManagerClick(manager)}
-            className="bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all hover:border-cyan-700/50"
+            className={`flex items-center px-3 py-2.5 cursor-pointer transition-colors hover:bg-slate-800/50 ${
+              idx === 0 ? 'bg-yellow-900/10' : idx === 1 ? 'bg-slate-700/10' : idx === 2 ? 'bg-amber-900/10' : ''
+            }`}
           >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-lg font-bold text-gray-300">
-                {manager.position}
-              </div>
-              <div>
-                <div className="text-white font-medium">{manager.manager_name}</div>
-                <div className="text-gray-500 text-sm">"{manager.team_name}"</div>
-              </div>
+            {/* Position */}
+            <div className="w-8 text-center">
+              {idx === 0 ? (
+                <span className="text-yellow-500 text-sm">①</span>
+              ) : idx === 1 ? (
+                <span className="text-gray-400 text-sm">②</span>
+              ) : idx === 2 ? (
+                <span className="text-amber-600 text-sm">③</span>
+              ) : (
+                <span className="text-gray-500 text-xs">{manager.position}</span>
+              )}
             </div>
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <div className="text-xs text-gray-500">Change</div>
-                <div>{getPositionChangeDisplay(manager.positionChange)}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-white">{manager.total_points}</div>
-                <div className="text-xs text-gray-500">points</div>
-              </div>
+
+            {/* Manager Info */}
+            <div className="flex-1 min-w-0">
+              <div className="text-sm text-white truncate">{manager.manager_name}</div>
+              <div className="text-[10px] text-gray-600 truncate">{manager.team_name}</div>
+            </div>
+
+            {/* Position Change */}
+            <div className="w-10 text-center text-xs">
+              {manager.positionChange > 0 ? (
+                <span className="text-green-500">+{manager.positionChange}</span>
+              ) : manager.positionChange < 0 ? (
+                <span className="text-red-500">{manager.positionChange}</span>
+              ) : (
+                <span className="text-gray-600">-</span>
+              )}
+            </div>
+
+            {/* Points */}
+            <div className="w-14 text-right">
+              <span className={`text-sm font-semibold ${idx < 3 ? 'text-white' : 'text-gray-300'}`}>
+                {manager.total_points}
+              </span>
             </div>
           </div>
         ))}
@@ -434,19 +388,19 @@ const OverallLeaderboard = () => {
 const SquadModal = ({ manager, squadData, loading, onClose }) => {
   const getPositionColor = (pos) => {
     const colors = { 
-      'GK': 'text-yellow-400 bg-yellow-900/30 border-yellow-700/50', 
-      'DEF': 'text-green-400 bg-green-900/30 border-green-700/50', 
-      'MID': 'text-blue-400 bg-blue-900/30 border-blue-700/50', 
-      'FWD': 'text-red-400 bg-red-900/30 border-red-700/50' 
+      'GK': 'text-yellow-400', 
+      'DEF': 'text-green-400', 
+      'MID': 'text-blue-400', 
+      'FWD': 'text-red-400' 
     };
-    return colors[pos] || 'text-gray-400 bg-gray-900/30 border-gray-700/50';
+    return colors[pos] || 'text-gray-400';
   };
 
   const getDifficultyColor = (difficulty) => {
-    if (difficulty <= 2) return 'bg-green-600 text-white';
-    if (difficulty === 3) return 'bg-gray-500 text-white';
-    if (difficulty === 4) return 'bg-orange-500 text-white';
-    return 'bg-red-600 text-white';
+    if (difficulty <= 2) return 'text-green-400';
+    if (difficulty === 3) return 'text-gray-400';
+    if (difficulty === 4) return 'text-orange-400';
+    return 'text-red-400';
   };
 
   const formatKickoff = (isoString) => {
@@ -454,8 +408,6 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
     const date = new Date(isoString);
     return date.toLocaleString('en-US', {
       weekday: 'short',
-      month: 'short',
-      day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
     });
@@ -464,84 +416,76 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
   const starters = squadData?.squad?.filter(p => p.slot <= 11) || [];
   const bench = squadData?.squad?.filter(p => p.slot > 11) || [];
 
-  // Prevent body scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    return () => { document.body.style.overflow = 'unset'; };
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50" onClick={onClose}>
       <div 
-        className="bg-slate-800 rounded-xl max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl border border-slate-700"
+        className="bg-slate-900 w-full sm:max-w-md sm:rounded-lg max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-slate-900 border-b border-slate-700 p-4 flex justify-between items-center">
+        <div className="bg-slate-800 px-4 py-3 flex justify-between items-center border-b border-slate-700">
           <div>
-            <h2 className="text-xl font-bold text-white">{manager.manager_name}</h2>
-            <p className="text-gray-400 text-sm">
-              {squadData ? `"${squadData.team_name}"` : `"${manager.team_name}"`}
-              {squadData && <span className="ml-2">• {squadData.overall_points} pts</span>}
-            </p>
+            <h2 className="text-sm font-semibold text-white">{manager.manager_name}</h2>
+            <p className="text-xs text-gray-500">{squadData?.team_name || manager.team_name}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onClick={onClose} className="text-gray-500 hover:text-white p-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(85vh-80px)] p-4">
+        <div className="overflow-y-auto max-h-[calc(90vh-52px)]">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="text-cyan-400 animate-pulse">Loading squad...</div>
+              <div className="text-gray-500 text-sm animate-pulse">Loading...</div>
             </div>
           ) : squadData ? (
-            <div className="space-y-4">
-              {/* Next GW Info */}
-              <div className="text-center text-sm text-gray-400 mb-4">
-                Showing fixtures for Gameweek {squadData.next_gameweek}
+            <div>
+              {/* Table Header */}
+              <div className="flex items-center px-4 py-2 text-[10px] text-gray-500 uppercase tracking-wider bg-slate-800/50 border-b border-slate-700/50">
+                <div className="w-8">Pos</div>
+                <div className="flex-1">Player</div>
+                <div className="w-20 text-right">Fixture</div>
               </div>
 
               {/* Starters */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Starting XI</h3>
-                <div className="space-y-2">
-                  {starters.map((player) => (
-                    <PlayerRow 
-                      key={player.element_id} 
-                      player={player} 
-                      getPositionColor={getPositionColor}
-                      getDifficultyColor={getDifficultyColor}
-                      formatKickoff={formatKickoff}
-                    />
-                  ))}
-                </div>
+              {starters.map((player) => (
+                <PlayerRowCompact 
+                  key={player.element_id} 
+                  player={player} 
+                  getPositionColor={getPositionColor}
+                  getDifficultyColor={getDifficultyColor}
+                  formatKickoff={formatKickoff}
+                />
+              ))}
+
+              {/* Bench Divider */}
+              <div className="px-4 py-1.5 bg-slate-800/80 text-[10px] text-gray-500 uppercase tracking-wider">
+                Bench
               </div>
 
               {/* Bench */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">Bench</h3>
-                <div className="space-y-2 opacity-70">
-                  {bench.map((player) => (
-                    <PlayerRow 
-                      key={player.element_id} 
-                      player={player}
-                      getPositionColor={getPositionColor}
-                      getDifficultyColor={getDifficultyColor}
-                      formatKickoff={formatKickoff}
-                    />
-                  ))}
-                </div>
-              </div>
+              {bench.map((player) => (
+                <PlayerRowCompact 
+                  key={player.element_id} 
+                  player={player}
+                  getPositionColor={getPositionColor}
+                  getDifficultyColor={getDifficultyColor}
+                  formatKickoff={formatKickoff}
+                  isBench
+                />
+              ))}
             </div>
           ) : (
             <div className="flex items-center justify-center py-12">
-              <div className="text-red-400">Failed to load squad</div>
+              <div className="text-red-400 text-sm">Failed to load</div>
             </div>
           )}
         </div>
@@ -550,95 +494,47 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
   );
 };
 
-
-// ====== PLAYER ROW COMPONENT ======
-const PlayerRow = ({ player, getPositionColor, getDifficultyColor, formatKickoff }) => {
+// ====== COMPACT PLAYER ROW ======
+const PlayerRowCompact = ({ player, getPositionColor, getDifficultyColor, formatKickoff, isBench }) => {
   const fixture = player.next_fixture;
   
-  // Format record as W-D-L (hide if all zeros)
-  const formatRecord = (f) => {
-    if (!f || f.opponent_wins === undefined) return null;
-    // Hide if all zeros (data not populated)
-    if (f.opponent_wins === 0 && f.opponent_draws === 0 && f.opponent_losses === 0) return null;
-    return `${f.opponent_wins}-${f.opponent_draws}-${f.opponent_losses}`;
-  };
-  
   return (
-    <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50 hover:border-slate-600/50 transition-colors">
-      <div className="flex items-center justify-between">
-        {/* Player Info */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <span className={`text-xs font-bold px-2 py-1 rounded border ${getPositionColor(player.position)}`}>
-            {player.position}
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-white font-medium truncate">{player.name}</span>
-              {player.is_captain && (
-                <span className="text-xs bg-cyan-600 text-white px-1.5 py-0.5 rounded font-bold">C</span>
-              )}
-              {player.is_vice_captain && (
-                <span className="text-xs bg-gray-600 text-white px-1.5 py-0.5 rounded font-bold">V</span>
-              )}
-            </div>
-            <div className="text-xs text-gray-500">{player.team_name} • £{player.now_cost}m</div>
-          </div>
-        </div>
+    <div className={`flex items-center px-4 py-2 border-b border-slate-800/50 ${isBench ? 'opacity-60' : ''}`}>
+      {/* Position */}
+      <div className={`w-8 text-xs font-medium ${getPositionColor(player.position)}`}>
+        {player.position}
+      </div>
 
-        {/* Fixture Info */}
-        <div className="text-right ml-3">
-          {fixture ? (
-            <div>
-              <div className="flex items-center justify-end gap-2">
-                <span className="text-white font-medium">
-                  {fixture.is_home ? '' : '@'}{fixture.opponent_name}
-                </span>
-                <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${getDifficultyColor(fixture.difficulty)}`}>
-                  {fixture.difficulty}
-                </span>
-              </div>
-              <div className="text-[10px] text-gray-400 flex items-center justify-end gap-1.5">
-                {fixture.opponent_position > 0 && (
-                  <span className="text-gray-300">{fixture.opponent_position}{getOrdinalSuffix(fixture.opponent_position)}</span>
-                )}
-                {formatRecord(fixture) && (
-                  <span className="text-gray-500">({formatRecord(fixture)})</span>
-                )}
-              </div>
-              <div className="text-xs text-gray-500">
-                {formatKickoff(fixture.kickoff_time)}
-              </div>
-            </div>
-          ) : (
-            <span className="text-gray-500 text-sm">No fixture</span>
-          )}
+      {/* Player Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm text-white truncate">{player.name}</span>
+          {player.is_captain && <span className="text-[9px] bg-cyan-600 text-white px-1 rounded">C</span>}
+          {player.is_vice_captain && <span className="text-[9px] bg-gray-600 text-white px-1 rounded">V</span>}
+        </div>
+        <div className="text-[10px] text-gray-600">
+          {player.team_name} · {player.total_points}pts · {player.form}f
         </div>
       </div>
 
-      {/* Stats Row */}
-      <div className="flex gap-4 mt-2 pt-2 border-t border-slate-700/50 text-xs">
-        <div>
-          <span className="text-gray-500">Total: </span>
-          <span className="text-white font-medium">{player.total_points} pts</span>
-        </div>
-        <div>
-          <span className="text-gray-500">Form: </span>
-          <span className="text-white font-medium">{player.form}</span>
-        </div>
-        <div>
-          <span className="text-gray-500">Own: </span>
-          <span className="text-white font-medium">{player.selected_by_percent}%</span>
-        </div>
+      {/* Fixture */}
+      <div className="w-20 text-right">
+        {fixture ? (
+          <div>
+            <div className={`text-xs ${getDifficultyColor(fixture.difficulty)}`}>
+              {fixture.is_home ? '' : '@'}{fixture.opponent_name}
+              {fixture.opponent_position > 0 && (
+                <span className="text-gray-600 ml-1">({fixture.opponent_position})</span>
+              )}
+            </div>
+            <div className="text-[10px] text-gray-600">{formatKickoff(fixture.kickoff_time)}</div>
+          </div>
+        ) : (
+          <span className="text-[10px] text-gray-600">-</span>
+        )}
       </div>
     </div>
   );
-};
-
-// Helper function for ordinal suffix (1st, 2nd, 3rd, etc.)
-const getOrdinalSuffix = (n) => {
-  const s = ['th', 'st', 'nd', 'rd'];
-  const v = n % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
 };
 
 export default OverallLeaderboard;
