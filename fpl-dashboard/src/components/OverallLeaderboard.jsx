@@ -1,21 +1,22 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 // ====== OVERALL LEADERBOARD COMPONENT ======
-// This shows when a gameweek is NOT active (Tue-Fri typically)
+// Self-contained - fetches its own data
 
-const OverallLeaderboard = ({ 
-  combinedData, 
-  availableGameweeks, 
-  gameweekData,
-  onSwitchToLive  // Callback to switch to multi-GW view
-}) => {
+const OverallLeaderboard = () => {
+  const [combinedData, setCombinedData] = useState([]);
+  const [availableGameweeks, setAvailableGameweeks] = useState([]);
+  const [gameweekData, setGameweekData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const [selectedManager, setSelectedManager] = useState(null);
   const [squadData, setSquadData] = useState(null);
   const [squadLoading, setSquadLoading] = useState(false);
   const [gwStatus, setGwStatus] = useState(null);
   const [countdown, setCountdown] = useState('');
 
-  // Entry ID mapping (same as your chips endpoint)
+  // Entry ID mapping
   const entryIdMap = {
     'Garrett Kunkel': 394273,
     'Andrew Vidal': 373574,
@@ -39,6 +40,99 @@ const OverallLeaderboard = ({
     'Patrick McCleary': 8592148,
   };
 
+  // Fetch leaderboard data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch manifest
+        const manifestRes = await fetch('https://bpl-red-sun-894.fly.dev/api/manifest', {
+          cache: 'no-store'
+        });
+        if (!manifestRes.ok) throw new Error('Failed to load manifest');
+        const manifest = await manifestRes.json();
+
+        const gameweeks = Object.keys(manifest.gameweeks || {}).map(Number).sort((a, b) => a - b);
+        if (gameweeks.length === 0) throw new Error('No gameweek data');
+
+        // Fetch all gameweek CSVs
+        const gwData = {};
+        
+        await Promise.all(gameweeks.map(async (gw) => {
+          const res = await fetch(`https://bpl-red-sun-894.fly.dev/api/data/${gw}`);
+          if (!res.ok) return;
+          const csvText = await res.text();
+          
+          if (csvText.includes('The game is being updated')) return;
+          
+          // Parse CSV
+          const lines = csvText.split('\n').filter(line => line.trim());
+          if (lines.length < 2) return;
+          
+          const headers = lines[0].split(',');
+          const managerIdx = headers.indexOf('manager_name');
+          const pointsIdx = headers.indexOf('points_applied');
+          const playerIdx = headers.indexOf('player');
+          const teamNameIdx = headers.indexOf('entry_team_name');
+          
+          // Check if we found the required columns
+          if (managerIdx === -1 || pointsIdx === -1 || playerIdx === -1) return;
+          
+          const managers = {};
+          
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            if (cols.length > playerIdx && cols[playerIdx] === 'TOTAL') {
+              const name = cols[managerIdx];
+              if (name) {
+                managers[name] = {
+                  manager_name: name,
+                  team_name: cols[teamNameIdx] || '',
+                  total_points: parseInt(cols[pointsIdx]) || 0,
+                };
+              }
+            }
+          }
+          
+          gwData[gw] = Object.values(managers);
+        }));
+
+        // Build combined data
+        const managerTotals = {};
+        
+        gameweeks.forEach(gw => {
+          (gwData[gw] || []).forEach(m => {
+            if (!managerTotals[m.manager_name]) {
+              managerTotals[m.manager_name] = {
+                manager_name: m.manager_name,
+                team_name: m.team_name,
+                total_points: 0,
+              };
+            }
+            managerTotals[m.manager_name].total_points += m.total_points;
+            managerTotals[m.manager_name][`gw${gw}_points`] = m.total_points;
+          });
+        });
+
+        const combined = Object.values(managerTotals)
+          .sort((a, b) => b.total_points - a.total_points);
+
+        setCombinedData(combined);
+        setAvailableGameweeks(gameweeks);
+        setGameweekData(gwData);
+        setLoading(false);
+
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   // Fetch gameweek status
   useEffect(() => {
     const fetchStatus = async () => {
@@ -54,7 +148,7 @@ const OverallLeaderboard = ({
     };
     
     fetchStatus();
-    const interval = setInterval(fetchStatus, 60000); // Refresh every minute
+    const interval = setInterval(fetchStatus, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -93,29 +187,28 @@ const OverallLeaderboard = ({
 
   // Calculate position changes from previous GW
   const leaderboardData = useMemo(() => {
-    if (!combinedData || combinedData.length === 0) return [];
+    if (!combinedData || combinedData.length === 0 || availableGameweeks.length === 0) return [];
     
     const latestGW = availableGameweeks[availableGameweeks.length - 1];
-    const prevGW = availableGameweeks[availableGameweeks.length - 2];
+    const prevGW = availableGameweeks.length > 1 ? availableGameweeks[availableGameweeks.length - 2] : null;
     
     // Get previous GW standings
-    const prevStandings = {};
+    const prevStandings = { positions: {} };
     if (prevGW && gameweekData[prevGW]) {
-      // Calculate cumulative points up to previous GW
       combinedData.forEach(manager => {
         let cumulative = 0;
-        for (let gw = availableGameweeks[0]; gw <= prevGW; gw++) {
+        for (let i = 0; i < availableGameweeks.length - 1; i++) {
+          const gw = availableGameweeks[i];
           cumulative += manager[`gw${gw}_points`] || 0;
         }
         prevStandings[manager.manager_name] = cumulative;
       });
       
-      // Sort to get previous positions
       const prevSorted = Object.entries(prevStandings)
+        .filter(([key]) => key !== 'positions')
         .sort((a, b) => b[1] - a[1])
         .map(([name], idx) => ({ name, position: idx + 1 }));
       
-      prevStandings.positions = {};
       prevSorted.forEach(({ name, position }) => {
         prevStandings.positions[name] = position;
       });
@@ -164,7 +257,6 @@ const OverallLeaderboard = ({
     setSquadData(null);
   }, []);
 
-  // Format deadline for display
   const formatDeadline = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
@@ -184,155 +276,158 @@ const OverallLeaderboard = ({
     return <span className="text-gray-500">-</span>;
   };
 
-  const latestGW = availableGameweeks[availableGameweeks.length - 1];
+  const latestGW = availableGameweeks[availableGameweeks.length - 1] || 0;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-cyan-400 text-xl animate-pulse">Loading standings...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="text-red-400 text-xl mb-4">{error}</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
-      <div className="max-w-4xl mx-auto p-4 sm:p-6">
+    <div className="max-w-4xl mx-auto">
+      {/* Header with countdown */}
+      <header className="text-center mb-8">
+        <h1 className="text-2xl sm:text-3xl font-light text-white tracking-wide mb-2">
+          League Standings
+        </h1>
+        <p className="text-gray-400 mb-4">After Gameweek {latestGW}</p>
         
-        {/* Header with countdown */}
-        <header className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-light text-white tracking-wide mb-2">
-            League Standings
-          </h1>
-          <p className="text-gray-400 mb-4">After Gameweek {latestGW}</p>
-          
-          {/* Countdown Card */}
-          {gwStatus?.next_gameweek && (
-            <div className="inline-block bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border border-cyan-700/50 rounded-xl px-6 py-4">
-              <div className="text-sm text-cyan-400 mb-1">
-                {gwStatus.next_gameweek.name} Deadline
+        {/* Countdown Card */}
+        {gwStatus?.next_gameweek && (
+          <div className="inline-block bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border border-cyan-700/50 rounded-xl px-6 py-4">
+            <div className="text-sm text-cyan-400 mb-1">
+              {gwStatus.next_gameweek.name} Deadline
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
+              {countdown}
+            </div>
+            <div className="text-xs text-gray-400">
+              {formatDeadline(gwStatus.next_gameweek.deadline_time)}
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Podium - Top 3 */}
+      <div className="flex justify-center items-end gap-3 sm:gap-4 mb-8 px-4">
+        {/* 2nd Place */}
+        {leaderboardData[1] && (
+          <div 
+            className="flex-1 max-w-[140px] cursor-pointer transform hover:scale-105 transition-transform"
+            onClick={() => handleManagerClick(leaderboardData[1])}
+          >
+            <div className="bg-gradient-to-b from-slate-600 to-slate-700 rounded-t-xl p-3 sm:p-4 text-center border border-slate-500/50 h-32 sm:h-36 flex flex-col justify-end">
+              <div className="text-2xl mb-1">🥈</div>
+              <div className="text-white font-bold text-sm sm:text-base truncate">
+                {leaderboardData[1].manager_name.split(' ')[0]}
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-white mb-1">
-                {countdown}
+              <div className="text-xl sm:text-2xl font-bold text-white">
+                {leaderboardData[1].total_points}
               </div>
               <div className="text-xs text-gray-400">
-                {formatDeadline(gwStatus.next_gameweek.deadline_time)}
+                {getPositionChangeDisplay(leaderboardData[1].positionChange)}
               </div>
             </div>
-          )}
+            <div className="bg-slate-600 h-20 sm:h-24 rounded-b-lg"></div>
+          </div>
+        )}
 
-          {/* Switch to live view button */}
-          {gwStatus?.is_active && (
-            <button
-              onClick={onSwitchToLive}
-              className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              🔴 Gameweek is LIVE - View Scores
-            </button>
-          )}
-        </header>
-
-        {/* Podium - Top 3 */}
-        <div className="flex justify-center items-end gap-3 sm:gap-4 mb-8 px-4">
-          {/* 2nd Place */}
-          {leaderboardData[1] && (
-            <div 
-              className="flex-1 max-w-[140px] cursor-pointer transform hover:scale-105 transition-transform"
-              onClick={() => handleManagerClick(leaderboardData[1])}
-            >
-              <div className="bg-gradient-to-b from-slate-600 to-slate-700 rounded-t-xl p-3 sm:p-4 text-center border border-slate-500/50 h-32 sm:h-36 flex flex-col justify-end">
-                <div className="text-2xl mb-1">🥈</div>
-                <div className="text-white font-bold text-sm sm:text-base truncate">
-                  {leaderboardData[1].manager_name.split(' ')[0]}
-                </div>
-                <div className="text-xl sm:text-2xl font-bold text-white">
-                  {leaderboardData[1].total_points}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {getPositionChangeDisplay(leaderboardData[1].positionChange)}
-                </div>
+        {/* 1st Place */}
+        {leaderboardData[0] && (
+          <div 
+            className="flex-1 max-w-[160px] cursor-pointer transform hover:scale-105 transition-transform"
+            onClick={() => handleManagerClick(leaderboardData[0])}
+          >
+            <div className="bg-gradient-to-b from-yellow-600 to-yellow-700 rounded-t-xl p-3 sm:p-4 text-center border border-yellow-500/50 h-40 sm:h-44 flex flex-col justify-end">
+              <div className="text-3xl mb-1">👑</div>
+              <div className="text-white font-bold text-sm sm:text-base truncate">
+                {leaderboardData[0].manager_name.split(' ')[0]}
               </div>
-              <div className="bg-slate-600 h-20 sm:h-24 rounded-b-lg"></div>
-            </div>
-          )}
-
-          {/* 1st Place */}
-          {leaderboardData[0] && (
-            <div 
-              className="flex-1 max-w-[160px] cursor-pointer transform hover:scale-105 transition-transform"
-              onClick={() => handleManagerClick(leaderboardData[0])}
-            >
-              <div className="bg-gradient-to-b from-yellow-600 to-yellow-700 rounded-t-xl p-3 sm:p-4 text-center border border-yellow-500/50 h-40 sm:h-44 flex flex-col justify-end">
-                <div className="text-3xl mb-1">👑</div>
-                <div className="text-white font-bold text-sm sm:text-base truncate">
-                  {leaderboardData[0].manager_name.split(' ')[0]}
-                </div>
-                <div className="text-2xl sm:text-3xl font-bold text-white">
-                  {leaderboardData[0].total_points}
-                </div>
-                <div className="text-xs text-gray-300">
-                  {getPositionChangeDisplay(leaderboardData[0].positionChange)}
-                </div>
+              <div className="text-2xl sm:text-3xl font-bold text-white">
+                {leaderboardData[0].total_points}
               </div>
-              <div className="bg-yellow-700 h-28 sm:h-32 rounded-b-lg"></div>
-            </div>
-          )}
-
-          {/* 3rd Place */}
-          {leaderboardData[2] && (
-            <div 
-              className="flex-1 max-w-[140px] cursor-pointer transform hover:scale-105 transition-transform"
-              onClick={() => handleManagerClick(leaderboardData[2])}
-            >
-              <div className="bg-gradient-to-b from-amber-700 to-amber-800 rounded-t-xl p-3 sm:p-4 text-center border border-amber-600/50 h-28 sm:h-32 flex flex-col justify-end">
-                <div className="text-2xl mb-1">🥉</div>
-                <div className="text-white font-bold text-sm sm:text-base truncate">
-                  {leaderboardData[2].manager_name.split(' ')[0]}
-                </div>
-                <div className="text-xl sm:text-2xl font-bold text-white">
-                  {leaderboardData[2].total_points}
-                </div>
-                <div className="text-xs text-gray-400">
-                  {getPositionChangeDisplay(leaderboardData[2].positionChange)}
-                </div>
-              </div>
-              <div className="bg-amber-800 h-16 sm:h-20 rounded-b-lg"></div>
-            </div>
-          )}
-        </div>
-
-        {/* Rest of leaderboard */}
-        <div className="space-y-2">
-          {leaderboardData.slice(3).map((manager) => (
-            <div
-              key={manager.manager_name}
-              onClick={() => handleManagerClick(manager)}
-              className="bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all hover:border-cyan-700/50"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-lg font-bold text-gray-300">
-                  {manager.position}
-                </div>
-                <div>
-                  <div className="text-white font-medium">{manager.manager_name}</div>
-                  <div className="text-gray-500 text-sm">"{manager.team_name}"</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-6">
-                <div className="text-center">
-                  <div className="text-xs text-gray-500">Change</div>
-                  <div>{getPositionChangeDisplay(manager.positionChange)}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-white">{manager.total_points}</div>
-                  <div className="text-xs text-gray-500">points</div>
-                </div>
+              <div className="text-xs text-gray-300">
+                {getPositionChangeDisplay(leaderboardData[0].positionChange)}
               </div>
             </div>
-          ))}
-        </div>
+            <div className="bg-yellow-700 h-28 sm:h-32 rounded-b-lg"></div>
+          </div>
+        )}
 
-        {/* Squad Modal */}
-        {selectedManager && (
-          <SquadModal
-            manager={selectedManager}
-            squadData={squadData}
-            loading={squadLoading}
-            onClose={closeModal}
-          />
+        {/* 3rd Place */}
+        {leaderboardData[2] && (
+          <div 
+            className="flex-1 max-w-[140px] cursor-pointer transform hover:scale-105 transition-transform"
+            onClick={() => handleManagerClick(leaderboardData[2])}
+          >
+            <div className="bg-gradient-to-b from-amber-700 to-amber-800 rounded-t-xl p-3 sm:p-4 text-center border border-amber-600/50 h-28 sm:h-32 flex flex-col justify-end">
+              <div className="text-2xl mb-1">🥉</div>
+              <div className="text-white font-bold text-sm sm:text-base truncate">
+                {leaderboardData[2].manager_name.split(' ')[0]}
+              </div>
+              <div className="text-xl sm:text-2xl font-bold text-white">
+                {leaderboardData[2].total_points}
+              </div>
+              <div className="text-xs text-gray-400">
+                {getPositionChangeDisplay(leaderboardData[2].positionChange)}
+              </div>
+            </div>
+            <div className="bg-amber-800 h-16 sm:h-20 rounded-b-lg"></div>
+          </div>
         )}
       </div>
+
+      {/* Rest of leaderboard */}
+      <div className="space-y-2">
+        {leaderboardData.slice(3).map((manager) => (
+          <div
+            key={manager.manager_name}
+            onClick={() => handleManagerClick(manager)}
+            className="bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all hover:border-cyan-700/50"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center text-lg font-bold text-gray-300">
+                {manager.position}
+              </div>
+              <div>
+                <div className="text-white font-medium">{manager.manager_name}</div>
+                <div className="text-gray-500 text-sm">"{manager.team_name}"</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <div className="text-xs text-gray-500">Change</div>
+                <div>{getPositionChangeDisplay(manager.positionChange)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-white">{manager.total_points}</div>
+                <div className="text-xs text-gray-500">points</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Squad Modal */}
+      {selectedManager && (
+        <SquadModal
+          manager={selectedManager}
+          squadData={squadData}
+          loading={squadLoading}
+          onClose={closeModal}
+        />
+      )}
     </div>
   );
 };
@@ -371,6 +466,14 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
 
   const starters = squadData?.squad?.filter(p => p.slot <= 11) || [];
   const bench = squadData?.squad?.filter(p => p.slot > 11) || [];
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
