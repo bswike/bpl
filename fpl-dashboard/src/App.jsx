@@ -65,66 +65,34 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
 };
 
 function App() {
-  const [currentPage, setCurrentPage] = useState(null); // Start with null until we know GW status
-  const [gwStatus, setGwStatus] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Default to multi-gw immediately (no blocking)
+  const [currentPage, setCurrentPage] = useState('multi-gw');
+  const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
 
-  // Check GW status on mount to determine initial page
+  // Check GW status in background (non-blocking)
   useEffect(() => {
+    if (hasCheckedStatus) return;
+    
     const checkStatus = async () => {
       try {
         const res = await fetch('https://bpl-red-sun-894.fly.dev/api/gameweek-status');
         if (res.ok) {
           const data = await res.json();
-          setGwStatus(data);
-          
-          // Set initial page based on whether GW is active
-          if (data.is_active) {
-            setCurrentPage('multi-gw'); // Show live stats when GW is active
-          } else {
-            setCurrentPage('standings'); // Show standings when GW is not active
+          // Only auto-switch if GW is NOT active (show standings)
+          if (!data.is_active) {
+            setCurrentPage('standings');
           }
-        } else {
-          // Default to stats if status check fails
-          setCurrentPage('multi-gw');
         }
       } catch (err) {
-        console.error('Failed to check GW status:', err);
-        setCurrentPage('multi-gw'); // Default to stats on error
+        // Silently fail - just stay on current page
+        console.log('GW status check failed, using default view');
       } finally {
-        setLoading(false);
+        setHasCheckedStatus(true);
       }
     };
     
     checkStatus();
-    
-    // Re-check every 5 minutes to auto-switch when GW becomes active/inactive
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch('https://bpl-red-sun-894.fly.dev/api/gameweek-status');
-        if (res.ok) {
-          const data = await res.json();
-          const wasActive = gwStatus?.is_active;
-          const isNowActive = data.is_active;
-          
-          setGwStatus(data);
-          
-          // Auto-switch pages when GW status changes
-          if (wasActive !== isNowActive) {
-            if (isNowActive) {
-              setCurrentPage('multi-gw');
-            } else {
-              setCurrentPage('standings');
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Failed to check GW status:', err);
-      }
-    }, 300000); // 5 minutes
-    
-    return () => clearInterval(interval);
-  }, [gwStatus?.is_active]);
+  }, [hasCheckedStatus]);
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -140,15 +108,6 @@ function App() {
         return <FPLMultiGameweekDashboard />;
     }
   };
-
-  // Show loading state while checking GW status
-  if (loading || currentPage === null) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-cyan-400 text-xl animate-pulse">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-900 text-gray-100 pb-20">
