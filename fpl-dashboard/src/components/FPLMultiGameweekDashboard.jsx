@@ -284,7 +284,7 @@ const useFplData = () => {
         managerStats[manager] = {
           manager_name: manager,
           team_name: normalizeStr(raw.entry_team_name),
-          total_points: 0, captain_points: 0, captain_player: '',
+          total_points: 0, total_points_applied: 0, captain_points: 0, captain_player: '',
           captain_fixture_started: false, captain_fixture_finished: false,
           players_live: 0, players_upcoming: 0, bench_points: 0,
           players: []
@@ -326,10 +326,11 @@ const playerData = {
         }
         if (mult === 0) managerStats[manager].bench_points += toNum(raw.points_gw);
       } else { // This block handles the player === "TOTAL" row
-    managerStats[manager].total_points = toNum(raw.points_applied);
-    managerStats[manager].bench_points = toNum(raw.bench_points); // <-- Add this correct line
-  }
-}
+        managerStats[manager].total_points = toNum(raw.gross_points); // Weekly display (no transfer cost)
+        managerStats[manager].total_points_applied = toNum(raw.points_gw); // For cumulative (with transfer cost)
+        managerStats[manager].bench_points = toNum(raw.bench_points);
+      }
+    }
     
     // Return both managers and captain stats
     return { 
@@ -466,10 +467,10 @@ const playerData = {
           const managerEntry = { manager_name: name };
           available.forEach(gw => {
             const gwStats = newGameweekData[gw]?.find(m => m.manager_name === name);
-            const pts = gwStats?.total_points || 0;
+            const pts = gwStats?.total_points_applied || gwStats?.total_points || 0; // Use applied for cumulative
             cumulativePoints += pts;
             managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
-            managerEntry[`gw${gw}_points`] = pts;
+            managerEntry[`gw${gw}_points`] = gwStats?.total_points || 0; // Weekly display uses raw points
           });
           managerEntry.total_points = cumulativePoints;
           return managerEntry;
