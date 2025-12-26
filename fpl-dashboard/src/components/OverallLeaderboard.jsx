@@ -1,4 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { 
+  BarChart3, 
+  Wallet, 
+  Trophy, 
+  TrendingDown, 
+  Flame, 
+  Users, 
+  Armchair, 
+  ArrowLeftRight 
+} from 'lucide-react';
 
 // ====== OVERALL LEADERBOARD COMPONENT ======
 // Self-contained - fetches its own data
@@ -639,15 +649,17 @@ const ManagerOverviewModal = ({
   }, []);
 
   // Stat row component
-  const StatRow = ({ label, value, rank, icon, suffix = '' }) => (
-    <div className="flex items-center justify-between py-2.5 border-b border-slate-700/50 last:border-0">
-      <div className="flex items-center gap-2">
-        <span className="text-lg">{icon}</span>
+  const StatRow = ({ label, value, rank, icon: Icon, suffix = '' }) => (
+    <div className="flex items-center justify-between py-3 border-b border-slate-700/50 last:border-0">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">
+          <Icon size={16} className="text-cyan-400" />
+        </div>
         <span className="text-sm text-gray-300">{label}</span>
       </div>
       <div className="flex items-center gap-3">
         <span className="text-sm font-semibold text-white">{value}{suffix}</span>
-        <span className={`text-xs px-2 py-0.5 rounded-full ${
+        <span className={`text-xs px-2 py-0.5 rounded-full min-w-[36px] text-center ${
           rank === 1 ? 'bg-yellow-500/20 text-yellow-400' :
           rank <= 3 ? 'bg-green-500/20 text-green-400' :
           rank >= allManagers.length - 2 ? 'bg-red-500/20 text-red-400' :
@@ -722,7 +734,7 @@ const ManagerOverviewModal = ({
                 <div className="space-y-1">
                   {/* Overall Points */}
                   <StatRow 
-                    icon="📊" 
+                    icon={BarChart3} 
                     label="Overall Points" 
                     value={`${currentManager.total_points || 0} (${realAvg}/wk)`}
                     rank={getRank(manager.manager_name, 'total_points')}
@@ -730,7 +742,7 @@ const ManagerOverviewModal = ({
                   
                   {/* Team Value */}
                   <StatRow 
-                    icon="💰" 
+                    icon={Wallet} 
                     label="Team Value" 
                     value={managerValues[manager.manager_name]?.total_value?.toFixed(1) || '-'}
                     suffix="m"
@@ -739,7 +751,7 @@ const ManagerOverviewModal = ({
                   
                   {/* GWs Won */}
                   <StatRow 
-                    icon="🏆" 
+                    icon={Trophy} 
                     label="Gameweeks Won" 
                     value={currentManager.gws_won || 0}
                     rank={getRank(manager.manager_name, 'gws_won')}
@@ -747,7 +759,7 @@ const ManagerOverviewModal = ({
                   
                   {/* GWs Last */}
                   <StatRow 
-                    icon="📉" 
+                    icon={TrendingDown} 
                     label="Gameweeks Last" 
                     value={currentManager.gws_last || 0}
                     rank={getRank(manager.manager_name, 'gws_last', false)}
@@ -755,7 +767,7 @@ const ManagerOverviewModal = ({
                   
                   {/* Form */}
                   <StatRow 
-                    icon="🔥" 
+                    icon={Flame} 
                     label="Form (Last 4 GWs)" 
                     value={currentManager.form?.toFixed(1) || '-'}
                     rank={getRank(manager.manager_name, 'form')}
@@ -763,7 +775,7 @@ const ManagerOverviewModal = ({
                   
                   {/* Chicken Picks */}
                   <StatRow 
-                    icon="🐔" 
+                    icon={Users} 
                     label="Chicken Picks" 
                     value={currentManager.chicken_picks || 0}
                     rank={getRank(manager.manager_name, 'chicken_picks')}
@@ -771,7 +783,7 @@ const ManagerOverviewModal = ({
                   
                   {/* Bench Points */}
                   <StatRow 
-                    icon="🪑" 
+                    icon={Armchair} 
                     label="Bench Points" 
                     value={currentManager.total_bench_points || 0}
                     rank={getRank(manager.manager_name, 'total_bench_points')}
@@ -780,7 +792,7 @@ const ManagerOverviewModal = ({
                   {/* Transfers */}
                   {managerHistory && (
                     <StatRow 
-                      icon="🔄" 
+                      icon={ArrowLeftRight} 
                       label="Transfers" 
                       value={`${managerHistory.total_transfers || 0} (${managerHistory.total_transfer_cost > 0 ? `-${managerHistory.total_transfer_cost}pts` : 'free'})`}
                       rank={'-'}
