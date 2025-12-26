@@ -330,6 +330,158 @@ def get_gameweek_data(gameweek):
     except Exception as e:
         log(f"[proxy] Error serving GW{gameweek}: {e}")
         return {'error': 'Internal server error'}, 500
+
+# Cache for gameweek status
+gw_status_cache = {"data": None, "timestamp": 0}
+gw_status_cache_lock = threading.Lock()
+GW_STATUS_CACHE_DURATION = 60  # 1 minute
+
+@app.route('/api/gameweek-status')
+def get_gameweek_status():
+    """Return current and next gameweek info including deadlines"""
+    current_time = time.time()
+    
+    with gw_status_cache_lock:
+        if gw_status_cache["data"] and (current_time - gw_status_cache["timestamp"]) < GW_STATUS_CACHE_DURATION:
+            return gw_status_cache["data"], 200
+    
+    try:
+        res = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/", timeout=10)
+        res.raise_for_status()
+        data = res.json()
+        
+        events = data.get('events', [])
+        current_gw = None
+        next_gw = None
+        
+        for event in events:
+            if event.get('is_current'):
+                current_gw = {
+                    'id': event['id'],
+                    'name': f"GW{event['id']}",
+                    'deadline_time': event['deadline_time'],
+                    'finished': event.get('finished', False),
+                    'is_current': True
+                }
+            if event.get('is_next'):
+                next_gw = {
+                    'id': event['id'],
+                    'name': f"GW{event['id']}",
+                    'deadline_time': event['deadline_time'],
+                    'is_next': True
+                }
+        
+        result = {
+            'current_gameweek': current_gw,
+            'next_gameweek': next_gw
+        }
+        
+        with gw_status_cache_lock:
+            gw_status_cache["data"] = result
+            gw_status_cache["timestamp"] = current_time
+        
+        log(f"[gw-status] Served GW status: current={current_gw['id'] if current_gw else None}, next={next_gw['id'] if next_gw else None}")
+        return result, 200
+        
+    except Exception as e:
+        log(f"[gw-status] Error: {e}")
+        return {'error': 'Failed to fetch gameweek status'}, 500
+
+# Cache for historical data (never changes, so cache for 1 hour)
+historical_cache = {"data": None, "version": None, "timestamp": 0}
+historical_cache_lock = threading.Lock()
+HISTORICAL_CACHE_DURATION = 3600  # 1 hour
+
+@app.route('/api/historical')
+def get_historical_data():
+    """Return all historical gameweeks (except latest) in one response - massively faster for first load"""
+    try:
+        with manifest_lock:
+            manifest_copy = current_manifest.copy()
+        
+        gameweeks = sorted([int(gw) for gw in manifest_copy.get('gameweeks', {}).keys()])
+        if len(gameweeks) < 2:
+            return {'gameweeks': {}, 'latest': gameweeks[0] if gameweeks else None}, 200
+        
+        latest_gw = gameweeks[-1]
+        historical_gws = gameweeks[:-1]  # All except latest
+        
+        current_time = time.time()
+        manifest_version = manifest_copy.get('version')
+        
+        # Check cache - only valid if manifest version matches
+        with historical_cache_lock:
+            if (historical_cache["data"] and 
+                historical_cache["version"] == manifest_version and
+                (current_time - historical_cache["timestamp"]) < HISTORICAL_CACHE_DURATION):
+                log(f"[historical] Served from cache ({len(historical_cache['data'])} gameweeks)")
+                return {
+                    'gameweeks': historical_cache["data"],
+                    'latest': latest_gw,
+                    'cached': True
+                }, 200
+        
+        log(f"[historical] Fetching GWs {historical_gws[0]}-{historical_gws[-1]} concurrently...")
+        
+        def fetch_and_parse_gw(gw):
+            try:
+                gw_entry = manifest_copy.get('gameweeks', {}).get(str(gw))
+                if not gw_entry:
+                    return gw, []
+                
+                if isinstance(gw_entry, str):
+                    pointer_res = requests.get(f"{gw_entry}?_t={int(time.time())}", timeout=10)
+                    pointer_res.raise_for_status()
+                    gw_info = pointer_res.json()
+                else:
+                    gw_info = gw_entry
+                
+                csv_url = gw_info.get('url')
+                if not csv_url:
+                    return gw, []
+                
+                response = requests.get(csv_url, timeout=10)
+                response.raise_for_status()
+                csv_text = response.content.decode('utf-8')
+                
+                if csv_text.strip() == "The game is being updated.":
+                    return gw, []
+                
+                # Parse CSV to list of dicts
+                import csv
+                from io import StringIO
+                reader = csv.DictReader(StringIO(csv_text))
+                rows = list(reader)
+                
+                return gw, rows
+            except Exception as e:
+                log(f"[historical] Error fetching GW{gw}: {e}")
+                return gw, []
+        
+        # Fetch all historical GWs concurrently
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            results = list(executor.map(fetch_and_parse_gw, historical_gws))
+        
+        # Build response
+        gw_data = {str(gw): rows for gw, rows in results if rows}
+        
+        # Cache the result
+        with historical_cache_lock:
+            historical_cache["data"] = gw_data
+            historical_cache["version"] = manifest_version
+            historical_cache["timestamp"] = current_time
+        
+        log(f"[historical] Served {len(gw_data)} gameweeks ({sum(len(r) for r in gw_data.values())} total rows)")
+        
+        return {
+            'gameweeks': gw_data,
+            'latest': latest_gw,
+            'cached': False
+        }, 200
+        
+    except Exception as e:
+        log(f"[historical] Error: {e}")
+        return {'error': 'Failed to fetch historical data'}, 500
     
 @app.route('/api/chips')
 def get_chips():
