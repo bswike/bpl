@@ -1,11 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { TrendingUp, BarChart3, Trophy, Table2 } from 'lucide-react';
-import FPLDashboard from './components/FPLDashboard';
-import LeagueAnalysis from './components/LeagueAnalysis';
-import FPLMultiGameweekDashboard from './components/FPLMultiGameweekDashboard';
-import FPLPositionChart from './components/FPLPositionChart';
-import OverallLeaderboard from './components/OverallLeaderboard';
 import './App.css';
+
+// Lazy load components for code splitting - only loads when tab is clicked
+const FPLMultiGameweekDashboard = lazy(() => import('./components/FPLMultiGameweekDashboard'));
+const OverallLeaderboard = lazy(() => import('./components/OverallLeaderboard'));
+const FPLDashboard = lazy(() => import('./components/FPLDashboard'));
+const FPLPositionChart = lazy(() => import('./components/FPLPositionChart'));
+
+// Simple loading spinner
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="text-cyan-400 text-lg animate-pulse">Loading...</div>
+  </div>
+);
 
 const Navigation = ({ currentPage, setCurrentPage }) => {
   const navItems = [
@@ -112,7 +120,9 @@ function App() {
     <div className="min-h-screen bg-slate-900 text-gray-100 pb-20">
       <main className="w-full px-3 py-4 md:px-6 md:py-6">
         <div className="max-w-7xl mx-auto">
-          {renderCurrentPage()}
+          <Suspense fallback={<LoadingSpinner />}>
+            {renderCurrentPage()}
+          </Suspense>
         </div>
       </main>
       <Navigation currentPage={currentPage} setCurrentPage={setCurrentPage} />
