@@ -242,14 +242,23 @@ const useFplData = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const parseCsvToManagers = useCallback((csvText, gameweek) => {
-    if (!csvText || csvText.trim() === "The game is being updated.") return [];
-    const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
-    if (parsed.errors?.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
+  const parseCsvToManagers = useCallback((csvText, gameweek, preParseRows = null) => {
+    // Support both CSV text and pre-parsed rows from /api/historical
+    let rows;
+    if (preParseRows) {
+      rows = preParseRows;
+    } else if (csvText && csvText.trim() !== "The game is being updated.") {
+      const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
+      if (parsed.errors?.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
+      rows = parsed.data;
+    } else {
+      return { managers: [], captainChoices: {} };
+    }
+    
     const managerStats = Object.create(null);
     const captainChoices = {}; // Track captain choices for this gameweek
     
-    for (const raw of parsed.data) {
+    for (const raw of rows) {
       const manager = normalizeStr(raw.manager_name);
       if (!manager) continue;
       if (!managerStats[manager]) {
@@ -322,23 +331,24 @@ const playerData = {
       gameweeks: [...prev.gameweeks, gameweek]
     }));
 
-    // Get the expected hash from manifest
     const gwInfo = manifest?.gameweeks?.[String(gameweek)];
     const expectedHash = gwInfo?.hash || null;
 
-    // Try cache first - but validate against manifest hash
-    // This ensures we refetch if backend data has changed
-    const cached = getCachedGameweek(gameweek, expectedHash);
-    if (cached) {
-      // Ensure cached data has the right structure
-      if (cached.managers && cached.captainChoices) {
-        return cached;
-      } else if (Array.isArray(cached)) {
-        // Old cache format, return it as managers with empty captain choices
-        return { managers: cached, captainChoices: {} };
+    // OPTIMIZATION: Historical gameweeks never change - use cache without network validation
+    if (!isLatestGw) {
+      const cached = getCachedGameweek(gameweek, null); // Don't validate hash for old GWs
+      if (cached) {
+        if (cached.managers && cached.captainChoices) {
+          console.log(`⚡ GW${gameweek} from cache (historical)`);
+          return cached;
+        } else if (Array.isArray(cached)) {
+          console.log(`⚡ GW${gameweek} from cache (historical, old format)`);
+          return { managers: cached, captainChoices: {} };
+        }
       }
     }
 
+    // For latest GW (or cache miss on historical), fetch fresh
     try {
       if (!gwInfo) {
         console.warn(`No data for GW${gameweek} in manifest`);
@@ -352,7 +362,7 @@ const playerData = {
       const csvText = await csvRes.text();
       const result = parseCsvToManagers(csvText, gameweek);
       
-      // Cache with hash - will auto-invalidate when hash changes
+      // Cache the result
       if (result.managers.length > 0) {
         setCachedGameweek(gameweek, result, expectedHash);
       }
@@ -374,58 +384,64 @@ const playerData = {
     setLoading(true);
     
     try {
-      console.log('📡 Starting data fetch...');
-      const manifestRes = await fetch(
-        'https://bpl-red-sun-894.fly.dev/api/manifest',
+      console.log('📡 Starting optimized data fetch...');
+      
+      // Step 1: Fetch historical data (all GWs except latest) in ONE request
+      const historicalRes = await fetch(
+        'https://bpl-red-sun-894.fly.dev/api/historical',
         { cache: 'no-store', signal: abort.signal }
       );
-      if (!manifestRes.ok) throw new Error(`Could not load league manifest (${manifestRes.status})`);
-      const manifest = await manifestRes.json();
       
-      manifestVersionRef.current = manifest.version;
-      console.log('📋 Manifest loaded, version:', manifest.version);
+      if (!historicalRes.ok) throw new Error(`Could not load historical data (${historicalRes.status})`);
+      const historicalData = await historicalRes.json();
       
-      const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
-      const available = [...new Set([...remoteGameweeks])].sort((a, b) => a - b);
-      if (available.length === 0) throw new Error("No gameweek data found in manifest.");
-      const currentLatestGw = available[available.length - 1];
+      const latestGw = historicalData.latest;
+      const historicalGws = Object.keys(historicalData.gameweeks || {}).map(Number).sort((a, b) => a - b);
       
-      console.log(`🎯 Latest gameweek: GW${currentLatestGw}`);
+      console.log(`📦 Historical data loaded: GWs ${historicalGws[0] || 'none'}-${historicalGws[historicalGws.length - 1] || 'none'} (${historicalData.cached ? 'cached' : 'fresh'})`);
+      console.log(`🎯 Latest gameweek: GW${latestGw}`);
       
-      // Fetch all gameweeks (cache will be checked automatically)
-      const results = await Promise.all(
-        available.map(async (gw, idx) => {
-          const isLatestGw = gw === currentLatestGw;
-          const data = await processGameweekData(gw, manifest, abort.signal, isLatestGw, idx, available.length);
-          // Ensure data has correct structure
-          return { 
-            gameweek: gw, 
-            managers: data.managers || data || [], 
-            captainChoices: data.captainChoices || {} 
-          };
-        })
+      // Step 2: Fetch ONLY the latest gameweek fresh
+      console.log(`🔴 LIVE Fetching GW${latestGw}...`);
+      const latestRes = await fetch(
+        `https://bpl-red-sun-894.fly.dev/api/data/${latestGw}`,
+        { cache: 'no-store', signal: abort.signal }
       );
+      if (!latestRes.ok) throw new Error(`Could not load latest GW${latestGw} (${latestRes.status})`);
+      const latestCsvText = await latestRes.text();
+      const latestData = parseCsvToManagers(latestCsvText, latestGw);
       
       if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
       
-      const newGameweekData = Object.fromEntries(
-        results.map(({ gameweek, managers }) => [gameweek, managers])
-      );
-      const newCaptainStats = Object.fromEntries(
-        results.map(({ gameweek, captainChoices }) => [gameweek, captainChoices || {}])
-      );
+      // Step 3: Parse historical data and combine with latest
+      const available = [...historicalGws, latestGw].sort((a, b) => a - b);
+      const newGameweekData = {};
+      const newCaptainStats = {};
       
-      // Calculate cache hit ratio
-      const cachedCount = results.filter((r, idx) => {
-        const gw = available[idx];
-        return gw !== currentLatestGw && r.managers.length > 0;
-      }).length - 1; // Subtract 1 because latest GW isn't cached
-      console.log(`💾 Cache efficiency: ${cachedCount}/${available.length - 1} historical gameweeks cached`);
+      // Process historical gameweeks (already parsed as JSON from backend)
+      for (const gwStr of Object.keys(historicalData.gameweeks || {})) {
+        const gw = parseInt(gwStr, 10);
+        const rows = historicalData.gameweeks[gwStr];
+        const parsed = parseCsvToManagers(null, gw, rows); // Pass pre-parsed rows
+        newGameweekData[gw] = parsed.managers || [];
+        newCaptainStats[gw] = parsed.captainChoices || {};
+        
+        // Cache for future visits
+        if (parsed.managers?.length > 0) {
+          setCachedGameweek(gw, parsed, null);
+        }
+      }
+      
+      // Add latest gameweek
+      newGameweekData[latestGw] = latestData.managers || [];
+      newCaptainStats[latestGw] = latestData.captainChoices || {};
+      
+      console.log(`⚡ Loaded ${Object.keys(newGameweekData).length} gameweeks (1 network request for historical + 1 for live)`);
       
       setGameweekData(newGameweekData);
       setCaptainStats(newCaptainStats);
       setAvailableGameweeks(available);
-      setLatestGameweek(currentLatestGw);
+      setLatestGameweek(latestGw);
       
       if (newGameweekData[available[0]]?.length) {
         const managerNames = newGameweekData[available[0]].map(m => m.manager_name);

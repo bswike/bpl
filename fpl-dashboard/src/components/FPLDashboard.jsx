@@ -5,9 +5,33 @@ import Papa from 'papaparse';
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
 const FALLBACK_POLL_INTERVAL_MS = 300000;
+const CACHE_VERSION = 'v4';
 
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const normalizeStr = (s) => (s ?? '').toString().normalize('NFC').replace(/\u00A0/g, ' ').trim();
+
+// --- Simple localStorage cache for historical gameweeks ---
+const getDashboardCacheKey = (gw) => `fpl_dashboard_gw_${gw}_${CACHE_VERSION}`;
+
+const getCachedDashboardGW = (gameweek) => {
+  try {
+    const cached = localStorage.getItem(getDashboardCacheKey(gameweek));
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (e) {
+    console.warn(`Cache read failed for GW${gameweek}:`, e);
+  }
+  return null;
+};
+
+const setCachedDashboardGW = (gameweek, data) => {
+  try {
+    localStorage.setItem(getDashboardCacheKey(gameweek), JSON.stringify(data));
+  } catch (e) {
+    console.warn(`Cache write failed for GW${gameweek}:`, e);
+  }
+};
 
 // --- Chips Components (Moved Outside) ---
 
@@ -174,7 +198,16 @@ const FPLMultiGameweekDashboard = () => {
     fetchChips();
   }, []);
 
-  const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
+  const processGameweekData = useCallback(async (gameweek, manifest, signal, isLatestGw) => {
+    // OPTIMIZATION: Historical gameweeks never change - use cache
+    if (!isLatestGw) {
+      const cached = getCachedDashboardGW(gameweek);
+      if (cached && cached.length > 0) {
+        console.log(`⚡ GW${gameweek} from cache (historical)`);
+        return cached;
+      }
+    }
+
     try {
       const gwInfo = manifest?.gameweeks?.[String(gameweek)];
       if (!gwInfo) {
@@ -183,6 +216,7 @@ const FPLMultiGameweekDashboard = () => {
       }
 
       const proxyUrl = `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
+      console.log(`${isLatestGw ? '🔴 LIVE' : '📥'} Fetching GW${gameweek}...`);
       const csvRes = await fetch(proxyUrl, { cache: 'no-store', signal });
       if (!csvRes.ok) {
         console.warn(`HTTP ${csvRes.status} for GW${gameweek}`);
@@ -204,6 +238,11 @@ const FPLMultiGameweekDashboard = () => {
         if (row.player === 'João Pedro Junqueira de Jesus') row.player = 'João Pedro';
       });
 
+      // Cache the result for future loads
+      if (parsed.data.length > 0) {
+        setCachedDashboardGW(gameweek, parsed.data);
+      }
+
       return parsed.data;
     } catch (err) {
       if (err?.name !== 'AbortError') {
@@ -223,65 +262,71 @@ const FPLMultiGameweekDashboard = () => {
     setError(null);
 
     try {
-      console.log('Starting data fetch...');
-      const manifestRes = await fetch(
-        'https://bpl-red-sun-894.fly.dev/api/manifest',
+      console.log('📡 Starting optimized data fetch...');
+      
+      // Step 1: Fetch historical data (all GWs except latest) in ONE request
+      const historicalRes = await fetch(
+        'https://bpl-red-sun-894.fly.dev/api/historical',
         { cache: 'no-store', signal: abort.signal }
       );
-
-      if (!manifestRes.ok) {
-        throw new Error(`Could not load league manifest (${manifestRes.status})`);
-      }
-
-      const manifest = await manifestRes.json();
-      manifestVersionRef.current = manifest.version;
-      console.log('Manifest loaded, version:', manifest.version);
-
-      const remoteGameweeks = Object.keys(manifest?.gameweeks || {}).map(Number);
-      const available = [...new Set([1, ...remoteGameweeks])].sort((a, b) => a - b);
-
-      if (available.length === 0) {
-        throw new Error("No gameweek data found in manifest.");
-      }
-
-      if (fetchCycleIdRef.current !== myId || abort.signal.aborted) {
-        console.log('Fetch cycle aborted or superseded');
-        return;
-      }
       
+      if (!historicalRes.ok) throw new Error(`Could not load historical data (${historicalRes.status})`);
+      const historicalData = await historicalRes.json();
+      
+      const latestGw = historicalData.latest;
+      const historicalGws = Object.keys(historicalData.gameweeks || {}).map(Number).sort((a, b) => a - b);
+      
+      console.log(`📦 Historical: GWs ${historicalGws[0] || 'none'}-${historicalGws[historicalGws.length - 1] || 'none'} (${historicalData.cached ? 'cached' : 'fresh'})`);
+      
+      // Step 2: Fetch ONLY the latest gameweek fresh
+      console.log(`🔴 LIVE Fetching GW${latestGw}...`);
+      const latestRes = await fetch(
+        `https://bpl-red-sun-894.fly.dev/api/data/${latestGw}`,
+        { cache: 'no-store', signal: abort.signal }
+      );
+      if (!latestRes.ok) throw new Error(`Could not load latest GW${latestGw}`);
+      const latestCsvText = await latestRes.text();
+      const latestRows = Papa.parse(latestCsvText, { header: true, dynamicTyping: true, skipEmptyLines: true }).data;
+      
+      if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
+
+      // Build results array with GW1 hardcoded + historical + latest
+      const gw1Data = [
+        { manager_name: "Garrett Kunkel", entry_team_name: "kunkel_fpl", player: "TOTAL", points_applied: 78, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Andrew Vidal", entry_team_name: "Las Cucarachas", player: "TOTAL", points_applied: 76, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Brett Swikle", entry_team_name: "swikle_time", player: "TOTAL", points_applied: 74, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "John Matthew", entry_team_name: "matthewfpl", player: "TOTAL", points_applied: 73, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Jared Alexander", entry_team_name: "Jared's Jinxes", player: "TOTAL", points_applied: 67, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Joe Curran", entry_team_name: "Curran's Crew", player: "TOTAL", points_applied: 64, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "John Sebastian", entry_team_name: "Sebastian Squad", player: "TOTAL", points_applied: 62, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Nate Cohen", entry_team_name: "Cohen's Corner", player: "TOTAL", points_applied: 60, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Chris Munoz", entry_team_name: "Munoz Magic", player: "TOTAL", points_applied: 60, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Evan Bagheri", entry_team_name: "Bagheri's Best", player: "TOTAL", points_applied: 57, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Dean Maghsadi", entry_team_name: "Dean's Dream", player: "TOTAL", points_applied: 55, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Brian Pleines", entry_team_name: "Pleines Power", player: "TOTAL", points_applied: 53, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Max Maier", entry_team_name: "Maier's Marvels", player: "TOTAL", points_applied: 53, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Adrian McLoughlin", entry_team_name: "McLoughlin FC", player: "TOTAL", points_applied: 52, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Wes H", entry_team_name: "Wes Warriors", player: "TOTAL", points_applied: 50, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Kevin Tomek", entry_team_name: "Tomek's Team", player: "TOTAL", points_applied: 48, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Kevin K", entry_team_name: "Kevin's Kicks", player: "TOTAL", points_applied: 41, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Tony Tharakan", entry_team_name: "Tharakan's Threat", player: "TOTAL", points_applied: 39, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "JP Fischer", entry_team_name: "Fischer's Force", player: "TOTAL", points_applied: 35, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
+        { manager_name: "Patrick McCleary", entry_team_name: "McCleary's Might", player: "TOTAL", points_applied: 34, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 }
+      ];
+
+      // Combine all gameweeks
+      const available = [1, ...historicalGws.filter(gw => gw !== 1), latestGw].sort((a, b) => a - b);
       setAvailableGameweeks(available);
-      console.log('Available gameweeks:', available);
-
-      const gameweekPromises = available.map(async (gw) => {
-        if (gw === 1) {
-          return [
-            { manager_name: "Garrett Kunkel", entry_team_name: "kunkel_fpl", player: "TOTAL", points_applied: 78, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Andrew Vidal", entry_team_name: "Las Cucarachas", player: "TOTAL", points_applied: 76, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Brett Swikle", entry_team_name: "swikle_time", player: "TOTAL", points_applied: 74, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "John Matthew", entry_team_name: "matthewfpl", player: "TOTAL", points_applied: 73, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Jared Alexander", entry_team_name: "Jared's Jinxes", player: "TOTAL", points_applied: 67, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Joe Curran", entry_team_name: "Curran's Crew", player: "TOTAL", points_applied: 64, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "John Sebastian", entry_team_name: "Sebastian Squad", player: "TOTAL", points_applied: 62, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Nate Cohen", entry_team_name: "Cohen's Corner", player: "TOTAL", points_applied: 60, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Chris Munoz", entry_team_name: "Munoz Magic", player: "TOTAL", points_applied: 60, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Evan Bagheri", entry_team_name: "Bagheri's Best", player: "TOTAL", points_applied: 57, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Dean Maghsadi", entry_team_name: "Dean's Dream", player: "TOTAL", points_applied: 55, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Brian Pleines", entry_team_name: "Pleines Power", player: "TOTAL", points_applied: 53, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Max Maier", entry_team_name: "Maier's Marvels", player: "TOTAL", points_applied: 53, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Adrian McLoughlin", entry_team_name: "McLoughlin FC", player: "TOTAL", points_applied: 52, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Wes H", entry_team_name: "Wes Warriors", player: "TOTAL", points_applied: 50, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Kevin Tomek", entry_team_name: "Tomek's Team", player: "TOTAL", points_applied: 48, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Kevin K", entry_team_name: "Kevin's Kicks", player: "TOTAL", points_applied: 41, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Tony Tharakan", entry_team_name: "Tharakan's Threat", player: "TOTAL", points_applied: 39, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "JP Fischer", entry_team_name: "Fischer's Force", player: "TOTAL", points_applied: 35, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-            { manager_name: "Patrick McCleary", entry_team_name: "McCleary's Might", player: "TOTAL", points_applied: 34, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 }
-          ];
-        }
-        return await processGameweekData(gw, manifest, abort.signal);
-      });
-
-      const results = await Promise.all(gameweekPromises);
-      console.log('All gameweek data fetched');
+      
+      // Build results map
+      const resultsMap = { 1: gw1Data };
+      for (const gwStr of Object.keys(historicalData.gameweeks || {})) {
+        resultsMap[parseInt(gwStr, 10)] = historicalData.gameweeks[gwStr];
+      }
+      resultsMap[latestGw] = latestRows;
+      
+      const results = available.map(gw => resultsMap[gw] || []);
+      console.log(`⚡ Loaded ${available.length} gameweeks (2 network requests total)`);
       
       const managerData = {};
       const captainStats = {}; // Track captain choices per gameweek
