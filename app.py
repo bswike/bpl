@@ -1173,11 +1173,49 @@ def stop_gracefully(signum, frame):
 signal.signal(signal.SIGINT, stop_gracefully)
 signal.signal(signal.SIGTERM, stop_gracefully)
 
+# ====== CACHE WARMER ======
+def warm_caches():
+    """Pre-warm all caches to avoid cold start delays"""
+    log("[cache-warmer] Starting cache warm-up...")
+    
+    try:
+        # Warm historical cache by calling the endpoint internally
+        with app.test_client() as client:
+            start = time.time()
+            resp = client.get('/api/historical')
+            log(f"[cache-warmer] Historical cache warmed in {time.time() - start:.1f}s")
+            
+            start = time.time()
+            resp = client.get('/api/fixtures')
+            log(f"[cache-warmer] Fixtures cache warmed in {time.time() - start:.1f}s")
+            
+            start = time.time()
+            resp = client.get('/api/chips')
+            log(f"[cache-warmer] Chips cache warmed in {time.time() - start:.1f}s")
+    except Exception as e:
+        log(f"[cache-warmer] Error warming caches: {e}")
+    
+    log("[cache-warmer] Cache warm-up complete!")
+
+def cache_warmer_worker():
+    """Background thread that keeps caches warm"""
+    # Wait for server to fully start
+    time.sleep(10)
+    
+    while scraper_running:
+        try:
+            warm_caches()
+        except Exception as e:
+            log(f"[cache-warmer] Error: {e}")
+        
+        # Refresh every 30 minutes (well before 1-hour cache expiry)
+        time.sleep(1800)
+
 # ====== STARTUP ======
 if __name__ == '__main__':
     log("=" * 60)
-    log("Starting FPL Dashboard Backend v2.3")
-    log("Features: SSE Push + Background Scraper + In-Memory Manifest + CDN Bypass")
+    log("Starting FPL Dashboard Backend v2.4")
+    log("Features: SSE Push + Background Scraper + In-Memory Manifest + CDN Bypass + Cache Warmer")
     log(f"Redis: {'ENABLED (Upstash)' if REDIS_ENABLED else 'DISABLED'}")
     log("=" * 60)
     
@@ -1191,6 +1229,11 @@ if __name__ == '__main__':
     scraper_thread = threading.Thread(target=scraper_worker, daemon=True)
     scraper_thread.start()
     log("Background scraper started")
+    
+    # Start cache warmer in background thread
+    cache_warmer_thread = threading.Thread(target=cache_warmer_worker, daemon=True)
+    cache_warmer_thread.start()
+    log("Cache warmer started (will warm caches in 10s)")
     
     # Start Flask SSE server
     port = int(os.getenv('PORT', 5000))
