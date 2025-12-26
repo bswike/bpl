@@ -75,31 +75,48 @@ const OverallLeaderboard = () => {
           const pointsIdx = headers.indexOf('points_applied');
           const playerIdx = headers.indexOf('player');
           const teamNameIdx = headers.indexOf('entry_team_name');
+          const playerCostIdx = headers.indexOf('player_cost');
           
           // Check if we found the required columns
           if (managerIdx === -1 || pointsIdx === -1 || playerIdx === -1) return;
           
           const managers = {};
+          const managerTeamValues = {}; // Track team value per manager
           
           for (let i = 1; i < lines.length; i++) {
             const cols = lines[i].split(',');
-            if (cols.length > playerIdx && cols[playerIdx] === 'TOTAL') {
-              const name = cols[managerIdx];
-              if (name) {
-                managers[name] = {
-                  manager_name: name,
-                  team_name: cols[teamNameIdx] || '',
-                  total_points: parseInt(cols[pointsIdx]) || 0,
-                };
-              }
+            const managerName = cols[managerIdx];
+            const playerName = cols[playerIdx];
+            
+            if (!managerName) continue;
+            
+            // Sum player costs for team value (exclude TOTAL row)
+            if (playerName !== 'TOTAL' && playerCostIdx !== -1) {
+              const cost = parseFloat(cols[playerCostIdx]) || 0;
+              managerTeamValues[managerName] = (managerTeamValues[managerName] || 0) + cost;
+            }
+            
+            // Get manager totals from TOTAL row
+            if (playerName === 'TOTAL') {
+              managers[managerName] = {
+                manager_name: managerName,
+                team_name: cols[teamNameIdx] || '',
+                total_points: parseInt(cols[pointsIdx]) || 0,
+              };
             }
           }
+          
+          // Add team values to managers
+          Object.keys(managers).forEach(name => {
+            managers[name].team_value = managerTeamValues[name] || 0;
+          });
           
           gwData[gw] = Object.values(managers);
         }));
 
         // Build combined data
         const managerTotals = {};
+        const latestGw = gameweeks[gameweeks.length - 1];
         
         gameweeks.forEach(gw => {
           (gwData[gw] || []).forEach(m => {
@@ -108,10 +125,33 @@ const OverallLeaderboard = () => {
                 manager_name: m.manager_name,
                 team_name: m.team_name,
                 total_points: 0,
+                team_value: 0,
+                gws_won: 0,
               };
             }
             managerTotals[m.manager_name].total_points += m.total_points;
             managerTotals[m.manager_name][`gw${gw}_points`] = m.total_points;
+            // Keep team_value from the latest gameweek
+            if (gw === latestGw && m.team_value) {
+              managerTotals[m.manager_name].team_value = m.team_value;
+            }
+          });
+        });
+        
+        // Calculate gameweeks won by each manager
+        gameweeks.forEach(gw => {
+          const gwManagers = gwData[gw] || [];
+          if (gwManagers.length === 0) return;
+          
+          // Find the highest score in this gameweek
+          const maxPoints = Math.max(...gwManagers.map(m => m.total_points || 0));
+          if (maxPoints <= 0) return;
+          
+          // Find all managers with the highest score (could be a tie)
+          gwManagers.forEach(m => {
+            if (m.total_points === maxPoints && managerTotals[m.manager_name]) {
+              managerTotals[m.manager_name].gws_won += 1;
+            }
           });
         });
 
@@ -345,7 +385,15 @@ const OverallLeaderboard = () => {
 
             {/* Manager Info */}
             <div className="flex-1 min-w-0">
-              <div className="text-sm text-white truncate">{manager.manager_name}</div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm text-white truncate">{manager.manager_name}</span>
+                {manager.team_value > 0 && (
+                  <span className="text-[10px] text-green-400">£{manager.team_value.toFixed(1)}m</span>
+                )}
+                {manager.gws_won > 0 && (
+                  <span className="text-[10px] text-yellow-400">🏆{manager.gws_won}</span>
+                )}
+              </div>
               <div className="text-[10px] text-gray-600 truncate">{manager.team_name}</div>
             </div>
 
