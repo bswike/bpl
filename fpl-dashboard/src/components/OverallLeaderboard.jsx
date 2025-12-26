@@ -13,6 +13,9 @@ const OverallLeaderboard = () => {
   const [selectedManager, setSelectedManager] = useState(null);
   const [squadData, setSquadData] = useState(null);
   const [squadLoading, setSquadLoading] = useState(false);
+  const [managerHistory, setManagerHistory] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' or 'team'
   const [gwStatus, setGwStatus] = useState(null);
   const [countdown, setCountdown] = useState('');
   const [managerValues, setManagerValues] = useState({}); // Store total values for all managers
@@ -77,12 +80,15 @@ const OverallLeaderboard = () => {
           const playerIdx = headers.indexOf('player');
           const teamNameIdx = headers.indexOf('entry_team_name');
           const playerCostIdx = headers.indexOf('player_cost');
+          const isCaptainIdx = headers.indexOf('is_captain');
+          const benchPointsIdx = headers.indexOf('bench_points');
           
           // Check if we found the required columns
           if (managerIdx === -1 || pointsIdx === -1 || playerIdx === -1) return;
           
           const managers = {};
           const managerTeamValues = {}; // Track team value per manager
+          const captainChoices = {}; // Track captain popularity for this GW
           
           for (let i = 1; i < lines.length; i++) {
             const cols = lines[i].split(',');
@@ -91,25 +97,55 @@ const OverallLeaderboard = () => {
             
             if (!managerName) continue;
             
+            // Initialize manager if not exists
+            if (!managers[managerName]) {
+              managers[managerName] = {
+                manager_name: managerName,
+                team_name: cols[teamNameIdx] || '',
+                total_points: 0,
+                bench_points: 0,
+                captain_player: '',
+              };
+            }
+            
             // Sum player costs for team value (exclude TOTAL row)
             if (playerName !== 'TOTAL' && playerCostIdx !== -1) {
               const cost = parseFloat(cols[playerCostIdx]) || 0;
               managerTeamValues[managerName] = (managerTeamValues[managerName] || 0) + cost;
+              
+              // Track captain choices
+              if (isCaptainIdx !== -1) {
+                const isCaptain = cols[isCaptainIdx];
+                if (isCaptain === 'True' || isCaptain === 'true' || isCaptain === '1') {
+                  managers[managerName].captain_player = playerName;
+                  captainChoices[playerName] = (captainChoices[playerName] || 0) + 1;
+                }
+              }
             }
             
             // Get manager totals from TOTAL row
             if (playerName === 'TOTAL') {
-              managers[managerName] = {
-                manager_name: managerName,
-                team_name: cols[teamNameIdx] || '',
-                total_points: parseInt(cols[pointsIdx]) || 0,
-              };
+              managers[managerName].total_points = parseInt(cols[pointsIdx]) || 0;
+              if (benchPointsIdx !== -1) {
+                managers[managerName].bench_points = parseInt(cols[benchPointsIdx]) || 0;
+              }
             }
           }
           
-          // Add team values to managers
+          // Find most popular captain this GW
+          let mostPopularCaptain = '';
+          let maxCaptainCount = 0;
+          Object.entries(captainChoices).forEach(([player, count]) => {
+            if (count > maxCaptainCount) {
+              maxCaptainCount = count;
+              mostPopularCaptain = player;
+            }
+          });
+          
+          // Add team values and chicken pick flag to managers
           Object.keys(managers).forEach(name => {
             managers[name].team_value = managerTeamValues[name] || 0;
+            managers[name].picked_popular_captain = managers[name].captain_player === mostPopularCaptain;
           });
           
           gwData[gw] = Object.values(managers);
@@ -128,10 +164,22 @@ const OverallLeaderboard = () => {
                 total_points: 0,
                 team_value: 0,
                 gws_won: 0,
+                gws_last: 0,
+                total_bench_points: 0,
+                chicken_picks: 0,
+                gw_points_history: [], // For calculating form
               };
             }
             managerTotals[m.manager_name].total_points += m.total_points;
             managerTotals[m.manager_name][`gw${gw}_points`] = m.total_points;
+            managerTotals[m.manager_name].total_bench_points += m.bench_points || 0;
+            managerTotals[m.manager_name].gw_points_history.push({ gw, points: m.total_points });
+            
+            // Count chicken picks (times they picked the most popular captain)
+            if (m.picked_popular_captain) {
+              managerTotals[m.manager_name].chicken_picks += 1;
+            }
+            
             // Keep team_value from the latest gameweek
             if (gw === latestGw && m.team_value) {
               managerTotals[m.manager_name].team_value = m.team_value;
@@ -139,13 +187,15 @@ const OverallLeaderboard = () => {
           });
         });
         
-        // Calculate gameweeks won by each manager
+        // Calculate gameweeks won and last by each manager
         gameweeks.forEach(gw => {
           const gwManagers = gwData[gw] || [];
           if (gwManagers.length === 0) return;
           
-          // Find the highest score in this gameweek
+          // Find the highest and lowest score in this gameweek
           const maxPoints = Math.max(...gwManagers.map(m => m.total_points || 0));
+          const minPoints = Math.min(...gwManagers.map(m => m.total_points || Infinity));
+          
           if (maxPoints <= 0) return;
           
           // Find all managers with the highest score (could be a tie)
@@ -153,7 +203,23 @@ const OverallLeaderboard = () => {
             if (m.total_points === maxPoints && managerTotals[m.manager_name]) {
               managerTotals[m.manager_name].gws_won += 1;
             }
+            if (m.total_points === minPoints && managerTotals[m.manager_name]) {
+              managerTotals[m.manager_name].gws_last += 1;
+            }
           });
+        });
+        
+        // Calculate form (average of last 4 GWs)
+        Object.values(managerTotals).forEach(manager => {
+          const history = manager.gw_points_history.sort((a, b) => b.gw - a.gw);
+          const last4 = history.slice(0, 4);
+          if (last4.length > 0) {
+            manager.form = last4.reduce((sum, g) => sum + g.points, 0) / last4.length;
+          } else {
+            manager.form = 0;
+          }
+          // Clean up - we don't need the full history in state
+          delete manager.gw_points_history;
         });
 
         const combined = Object.values(managerTotals)
@@ -311,7 +377,7 @@ const OverallLeaderboard = () => {
     });
   }, [combinedData, availableGameweeks, gameweekData]);
 
-  // Fetch squad when manager selected
+  // Fetch squad and history when manager selected
   const handleManagerClick = useCallback(async (manager) => {
     if (!manager.entryId) {
       console.warn('No entry ID for manager:', manager.manager_name);
@@ -319,25 +385,36 @@ const OverallLeaderboard = () => {
     }
     
     setSelectedManager(manager);
+    setActiveTab('overview');
     setSquadLoading(true);
+    setHistoryLoading(true);
     setSquadData(null);
+    setManagerHistory(null);
     
-    try {
-      const res = await fetch(`https://bpl-red-sun-894.fly.dev/api/squad/${manager.entryId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSquadData(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch squad:', err);
-    } finally {
-      setSquadLoading(false);
+    // Fetch both squad and history in parallel
+    const [squadRes, historyRes] = await Promise.all([
+      fetch(`https://bpl-red-sun-894.fly.dev/api/squad/${manager.entryId}`).catch(() => null),
+      fetch(`https://bpl-red-sun-894.fly.dev/api/manager-history/${manager.entryId}`).catch(() => null),
+    ]);
+    
+    if (squadRes?.ok) {
+      const data = await squadRes.json();
+      setSquadData(data);
     }
+    setSquadLoading(false);
+    
+    if (historyRes?.ok) {
+      const data = await historyRes.json();
+      setManagerHistory(data);
+    }
+    setHistoryLoading(false);
   }, []);
 
   const closeModal = useCallback(() => {
     setSelectedManager(null);
     setSquadData(null);
+    setManagerHistory(null);
+    setActiveTab('overview');
   }, []);
 
   const formatDeadline = (isoString) => {
@@ -461,12 +538,18 @@ const OverallLeaderboard = () => {
         ))}
       </div>
 
-      {/* Squad Modal */}
+      {/* Manager Overview Modal */}
       {selectedManager && (
-        <SquadModal
+        <ManagerOverviewModal
           manager={selectedManager}
           squadData={squadData}
-          loading={squadLoading}
+          squadLoading={squadLoading}
+          managerHistory={managerHistory}
+          historyLoading={historyLoading}
+          allManagers={combinedData}
+          managerValues={managerValues}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
           onClose={closeModal}
         />
       )}
@@ -475,8 +558,51 @@ const OverallLeaderboard = () => {
 };
 
 
-// ====== SQUAD MODAL COMPONENT ======
-const SquadModal = ({ manager, squadData, loading, onClose }) => {
+// ====== MANAGER OVERVIEW MODAL COMPONENT ======
+const ManagerOverviewModal = ({ 
+  manager, 
+  squadData, 
+  squadLoading, 
+  managerHistory, 
+  historyLoading, 
+  allManagers, 
+  managerValues,
+  activeTab, 
+  setActiveTab, 
+  onClose 
+}) => {
+  // Calculate league ranks for a given stat
+  const getRank = (managerName, stat, sortDesc = true) => {
+    const sorted = [...allManagers].sort((a, b) => 
+      sortDesc ? (b[stat] || 0) - (a[stat] || 0) : (a[stat] || 0) - (b[stat] || 0)
+    );
+    const idx = sorted.findIndex(m => m.manager_name === managerName);
+    return idx >= 0 ? idx + 1 : '-';
+  };
+
+  // Get value rank
+  const getValueRank = (managerName) => {
+    const sorted = Object.entries(managerValues)
+      .filter(([_, v]) => v?.total_value)
+      .sort((a, b) => (b[1].total_value || 0) - (a[1].total_value || 0));
+    const idx = sorted.findIndex(([name]) => name === managerName);
+    return idx >= 0 ? idx + 1 : '-';
+  };
+
+  // Get transfer rank (fewer is better)
+  const getTransferRank = () => {
+    // We don't have all managers' transfer data, so skip ranking for now
+    return '-';
+  };
+
+  const currentManager = allManagers.find(m => m.manager_name === manager.manager_name) || {};
+  const avgGwScore = currentManager.total_points && allManagers.length > 0 
+    ? (currentManager.total_points / Object.keys(currentManager).filter(k => k.startsWith('gw') && k.endsWith('_points')).length).toFixed(1)
+    : '-';
+  
+  const gwsPlayed = Object.keys(currentManager).filter(k => k.startsWith('gw') && k.endsWith('_points')).length;
+  const realAvg = gwsPlayed > 0 ? (currentManager.total_points / gwsPlayed).toFixed(1) : '-';
+
   const getPositionColor = (pos) => {
     const colors = { 
       'GK': 'text-yellow-400', 
@@ -512,24 +638,42 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
     return () => { document.body.style.overflow = 'unset'; };
   }, []);
 
+  // Stat row component
+  const StatRow = ({ label, value, rank, icon, suffix = '' }) => (
+    <div className="flex items-center justify-between py-2.5 border-b border-slate-700/50 last:border-0">
+      <div className="flex items-center gap-2">
+        <span className="text-lg">{icon}</span>
+        <span className="text-sm text-gray-300">{label}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-semibold text-white">{value}{suffix}</span>
+        <span className={`text-xs px-2 py-0.5 rounded-full ${
+          rank === 1 ? 'bg-yellow-500/20 text-yellow-400' :
+          rank <= 3 ? 'bg-green-500/20 text-green-400' :
+          rank >= allManagers.length - 2 ? 'bg-red-500/20 text-red-400' :
+          'bg-slate-700/50 text-gray-400'
+        }`}>
+          #{rank}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 pb-16 sm:pb-0" onClick={onClose}>
       <div 
-        className="bg-slate-900 w-full sm:max-w-md sm:rounded-lg max-h-[80vh] sm:max-h-[90vh] overflow-hidden"
+        className="bg-slate-900 w-full sm:max-w-lg sm:rounded-lg max-h-[85vh] sm:max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="bg-slate-800 px-4 py-3 flex justify-between items-center border-b border-slate-700">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-white truncate">{manager.manager_name}</h2>
-              {squadData?.total_value && (
-                <div className="flex items-baseline gap-1">
-                  <span className="text-sm font-bold text-green-400">£{squadData.total_value}m</span>
-                  <span className="text-[10px] text-gray-500">
-                    (£{squadData.squad_value}m + £{squadData.bank}m)
-                  </span>
-                </div>
+              <h2 className="text-base font-semibold text-white truncate">{manager.manager_name}</h2>
+              {managerValues[manager.manager_name]?.total_value && (
+                <span className="text-sm font-bold text-green-400">
+                  £{managerValues[manager.manager_name].total_value.toFixed(1)}m
+                </span>
               )}
             </div>
             <p className="text-xs text-gray-500">{squadData?.team_name || manager.team_name}</p>
@@ -541,53 +685,158 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
           </button>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="flex border-b border-slate-700 bg-slate-800/50">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === 'overview' 
+                ? 'text-cyan-400 border-b-2 border-cyan-400' 
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('team')}
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+              activeTab === 'team' 
+                ? 'text-cyan-400 border-b-2 border-cyan-400' 
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            Team Form
+          </button>
+        </div>
+
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(80vh-52px)] sm:max-h-[calc(90vh-52px)] pb-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-gray-500 text-sm animate-pulse">Loading...</div>
-            </div>
-          ) : squadData ? (
-            <div>
-              {/* Table Header */}
-              <div className="flex items-center px-4 py-2 text-[10px] text-gray-500 uppercase tracking-wider bg-slate-800/50 border-b border-slate-700/50">
-                <div className="w-8">Pos</div>
-                <div className="flex-1">Player</div>
-                <div className="w-20 text-right">Fixture</div>
-              </div>
-
-              {/* Starters */}
-              {starters.map((player) => (
-                <PlayerRowCompact 
-                  key={player.element_id} 
-                  player={player} 
-                  getPositionColor={getPositionColor}
-                  getDifficultyColor={getDifficultyColor}
-                  formatKickoff={formatKickoff}
-                />
-              ))}
-
-              {/* Bench Divider */}
-              <div className="px-4 py-1.5 bg-slate-800/80 text-[10px] text-gray-500 uppercase tracking-wider">
-                Bench
-              </div>
-
-              {/* Bench */}
-              {bench.map((player) => (
-                <PlayerRowCompact 
-                  key={player.element_id} 
-                  player={player}
-                  getPositionColor={getPositionColor}
-                  getDifficultyColor={getDifficultyColor}
-                  formatKickoff={formatKickoff}
-                  isBench
-                />
-              ))}
+        <div className="overflow-y-auto max-h-[calc(85vh-110px)] sm:max-h-[calc(90vh-110px)] pb-4">
+          {activeTab === 'overview' ? (
+            /* Overview Tab */
+            <div className="p-4">
+              {historyLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-gray-500 text-sm animate-pulse">Loading stats...</div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {/* Overall Points */}
+                  <StatRow 
+                    icon="📊" 
+                    label="Overall Points" 
+                    value={`${currentManager.total_points || 0} (${realAvg}/wk)`}
+                    rank={getRank(manager.manager_name, 'total_points')}
+                  />
+                  
+                  {/* Team Value */}
+                  <StatRow 
+                    icon="💰" 
+                    label="Team Value" 
+                    value={managerValues[manager.manager_name]?.total_value?.toFixed(1) || '-'}
+                    suffix="m"
+                    rank={getValueRank(manager.manager_name)}
+                  />
+                  
+                  {/* GWs Won */}
+                  <StatRow 
+                    icon="🏆" 
+                    label="Gameweeks Won" 
+                    value={currentManager.gws_won || 0}
+                    rank={getRank(manager.manager_name, 'gws_won')}
+                  />
+                  
+                  {/* GWs Last */}
+                  <StatRow 
+                    icon="📉" 
+                    label="Gameweeks Last" 
+                    value={currentManager.gws_last || 0}
+                    rank={getRank(manager.manager_name, 'gws_last', false)}
+                  />
+                  
+                  {/* Form */}
+                  <StatRow 
+                    icon="🔥" 
+                    label="Form (Last 4 GWs)" 
+                    value={currentManager.form?.toFixed(1) || '-'}
+                    rank={getRank(manager.manager_name, 'form')}
+                  />
+                  
+                  {/* Chicken Picks */}
+                  <StatRow 
+                    icon="🐔" 
+                    label="Chicken Picks" 
+                    value={currentManager.chicken_picks || 0}
+                    rank={getRank(manager.manager_name, 'chicken_picks')}
+                  />
+                  
+                  {/* Bench Points */}
+                  <StatRow 
+                    icon="🪑" 
+                    label="Bench Points" 
+                    value={currentManager.total_bench_points || 0}
+                    rank={getRank(manager.manager_name, 'total_bench_points')}
+                  />
+                  
+                  {/* Transfers */}
+                  {managerHistory && (
+                    <StatRow 
+                      icon="🔄" 
+                      label="Transfers" 
+                      value={`${managerHistory.total_transfers || 0} (${managerHistory.total_transfer_cost > 0 ? `-${managerHistory.total_transfer_cost}pts` : 'free'})`}
+                      rank={'-'}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           ) : (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-red-400 text-sm">Failed to load</div>
-            </div>
+            /* Team Form Tab */
+            squadLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-gray-500 text-sm animate-pulse">Loading...</div>
+              </div>
+            ) : squadData ? (
+              <div>
+                {/* Table Header */}
+                <div className="flex items-center px-4 py-2 text-[10px] text-gray-500 uppercase tracking-wider bg-slate-800/50 border-b border-slate-700/50">
+                  <div className="w-8">Pos</div>
+                  <div className="flex-1">Player</div>
+                  <div className="w-20 text-right">Fixture</div>
+                </div>
+
+                {/* Starters */}
+                {starters.map((player) => (
+                  <PlayerRowCompact 
+                    key={player.element_id} 
+                    player={player} 
+                    getPositionColor={getPositionColor}
+                    getDifficultyColor={getDifficultyColor}
+                    formatKickoff={formatKickoff}
+                  />
+                ))}
+
+                {/* Bench Divider */}
+                <div className="px-4 py-1.5 bg-slate-800/80 text-[10px] text-gray-500 uppercase tracking-wider">
+                  Bench
+                </div>
+
+                {/* Bench */}
+                {bench.map((player) => (
+                  <PlayerRowCompact 
+                    key={player.element_id} 
+                    player={player}
+                    getPositionColor={getPositionColor}
+                    getDifficultyColor={getDifficultyColor}
+                    formatKickoff={formatKickoff}
+                    isBench
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-red-400 text-sm">Failed to load</div>
+              </div>
+            )
           )}
         </div>
       </div>
