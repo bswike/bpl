@@ -10,9 +10,9 @@ import './App.css';
 const Navigation = ({ currentPage, setCurrentPage }) => {
   const navItems = [
     { id: 'position-chart', label: 'Positions', Icon: TrendingUp },
-    { id: 'multi-gw', label: 'Stats', Icon: BarChart3 },
+    { id: 'multi-gw', label: 'Weekly', Icon: BarChart3 },
     { id: 'standings', label: 'Standings', Icon: Trophy },
-    { id: 'dashboard', label: 'Table', Icon: Table2 },
+    { id: 'dashboard', label: 'Chips', Icon: Table2 },
   ];
 
   return (

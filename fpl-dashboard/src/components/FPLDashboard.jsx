@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import Papa from 'papaparse';
 
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
@@ -100,7 +99,7 @@ const ChipsManagerRow = React.memo(({ manager, rank, data, onManagerClick }) => 
       </div>
 
       {/* Desktop View */}
-      <div className="hidden md:grid md:grid-cols-6 gap-3 items-center text-sm px-3 py-1">
+      <div className="hidden md:grid md:grid-cols-7 gap-3 items-center text-sm px-3 py-1">
         <div className="md:col-span-2 flex items-center gap-3">
           <span className="flex-shrink-0 w-7 h-7 bg-slate-700 rounded-md text-sm font-bold flex items-center justify-center">{rank}</span>
           <button onClick={() => onManagerClick(manager.manager_name)} className="text-left hover:text-cyan-400 transition-colors">
@@ -108,31 +107,41 @@ const ChipsManagerRow = React.memo(({ manager, rank, data, onManagerClick }) => 
             <p className="text-gray-400 text-xs truncate">"{managerFullData?.team_name || '...'}"</p>
           </button>
         </div>
-        <div className="text-white font-bold text-lg text-center">{totalChips}</div>
+        <div className="text-cyan-400 font-bold text-center">{managerFullData?.total_points || 0}</div>
+        <div className="text-white font-bold text-center">{totalChips}</div>
         <div className="text-center text-gray-300 text-xs">{renderChipInfo(wildcards, 'wildcard')}</div>
         <div className="text-center text-gray-300 text-xs">{renderChipInfo(freehits, 'freehit')}</div>
-        <div className="text-center text-gray-300 text-xs">{renderChipInfo(bboosts, 'bboost')}</div>
-        <div className="text-center text-gray-300 text-xs">{renderChipInfo(tripleCaps, '3xc')}</div>
+        <div className="text-center text-gray-300 text-xs">
+          {renderChipInfo(bboosts, 'bboost')}
+          {renderChipInfo(tripleCaps, '3xc')}
+        </div>
       </div>
     </div>
   );
 });
 
 const ChipsLeaderboard = ({ chipsData, data, onManagerClick }) => {
+  // Sort by total points (like Standings leaderboard) instead of chips count
   const sortedChipsData = useMemo(() => {
-    return [...chipsData].sort((a, b) => b.chips.length - a.chips.length);
-  }, [chipsData]);
+    return [...chipsData].sort((a, b) => {
+      const aData = data.find(m => m.manager_name === a.manager_name);
+      const bData = data.find(m => m.manager_name === b.manager_name);
+      const aPoints = aData?.total_points || 0;
+      const bPoints = bData?.total_points || 0;
+      return bPoints - aPoints;
+    });
+  }, [chipsData, data]);
 
   return (
     <div className="space-y-1">
       {/* Desktop Header */}
-      <div className="hidden md:grid md:grid-cols-6 gap-3 px-3 py-2 text-xs font-bold text-gray-400 uppercase">
+      <div className="hidden md:grid md:grid-cols-7 gap-3 px-3 py-2 text-xs font-bold text-gray-400 uppercase">
         <div className="md:col-span-2">Manager</div>
-        <div className="text-center">Total</div>
+        <div className="text-center">Points</div>
+        <div className="text-center">Chips</div>
         <div className="text-center">Wildcard</div>
         <div className="text-center">Free Hit</div>
-        <div className="text-center">Bench Boost</div>
-        <div className="text-center">Triple Captain</div>
+        <div className="text-center">BB / TC</div>
       </div>
       {/* Rows */}
       {sortedChipsData.map((manager, idx) => (
@@ -578,22 +587,6 @@ const FPLMultiGameweekDashboard = () => {
     };
   }, [data.length]); // Trigger when data loads
 
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const tooltipData = payload[0].payload;
-      const gwBreakdown = availableGameweeks.map(gw => `GW${gw}: ${tooltipData.gameweeks[gw]?.points || 0}`).join(' | ');
-      return (
-        <div className="bg-slate-800 text-white p-2 rounded-md shadow-lg border border-slate-600">
-          <p className="font-bold text-sm">{tooltipData.manager_name}</p>
-          <p className="text-gray-400 text-xs mb-1">"{tooltipData.team_name}"</p>
-          <p className="font-semibold text-cyan-300 text-xs">Total: {tooltipData.total_points} pts</p>
-          <p className="text-gray-300 text-[10px] mt-1">{gwBreakdown}</p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   const handleManagerClick = (managerName) => {
     const manager = mergedData.find(m => m.manager_name === managerName);
     if (manager) {
@@ -875,33 +868,6 @@ const FPLMultiGameweekDashboard = () => {
         </header>
 
         <main className="space-y-6">
-          <div className="bg-slate-800/50 rounded-lg p-2 sm:p-4 shadow-lg border border-slate-700">
-            <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 text-xs mb-3">
-              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-blue-600 mr-1.5"></span>Champions League</div>
-              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-orange-500 mr-1.5"></span>Europa League</div>
-              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-gray-500 mr-1.5"></span>Mid-table</div>
-              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-red-600 mr-1.5"></span>Relegation</div>
-            </div>
-
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mergedData} margin={{ top: 5, right: 5, left: -20, bottom: 45 }}>
-                <CartesianGrid strokeDasharray="2 2" stroke="rgba(148,163,184,0.1)" />
-                <XAxis dataKey="displayName" stroke="#94A3B8" angle={-60} textAnchor="end" height={60} fontSize={10} interval={0} />
-                <YAxis stroke="#94A3B8" fontSize={10} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}/>
-                <Bar dataKey="total_points" radius={[2, 2, 0, 0]}>
-                  {mergedData.map((entry, index) => {
-                    let color = '#6B7280';
-                    if (entry.designation === 'Champions League') color = '#2563EB';
-                    if (entry.designation === 'Europa League') color = '#EA580C';
-                    if (entry.designation === 'Relegation') color = '#DC2626';
-                    return <Cell key={`cell-${index}`} fill={color} />;
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
           {showChipsSection && (
             <div className="bg-slate-800/50 rounded-lg shadow-lg border border-purple-700/50 overflow-hidden">
               <div className="p-3 sm:p-4 border-b border-purple-700/50 bg-gradient-to-r from-purple-900/20 to-purple-800/20">

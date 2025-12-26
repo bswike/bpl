@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, BarChart, Bar, Cell } from 'recharts';
 import Papa from 'papaparse';
 
 // ---- Constants ----
@@ -50,6 +50,7 @@ const DarkFPLPositionChart = () => {
   const [managers, setManagers] = useState([]);
   const [managerStats, setManagerStats] = useState({});
   const [benchData, setBenchData] = useState([]);
+  const [standingsData, setStandingsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedManager, setSelectedManager] = useState(null);
@@ -336,6 +337,32 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
       }
       setChartData(chartPoints);
 
+      // Create standings data for bar chart (sorted by total points)
+      const finalStandings = rankedData[latestGW - 1]
+        .sort((a, b) => (b[`gw${latestGW}_cumulative`] || 0) - (a[`gw${latestGW}_cumulative`] || 0))
+        .map((m, idx) => {
+          const totalPoints = m[`gw${latestGW}_cumulative`] || 0;
+          let designation = 'Mid-table';
+          if (idx < 4) designation = 'Champions League';
+          else if (idx < 7) designation = 'Europa League';
+          else if (idx >= allManagers.length - 3) designation = 'Relegation';
+          
+          // Create display name (first name + last initial)
+          const nameParts = m.manager_name.split(' ');
+          const displayName = nameParts.length > 1 
+            ? `${nameParts[0]} ${nameParts[nameParts.length - 1][0]}.`
+            : m.manager_name;
+          
+          return {
+            manager_name: m.manager_name,
+            displayName,
+            total_points: totalPoints,
+            designation,
+            position: idx + 1
+          };
+        });
+      setStandingsData(finalStandings);
+
       setError(null);
       setLoading(false);
       setLastUpdate(new Date());
@@ -573,6 +600,67 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
         </div>
       </div>
 
+      {/* Total Points Bar Chart */}
+      {standingsData.length > 0 && (
+        <div
+          className={`bg-gray-800/40 backdrop-blur-xl rounded-xl border border-gray-700/50 overflow-hidden transform transition-all duration-700 ease-out delay-100 ${
+            enter ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+        >
+          <div className="p-4 border-b border-gray-700/50">
+            <h2 className="text-lg font-semibold text-gray-100">Season Standings</h2>
+            <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 text-xs mt-2">
+              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-blue-600 mr-1.5"></span>Champions League</div>
+              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-orange-500 mr-1.5"></span>Europa League</div>
+              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-gray-500 mr-1.5"></span>Mid-table</div>
+              <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-red-600 mr-1.5"></span>Relegation</div>
+            </div>
+          </div>
+          <div className="p-4">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={standingsData} margin={{ top: 5, right: 5, left: -20, bottom: 45 }}>
+                <CartesianGrid strokeDasharray="2 2" stroke="rgba(148,163,184,0.1)" />
+                <XAxis 
+                  dataKey="displayName" 
+                  stroke="#94A3B8" 
+                  angle={-60} 
+                  textAnchor="end" 
+                  height={60} 
+                  fontSize={10} 
+                  interval={0} 
+                />
+                <YAxis stroke="#94A3B8" fontSize={10} />
+                <Tooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const d = payload[0].payload;
+                      return (
+                        <div className="bg-slate-800 text-white p-2 rounded-md shadow-lg border border-slate-600">
+                          <p className="font-bold text-sm">{d.manager_name}</p>
+                          <p className="font-semibold text-cyan-300 text-xs">#{d.position} • {d.total_points} pts</p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                  cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
+                />
+                <Bar dataKey="total_points" radius={[2, 2, 0, 0]}>
+                  {standingsData.map((entry, index) => {
+                    let color = '#6B7280';
+                    if (entry.designation === 'Champions League') color = '#2563EB';
+                    if (entry.designation === 'Europa League') color = '#EA580C';
+                    if (entry.designation === 'Relegation') color = '#DC2626';
+                    return <Cell key={`cell-${index}`} fill={color} />;
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Bench Champions */}
       {benchData.length > 0 && (
         <div
           className={`bg-gray-800/40 backdrop-blur-xl rounded-xl border border-red-700/50 overflow-hidden transform transition-all duration-700 ease-out delay-150 ${
