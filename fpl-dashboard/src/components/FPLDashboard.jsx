@@ -620,7 +620,7 @@ const FPLMultiGameweekDashboard = () => {
                 e.stopPropagation();
                 handleCaptainClick(chip.event);
               }}
-              className="text-purple-400 hover:text-purple-300 underline font-semibold"
+              className="text-cyan-400 hover:text-cyan-300 underline font-semibold"
             >
               {captainName}
             </button>
@@ -657,7 +657,7 @@ const FPLMultiGameweekDashboard = () => {
           className="bg-slate-800 rounded-lg border-2 border-cyan-500 max-w-md w-full max-h-[80vh] overflow-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-4 border-b border-slate-700 bg-gradient-to-r from-cyan-900/30 to-purple-900/30">
+          <div className="p-4 border-b border-gray-700/50">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold text-white">{selectedManager.manager_name}</h3>
@@ -678,7 +678,7 @@ const FPLMultiGameweekDashboard = () => {
               <p className="text-gray-400 text-sm text-center py-8">No chips used yet</p>
             ) : (
               <>
-                <div className="mb-4 p-3 bg-purple-900/20 rounded border border-purple-600/30">
+                <div className="mb-4 p-3 bg-gray-700/30 rounded-lg border border-gray-600/30">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-300">Total Chips Used:</span>
                     <span className="text-lg font-bold text-cyan-400">{chipStats.length}</span>
@@ -751,15 +751,15 @@ const FPLMultiGameweekDashboard = () => {
         onClick={() => setShowCaptainModal(false)}
       >
         <div
-          className="bg-slate-800 rounded-lg border-2 border-purple-500 max-w-md w-full max-h-[80vh] overflow-auto"
+          className="bg-gray-800/95 backdrop-blur-xl rounded-xl border border-gray-700/50 max-w-md w-full max-h-[80vh] overflow-auto shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="p-4 border-b border-slate-700 bg-gradient-to-r from-purple-900/30 to-pink-900/30">
+          <div className="p-4 border-b border-gray-700/50">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold text-white">Captain Choices</h3>
                 <p className="text-sm text-gray-400">Gameweek {selectedCaptainGW}</p>
-                <p className="text-xs text-purple-400 mt-1">{totalManagers} managers</p>
+                <p className="text-xs text-gray-400 mt-1">{totalManagers} managers</p>
               </div>
               <button
                 onClick={() => setShowCaptainModal(false)}
@@ -793,13 +793,13 @@ const FPLMultiGameweekDashboard = () => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-purple-400">{captain.percentage}%</div>
+                        <div className="text-2xl font-bold text-cyan-400">{captain.percentage}%</div>
                       </div>
                     </div>
                     {/* Visual percentage bar */}
                     <div className="mt-2 w-full bg-slate-600 rounded-full h-2">
                       <div 
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+                        className="bg-cyan-500 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${captain.percentage}%` }}
                       ></div>
                     </div>
@@ -851,29 +851,30 @@ const FPLMultiGameweekDashboard = () => {
   return (
     <div className="min-h-screen bg-slate-900 p-2 sm:p-4 font-sans text-gray-100">
       <div className="max-w-7xl mx-auto space-y-6">
-        <header className="text-center mb-4">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <h1 className="text-xl sm:text-3xl font-light text-white">BPL Season Chart</h1>
-            <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 rounded-full ${statusColor} ${connectionStatus === 'connected' ? 'animate-pulse' : ''}`}></div>
-              <span className="text-xs text-gray-400">{statusText}</span>
+        <header className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-white">Chip Usage</h1>
+              <p className="text-sm text-gray-400 mt-0.5">{gameweekRangeText}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <div className={`w-2 h-2 rounded-full ${statusColor} ${connectionStatus === 'connected' ? 'animate-pulse' : ''}`}></div>
+                <span className="text-xs text-gray-400">{statusText}</span>
+              </div>
+              {lastUpdate && (
+                <span className="text-xs text-gray-500 hidden sm:inline">
+                  {lastUpdate.toLocaleTimeString()}
+                </span>
+              )}
             </div>
           </div>
-          <p className="text-sm text-gray-400">{gameweekRangeText}</p>
-          {lastUpdate && (
-            <p className="text-xs text-gray-500 mt-1">
-              Last updated: {lastUpdate.toLocaleTimeString()}
-            </p>
-          )}
         </header>
 
-        <main className="space-y-6">
+        <main className="space-y-4">
           {showChipsSection && (
-            <div className="bg-slate-800/50 rounded-lg shadow-lg border border-purple-700/50 overflow-hidden">
-              <div className="p-3 sm:p-4 border-b border-purple-700/50 bg-gradient-to-r from-purple-900/20 to-purple-800/20">
-                <h2 className="text-base sm:text-lg font-semibold text-gray-100">Chips Used</h2>
-              </div>
-              <div className="p-0 sm:p-1">
+            <div className="bg-gray-800/40 backdrop-blur-xl rounded-xl border border-gray-700/50 overflow-hidden">
+              <div className="p-3 sm:p-4">
                 <ChipsLeaderboard
                   chipsData={chipsData}
                   data={mergedData}
@@ -884,7 +885,7 @@ const FPLMultiGameweekDashboard = () => {
           )}
 
           {chipsLoading && (
-            <div className="bg-slate-800/50 rounded-lg shadow-lg border border-purple-700/50 p-8 text-center">
+            <div className="bg-gray-800/40 rounded-xl border border-gray-700/50 p-8 text-center">
               <p className="text-gray-400 animate-pulse">Loading chips data...</p>
             </div>
           )}
