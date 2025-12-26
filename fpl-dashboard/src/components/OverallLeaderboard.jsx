@@ -422,9 +422,9 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 pb-16 sm:pb-0" onClick={onClose}>
       <div 
-        className="bg-slate-900 w-full sm:max-w-md sm:rounded-lg max-h-[90vh] overflow-hidden"
+        className="bg-slate-900 w-full sm:max-w-md sm:rounded-lg max-h-[80vh] sm:max-h-[90vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -441,7 +441,7 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-52px)]">
+        <div className="overflow-y-auto max-h-[calc(80vh-52px)] sm:max-h-[calc(90vh-52px)] pb-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-gray-500 text-sm animate-pulse">Loading...</div>
