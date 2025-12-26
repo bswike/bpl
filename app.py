@@ -781,13 +781,47 @@ def get_historical_data():
                 if csv_text.strip() == "The game is being updated.":
                     return gw, []
                 
-                # Parse CSV to list of dicts
+                # Parse CSV and AGGREGATE to manager totals only
                 import csv
                 from io import StringIO
                 reader = csv.DictReader(StringIO(csv_text))
-                rows = list(reader)
                 
-                return gw, rows
+                managers = {}
+                captain_choices = {}
+                
+                for row in reader:
+                    manager_name = row.get('manager_name', '').strip()
+                    if not manager_name:
+                        continue
+                    
+                    player = row.get('player', '')
+                    
+                    if player == 'TOTAL':
+                        # This is the totals row - extract key stats
+                        managers[manager_name] = {
+                            'manager_name': manager_name,
+                            'team_name': row.get('entry_team_name', ''),
+                            'total_points': int(float(row.get('points_applied', 0) or 0)),
+                            'bench_points': int(float(row.get('bench_points', 0) or 0)),
+                        }
+                    else:
+                        # Track captain for chicken rank
+                        is_captain = row.get('is_captain') in ['True', 'true', '1', True]
+                        if is_captain:
+                            if manager_name not in managers:
+                                managers[manager_name] = {'captain_player': player}
+                            else:
+                                managers[manager_name]['captain_player'] = player
+                            captain_choices[player] = captain_choices.get(player, 0) + 1
+                
+                # Find most popular captain
+                most_popular = max(captain_choices.items(), key=lambda x: x[1])[0] if captain_choices else ''
+                
+                # Mark who picked popular captain
+                for m in managers.values():
+                    m['picked_popular_captain'] = m.get('captain_player', '') == most_popular
+                
+                return gw, list(managers.values())
             except Exception as e:
                 log(f"[historical] Error fetching GW{gw}: {e}")
                 return gw, []
@@ -796,8 +830,8 @@ def get_historical_data():
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             results = list(executor.map(fetch_and_parse_gw, historical_gws))
         
-        # Build response
-        gw_data = {str(gw): rows for gw, rows in results if rows}
+        # Build response - now only contains aggregated manager data
+        gw_data = {str(gw): managers for gw, managers in results if managers}
         
         # Cache the result
         with historical_cache_lock:

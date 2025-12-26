@@ -448,10 +448,31 @@ const playerData = {
       if (cachedHistorical) {
         for (const gwStr of Object.keys(cachedHistorical.gameweeks || {})) {
           const gw = parseInt(gwStr, 10);
-          const rows = cachedHistorical.gameweeks[gwStr];
-          const parsed = parseCsvToManagers(null, gw, rows);
-          tempGameweekData[gw] = parsed.managers || [];
-          tempCaptainStats[gw] = parsed.captainChoices || {};
+          const managers = cachedHistorical.gameweeks[gwStr];
+          
+          // Pre-aggregated format - just add position and gameweek
+          const processedManagers = managers
+            .map(m => ({
+              ...m,
+              manager_name: m.manager_name,
+              team_name: m.team_name || '',
+              total_points: m.total_points || 0,
+              bench_points: m.bench_points || 0,
+              gameweek: gw,
+            }))
+            .sort((a, b) => b.total_points - a.total_points)
+            .map((m, i) => ({ ...m, position: i + 1 }));
+          
+          tempGameweekData[gw] = processedManagers;
+          
+          // Build captain stats
+          const captainChoices = {};
+          managers.forEach(m => {
+            if (m.captain_player) {
+              captainChoices[m.captain_player] = (captainChoices[m.captain_player] || 0) + 1;
+            }
+          });
+          tempCaptainStats[gw] = captainChoices;
         }
       }
       
@@ -479,10 +500,33 @@ const playerData = {
             
             for (const gwStr of Object.keys(historicalData.gameweeks || {})) {
               const gw = parseInt(gwStr, 10);
-              const rows = historicalData.gameweeks[gwStr];
-              const parsed = parseCsvToManagers(null, gw, rows);
-              newGameweekData[gw] = parsed.managers || [];
-              newCaptainStats[gw] = parsed.captainChoices || {};
+              const managers = historicalData.gameweeks[gwStr];
+              
+              // Backend now returns pre-aggregated manager objects
+              // Just need to add position and gameweek
+              const processedManagers = managers
+                .map((m, i) => ({
+                  ...m,
+                  manager_name: m.manager_name,
+                  team_name: m.team_name || '',
+                  total_points: m.total_points || 0,
+                  bench_points: m.bench_points || 0,
+                  position: i + 1,
+                  gameweek: gw,
+                }))
+                .sort((a, b) => b.total_points - a.total_points)
+                .map((m, i) => ({ ...m, position: i + 1 }));
+              
+              newGameweekData[gw] = processedManagers;
+              
+              // Build captain stats from pre-aggregated data
+              const captainChoices = {};
+              managers.forEach(m => {
+                if (m.captain_player) {
+                  captainChoices[m.captain_player] = (captainChoices[m.captain_player] || 0) + 1;
+                }
+              });
+              newCaptainStats[gw] = captainChoices;
             }
             
             // Save to localStorage for next visit

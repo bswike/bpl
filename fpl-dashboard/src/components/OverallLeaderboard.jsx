@@ -254,31 +254,17 @@ const OverallLeaderboard = () => {
               const newGwData = { ...gwData };
               Object.keys(historicalData.gameweeks || {}).forEach(gwStr => {
                 const gw = parseInt(gwStr, 10);
-                const rows = historicalData.gameweeks[gwStr];
-                // Parse rows from historical API
-                const managers = {};
-                const captainChoices = {};
-                rows.forEach(row => {
-                  const name = row.manager_name;
-                  if (!name) return;
-                  if (!managers[name]) {
-                    managers[name] = { manager_name: name, team_name: row.entry_team_name || '', total_points: 0, bench_points: 0, captain_player: '' };
-                  }
-                  if (row.player === 'TOTAL') {
-                    managers[name].total_points = parseInt(row.points_applied) || 0;
-                    managers[name].bench_points = parseInt(row.bench_points) || 0;
-                  } else {
-                    if (row.is_captain === 'True' || row.is_captain === true) {
-                      managers[name].captain_player = row.player;
-                      captainChoices[row.player] = (captainChoices[row.player] || 0) + 1;
-                    }
-                  }
-                });
-                let mostPopular = '';
-                let maxCount = 0;
-                Object.entries(captainChoices).forEach(([p, c]) => { if (c > maxCount) { maxCount = c; mostPopular = p; } });
-                Object.values(managers).forEach(m => { m.picked_popular_captain = m.captain_player === mostPopular; });
-                newGwData[gw] = Object.values(managers);
+                const managers = historicalData.gameweeks[gwStr];
+                
+                // Backend now returns pre-aggregated manager objects
+                // Already has: manager_name, team_name, total_points, bench_points, captain_player, picked_popular_captain
+                newGwData[gw] = managers.map(m => ({
+                  ...m,
+                  manager_name: m.manager_name,
+                  team_name: m.team_name || '',
+                  total_points: m.total_points || 0,
+                  bench_points: m.bench_points || 0,
+                }));
               });
               
               // Save to cache
