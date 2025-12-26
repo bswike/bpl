@@ -54,191 +54,246 @@ const OverallLeaderboard = () => {
     'Tony Tharakan': 8592148,
   };
 
-  // Fetch leaderboard data
+  // Parse CSV text to manager data
+  const parseCsvToManagers = useCallback((csvText, gw) => {
+    if (!csvText || csvText.includes('The game is being updated')) return [];
+    
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) return [];
+    
+    const headers = lines[0].split(',');
+    const managerIdx = headers.indexOf('manager_name');
+    const pointsIdx = headers.indexOf('points_applied');
+    const playerIdx = headers.indexOf('player');
+    const teamNameIdx = headers.indexOf('entry_team_name');
+    const playerCostIdx = headers.indexOf('player_cost');
+    const isCaptainIdx = headers.indexOf('is_captain');
+    const benchPointsIdx = headers.indexOf('bench_points');
+    
+    if (managerIdx === -1 || pointsIdx === -1 || playerIdx === -1) return [];
+    
+    const managers = {};
+    const managerTeamValues = {};
+    const captainChoices = {};
+    
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      const managerName = cols[managerIdx];
+      const playerName = cols[playerIdx];
+      
+      if (!managerName) continue;
+      
+      if (!managers[managerName]) {
+        managers[managerName] = {
+          manager_name: managerName,
+          team_name: cols[teamNameIdx] || '',
+          total_points: 0,
+          bench_points: 0,
+          captain_player: '',
+        };
+      }
+      
+      if (playerName !== 'TOTAL' && playerCostIdx !== -1) {
+        const cost = parseFloat(cols[playerCostIdx]) || 0;
+        managerTeamValues[managerName] = (managerTeamValues[managerName] || 0) + cost;
+        
+        if (isCaptainIdx !== -1) {
+          const isCaptain = cols[isCaptainIdx];
+          if (isCaptain === 'True' || isCaptain === 'true' || isCaptain === '1') {
+            managers[managerName].captain_player = playerName;
+            captainChoices[playerName] = (captainChoices[playerName] || 0) + 1;
+          }
+        }
+      }
+      
+      if (playerName === 'TOTAL') {
+        managers[managerName].total_points = parseInt(cols[pointsIdx]) || 0;
+        if (benchPointsIdx !== -1) {
+          managers[managerName].bench_points = parseInt(cols[benchPointsIdx]) || 0;
+        }
+      }
+    }
+    
+    let mostPopularCaptain = '';
+    let maxCaptainCount = 0;
+    Object.entries(captainChoices).forEach(([player, count]) => {
+      if (count > maxCaptainCount) {
+        maxCaptainCount = count;
+        mostPopularCaptain = player;
+      }
+    });
+    
+    Object.keys(managers).forEach(name => {
+      managers[name].team_value = managerTeamValues[name] || 0;
+      managers[name].picked_popular_captain = managers[name].captain_player === mostPopularCaptain;
+    });
+    
+    return Object.values(managers);
+  }, []);
+
+  // Build combined data from gwData
+  const buildCombinedData = useCallback((gwData, gameweeks) => {
+    const managerTotals = {};
+    const latestGw = gameweeks[gameweeks.length - 1];
+    
+    gameweeks.forEach(gw => {
+      (gwData[gw] || []).forEach(m => {
+        if (!managerTotals[m.manager_name]) {
+          managerTotals[m.manager_name] = {
+            manager_name: m.manager_name,
+            team_name: m.team_name,
+            total_points: 0,
+            team_value: 0,
+            gws_won: 0,
+            gws_last: 0,
+            total_bench_points: 0,
+            chicken_picks: 0,
+            gw_points_history: [],
+          };
+        }
+        managerTotals[m.manager_name].total_points += m.total_points;
+        managerTotals[m.manager_name][`gw${gw}_points`] = m.total_points;
+        managerTotals[m.manager_name].total_bench_points += m.bench_points || 0;
+        managerTotals[m.manager_name].gw_points_history.push({ gw, points: m.total_points });
+        
+        if (m.picked_popular_captain) {
+          managerTotals[m.manager_name].chicken_picks += 1;
+        }
+        
+        if (gw === latestGw && m.team_value) {
+          managerTotals[m.manager_name].team_value = m.team_value;
+        }
+      });
+    });
+    
+    gameweeks.forEach(gw => {
+      const gwManagers = gwData[gw] || [];
+      if (gwManagers.length === 0) return;
+      
+      const maxPoints = Math.max(...gwManagers.map(m => m.total_points || 0));
+      const minPoints = Math.min(...gwManagers.map(m => m.total_points || Infinity));
+      
+      if (maxPoints <= 0) return;
+      
+      gwManagers.forEach(m => {
+        if (m.total_points === maxPoints && managerTotals[m.manager_name]) {
+          managerTotals[m.manager_name].gws_won += 1;
+        }
+        if (m.total_points === minPoints && managerTotals[m.manager_name]) {
+          managerTotals[m.manager_name].gws_last += 1;
+        }
+      });
+    });
+    
+    Object.values(managerTotals).forEach(manager => {
+      const history = manager.gw_points_history.sort((a, b) => b.gw - a.gw);
+      const last4 = history.slice(0, 4);
+      manager.form = last4.length > 0 ? last4.reduce((sum, g) => sum + g.points, 0) / last4.length : 0;
+      delete manager.gw_points_history;
+    });
+    
+    return Object.values(managerTotals).sort((a, b) => b.total_points - a.total_points);
+  }, []);
+
+  // Fetch leaderboard data - OPTIMIZED
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        const CACHE_KEY = 'bpl_standings_v2';
         
-        // Fetch manifest
-        const manifestRes = await fetch('https://bpl-red-sun-894.fly.dev/api/manifest', {
-          cache: 'no-store'
-        });
+        // Step 1: Fetch manifest
+        const manifestRes = await fetch('https://bpl-red-sun-894.fly.dev/api/manifest', { cache: 'no-store' });
         if (!manifestRes.ok) throw new Error('Failed to load manifest');
         const manifest = await manifestRes.json();
 
         const gameweeks = Object.keys(manifest.gameweeks || {}).map(Number).sort((a, b) => a - b);
         if (gameweeks.length === 0) throw new Error('No gameweek data');
-
-        // Fetch all gameweek CSVs
-        const gwData = {};
-        
-        await Promise.all(gameweeks.map(async (gw) => {
-          const res = await fetch(`https://bpl-red-sun-894.fly.dev/api/data/${gw}`);
-          if (!res.ok) return;
-          const csvText = await res.text();
-          
-          if (csvText.includes('The game is being updated')) return;
-          
-          // Parse CSV
-          const lines = csvText.split('\n').filter(line => line.trim());
-          if (lines.length < 2) return;
-          
-          const headers = lines[0].split(',');
-          const managerIdx = headers.indexOf('manager_name');
-          const pointsIdx = headers.indexOf('points_applied');
-          const playerIdx = headers.indexOf('player');
-          const teamNameIdx = headers.indexOf('entry_team_name');
-          const playerCostIdx = headers.indexOf('player_cost');
-          const isCaptainIdx = headers.indexOf('is_captain');
-          const benchPointsIdx = headers.indexOf('bench_points');
-          
-          // Check if we found the required columns
-          if (managerIdx === -1 || pointsIdx === -1 || playerIdx === -1) return;
-          
-          const managers = {};
-          const managerTeamValues = {}; // Track team value per manager
-          const captainChoices = {}; // Track captain popularity for this GW
-          
-          for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(',');
-            const managerName = cols[managerIdx];
-            const playerName = cols[playerIdx];
-            
-            if (!managerName) continue;
-            
-            // Initialize manager if not exists
-            if (!managers[managerName]) {
-              managers[managerName] = {
-                manager_name: managerName,
-                team_name: cols[teamNameIdx] || '',
-                total_points: 0,
-                bench_points: 0,
-                captain_player: '',
-              };
-            }
-            
-            // Sum player costs for team value (exclude TOTAL row)
-            if (playerName !== 'TOTAL' && playerCostIdx !== -1) {
-              const cost = parseFloat(cols[playerCostIdx]) || 0;
-              managerTeamValues[managerName] = (managerTeamValues[managerName] || 0) + cost;
-              
-              // Track captain choices
-              if (isCaptainIdx !== -1) {
-                const isCaptain = cols[isCaptainIdx];
-                if (isCaptain === 'True' || isCaptain === 'true' || isCaptain === '1') {
-                  managers[managerName].captain_player = playerName;
-                  captainChoices[playerName] = (captainChoices[playerName] || 0) + 1;
-                }
-              }
-            }
-            
-            // Get manager totals from TOTAL row
-            if (playerName === 'TOTAL') {
-              managers[managerName].total_points = parseInt(cols[pointsIdx]) || 0;
-              if (benchPointsIdx !== -1) {
-                managers[managerName].bench_points = parseInt(cols[benchPointsIdx]) || 0;
-              }
-            }
-          }
-          
-          // Find most popular captain this GW
-          let mostPopularCaptain = '';
-          let maxCaptainCount = 0;
-          Object.entries(captainChoices).forEach(([player, count]) => {
-            if (count > maxCaptainCount) {
-              maxCaptainCount = count;
-              mostPopularCaptain = player;
-            }
-          });
-          
-          // Add team values and chicken pick flag to managers
-          Object.keys(managers).forEach(name => {
-            managers[name].team_value = managerTeamValues[name] || 0;
-            managers[name].picked_popular_captain = managers[name].captain_player === mostPopularCaptain;
-          });
-          
-          gwData[gw] = Object.values(managers);
-        }));
-
-        // Build combined data
-        const managerTotals = {};
         const latestGw = gameweeks[gameweeks.length - 1];
+
+        // Step 2: Fetch latest GW immediately (fast ~1-2s)
+        const latestRes = await fetch(`https://bpl-red-sun-894.fly.dev/api/data/${latestGw}`, { cache: 'no-store' });
+        if (!latestRes.ok) throw new Error('Failed to load latest GW');
+        const latestCsv = await latestRes.text();
+        const latestData = parseCsvToManagers(latestCsv, latestGw);
         
-        gameweeks.forEach(gw => {
-          (gwData[gw] || []).forEach(m => {
-            if (!managerTotals[m.manager_name]) {
-              managerTotals[m.manager_name] = {
-                manager_name: m.manager_name,
-                team_name: m.team_name,
-                total_points: 0,
-                team_value: 0,
-                gws_won: 0,
-                gws_last: 0,
-                total_bench_points: 0,
-                chicken_picks: 0,
-                gw_points_history: [], // For calculating form
-              };
+        // Step 3: Check localStorage cache
+        let gwData = { [latestGw]: latestData };
+        let cachedGws = [];
+        try {
+          const cached = localStorage.getItem(CACHE_KEY);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed.data) {
+              Object.keys(parsed.data).forEach(gw => {
+                const gwNum = parseInt(gw, 10);
+                if (gwNum < latestGw) {
+                  gwData[gwNum] = parsed.data[gw];
+                  cachedGws.push(gwNum);
+                }
+              });
             }
-            managerTotals[m.manager_name].total_points += m.total_points;
-            managerTotals[m.manager_name][`gw${gw}_points`] = m.total_points;
-            managerTotals[m.manager_name].total_bench_points += m.bench_points || 0;
-            managerTotals[m.manager_name].gw_points_history.push({ gw, points: m.total_points });
-            
-            // Count chicken picks (times they picked the most popular captain)
-            if (m.picked_popular_captain) {
-              managerTotals[m.manager_name].chicken_picks += 1;
-            }
-            
-            // Keep team_value from the latest gameweek
-            if (gw === latestGw && m.team_value) {
-              managerTotals[m.manager_name].team_value = m.team_value;
-            }
-          });
-        });
-        
-        // Calculate gameweeks won and last by each manager
-        gameweeks.forEach(gw => {
-          const gwManagers = gwData[gw] || [];
-          if (gwManagers.length === 0) return;
-          
-          // Find the highest and lowest score in this gameweek
-          const maxPoints = Math.max(...gwManagers.map(m => m.total_points || 0));
-          const minPoints = Math.min(...gwManagers.map(m => m.total_points || Infinity));
-          
-          if (maxPoints <= 0) return;
-          
-          // Find all managers with the highest score (could be a tie)
-          gwManagers.forEach(m => {
-            if (m.total_points === maxPoints && managerTotals[m.manager_name]) {
-              managerTotals[m.manager_name].gws_won += 1;
-            }
-            if (m.total_points === minPoints && managerTotals[m.manager_name]) {
-              managerTotals[m.manager_name].gws_last += 1;
-            }
-          });
-        });
-        
-        // Calculate form (average of last 4 GWs)
-        Object.values(managerTotals).forEach(manager => {
-          const history = manager.gw_points_history.sort((a, b) => b.gw - a.gw);
-          const last4 = history.slice(0, 4);
-          if (last4.length > 0) {
-            manager.form = last4.reduce((sum, g) => sum + g.points, 0) / last4.length;
-          } else {
-            manager.form = 0;
           }
-          // Clean up - we don't need the full history in state
-          delete manager.gw_points_history;
-        });
-
-        const combined = Object.values(managerTotals)
-          .sort((a, b) => b.total_points - a.total_points);
-
-        setCombinedData(combined);
-        setAvailableGameweeks(gameweeks);
+        } catch (e) { /* ignore */ }
+        
+        // Step 4: Show data immediately
+        const availableNow = Object.keys(gwData).map(Number).sort((a, b) => a - b);
+        const combinedNow = buildCombinedData(gwData, availableNow);
+        setCombinedData(combinedNow);
+        setAvailableGameweeks(availableNow);
         setGameweekData(gwData);
         setLoading(false);
+        
+        // Step 5: Fetch historical in background
+        if (cachedGws.length < latestGw - 1) {
+          fetch('https://bpl-red-sun-894.fly.dev/api/historical', { cache: 'no-store' })
+            .then(res => res.ok ? res.json() : null)
+            .then(historicalData => {
+              if (!historicalData) return;
+              
+              const newGwData = { ...gwData };
+              Object.keys(historicalData.gameweeks || {}).forEach(gwStr => {
+                const gw = parseInt(gwStr, 10);
+                const rows = historicalData.gameweeks[gwStr];
+                // Parse rows from historical API
+                const managers = {};
+                const captainChoices = {};
+                rows.forEach(row => {
+                  const name = row.manager_name;
+                  if (!name) return;
+                  if (!managers[name]) {
+                    managers[name] = { manager_name: name, team_name: row.entry_team_name || '', total_points: 0, bench_points: 0, captain_player: '' };
+                  }
+                  if (row.player === 'TOTAL') {
+                    managers[name].total_points = parseInt(row.points_applied) || 0;
+                    managers[name].bench_points = parseInt(row.bench_points) || 0;
+                  } else {
+                    if (row.is_captain === 'True' || row.is_captain === true) {
+                      managers[name].captain_player = row.player;
+                      captainChoices[row.player] = (captainChoices[row.player] || 0) + 1;
+                    }
+                  }
+                });
+                let mostPopular = '';
+                let maxCount = 0;
+                Object.entries(captainChoices).forEach(([p, c]) => { if (c > maxCount) { maxCount = c; mostPopular = p; } });
+                Object.values(managers).forEach(m => { m.picked_popular_captain = m.captain_player === mostPopular; });
+                newGwData[gw] = Object.values(managers);
+              });
+              
+              // Save to cache
+              try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({ data: newGwData, ts: Date.now() }));
+              } catch (e) { /* ignore */ }
+              
+              const allGws = Object.keys(newGwData).map(Number).sort((a, b) => a - b);
+              const combined = buildCombinedData(newGwData, allGws);
+              setCombinedData(combined);
+              setAvailableGameweeks(allGws);
+              setGameweekData(newGwData);
+            })
+            .catch(() => { /* ignore */ });
+        }
 
       } catch (err) {
         console.error('Failed to fetch data:', err);
