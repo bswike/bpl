@@ -273,6 +273,7 @@ const useFplData = () => {
       }
       const player = normalizeStr(raw.player);
       if (player !== "TOTAL") {
+const playerCost = toNum(raw.player_cost) || 0;
 const playerData = {
   name: player,
   element_id: toNum(raw.element_id),
@@ -284,9 +285,12 @@ const playerData = {
   is_captain: truthy(raw.is_captain),
   fixture_started: truthy(raw.fixture_started),
   fixture_finished: truthy(raw.fixture_finished),
-  status: normalizeStr(raw.status)
+  status: normalizeStr(raw.status),
+  cost: playerCost
 };
         managerStats[manager].players.push(playerData);
+        // Add player cost to team value
+        managerStats[manager].team_value = (managerStats[manager].team_value || 0) + playerCost;
         
         if (truthy(raw.is_captain) && !managerStats[manager].captain_player) {
   managerStats[manager].captain_player = player;
@@ -1348,60 +1352,11 @@ if (gwData.defensive_contribution > 0) {
   );
 };
 
-// Entry ID mapping for fetching manager value
-const ENTRY_ID_MAP = {
-  'Andrew Vidal': 394273,
-  'Garrett Kunkel': 373574,
-  'John Matthew': 650881,
-  'Brett Swikle': 6197529,
-  'Joe Curran': 1094601,
-  'Chris Munoz': 6256408,
-  'John Sebastian': 62221,
-  'Jared Alexander': 701623,
-  'Evan Bagheri': 3405299,
-  'Nate Cohen': 5438502,
-  'Dean Maghsadi': 5423005,
-  'Max Maier': 4807443,
-  'Adrian McLoughlin': 581156,
-  'Wes H': 4912819,
-  'Kevin Tomek': 876871,
-  'Brian Pleines': 4070923,
-  'Kevin K': 5898648,
-  'Patrick McCleary': 872442,
-  'JP Fischer': 468791,
-  'Tony Tharakan': 8592148,
-};
-
 const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData, gameweekData, onPlayerClick }) => {
-  const [valueInfo, setValueInfo] = React.useState(null);
-  
-  // Fetch manager value info
-  React.useEffect(() => {
-    if (!manager?.manager_name) return;
-    
-    const entryId = ENTRY_ID_MAP[manager.manager_name];
-    if (!entryId) return;
-    
-    const fetchValue = async () => {
-      try {
-        const res = await fetch(`https://bpl-red-sun-894.fly.dev/api/squad/${entryId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setValueInfo({
-            total: data.total_value,
-            squad: data.squad_value,
-            bank: data.bank,
-          });
-        }
-      } catch (err) {
-        console.error('Failed to fetch value info:', err);
-      }
-    };
-    
-    fetchValue();
-  }, [manager?.manager_name]);
-  
   if (!manager) return null;
+  
+  // Calculate team value from players in this gameweek's squad
+  const teamValue = manager.team_value ? (manager.team_value).toFixed(1) : null;
 
   const calculateLeagueOwnership = (playerName) => {
     if (!manager || !manager.gameweek) return null;
@@ -1589,13 +1544,8 @@ const getFixtureTimingText = (player, currentGameweek) => {
           <div className="flex-1 min-w-0 pr-2">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base md:text-xl font-bold text-white truncate">{manager.manager_name}</h2>
-              {valueInfo && (
-                <div className="flex items-baseline gap-1">
-                  <span className="text-sm font-bold text-green-400">£{valueInfo.total}m</span>
-                  <span className="text-[9px] text-gray-500 hidden sm:inline">
-                    (£{valueInfo.squad}m + £{valueInfo.bank}m)
-                  </span>
-                </div>
+              {teamValue && (
+                <span className="text-xs text-green-400">£{teamValue}m</span>
               )}
             </div>
             <p className="text-xs md:text-sm text-gray-400 truncate">"{manager.team_name}" • GW{manager.gameweek}</p>
@@ -1760,7 +1710,12 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
               <span className="flex-shrink-0 w-6 h-6 bg-slate-700 rounded-md text-xs font-bold flex items-center justify-center">{position}</span>
               <div className="flex items-center gap-1.5">
                 <button onClick={() => onManagerClick(manager)} className="text-left hover:text-cyan-400 transition-colors">
-                  <p className="text-white font-bold text-xs">{manager.manager_name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-white font-bold text-xs">{manager.manager_name}</p>
+                    {manager.team_value > 0 && (
+                      <span className="text-[9px] text-green-400">£{manager.team_value.toFixed(1)}m</span>
+                    )}
+                  </div>
                   <p className="text-gray-400 text-[10px]">"{manager.team_name}"</p>
                 </button>
                 {currentChip && (
@@ -1871,6 +1826,9 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
             <button onClick={() => onManagerClick(manager)} className="text-left hover:text-cyan-400 transition-colors">
               <div className="flex items-center gap-2">
                 <p className="text-white font-medium truncate">{manager.manager_name}</p>
+                {manager.team_value > 0 && (
+                  <span className="text-xs text-green-400">£{manager.team_value.toFixed(1)}m</span>
+                )}
                 {currentChip && (
                   <button
                     ref={chipButtonRef}
