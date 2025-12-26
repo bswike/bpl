@@ -429,11 +429,21 @@ const SquadModal = ({ manager, squadData, loading, onClose }) => {
       >
         {/* Header */}
         <div className="bg-slate-800 px-4 py-3 flex justify-between items-center border-b border-slate-700">
-          <div>
-            <h2 className="text-sm font-semibold text-white">{manager.manager_name}</h2>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-white truncate">{manager.manager_name}</h2>
+              {squadData?.total_value && (
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-green-400">£{squadData.total_value}m</span>
+                  <span className="text-[10px] text-gray-500">
+                    (£{squadData.squad_value}m + £{squadData.bank}m)
+                  </span>
+                </div>
+              )}
+            </div>
             <p className="text-xs text-gray-500">{squadData?.team_name || manager.team_name}</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-white p-1">
+          <button onClick={onClose} className="text-gray-500 hover:text-white p-1 flex-shrink-0">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
