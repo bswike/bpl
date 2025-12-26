@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import Papa from 'papaparse';
 
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
@@ -131,7 +132,6 @@ const FPLMultiGameweekDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [chipsLoading, setChipsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [papaReady, setPapaReady] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [lastUpdate, setLastUpdate] = useState(null);
   const [selectedManager, setSelectedManager] = useState(null);
@@ -146,36 +146,6 @@ const FPLMultiGameweekDashboard = () => {
   const fallbackIntervalRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const initialLoadDoneRef = useRef(false);
-
-  // Load PapaParse first before anything else
-  useEffect(() => {
-    if (window.Papa) {
-      setPapaReady(true);
-      return;
-    }
-    
-    const script = document.createElement('script');
-    script.id = 'papaparse-script';
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
-    script.async = true;
-    script.onload = () => {
-      console.log('PapaParse loaded successfully');
-      setPapaReady(true);
-    };
-    script.onerror = (e) => {
-      console.error('Failed to load PapaParse:', e);
-      setError("Failed to load data parsing library. Please refresh the page.");
-      setLoading(false);
-    };
-    document.body.appendChild(script);
-    
-    return () => {
-      const existingScript = document.getElementById('papaparse-script');
-      if (existingScript) {
-        document.body.removeChild(existingScript);
-      }
-    };
-  }, []);
 
   // Load chips data independently with better error handling
   useEffect(() => {
@@ -225,7 +195,7 @@ const FPLMultiGameweekDashboard = () => {
         return [];
       }
 
-      const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
+      const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
       if (parsed.errors?.length) {
         console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
       }
@@ -244,12 +214,6 @@ const FPLMultiGameweekDashboard = () => {
   }, []);
 
   const fetchData = useCallback(async () => {
-    // Check if Papa is ready before proceeding
-    if (!window.Papa) {
-      console.warn('Papa is not ready yet, skipping fetch');
-      return;
-    }
-
     if (cycleAbortRef.current) cycleAbortRef.current.abort();
     const abort = new AbortController();
     cycleAbortRef.current = abort;
@@ -536,16 +500,10 @@ const FPLMultiGameweekDashboard = () => {
     setupSSERef.current = setupSSE;
   }, [setupSSE]);
 
-  // Separate effect for initial data load
+  // Initial data load
   useEffect(() => {
-    if (!papaReady) {
-      console.log('Waiting for PapaParse to be ready...');
-      return;
-    }
-
-    console.log('PapaParse ready, initiating first data fetch');
     fetchData();
-  }, [papaReady, fetchData]);
+  }, [fetchData]);
 
   // Separate effect for SSE setup after initial load
   useEffect(() => {
@@ -816,15 +774,6 @@ const FPLMultiGameweekDashboard = () => {
       </div>
     );
   };
-
-  // Better loading state handling
-  if (!papaReady) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">
-        Loading Dependencies...
-      </div>
-    );
-  }
 
   if (loading && data.length === 0) {
     return (

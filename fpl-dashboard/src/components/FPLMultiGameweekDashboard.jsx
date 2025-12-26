@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import Papa from 'papaparse';
 
 // --- Constants ---
 
@@ -177,7 +178,6 @@ const useFplData = () => {
   const [latestGameweek, setLatestGameweek] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [papaReady, setPapaReady] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [lastUpdate, setLastUpdate] = useState(null);
   const [fixtureData, setFixtureData] = useState({ fixtures: [], teamMap: {}, playerTeamMap: {} });
@@ -195,37 +195,9 @@ const useFplData = () => {
   const sseSetupDoneRef = useRef(false);
   const scrollPositionRef = useRef(0); // Track scroll position to prevent jump
 
-  // Load PapaParse
+  // Clear old caches on first load
   useEffect(() => {
-    if (window.Papa) {
-      setPapaReady(true);
-      return;
-    }
-    
-    // Clear old caches on first load
     clearOldCaches();
-    
-    const script = document.createElement('script');
-    script.id = 'papaparse-script';
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
-    script.async = true;
-    script.onload = () => {
-      console.log('PapaParse loaded successfully');
-      setPapaReady(true);
-    };
-    script.onerror = (e) => {
-      console.error('Failed to load PapaParse:', e);
-      setError("Error: Failed to load data parsing library.");
-      setLoading(false);
-    };
-    document.body.appendChild(script);
-    
-    return () => {
-      const existingScript = document.getElementById('papaparse-script');
-      if (existingScript) {
-        document.body.removeChild(existingScript);
-      }
-    };
   }, []);
 
   // Load fixtures
@@ -272,7 +244,7 @@ const useFplData = () => {
 
   const parseCsvToManagers = useCallback((csvText, gameweek) => {
     if (!csvText || csvText.trim() === "The game is being updated.") return [];
-    const parsed = window.Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
+    const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
     if (parsed.errors?.length) console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
     const managerStats = Object.create(null);
     const captainChoices = {}; // Track captain choices for this gameweek
@@ -395,11 +367,6 @@ const playerData = {
   }, [parseCsvToManagers]);
 
   const fetchData = useCallback(async () => {
-    if (!window.Papa) {
-      console.warn('Papa is not ready yet, skipping fetch');
-      return;
-    }
-
     if (cycleAbortRef.current) cycleAbortRef.current.abort();
     const abort = new AbortController();
     cycleAbortRef.current = abort;
@@ -502,11 +469,8 @@ const playerData = {
 
   // Initial data load
   useEffect(() => {
-    if (!papaReady) return;
-    
-    console.log('PapaParse ready, loading initial data');
     fetchData();
-  }, [papaReady, fetchData]);
+  }, [fetchData]);
 
   // Setup SSE ONLY after we have data
   useEffect(() => {
