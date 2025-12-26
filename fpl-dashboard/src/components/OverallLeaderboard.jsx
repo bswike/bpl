@@ -16,28 +16,28 @@ const OverallLeaderboard = () => {
   const [gwStatus, setGwStatus] = useState(null);
   const [countdown, setCountdown] = useState('');
 
-  // Entry ID mapping
+  // Entry ID mapping (verified against FPL API)
   const entryIdMap = {
-    'Garrett Kunkel': 394273,
-    'Andrew Vidal': 373574,
-    'Brett Swikle': 650881,
-    'John Matthew': 6197529,
-    'Jared Alexander': 1094601,
-    'Joe Curran': 6256408,
+    'Andrew Vidal': 394273,
+    'Garrett Kunkel': 373574,
+    'John Matthew': 650881,
+    'Brett Swikle': 6197529,
+    'Joe Curran': 1094601,
+    'Chris Munoz': 6256408,
     'John Sebastian': 62221,
-    'Nate Cohen': 701623,
-    'Chris Munoz': 3405299,
-    'Evan Bagheri': 5438502,
+    'Jared Alexander': 701623,
+    'Evan Bagheri': 3405299,
+    'Nate Cohen': 5438502,
     'Dean Maghsadi': 5423005,
-    'Brian Pleines': 4807443,
-    'Max Maier': 581156,
-    'Adrian McLoughlin': 4912819,
-    'Wes H': 876871,
-    'Kevin Tomek': 4070923,
+    'Max Maier': 4807443,
+    'Adrian McLoughlin': 581156,
+    'Wes H': 4912819,
+    'Kevin Tomek': 876871,
+    'Brian Pleines': 4070923,
     'Kevin K': 5898648,
-    'Tony Tharakan': 872442,
+    'Patrick McCleary': 872442,
     'JP Fischer': 468791,
-    'Patrick McCleary': 8592148,
+    'Tony Tharakan': 8592148,
   };
 
   // Fetch leaderboard data
