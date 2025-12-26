@@ -871,21 +871,17 @@ const FPLMultiGameweekDashboard = () => {
           </div>
         </header>
 
-        <main className="space-y-4">
+        <main>
           {showChipsSection && (
-            <div className="bg-gray-800/40 backdrop-blur-xl rounded-xl border border-gray-700/50 overflow-hidden">
-              <div className="p-3 sm:p-4">
-                <ChipsLeaderboard
-                  chipsData={chipsData}
-                  data={mergedData}
-                  onManagerClick={handleManagerClick}
-                />
-              </div>
-            </div>
+            <ChipsLeaderboard
+              chipsData={chipsData}
+              data={mergedData}
+              onManagerClick={handleManagerClick}
+            />
           )}
 
           {chipsLoading && (
-            <div className="bg-gray-800/40 rounded-xl border border-gray-700/50 p-8 text-center">
+            <div className="p-8 text-center">
               <p className="text-gray-400 animate-pulse">Loading chips data...</p>
             </div>
           )}
