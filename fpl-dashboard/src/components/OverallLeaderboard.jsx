@@ -511,9 +511,10 @@ const PlayerRowCompact = ({ player, getPositionColor, getDifficultyColor, format
           <span className="text-sm text-white truncate">{player.name}</span>
           {player.is_captain && <span className="text-[9px] bg-cyan-600 text-white px-1 rounded">C</span>}
           {player.is_vice_captain && <span className="text-[9px] bg-gray-600 text-white px-1 rounded">V</span>}
+          <span className="text-[10px] text-gray-500">£{player.price?.toFixed(1) || '?'}m</span>
         </div>
-        <div className="text-[10px] text-gray-600">
-          {player.team_name} · {player.total_points}pts · {player.form}f
+        <div className="text-[10px] text-gray-500">
+          {player.team} · <span className="text-cyan-400">{player.prev_gw_points || 0}pts</span> last GW · {player.form}f
         </div>
       </div>
 
