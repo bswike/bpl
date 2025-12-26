@@ -222,16 +222,19 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
     };
   };
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isBackgroundRefresh = false) => {
     if (abortRef.current) abortRef.current.abort();
     const abort = new AbortController();
     abortRef.current = abort;
     const myId = ++fetchCycleIdRef.current;
 
-    setLoading(true);
+    // Only show loading on initial load, not background refreshes
+    if (!isBackgroundRefresh) {
+      setLoading(true);
+      setEnter(false);
+      setProgress({ loaded: 0, total: 0 });
+    }
     setError(null);
-    setEnter(false);
-    setProgress({ loaded: 0, total: 0 });
 
     try {
       const manifestRes = await fetch(
@@ -415,8 +418,8 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
           case 'gameweek_updated':
             console.log('Gameweek update detected:', message.data);
             if (message.data.manifest_version !== manifestVersionRef.current) {
-              console.log('New data version detected, refreshing...');
-              fetchData();
+              console.log('New data version detected, refreshing silently...');
+              fetchData(true); // Background refresh - won't reset scroll
             }
             break;
           
@@ -450,7 +453,7 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
       } else {
         console.log('Max SSE reconnection attempts reached, falling back to polling');
         if (!fallbackIntervalRef.current) {
-          fallbackIntervalRef.current = setInterval(fetchData, FALLBACK_POLL_INTERVAL_MS);
+          fallbackIntervalRef.current = setInterval(() => fetchData(true), FALLBACK_POLL_INTERVAL_MS);
         }
       }
     };

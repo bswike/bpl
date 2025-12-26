@@ -376,12 +376,17 @@ const playerData = {
     }
   }, [parseCsvToManagers]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (isBackgroundRefresh = false) => {
     if (cycleAbortRef.current) cycleAbortRef.current.abort();
     const abort = new AbortController();
     cycleAbortRef.current = abort;
     const myId = ++fetchCycleIdRef.current;
-    setLoading(true);
+    
+    // Only show loading skeleton on initial load, not background refreshes
+    // This prevents scroll position from resetting
+    if (!isBackgroundRefresh) {
+      setLoading(true);
+    }
     
     try {
       console.log('📡 Starting optimized data fetch...');
@@ -535,8 +540,8 @@ const playerData = {
           case 'gameweek_updated':
             console.log('Gameweek update detected:', message.data);
             if (message.data.manifest_version !== manifestVersionRef.current) {
-              console.log('New data version detected, refreshing...');
-              fetchData();
+              console.log('New data version detected, refreshing silently...');
+              fetchData(true); // Background refresh - won't reset scroll
             }
             break;
           case 'error':
@@ -571,7 +576,7 @@ const playerData = {
         console.log('Max SSE reconnection attempts reached, falling back to polling');
         if (!fallbackIntervalRef.current) {
           fallbackIntervalRef.current = setInterval(() => {
-            fetchData();
+            fetchData(true); // Background refresh - won't reset scroll
           }, FALLBACK_POLL_INTERVAL_MS);
         }
       }
