@@ -15,6 +15,7 @@ const OverallLeaderboard = () => {
   const [squadLoading, setSquadLoading] = useState(false);
   const [gwStatus, setGwStatus] = useState(null);
   const [countdown, setCountdown] = useState('');
+  const [managerValues, setManagerValues] = useState({}); // Store total values for all managers
 
   // Entry ID mapping (verified against FPL API)
   const entryIdMap = {
@@ -191,6 +192,48 @@ const OverallLeaderboard = () => {
     const interval = setInterval(fetchStatus, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fetch total values for all managers (squad + bank)
+  useEffect(() => {
+    if (combinedData.length === 0) return;
+    
+    const fetchAllValues = async () => {
+      const values = {};
+      
+      // Fetch all manager values in parallel
+      const promises = combinedData.map(async (manager) => {
+        const entryId = entryIdMap[manager.manager_name];
+        if (!entryId) return null;
+        
+        try {
+          const res = await fetch(`https://bpl-red-sun-894.fly.dev/api/squad/${entryId}`);
+          if (res.ok) {
+            const data = await res.json();
+            return { 
+              manager_name: manager.manager_name, 
+              total_value: data.total_value,
+              squad_value: data.squad_value,
+              bank: data.bank
+            };
+          }
+        } catch (err) {
+          console.error(`Failed to fetch value for ${manager.manager_name}:`, err);
+        }
+        return null;
+      });
+      
+      const results = await Promise.all(promises);
+      results.forEach(result => {
+        if (result) {
+          values[result.manager_name] = result;
+        }
+      });
+      
+      setManagerValues(values);
+    };
+    
+    fetchAllValues();
+  }, [combinedData]);
 
   // Countdown timer
   useEffect(() => {
@@ -387,8 +430,8 @@ const OverallLeaderboard = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm text-white truncate">{manager.manager_name}</span>
-                {manager.team_value > 0 && (
-                  <span className="text-[10px] text-green-400">£{manager.team_value.toFixed(1)}m</span>
+                {managerValues[manager.manager_name]?.total_value > 0 && (
+                  <span className="text-[10px] text-green-400">£{managerValues[manager.manager_name].total_value.toFixed(1)}m</span>
                 )}
                 {manager.gws_won > 0 && (
                   <span className="text-[10px] text-yellow-400">🏆{manager.gws_won}</span>
