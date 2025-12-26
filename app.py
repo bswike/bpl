@@ -331,6 +331,340 @@ def get_gameweek_data(gameweek):
         log(f"[proxy] Error serving GW{gameweek}: {e}")
         return {'error': 'Internal server error'}, 500
 
+# Cache for player stats (5 minutes - players don't change often)
+player_cache = {}
+player_cache_lock = threading.Lock()
+PLAYER_CACHE_DURATION = 300  # 5 minutes
+
+@app.route('/api/player/<int:element_id>')
+def get_player_stats(element_id):
+    """Fetch detailed player stats from FPL API"""
+    current_time = time.time()
+    
+    # Check cache
+    with player_cache_lock:
+        if element_id in player_cache:
+            cached = player_cache[element_id]
+            if (current_time - cached["timestamp"]) < PLAYER_CACHE_DURATION:
+                return cached["data"], 200
+    
+    try:
+        # Fetch bootstrap for team/position info
+        bootstrap_res = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/", timeout=10)
+        bootstrap_res.raise_for_status()
+        bootstrap = bootstrap_res.json()
+        
+        # Find player in elements
+        player_info = None
+        for p in bootstrap.get('elements', []):
+            if p['id'] == element_id:
+                player_info = p
+                break
+        
+        if not player_info:
+            return {'error': 'Player not found'}, 404
+        
+        # Get team name
+        team_id = player_info.get('team')
+        team_name = "Unknown"
+        for t in bootstrap.get('teams', []):
+            if t['id'] == team_id:
+                team_name = t['short_name']
+                break
+        
+        # Get position
+        position_map = {1: 'GKP', 2: 'DEF', 3: 'MID', 4: 'FWD'}
+        position = position_map.get(player_info.get('element_type'), 'UNK')
+        
+        # Fetch player's detailed history
+        history_res = requests.get(f"https://fantasy.premierleague.com/api/element-summary/{element_id}/", timeout=10)
+        history_res.raise_for_status()
+        history_data = history_res.json()
+        
+        result = {
+            'player_info': {
+                'id': element_id,
+                'first_name': player_info.get('first_name'),
+                'second_name': player_info.get('second_name'),
+                'web_name': player_info.get('web_name'),
+                'team': team_name,
+                'position': position,
+                'now_cost': player_info.get('now_cost', 0) / 10,
+                'total_points': player_info.get('total_points', 0),
+                'form': player_info.get('form', '0.0'),
+                'points_per_game': player_info.get('points_per_game', '0.0'),
+                'selected_by_percent': player_info.get('selected_by_percent', '0.0'),
+                'ict_index': player_info.get('ict_index', '0.0'),
+                'influence': player_info.get('influence', '0.0'),
+                'creativity': player_info.get('creativity', '0.0'),
+                'threat': player_info.get('threat', '0.0'),
+            },
+            'history': history_data.get('history', []),
+            'fixtures': history_data.get('fixtures', []),
+            'season_stats': {
+                'minutes': player_info.get('minutes', 0),
+                'goals_scored': player_info.get('goals_scored', 0),
+                'assists': player_info.get('assists', 0),
+                'clean_sheets': player_info.get('clean_sheets', 0),
+                'bonus': player_info.get('bonus', 0),
+                'yellow_cards': player_info.get('yellow_cards', 0),
+                'red_cards': player_info.get('red_cards', 0),
+            }
+        }
+        
+        # Cache the result
+        with player_cache_lock:
+            player_cache[element_id] = {"data": result, "timestamp": current_time}
+        
+        log(f"[player] Served stats for player {element_id} ({player_info.get('web_name')})")
+        return result, 200
+        
+    except Exception as e:
+        log(f"[player] Error fetching player {element_id}: {e}")
+        return {'error': 'Failed to fetch player data'}, 500
+
+# Cache for squad data (2 minutes)
+squad_cache = {}
+squad_cache_lock = threading.Lock()
+SQUAD_CACHE_DURATION = 120  # 2 minutes
+
+@app.route('/api/squad/<int:entry_id>')
+def get_squad(entry_id):
+    """Fetch a manager's current squad from FPL API"""
+    current_time = time.time()
+    
+    # Check cache
+    with squad_cache_lock:
+        if entry_id in squad_cache:
+            cached = squad_cache[entry_id]
+            if (current_time - cached["timestamp"]) < SQUAD_CACHE_DURATION:
+                return cached["data"], 200
+    
+    try:
+        # Fetch bootstrap for player/team info
+        bootstrap_res = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/", timeout=10)
+        bootstrap_res.raise_for_status()
+        bootstrap = bootstrap_res.json()
+        
+        # Build lookup maps
+        players_map = {p['id']: p for p in bootstrap.get('elements', [])}
+        teams_map = {t['id']: t for t in bootstrap.get('teams', [])}
+        position_map = {1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD'}
+        
+        # Find current and next gameweek
+        events = bootstrap.get('events', [])
+        current_event = None
+        next_event = None
+        for event in events:
+            if event.get('is_current'):
+                current_event = event['id']
+            if event.get('is_next'):
+                next_event = event['id']
+        
+        if not current_event:
+            current_event = 1
+        
+        # Fetch manager info
+        manager_res = requests.get(f"https://fantasy.premierleague.com/api/entry/{entry_id}/", timeout=10)
+        manager_res.raise_for_status()
+        manager_data = manager_res.json()
+        team_name = manager_data.get('name', 'Unknown Team')
+        
+        # Get manager's value info (in tenths, so divide by 10)
+        last_deadline_value = manager_data.get('last_deadline_value', 0) / 10  # Squad value at last deadline
+        last_deadline_bank = manager_data.get('last_deadline_bank', 0) / 10  # Bank at last deadline
+        last_deadline_total = manager_data.get('last_deadline_total_transfers', 0)
+        
+        # Fetch picks for current gameweek
+        picks_res = requests.get(f"https://fantasy.premierleague.com/api/entry/{entry_id}/event/{current_event}/picks/", timeout=10)
+        picks_res.raise_for_status()
+        picks_data = picks_res.json()
+        
+        # Fetch live data for current gameweek to get points
+        live_res = requests.get(f"https://fantasy.premierleague.com/api/event/{current_event}/live/", timeout=10)
+        live_res.raise_for_status()
+        live_data = live_res.json()
+        live_elements = {e['id']: e for e in live_data.get('elements', [])}
+        
+        # Fetch fixtures for next gameweek to show upcoming matches
+        fixtures_by_team = {}
+        fixture_gw = next_event if next_event else current_event
+        try:
+            fixtures_res = requests.get(f"https://fantasy.premierleague.com/api/fixtures/?event={fixture_gw}", timeout=10)
+            if fixtures_res.ok:
+                fixtures_data = fixtures_res.json()
+                for fix in fixtures_data:
+                    # For home team
+                    fixtures_by_team[fix['team_h']] = {
+                        'opponent_id': fix['team_a'],
+                        'opponent_name': teams_map.get(fix['team_a'], {}).get('short_name', '???'),
+                        'is_home': True,
+                        'difficulty': fix.get('team_h_difficulty', 3),
+                        'kickoff_time': fix.get('kickoff_time'),
+                        'finished': fix.get('finished', False),
+                    }
+                    # For away team
+                    fixtures_by_team[fix['team_a']] = {
+                        'opponent_id': fix['team_h'],
+                        'opponent_name': teams_map.get(fix['team_h'], {}).get('short_name', '???'),
+                        'is_home': False,
+                        'difficulty': fix.get('team_a_difficulty', 3),
+                        'kickoff_time': fix.get('kickoff_time'),
+                        'finished': fix.get('finished', False),
+                    }
+        except Exception as e:
+            log(f"[squad] Failed to fetch fixtures: {e}")
+        
+        # Get team standings for opponent position display
+        team_positions = {}
+        sorted_teams = sorted(bootstrap.get('teams', []), key=lambda t: (-t.get('points', 0), t.get('position', 99)))
+        for idx, team in enumerate(sorted_teams):
+            team_positions[team['id']] = idx + 1
+        
+        # Fetch previous gameweek points
+        prev_gw_points = {}
+        if current_event > 1:
+            try:
+                prev_live_res = requests.get(f"https://fantasy.premierleague.com/api/event/{current_event - 1}/live/", timeout=10)
+                if prev_live_res.ok:
+                    prev_live_data = prev_live_res.json()
+                    for elem in prev_live_data.get('elements', []):
+                        prev_gw_points[elem['id']] = elem.get('stats', {}).get('total_points', 0)
+            except Exception as e:
+                log(f"[squad] Failed to fetch prev GW points: {e}")
+        
+        # Build squad list
+        squad = []
+        for pick in picks_data.get('picks', []):
+            element_id = pick['element']
+            player = players_map.get(element_id, {})
+            team = teams_map.get(player.get('team'), {})
+            live_player = live_elements.get(element_id, {})
+            stats = live_player.get('stats', {})
+            
+            # Get next fixture for this player's team
+            player_team_id = player.get('team')
+            next_fixture = fixtures_by_team.get(player_team_id)
+            if next_fixture:
+                next_fixture = next_fixture.copy()  # Don't mutate the original
+                next_fixture['opponent_position'] = team_positions.get(next_fixture.get('opponent_id'), 0)
+            
+            squad.append({
+                'element_id': element_id,
+                'name': player.get('web_name', 'Unknown'),
+                'position': position_map.get(player.get('element_type'), 'UNK'),
+                'team': team.get('short_name', '???'),
+                'team_name': team.get('short_name', '???'),  # Alias for frontend
+                'team_id': player_team_id,
+                'slot': pick['position'],
+                'is_captain': pick.get('is_captain', False),
+                'is_vice_captain': pick.get('is_vice_captain', False),
+                'multiplier': pick.get('multiplier', 1),
+                'points': stats.get('total_points', 0),  # Current GW points
+                'prev_gw_points': prev_gw_points.get(element_id, 0),  # Previous GW points
+                'total_points': player.get('total_points', 0),  # Season total
+                'form': player.get('form', '0.0'),
+                'price': player.get('now_cost', 0) / 10,  # Price in millions
+                'minutes': stats.get('minutes', 0),
+                'next_fixture': next_fixture,
+            })
+        
+        # Calculate squad value from player prices
+        squad_value = sum(p.get('price', 0) for p in squad)
+        
+        result = {
+            'entry_id': entry_id,
+            'team_name': team_name,
+            'gameweek': current_event,
+            'squad': squad,
+            'squad_value': round(squad_value, 1),
+            'bank': round(last_deadline_bank, 1),
+            'total_value': round(squad_value + last_deadline_bank, 1),
+        }
+        
+        # Cache the result
+        with squad_cache_lock:
+            squad_cache[entry_id] = {"data": result, "timestamp": current_time}
+        
+        log(f"[squad] Served squad for entry {entry_id} ({team_name})")
+        return result, 200
+        
+    except Exception as e:
+        log(f"[squad] Error fetching squad for entry {entry_id}: {e}")
+        return {'error': 'Failed to fetch squad data'}, 500
+
+# Cache for manager history (transfers) - 5 minutes
+manager_history_cache = {}
+manager_history_cache_lock = threading.Lock()
+MANAGER_HISTORY_CACHE_DURATION = 300  # 5 minutes
+
+@app.route('/api/manager-history/<int:entry_id>')
+def get_manager_history(entry_id):
+    """Fetch a manager's season history including transfers and chips"""
+    current_time = time.time()
+    
+    # Check cache
+    with manager_history_cache_lock:
+        if entry_id in manager_history_cache:
+            cached = manager_history_cache[entry_id]
+            if (current_time - cached["timestamp"]) < MANAGER_HISTORY_CACHE_DURATION:
+                return cached["data"], 200
+    
+    try:
+        # Fetch manager's history
+        history_res = requests.get(
+            f"https://fantasy.premierleague.com/api/entry/{entry_id}/history/",
+            timeout=10
+        )
+        history_res.raise_for_status()
+        history_data = history_res.json()
+        
+        # Process gameweek history
+        gw_history = []
+        total_transfers = 0
+        total_transfer_cost = 0
+        
+        for gw in history_data.get('current', []):
+            gw_history.append({
+                'gameweek': gw.get('event'),
+                'points': gw.get('points', 0),
+                'points_on_bench': gw.get('points_on_bench', 0),
+                'transfers_made': gw.get('event_transfers', 0),
+                'transfer_cost': gw.get('event_transfers_cost', 0),
+                'overall_rank': gw.get('overall_rank', 0),
+                'bank': gw.get('bank', 0) / 10,  # Convert to millions
+                'value': gw.get('value', 0) / 10,  # Convert to millions
+            })
+            total_transfers += gw.get('event_transfers', 0)
+            total_transfer_cost += gw.get('event_transfers_cost', 0)
+        
+        # Process chips used
+        chips_used = []
+        for chip in history_data.get('chips', []):
+            chips_used.append({
+                'name': chip.get('name'),
+                'gameweek': chip.get('event'),
+            })
+        
+        result = {
+            'entry_id': entry_id,
+            'gameweek_history': gw_history,
+            'total_transfers': total_transfers,
+            'total_transfer_cost': total_transfer_cost,
+            'chips_used': chips_used,
+        }
+        
+        # Cache the result
+        with manager_history_cache_lock:
+            manager_history_cache[entry_id] = {"data": result, "timestamp": current_time}
+        
+        log(f"[manager-history] Served history for entry {entry_id}")
+        return result, 200
+        
+    except Exception as e:
+        log(f"[manager-history] Error fetching history for entry {entry_id}: {e}")
+        return {'error': 'Failed to fetch manager history'}, 500
+
 # Cache for gameweek status
 gw_status_cache = {"data": None, "timestamp": 0}
 gw_status_cache_lock = threading.Lock()
@@ -387,10 +721,10 @@ def get_gameweek_status():
         log(f"[gw-status] Error: {e}")
         return {'error': 'Failed to fetch gameweek status'}, 500
 
-# Cache for historical data (never changes, so cache for 1 hour)
+# Cache for historical data (never changes, so cache for 24 hours)
 historical_cache = {"data": None, "version": None, "timestamp": 0}
 historical_cache_lock = threading.Lock()
-HISTORICAL_CACHE_DURATION = 3600  # 1 hour
+HISTORICAL_CACHE_DURATION = 86400  # 24 hours - historical data never changes
 
 @app.route('/api/historical')
 def get_historical_data():
