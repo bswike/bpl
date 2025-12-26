@@ -1348,7 +1348,59 @@ if (gwData.defensive_contribution > 0) {
   );
 };
 
+// Entry ID mapping for fetching manager value
+const ENTRY_ID_MAP = {
+  'Andrew Vidal': 394273,
+  'Garrett Kunkel': 373574,
+  'John Matthew': 650881,
+  'Brett Swikle': 6197529,
+  'Joe Curran': 1094601,
+  'Chris Munoz': 6256408,
+  'John Sebastian': 62221,
+  'Jared Alexander': 701623,
+  'Evan Bagheri': 3405299,
+  'Nate Cohen': 5438502,
+  'Dean Maghsadi': 5423005,
+  'Max Maier': 4807443,
+  'Adrian McLoughlin': 581156,
+  'Wes H': 4912819,
+  'Kevin Tomek': 876871,
+  'Brian Pleines': 4070923,
+  'Kevin K': 5898648,
+  'Patrick McCleary': 872442,
+  'JP Fischer': 468791,
+  'Tony Tharakan': 8592148,
+};
+
 const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData, gameweekData, onPlayerClick }) => {
+  const [valueInfo, setValueInfo] = React.useState(null);
+  
+  // Fetch manager value info
+  React.useEffect(() => {
+    if (!manager?.manager_name) return;
+    
+    const entryId = ENTRY_ID_MAP[manager.manager_name];
+    if (!entryId) return;
+    
+    const fetchValue = async () => {
+      try {
+        const res = await fetch(`https://bpl-red-sun-894.fly.dev/api/squad/${entryId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setValueInfo({
+            total: data.total_value,
+            squad: data.squad_value,
+            bank: data.bank,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch value info:', err);
+      }
+    };
+    
+    fetchValue();
+  }, [manager?.manager_name]);
+  
   if (!manager) return null;
 
   const calculateLeagueOwnership = (playerName) => {
@@ -1535,7 +1587,17 @@ const getFixtureTimingText = (player, currentGameweek) => {
       <div className="bg-slate-800 rounded-lg max-w-5xl w-full max-h-[75vh] md:max-h-[90vh] overflow-hidden shadow-2xl border border-slate-700 flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex-shrink-0 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700 p-2.5 md:p-4 flex justify-between items-center">
           <div className="flex-1 min-w-0 pr-2">
-            <h2 className="text-base md:text-xl font-bold text-white truncate">{manager.manager_name}</h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base md:text-xl font-bold text-white truncate">{manager.manager_name}</h2>
+              {valueInfo && (
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-green-400">£{valueInfo.total}m</span>
+                  <span className="text-[9px] text-gray-500 hidden sm:inline">
+                    (£{valueInfo.squad}m + £{valueInfo.bank}m)
+                  </span>
+                </div>
+              )}
+            </div>
             <p className="text-xs md:text-sm text-gray-400 truncate">"{manager.team_name}" • GW{manager.gameweek}</p>
             {modalSubtitle && (
               <p className="text-xs md:text-sm text-cyan-400 mt-0.5">{modalSubtitle}</p>
