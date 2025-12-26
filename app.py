@@ -235,9 +235,22 @@ def get_manifest():
         'Expires': '0'
     }
 
+# Cache for fixtures (5 minutes - fixtures don't change often)
+fixtures_cache = {"data": None, "timestamp": 0}
+fixtures_cache_lock = threading.Lock()
+FIXTURES_CACHE_DURATION = 300  # 5 minutes
+
 @app.route('/api/fixtures')
 def get_fixtures():
     """Fetch and return FPL fixture data with player mappings"""
+    current_time = time.time()
+    
+    # Check cache first
+    with fixtures_cache_lock:
+        if fixtures_cache["data"] and (current_time - fixtures_cache["timestamp"]) < FIXTURES_CACHE_DURATION:
+            log("[fixtures] Served from cache")
+            return fixtures_cache["data"], 200
+    
     try:
         # Fetch bootstrap data (includes teams and players)
         bootstrap_response = requests.get(
@@ -273,13 +286,20 @@ def get_fixtures():
             # Add second_name only (most common in your CSV)
             player_team_map[player['second_name']] = team_name
         
-        log(f"[fixtures] Served {len(fixtures_data)} fixtures with {len(team_map)} teams and {len(player_team_map)} player mappings")
-        
-        return {
+        result = {
             'fixtures': fixtures_data,
             'teamMap': team_map,
             'playerTeamMap': player_team_map
-        }, 200
+        }
+        
+        # Cache the result
+        with fixtures_cache_lock:
+            fixtures_cache["data"] = result
+            fixtures_cache["timestamp"] = current_time
+        
+        log(f"[fixtures] Served {len(fixtures_data)} fixtures with {len(team_map)} teams and {len(player_team_map)} player mappings")
+        
+        return result, 200
         
     except Exception as e:
         log(f"[fixtures] Error fetching data: {e}")
