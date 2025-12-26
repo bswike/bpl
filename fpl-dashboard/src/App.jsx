@@ -72,34 +72,34 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
 };
 
 function App() {
-  // Default to multi-gw immediately (no blocking)
-  const [currentPage, setCurrentPage] = useState('multi-gw');
-  const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
+  // Don't set initial page until we check status - prevents double-fetch!
+  const [currentPage, setCurrentPage] = useState(null);
+  const [isReady, setIsReady] = useState(false);
 
-  // Check GW status in background (non-blocking)
+  // Check GW status BEFORE rendering any page (fast ~200ms)
   useEffect(() => {
-    if (hasCheckedStatus) return;
+    if (isReady) return;
     
     const checkStatus = async () => {
       try {
         const res = await fetch('https://bpl-red-sun-894.fly.dev/api/gameweek-status');
         if (res.ok) {
           const data = await res.json();
-          // Only auto-switch if GW is NOT active (show standings)
-          if (!data.is_active) {
-            setCurrentPage('standings');
-          }
+          // Show multi-gw during live action, standings otherwise
+          setCurrentPage(data.is_active ? 'multi-gw' : 'standings');
+        } else {
+          setCurrentPage('multi-gw'); // Default fallback
         }
       } catch (err) {
-        // Silently fail - just stay on current page
         console.log('GW status check failed, using default view');
+        setCurrentPage('multi-gw'); // Default fallback
       } finally {
-        setHasCheckedStatus(true);
+        setIsReady(true);
       }
     };
     
     checkStatus();
-  }, [hasCheckedStatus]);
+  }, [isReady]);
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -115,6 +115,15 @@ function App() {
         return <FPLMultiGameweekDashboard />;
     }
   };
+
+  // Wait for status check before rendering any component
+  if (!isReady || !currentPage) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-gray-100 flex items-center justify-center">
+        <div className="text-cyan-400 text-lg animate-pulse">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-900 text-gray-100 pb-20">

@@ -28,7 +28,6 @@ const OverallLeaderboard = () => {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' or 'team'
   const [gwStatus, setGwStatus] = useState(null);
   const [countdown, setCountdown] = useState('');
-  const [managerValues, setManagerValues] = useState({}); // Store total values for all managers
 
   // Entry ID mapping (verified against FPL API)
   const entryIdMap = {
@@ -310,47 +309,9 @@ const OverallLeaderboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch total values for all managers (squad + bank)
-  useEffect(() => {
-    if (combinedData.length === 0) return;
-    
-    const fetchAllValues = async () => {
-      const values = {};
-      
-      // Fetch all manager values in parallel
-      const promises = combinedData.map(async (manager) => {
-        const entryId = entryIdMap[manager.manager_name];
-        if (!entryId) return null;
-        
-        try {
-          const res = await fetch(`https://bpl-red-sun-894.fly.dev/api/squad/${entryId}`);
-          if (res.ok) {
-            const data = await res.json();
-            return { 
-              manager_name: manager.manager_name, 
-              total_value: data.total_value,
-              squad_value: data.squad_value,
-              bank: data.bank
-            };
-          }
-        } catch (err) {
-          console.error(`Failed to fetch value for ${manager.manager_name}:`, err);
-        }
-        return null;
-      });
-      
-      const results = await Promise.all(promises);
-      results.forEach(result => {
-        if (result) {
-          values[result.manager_name] = result;
-        }
-      });
-      
-      setManagerValues(values);
-    };
-    
-    fetchAllValues();
-  }, [combinedData]);
+  // NOTE: Removed fetchAllValues - was making 20 API calls on page load!
+  // Team values are now calculated from CSV data in buildCombinedData
+  // Full squad/bank data is only fetched when clicking on a manager
 
   // Countdown timer
   useEffect(() => {
@@ -558,8 +519,8 @@ const OverallLeaderboard = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm text-white truncate">{manager.manager_name}</span>
-                {managerValues[manager.manager_name]?.total_value > 0 && (
-                  <span className="text-[10px] text-green-400">£{managerValues[manager.manager_name].total_value.toFixed(1)}m</span>
+                {manager.team_value > 0 && (
+                  <span className="text-[10px] text-green-400">£{(manager.team_value / 10).toFixed(1)}m</span>
                 )}
                 {manager.gws_won > 0 && (
                   <span className="text-[10px] text-yellow-400">🏆{manager.gws_won}</span>
@@ -598,7 +559,6 @@ const OverallLeaderboard = () => {
           managerHistory={managerHistory}
           historyLoading={historyLoading}
           allManagers={combinedData}
-          managerValues={managerValues}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onClose={closeModal}
@@ -616,8 +576,7 @@ const ManagerOverviewModal = ({
   squadLoading, 
   managerHistory, 
   historyLoading, 
-  allManagers, 
-  managerValues,
+  allManagers,
   activeTab, 
   setActiveTab, 
   onClose 
@@ -671,11 +630,11 @@ const ManagerOverviewModal = ({
     return found?._rank || '-';
   };
 
-  // Get value rank with tie handling
+  // Get value rank with tie handling - uses team_value from CSV data
   const getValueRank = (managerName) => {
-    const items = Object.entries(managerValues)
-      .filter(([_, v]) => v?.total_value)
-      .map(([name, v]) => ({ name, value: v.total_value }))
+    const items = allManagers
+      .filter(m => m.team_value > 0)
+      .map(m => ({ name: m.manager_name, value: m.team_value }))
       .sort((a, b) => b.value - a.value);
     
     let currentRank = 1;
@@ -696,11 +655,11 @@ const ManagerOverviewModal = ({
     return '-';
   };
 
-  // Get value leaderboard with ties
+  // Get value leaderboard with ties - uses team_value from CSV data
   const getValueLeaderboard = () => {
-    const items = Object.entries(managerValues)
-      .filter(([_, v]) => v?.total_value)
-      .map(([name, v]) => ({ manager_name: name, _sortValue: v.total_value }))
+    const items = allManagers
+      .filter(m => m.team_value > 0)
+      .map(m => ({ manager_name: m.manager_name, _sortValue: m.team_value }))
       .sort((a, b) => b._sortValue - a._sortValue);
     
     let currentRank = 1;
@@ -848,9 +807,9 @@ const ManagerOverviewModal = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-white truncate">{manager.manager_name}</h2>
-              {managerValues[manager.manager_name]?.total_value && (
+              {squadData?.total_value && (
                 <span className="text-sm font-bold text-green-400">
-                  £{managerValues[manager.manager_name].total_value.toFixed(1)}m
+                  £{squadData.total_value.toFixed(1)}m
                 </span>
               )}
             </div>
@@ -912,7 +871,7 @@ const ManagerOverviewModal = ({
                   <StatRow 
                     icon={Wallet} 
                     label="Team Value" 
-                    value={managerValues[manager.manager_name]?.total_value?.toFixed(1) || '-'}
+                    value={squadData?.total_value?.toFixed(1) || (currentManager?.team_value ? (currentManager.team_value / 10).toFixed(1) : '-')}
                     suffix="m"
                     rank={getValueRank(manager.manager_name)}
                     statKey="team_value"
