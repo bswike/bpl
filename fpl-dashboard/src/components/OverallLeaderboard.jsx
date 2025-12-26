@@ -581,28 +581,99 @@ const ManagerOverviewModal = ({
   setActiveTab, 
   onClose 
 }) => {
-  // Calculate league ranks for a given stat
-  const getRank = (managerName, stat, sortDesc = true) => {
-    const sorted = [...allManagers].sort((a, b) => 
-      sortDesc ? (b[stat] || 0) - (a[stat] || 0) : (a[stat] || 0) - (b[stat] || 0)
+  const [expandedStat, setExpandedStat] = useState(null);
+
+  // Get sorted leaderboard with proper tie handling
+  const getSortedWithTies = (stat, sortDesc = true, valueGetter = null) => {
+    let items;
+    if (valueGetter) {
+      items = allManagers.map(m => ({
+        ...m,
+        _sortValue: valueGetter(m) || 0
+      }));
+    } else {
+      items = allManagers.map(m => ({
+        ...m,
+        _sortValue: m[stat] || 0
+      }));
+    }
+    
+    // Sort by value
+    items.sort((a, b) => sortDesc 
+      ? b._sortValue - a._sortValue 
+      : a._sortValue - b._sortValue
     );
-    const idx = sorted.findIndex(m => m.manager_name === managerName);
-    return idx >= 0 ? idx + 1 : '-';
+    
+    // Assign ranks with tie handling
+    let currentRank = 1;
+    let previousValue = null;
+    let skipCount = 0;
+    
+    return items.map((item, idx) => {
+      if (previousValue !== null && item._sortValue === previousValue) {
+        // Tie - use same rank as previous
+        skipCount++;
+      } else {
+        // New value - advance rank by skipCount + 1
+        currentRank = idx + 1;
+        skipCount = 0;
+      }
+      previousValue = item._sortValue;
+      return { ...item, _rank: currentRank };
+    });
   };
 
-  // Get value rank
+  // Calculate league ranks for a given stat (with tie handling)
+  const getRank = (managerName, stat, sortDesc = true) => {
+    const sorted = getSortedWithTies(stat, sortDesc);
+    const found = sorted.find(m => m.manager_name === managerName);
+    return found?._rank || '-';
+  };
+
+  // Get value rank with tie handling
   const getValueRank = (managerName) => {
-    const sorted = Object.entries(managerValues)
+    const items = Object.entries(managerValues)
       .filter(([_, v]) => v?.total_value)
-      .sort((a, b) => (b[1].total_value || 0) - (a[1].total_value || 0));
-    const idx = sorted.findIndex(([name]) => name === managerName);
-    return idx >= 0 ? idx + 1 : '-';
+      .map(([name, v]) => ({ name, value: v.total_value }))
+      .sort((a, b) => b.value - a.value);
+    
+    let currentRank = 1;
+    let previousValue = null;
+    
+    for (let i = 0; i < items.length; i++) {
+      if (previousValue !== null && items[i].value === previousValue) {
+        // Tie - keep same rank
+      } else {
+        currentRank = i + 1;
+      }
+      previousValue = items[i].value;
+      
+      if (items[i].name === managerName) {
+        return currentRank;
+      }
+    }
+    return '-';
   };
 
-  // Get transfer rank (fewer is better)
-  const getTransferRank = () => {
-    // We don't have all managers' transfer data, so skip ranking for now
-    return '-';
+  // Get value leaderboard with ties
+  const getValueLeaderboard = () => {
+    const items = Object.entries(managerValues)
+      .filter(([_, v]) => v?.total_value)
+      .map(([name, v]) => ({ manager_name: name, _sortValue: v.total_value }))
+      .sort((a, b) => b._sortValue - a._sortValue);
+    
+    let currentRank = 1;
+    let previousValue = null;
+    
+    return items.map((item, idx) => {
+      if (previousValue !== null && item._sortValue === previousValue) {
+        // Tie
+      } else {
+        currentRank = idx + 1;
+      }
+      previousValue = item._sortValue;
+      return { ...item, _rank: currentRank };
+    });
   };
 
   const currentManager = allManagers.find(m => m.manager_name === manager.manager_name) || {};
@@ -648,28 +719,82 @@ const ManagerOverviewModal = ({
     return () => { document.body.style.overflow = 'unset'; };
   }, []);
 
-  // Stat row component
-  const StatRow = ({ label, value, rank, icon: Icon, suffix = '' }) => (
-    <div className="flex items-center justify-between py-3 border-b border-slate-700/50 last:border-0">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">
-          <Icon size={16} className="text-cyan-400" />
+  // Stat row component - now clickable to show leaderboard
+  const StatRow = ({ label, value, rank, icon: Icon, suffix = '', statKey, sortDesc = true, leaderboard = null }) => {
+    const isExpanded = expandedStat === statKey;
+    const displayLeaderboard = leaderboard || (statKey ? getSortedWithTies(statKey, sortDesc) : []);
+    
+    return (
+      <div className="border-b border-slate-700/50 last:border-0">
+        <div 
+          className={`flex items-center justify-between py-3 cursor-pointer hover:bg-slate-800/30 transition-colors ${isExpanded ? 'bg-slate-800/30' : ''}`}
+          onClick={() => statKey && setExpandedStat(isExpanded ? null : statKey)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">
+              <Icon size={16} className="text-cyan-400" />
+            </div>
+            <span className="text-sm text-gray-300">{label}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-white">{value}{suffix}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full min-w-[36px] text-center ${
+              rank === 1 ? 'bg-yellow-500/20 text-yellow-400' :
+              rank <= 3 ? 'bg-green-500/20 text-green-400' :
+              rank >= allManagers.length - 2 ? 'bg-red-500/20 text-red-400' :
+              'bg-slate-700/50 text-gray-400'
+            }`}>
+              #{rank}
+            </span>
+            {statKey && (
+              <svg 
+                className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            )}
+          </div>
         </div>
-        <span className="text-sm text-gray-300">{label}</span>
+        
+        {/* Expanded Leaderboard */}
+        {isExpanded && displayLeaderboard.length > 0 && (
+          <div className="bg-slate-800/50 px-4 py-2 space-y-1">
+            {displayLeaderboard.map((m) => (
+              <div 
+                key={m.manager_name} 
+                className={`flex items-center justify-between py-1.5 px-2 rounded ${
+                  m.manager_name === manager.manager_name ? 'bg-cyan-500/10 border border-cyan-500/30' : ''
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs font-medium w-6 ${
+                    m._rank === 1 ? 'text-yellow-400' :
+                    m._rank <= 3 ? 'text-green-400' :
+                    m._rank >= allManagers.length - 2 ? 'text-red-400' :
+                    'text-gray-500'
+                  }`}>
+                    #{m._rank}
+                  </span>
+                  <span className={`text-xs ${m.manager_name === manager.manager_name ? 'text-cyan-400 font-medium' : 'text-gray-300'}`}>
+                    {m.manager_name}
+                  </span>
+                </div>
+                <span className="text-xs text-gray-400">
+                  {typeof m._sortValue === 'number' 
+                    ? (m._sortValue % 1 !== 0 ? m._sortValue.toFixed(1) : m._sortValue)
+                    : m._sortValue
+                  }{suffix}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-semibold text-white">{value}{suffix}</span>
-        <span className={`text-xs px-2 py-0.5 rounded-full min-w-[36px] text-center ${
-          rank === 1 ? 'bg-yellow-500/20 text-yellow-400' :
-          rank <= 3 ? 'bg-green-500/20 text-green-400' :
-          rank >= allManagers.length - 2 ? 'bg-red-500/20 text-red-400' :
-          'bg-slate-700/50 text-gray-400'
-        }`}>
-          #{rank}
-        </span>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-end sm:items-center justify-center z-50 pb-16 sm:pb-0" onClick={onClose}>
@@ -731,13 +856,15 @@ const ManagerOverviewModal = ({
                   <div className="text-gray-500 text-sm animate-pulse">Loading stats...</div>
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-0">
                   {/* Overall Points */}
                   <StatRow 
                     icon={BarChart3} 
                     label="Overall Points" 
                     value={`${currentManager.total_points || 0} (${realAvg}/wk)`}
                     rank={getRank(manager.manager_name, 'total_points')}
+                    statKey="total_points"
+                    sortDesc={true}
                   />
                   
                   {/* Team Value */}
@@ -747,22 +874,28 @@ const ManagerOverviewModal = ({
                     value={managerValues[manager.manager_name]?.total_value?.toFixed(1) || '-'}
                     suffix="m"
                     rank={getValueRank(manager.manager_name)}
+                    statKey="team_value"
+                    leaderboard={getValueLeaderboard()}
                   />
                   
                   {/* GWs Won */}
                   <StatRow 
                     icon={Trophy} 
-                    label="Gameweeks Won" 
+                    label="GWs Won" 
                     value={currentManager.gws_won || 0}
                     rank={getRank(manager.manager_name, 'gws_won')}
+                    statKey="gws_won"
+                    sortDesc={true}
                   />
                   
                   {/* GWs Last */}
                   <StatRow 
                     icon={TrendingDown} 
-                    label="Gameweeks Last" 
+                    label="GWs Last Place" 
                     value={currentManager.gws_last || 0}
                     rank={getRank(manager.manager_name, 'gws_last', false)}
+                    statKey="gws_last"
+                    sortDesc={true}
                   />
                   
                   {/* Form */}
@@ -771,6 +904,8 @@ const ManagerOverviewModal = ({
                     label="Form (Last 4 GWs)" 
                     value={currentManager.form?.toFixed(1) || '-'}
                     rank={getRank(manager.manager_name, 'form')}
+                    statKey="form"
+                    sortDesc={true}
                   />
                   
                   {/* Chicken Picks */}
@@ -779,6 +914,8 @@ const ManagerOverviewModal = ({
                     label="Chicken Picks" 
                     value={currentManager.chicken_picks || 0}
                     rank={getRank(manager.manager_name, 'chicken_picks')}
+                    statKey="chicken_picks"
+                    sortDesc={true}
                   />
                   
                   {/* Bench Points */}
@@ -787,6 +924,8 @@ const ManagerOverviewModal = ({
                     label="Bench Points" 
                     value={currentManager.total_bench_points || 0}
                     rank={getRank(manager.manager_name, 'total_bench_points')}
+                    statKey="total_bench_points"
+                    sortDesc={true}
                   />
                   
                   {/* Transfers */}
