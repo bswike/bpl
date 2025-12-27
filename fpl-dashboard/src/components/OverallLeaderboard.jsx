@@ -131,15 +131,16 @@ const OverallLeaderboard = () => {
   }, []);
 
   // Build combined data from gwData
-  // isCurrentGwFinished: if false, exclude latest GW from stats like GWs won/last, chicken picks
+  // isCurrentGwFinished: if false, exclude latest GW from GWs won/last and form ONLY
   const buildCombinedData = useCallback((gwData, gameweeks, isCurrentGwFinished = true) => {
     const managerTotals = {};
     const latestGw = gameweeks[gameweeks.length - 1];
     
-    // For stats calculations, only use finished GWs (exclude active GW)
+    // For GWs won/last and form, only use finished GWs
     const finishedGws = isCurrentGwFinished ? gameweeks : gameweeks.filter(gw => gw < latestGw);
     
-    // First pass: accumulate all data including active GW (for points display)
+    // First pass: accumulate ALL data including active GW
+    // (points, bench points, chicken picks, team value - these should include active GW)
     gameweeks.forEach(gw => {
       (gwData[gw] || []).forEach(m => {
         if (!managerTotals[m.manager_name]) {
@@ -157,6 +158,12 @@ const OverallLeaderboard = () => {
         }
         managerTotals[m.manager_name].total_points += m.total_points;
         managerTotals[m.manager_name][`gw${gw}_points`] = m.total_points;
+        managerTotals[m.manager_name].total_bench_points += m.bench_points || 0;
+        
+        // Chicken picks - include ALL gameweeks including active
+        if (m.picked_popular_captain) {
+          managerTotals[m.manager_name].chicken_picks += 1;
+        }
         
         // Team value from latest GW
         if (gw === latestGw && m.team_value) {
@@ -165,21 +172,7 @@ const OverallLeaderboard = () => {
       });
     });
     
-    // Second pass: only use FINISHED GWs for stats (chicken picks, bench points, gws won/last)
-    finishedGws.forEach(gw => {
-      (gwData[gw] || []).forEach(m => {
-        if (!managerTotals[m.manager_name]) return;
-        
-        managerTotals[m.manager_name].total_bench_points += m.bench_points || 0;
-        managerTotals[m.manager_name].gw_points_history.push({ gw, points: m.total_points });
-        
-        if (m.picked_popular_captain) {
-          managerTotals[m.manager_name].chicken_picks += 1;
-        }
-      });
-    });
-    
-    // GWs won/last: only count finished gameweeks
+    // GWs won/last: only count FINISHED gameweeks (not active - can't determine winner mid-GW)
     finishedGws.forEach(gw => {
       const gwManagers = gwData[gw] || [];
       if (gwManagers.length === 0) return;
@@ -199,7 +192,15 @@ const OverallLeaderboard = () => {
       });
     });
     
-    // Form: based on last 4 FINISHED gameweeks only
+    // Form: based on last 4 FINISHED gameweeks only (exclude active - incomplete data)
+    finishedGws.forEach(gw => {
+      (gwData[gw] || []).forEach(m => {
+        if (managerTotals[m.manager_name]) {
+          managerTotals[m.manager_name].gw_points_history.push({ gw, points: m.total_points });
+        }
+      });
+    });
+    
     Object.values(managerTotals).forEach(manager => {
       const history = manager.gw_points_history.sort((a, b) => b.gw - a.gw);
       const last4 = history.slice(0, 4);
