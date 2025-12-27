@@ -59,6 +59,7 @@ const DarkFPLPositionChart = () => {
 
   const [enter, setEnter] = useState(false);
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
+  const [mobileGwRange, setMobileGwRange] = useState('last8'); // 'last8' or 'all'
 
   const abortRef = useRef(null);
   const fetchCycleIdRef = useRef(0);
@@ -486,9 +487,22 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
 
   const maxGameweek = chartData.length > 0 ? chartData.length : 1;
 
-  const generateGameweekTicks = (maxGW) => {
+  // Filter chart data for mobile based on selected range
+  const mobileChartData = useMemo(() => {
+    if (mobileGwRange === 'all' || chartData.length <= 8) {
+      return chartData;
+    }
+    // Show last 8 gameweeks
+    const startGw = Math.max(1, maxGameweek - 7);
+    return chartData.filter(d => d.gameweek >= startGw);
+  }, [chartData, mobileGwRange, maxGameweek]);
+
+  const mobileMinGw = mobileChartData.length > 0 ? mobileChartData[0].gameweek : 1;
+  const mobileMaxGw = mobileChartData.length > 0 ? mobileChartData[mobileChartData.length - 1].gameweek : maxGameweek;
+
+  const generateGameweekTicks = (minGW, maxGW) => {
     const ticks = [];
-    for (let i = 1; i <= maxGW; i++) ticks.push(i);
+    for (let i = minGW; i <= maxGW; i++) ticks.push(i);
     return ticks;
   };
 
@@ -573,25 +587,76 @@ const processGameweekData = useCallback(async (gameweek, manifest, signal) => {
           )}
         </div>
 
-        <div className="p-6">
-          <div className="md:hidden">
-            <ResponsiveContainer width="100%" height={400}>
-              <LineChart data={chartData} margin={{ top: 20, right: 15, left: 5, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.6} />
-                <XAxis dataKey="gameweek" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 11 }} domain={[1, maxGameweek]} type="number" ticks={generateGameweekTicks(maxGameweek)} />
-                <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 10 }} domain={[1, managers.length]} reversed tickMargin={4} width={25} />
-                <Tooltip content={<CustomTooltip />} />
-                {managers.map((manager, index) => (
-                    <Line key={manager} type="linear" dataKey={manager} stroke={darkColors[index % darkColors.length]} strokeWidth={selectedManager === manager ? 3 : 2} strokeOpacity={selectedManager && selectedManager !== manager ? 0.2 : 1} dot={<CustomDot fill={darkColors[index % darkColors.length]} />} activeDot={false} connectNulls={false} isAnimationActive={true} animationDuration={700} animationEasing="ease-out" animationBegin={index * 60} />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+        <div className="p-4 md:p-6">
+          {/* Mobile: Gameweek Range Toggle */}
+          <div className="md:hidden mb-4">
+            <div className="flex justify-center gap-2">
+              <button
+                onClick={() => setMobileGwRange('last8')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  mobileGwRange === 'last8'
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                Last 8 GWs
+              </button>
+              <button
+                onClick={() => setMobileGwRange('all')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  mobileGwRange === 'all'
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-gray-700/50 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                All Season
+              </button>
+            </div>
+            {mobileGwRange === 'all' && maxGameweek > 8 && (
+              <p className="text-center text-xs text-gray-500 mt-2">← Scroll horizontally →</p>
+            )}
           </div>
+
+          {/* Mobile Chart */}
+          <div className="md:hidden">
+            {mobileGwRange === 'all' && maxGameweek > 8 ? (
+              // Scrollable chart for "All Season" on mobile
+              <div className="overflow-x-auto -mx-4 px-4">
+                <div style={{ width: `${Math.max(100, maxGameweek * 40)}px`, minWidth: '100%' }}>
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={chartData} margin={{ top: 20, right: 15, left: 5, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.6} />
+                      <XAxis dataKey="gameweek" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 11 }} domain={[1, maxGameweek]} type="number" ticks={generateGameweekTicks(1, maxGameweek)} />
+                      <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 10 }} domain={[1, managers.length]} reversed tickMargin={4} width={25} />
+                      <Tooltip content={<CustomTooltip />} />
+                      {managers.map((manager, index) => (
+                        <Line key={manager} type="linear" dataKey={manager} stroke={darkColors[index % darkColors.length]} strokeWidth={selectedManager === manager ? 3 : 2} strokeOpacity={selectedManager && selectedManager !== manager ? 0.2 : 1} dot={<CustomDot fill={darkColors[index % darkColors.length]} />} activeDot={false} connectNulls={false} isAnimationActive={false} />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            ) : (
+              // Fixed-width chart for "Last 8" on mobile
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={mobileChartData} margin={{ top: 20, right: 15, left: 5, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.6} />
+                  <XAxis dataKey="gameweek" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 11 }} domain={[mobileMinGw, mobileMaxGw]} type="number" ticks={generateGameweekTicks(mobileMinGw, mobileMaxGw)} />
+                  <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 10 }} domain={[1, managers.length]} reversed tickMargin={4} width={25} />
+                  <Tooltip content={<CustomTooltip />} />
+                  {managers.map((manager, index) => (
+                    <Line key={manager} type="linear" dataKey={manager} stroke={darkColors[index % darkColors.length]} strokeWidth={selectedManager === manager ? 3 : 2} strokeOpacity={selectedManager && selectedManager !== manager ? 0.2 : 1} dot={<CustomDot fill={darkColors[index % darkColors.length]} />} activeDot={false} connectNulls={false} isAnimationActive={true} animationDuration={700} animationEasing="ease-out" animationBegin={index * 60} />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+          {/* Desktop Chart - always show full season */}
           <div className="hidden md:block">
             <ResponsiveContainer width="100%" height={500}>
               <LineChart data={chartData} margin={{ top: 30, right: 30, left: 50, bottom: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.6} />
-                <XAxis dataKey="gameweek" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 12 }} domain={[1, maxGameweek]} type="number" ticks={generateGameweekTicks(maxGameweek)} label={{ value: 'Gameweek', position: 'insideBottom', offset: -10, fill: '#9CA3AF' }} />
+                <XAxis dataKey="gameweek" stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 12 }} domain={[1, maxGameweek]} type="number" ticks={generateGameweekTicks(1, maxGameweek)} label={{ value: 'Gameweek', position: 'insideBottom', offset: -10, fill: '#9CA3AF' }} />
                 <YAxis stroke="#9CA3AF" tick={{ fill: '#9CA3AF', fontSize: 12 }} domain={[1, managers.length]} reversed tickMargin={10} width={45} label={{ value: 'Position', angle: -90, position: 'insideLeft', fill: '#9CA3AF' }} />
                 <Tooltip content={<CustomTooltip />} />
                 {managers.map((manager, index) => (
