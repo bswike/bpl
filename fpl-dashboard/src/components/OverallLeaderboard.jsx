@@ -520,7 +520,7 @@ const OverallLeaderboard = () => {
               <div className="flex items-center gap-1.5">
                 <span className="text-sm text-white truncate">{manager.manager_name}</span>
                 {manager.team_value > 0 && (
-                  <span className="text-[10px] text-green-400">£{(manager.team_value / 10).toFixed(1)}m</span>
+                  <span className="text-[10px] text-green-400">£{manager.team_value.toFixed(1)}m</span>
                 )}
                 {manager.gws_won > 0 && (
                   <span className="text-[10px] text-yellow-400">🏆{manager.gws_won}</span>
@@ -871,7 +871,7 @@ const ManagerOverviewModal = ({
                   <StatRow 
                     icon={Wallet} 
                     label="Team Value" 
-                    value={squadData?.total_value?.toFixed(1) || (currentManager?.team_value ? (currentManager.team_value / 10).toFixed(1) : '-')}
+                    value={squadData?.total_value?.toFixed(1) || (currentManager?.team_value ? currentManager.team_value.toFixed(1) : '-')}
                     suffix="m"
                     rank={getValueRank(manager.manager_name)}
                     statKey="team_value"
