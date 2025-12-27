@@ -219,7 +219,7 @@ const OverallLeaderboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const CACHE_KEY = 'bpl_standings_v2';
+        const CACHE_KEY = 'bpl_standings_v3';
         
         // Step 1: Fetch manifest AND GW status in parallel
         const [manifestRes, statusRes] = await Promise.all([
