@@ -131,10 +131,15 @@ const OverallLeaderboard = () => {
   }, []);
 
   // Build combined data from gwData
-  const buildCombinedData = useCallback((gwData, gameweeks) => {
+  // isCurrentGwFinished: if false, exclude latest GW from stats like GWs won/last, chicken picks
+  const buildCombinedData = useCallback((gwData, gameweeks, isCurrentGwFinished = true) => {
     const managerTotals = {};
     const latestGw = gameweeks[gameweeks.length - 1];
     
+    // For stats calculations, only use finished GWs (exclude active GW)
+    const finishedGws = isCurrentGwFinished ? gameweeks : gameweeks.filter(gw => gw < latestGw);
+    
+    // First pass: accumulate all data including active GW (for points display)
     gameweeks.forEach(gw => {
       (gwData[gw] || []).forEach(m => {
         if (!managerTotals[m.manager_name]) {
@@ -152,20 +157,30 @@ const OverallLeaderboard = () => {
         }
         managerTotals[m.manager_name].total_points += m.total_points;
         managerTotals[m.manager_name][`gw${gw}_points`] = m.total_points;
-        managerTotals[m.manager_name].total_bench_points += m.bench_points || 0;
-        managerTotals[m.manager_name].gw_points_history.push({ gw, points: m.total_points });
         
-        if (m.picked_popular_captain) {
-          managerTotals[m.manager_name].chicken_picks += 1;
-        }
-        
+        // Team value from latest GW
         if (gw === latestGw && m.team_value) {
           managerTotals[m.manager_name].team_value = m.team_value;
         }
       });
     });
     
-    gameweeks.forEach(gw => {
+    // Second pass: only use FINISHED GWs for stats (chicken picks, bench points, gws won/last)
+    finishedGws.forEach(gw => {
+      (gwData[gw] || []).forEach(m => {
+        if (!managerTotals[m.manager_name]) return;
+        
+        managerTotals[m.manager_name].total_bench_points += m.bench_points || 0;
+        managerTotals[m.manager_name].gw_points_history.push({ gw, points: m.total_points });
+        
+        if (m.picked_popular_captain) {
+          managerTotals[m.manager_name].chicken_picks += 1;
+        }
+      });
+    });
+    
+    // GWs won/last: only count finished gameweeks
+    finishedGws.forEach(gw => {
       const gwManagers = gwData[gw] || [];
       if (gwManagers.length === 0) return;
       
@@ -184,6 +199,7 @@ const OverallLeaderboard = () => {
       });
     });
     
+    // Form: based on last 4 FINISHED gameweeks only
     Object.values(managerTotals).forEach(manager => {
       const history = manager.gw_points_history.sort((a, b) => b.gw - a.gw);
       const last4 = history.slice(0, 4);
@@ -194,6 +210,9 @@ const OverallLeaderboard = () => {
     return Object.values(managerTotals).sort((a, b) => b.total_points - a.total_points);
   }, []);
 
+  // Track if current GW is finished (for stats calculations)
+  const [isCurrentGwFinished, setIsCurrentGwFinished] = useState(true);
+
   // Fetch leaderboard data - OPTIMIZED
   useEffect(() => {
     const fetchData = async () => {
@@ -201,10 +220,23 @@ const OverallLeaderboard = () => {
         setLoading(true);
         const CACHE_KEY = 'bpl_standings_v2';
         
-        // Step 1: Fetch manifest
-        const manifestRes = await fetch('https://bpl-red-sun-894.fly.dev/api/manifest', { cache: 'no-store' });
+        // Step 1: Fetch manifest AND GW status in parallel
+        const [manifestRes, statusRes] = await Promise.all([
+          fetch('https://bpl-red-sun-894.fly.dev/api/manifest', { cache: 'no-store' }),
+          fetch('https://bpl-red-sun-894.fly.dev/api/gameweek-status', { cache: 'no-store' })
+        ]);
+        
         if (!manifestRes.ok) throw new Error('Failed to load manifest');
         const manifest = await manifestRes.json();
+        
+        // Get finished status from GW status API
+        let gwFinished = true;
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          setGwStatus(statusData);
+          gwFinished = statusData.current_gameweek?.finished ?? true;
+        }
+        setIsCurrentGwFinished(gwFinished);
 
         const gameweeks = Object.keys(manifest.gameweeks || {}).map(Number).sort((a, b) => a - b);
         if (gameweeks.length === 0) throw new Error('No gameweek data');
@@ -235,9 +267,9 @@ const OverallLeaderboard = () => {
           }
         } catch (e) { /* ignore */ }
         
-        // Step 4: Show data immediately
+        // Step 4: Show data immediately (with GW finished status)
         const availableNow = Object.keys(gwData).map(Number).sort((a, b) => a - b);
-        const combinedNow = buildCombinedData(gwData, availableNow);
+        const combinedNow = buildCombinedData(gwData, availableNow, gwFinished);
         setCombinedData(combinedNow);
         setAvailableGameweeks(availableNow);
         setGameweekData(gwData);
@@ -272,7 +304,7 @@ const OverallLeaderboard = () => {
               } catch (e) { /* ignore */ }
               
               const allGws = Object.keys(newGwData).map(Number).sort((a, b) => a - b);
-              const combined = buildCombinedData(newGwData, allGws);
+              const combined = buildCombinedData(newGwData, allGws, gwFinished);
               setCombinedData(combined);
               setAvailableGameweeks(allGws);
               setGameweekData(newGwData);
@@ -807,9 +839,9 @@ const ManagerOverviewModal = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-white truncate">{manager.manager_name}</h2>
-              {squadData?.total_value && (
+              {currentManager?.team_value > 0 && (
                 <span className="text-sm font-bold text-green-400">
-                  £{squadData.total_value.toFixed(1)}m
+                  £{currentManager.team_value.toFixed(1)}m
                 </span>
               )}
             </div>
@@ -867,11 +899,11 @@ const ManagerOverviewModal = ({
                     sortDesc={true}
                   />
                   
-                  {/* Team Value */}
+                  {/* Team Value - use CSV data for consistency with leaderboard */}
                   <StatRow 
                     icon={Wallet} 
                     label="Team Value" 
-                    value={squadData?.total_value?.toFixed(1) || (currentManager?.team_value ? currentManager.team_value.toFixed(1) : '-')}
+                    value={currentManager?.team_value ? currentManager.team_value.toFixed(1) : '-'}
                     suffix="m"
                     rank={getValueRank(manager.manager_name)}
                     statKey="team_value"

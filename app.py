@@ -814,24 +814,28 @@ def get_historical_data():
                     if not manager_name:
                         continue
                     
-                    player = row.get('player', '')
-                    
-                    if player == 'TOTAL':
-                        # This is the totals row - extract key stats
+                    # Initialize manager if not exists
+                    if manager_name not in managers:
                         managers[manager_name] = {
                             'manager_name': manager_name,
                             'team_name': row.get('entry_team_name', ''),
-                            'total_points': int(float(row.get('points_applied', 0) or 0)),
-                            'bench_points': int(float(row.get('bench_points', 0) or 0)),
+                            'total_points': 0,
+                            'bench_points': 0,
+                            'captain_player': '',
                         }
+                    
+                    player = row.get('player', '')
+                    
+                    if player == 'TOTAL':
+                        # This is the totals row - extract key stats (merge, don't overwrite)
+                        managers[manager_name]['total_points'] = int(float(row.get('points_applied', 0) or 0))
+                        managers[manager_name]['bench_points'] = int(float(row.get('bench_points', 0) or 0))
+                        managers[manager_name]['team_name'] = row.get('entry_team_name', '') or managers[manager_name]['team_name']
                     else:
                         # Track captain for chicken rank
                         is_captain = row.get('is_captain') in ['True', 'true', '1', True]
                         if is_captain:
-                            if manager_name not in managers:
-                                managers[manager_name] = {'captain_player': player}
-                            else:
-                                managers[manager_name]['captain_player'] = player
+                            managers[manager_name]['captain_player'] = player
                             captain_choices[player] = captain_choices.get(player, 0) + 1
                 
                 # Find most popular captain
