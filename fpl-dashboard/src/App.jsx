@@ -85,8 +85,10 @@ function App() {
         const res = await fetch('https://bpl-red-sun-894.fly.dev/api/gameweek-status');
         if (res.ok) {
           const data = await res.json();
-          // Show multi-gw during live action, standings otherwise
-          setCurrentPage(data.is_active ? 'multi-gw' : 'standings');
+          // GW is "active" if current_gameweek exists and is NOT finished
+          const isActive = data.current_gameweek && !data.current_gameweek.finished;
+          // Show Weekly during live action, Standings when GW is finished
+          setCurrentPage(isActive ? 'multi-gw' : 'standings');
         } else {
           setCurrentPage('multi-gw'); // Default fallback
         }
