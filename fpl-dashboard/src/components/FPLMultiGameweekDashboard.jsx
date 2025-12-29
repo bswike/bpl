@@ -423,62 +423,12 @@ const playerData = {
       
       if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
       
-      // Step 3: Check localStorage for cached historical data
-      const HISTORICAL_CACHE_KEY = 'bpl_historical_v3';
-      let cachedHistorical = null;
-      try {
-        const cached = localStorage.getItem(HISTORICAL_CACHE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          // Valid if we have data for all GWs except latest
-          const cachedGws = Object.keys(parsed.gameweeks || {}).map(Number);
-          const expectedGws = allGws.filter(gw => gw < latestGw);
-          if (expectedGws.every(gw => cachedGws.includes(gw))) {
-            cachedHistorical = parsed;
-            console.log(`📦 Using localStorage cache for GWs 1-${latestGw - 1}`);
-          }
-        }
-      } catch (e) {
-        console.log('localStorage cache miss or invalid');
-      }
-      
-      // Step 4: Show data IMMEDIATELY with what we have
+      // Step 3: Show latest GW data IMMEDIATELY (historical will load in background)
+      // Note: We no longer use localStorage cache for historical data because
+      // the old cache format only has aggregated data, not player arrays
       const tempGameweekData = { [latestGw]: latestData.managers || [] };
       const tempCaptainStats = { [latestGw]: latestData.captainChoices || {} };
-      
-      // If we have cached historical, merge it in immediately
-      if (cachedHistorical) {
-        for (const gwStr of Object.keys(cachedHistorical.gameweeks || {})) {
-          const gw = parseInt(gwStr, 10);
-          const managers = cachedHistorical.gameweeks[gwStr];
-          
-          // Pre-aggregated format - just add position and gameweek
-          const processedManagers = managers
-            .map(m => ({
-              ...m,
-              manager_name: m.manager_name,
-              team_name: m.team_name || '',
-              total_points: m.total_points || 0,
-              bench_points: m.bench_points || 0,
-              gameweek: gw,
-            }))
-            .sort((a, b) => b.total_points - a.total_points)
-            .map((m, i) => ({ ...m, position: i + 1 }));
-          
-          tempGameweekData[gw] = processedManagers;
-          
-          // Build captain stats
-          const captainChoices = {};
-          managers.forEach(m => {
-            if (m.captain_player) {
-              captainChoices[m.captain_player] = (captainChoices[m.captain_player] || 0) + 1;
-            }
-          });
-          tempCaptainStats[gw] = captainChoices;
-        }
-      }
-      
-      const tempAvailable = Object.keys(tempGameweekData).map(Number).sort((a, b) => a - b);
+      const tempAvailable = [latestGw];
       
       // Update UI immediately with available data
       setGameweekData(tempGameweekData);
@@ -488,91 +438,70 @@ const playerData = {
       setLoading(false); // Show UI now!
       console.log(`⚡ Quick load: showing ${tempAvailable.length} GW(s) immediately`);
       
-      // Step 5: Fetch fresh historical in background (if not fully cached or for updates)
-      if (!cachedHistorical || Object.keys(cachedHistorical.gameweeks || {}).length < latestGw - 1) {
-        console.log('📡 Fetching fresh historical data in background...');
+      // Step 5: Fetch FULL CSV data for historical gameweeks in background
+      // We need full player-level data for PlayerDetailsModal, not just aggregated totals
+      const historicalGws = allGws.filter(gw => gw < latestGw);
+      if (historicalGws.length > 0) {
+        console.log(`📡 Fetching full CSV data for GWs 1-${latestGw - 1} in background...`);
         
-        fetch('https://bpl-red-sun-894.fly.dev/api/historical', { cache: 'no-store' })
-          .then(res => res.ok ? res.json() : null)
-          .then(historicalData => {
-            if (!historicalData || fetchCycleIdRef.current !== myId) return;
-            
-            const newGameweekData = { ...tempGameweekData };
-            const newCaptainStats = { ...tempCaptainStats };
-            
-            for (const gwStr of Object.keys(historicalData.gameweeks || {})) {
-              const gw = parseInt(gwStr, 10);
-              const managers = historicalData.gameweeks[gwStr];
-              
-              // Backend now returns pre-aggregated manager objects
-              // Just need to add position and gameweek
-              const processedManagers = managers
-                .map((m, i) => ({
-                  ...m,
-                  manager_name: m.manager_name,
-                  team_name: m.team_name || '',
-                  total_points: m.total_points || 0,
-                  bench_points: m.bench_points || 0,
-                  position: i + 1,
-                  gameweek: gw,
-                }))
-                .sort((a, b) => b.total_points - a.total_points)
-                .map((m, i) => ({ ...m, position: i + 1 }));
-              
-              newGameweekData[gw] = processedManagers;
-              
-              // Build captain stats from pre-aggregated data
-              const captainChoices = {};
-              managers.forEach(m => {
-                if (m.captain_player) {
-                  captainChoices[m.captain_player] = (captainChoices[m.captain_player] || 0) + 1;
-                }
-              });
-              newCaptainStats[gw] = captainChoices;
-            }
-            
-            // Save to localStorage for next visit
+        // Fetch all historical GWs in parallel (full CSV, not aggregated)
+        Promise.all(
+          historicalGws.map(async (gw) => {
             try {
-              localStorage.setItem(HISTORICAL_CACHE_KEY, JSON.stringify({
-                gameweeks: historicalData.gameweeks,
-                timestamp: Date.now()
-              }));
-            } catch (e) {
-              console.log('Could not cache to localStorage:', e);
-            }
-            
-            const available = Object.keys(newGameweekData).map(Number).sort((a, b) => a - b);
-            setGameweekData(newGameweekData);
-            setCaptainStats(newCaptainStats);
-            setAvailableGameweeks(available);
-            console.log(`✅ Background load complete: ${available.length} GWs`);
-            
-            // Recalculate combined data
-            if (newGameweekData[available[0]]?.length) {
-              const managerNames = newGameweekData[available[0]].map(m => m.manager_name);
-              const newCombinedData = managerNames.map(name => {
-                let cumulativePoints = 0;
-                const managerEntry = { manager_name: name };
-                available.forEach(gw => {
-                  const gwStats = newGameweekData[gw]?.find(m => m.manager_name === name);
-                  const pts = gwStats?.total_points_applied || gwStats?.total_points || 0;
-                  cumulativePoints += pts;
-                  managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
-                  managerEntry[`gw${gw}_points`] = gwStats?.total_points || 0;
-                });
-                managerEntry.total_points = cumulativePoints;
-                return managerEntry;
-              })
-                .sort((a, b) => b.total_points - a.total_points)
-                .map((manager, index) => ({
-                  ...manager,
-                  current_position: index + 1,
-                  overall_position_change: (newGameweekData[available[0]]?.find(m => m.manager_name === manager.manager_name)?.position || 0) - (index + 1),
-                }));
-              setCombinedData(newCombinedData);
+              const res = await fetch(`https://bpl-red-sun-894.fly.dev/api/data/${gw}`, { cache: 'no-store' });
+              if (!res.ok) return { gw, data: null };
+              const csvText = await res.text();
+              const parsed = parseCsvToManagers(csvText, gw);
+              return { gw, data: parsed };
+            } catch (err) {
+              console.warn(`Failed to fetch GW${gw}:`, err);
+              return { gw, data: null };
             }
           })
-          .catch(err => console.log('Background historical fetch failed:', err));
+        ).then(results => {
+          if (fetchCycleIdRef.current !== myId) return;
+          
+          const newGameweekData = { ...tempGameweekData };
+          const newCaptainStats = { ...tempCaptainStats };
+          
+          results.forEach(({ gw, data }) => {
+            if (data && data.managers) {
+              newGameweekData[gw] = data.managers;
+              newCaptainStats[gw] = data.captainChoices || {};
+            }
+          });
+          
+          const available = Object.keys(newGameweekData).map(Number).sort((a, b) => a - b);
+          setGameweekData(newGameweekData);
+          setCaptainStats(newCaptainStats);
+          setAvailableGameweeks(available);
+          console.log(`✅ Full CSV data loaded for ${available.length} GWs (with player arrays!)`);
+          
+          // Recalculate combined data
+          if (newGameweekData[available[0]]?.length) {
+            const managerNames = newGameweekData[available[0]].map(m => m.manager_name);
+            const newCombinedData = managerNames.map(name => {
+              let cumulativePoints = 0;
+              const managerEntry = { manager_name: name };
+              available.forEach(gw => {
+                const gwStats = newGameweekData[gw]?.find(m => m.manager_name === name);
+                const pts = gwStats?.total_points_applied || gwStats?.total_points || 0;
+                cumulativePoints += pts;
+                managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
+                managerEntry[`gw${gw}_points`] = gwStats?.total_points || 0;
+              });
+              managerEntry.total_points = cumulativePoints;
+              return managerEntry;
+            })
+              .sort((a, b) => b.total_points - a.total_points)
+              .map((manager, index) => ({
+                ...manager,
+                current_position: index + 1,
+                overall_position_change: (newGameweekData[available[0]]?.find(m => m.manager_name === manager.manager_name)?.position || 0) - (index + 1),
+              }));
+            setCombinedData(newCombinedData);
+          }
+        }).catch(err => console.log('Background CSV fetch failed:', err));
       }
       
       // Build combined data from what we have now
