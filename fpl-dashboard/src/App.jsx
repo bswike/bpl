@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { TrendingUp, BarChart3, Trophy, Table2 } from 'lucide-react';
 import './App.css';
+import { DataProvider, useData } from './context/DataContext';
 
 // Lazy load components for code splitting - only loads when tab is clicked
 const FPLMultiGameweekDashboard = lazy(() => import('./components/FPLMultiGameweekDashboard'));
@@ -71,37 +72,22 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
   );
 };
 
-function App() {
-  // Don't set initial page until we check status - prevents double-fetch!
+// Inner app component that uses the data context
+function AppContent() {
+  const { gwStatus, isInitialLoading } = useData();
   const [currentPage, setCurrentPage] = useState(null);
-  const [isReady, setIsReady] = useState(false);
+  const [hasSetInitialPage, setHasSetInitialPage] = useState(false);
 
-  // Check GW status BEFORE rendering any page (fast ~200ms)
+  // Set initial page based on GW status (only once after data loads)
   useEffect(() => {
-    if (isReady) return;
+    if (hasSetInitialPage || isInitialLoading) return;
     
-    const checkStatus = async () => {
-      try {
-        const res = await fetch('https://bpl-red-sun-894.fly.dev/api/gameweek-status');
-        if (res.ok) {
-          const data = await res.json();
-          // GW is "active" if current_gameweek exists and is NOT finished
-          const isActive = data.current_gameweek && !data.current_gameweek.finished;
-          // Show Weekly during live action, Standings when GW is finished
-          setCurrentPage(isActive ? 'multi-gw' : 'standings');
-        } else {
-          setCurrentPage('multi-gw'); // Default fallback
-        }
-      } catch (err) {
-        console.log('GW status check failed, using default view');
-        setCurrentPage('multi-gw'); // Default fallback
-      } finally {
-        setIsReady(true);
-      }
-    };
-    
-    checkStatus();
-  }, [isReady]);
+    // GW is "active" if current_gameweek exists and is NOT finished
+    const isActive = gwStatus?.current_gameweek && !gwStatus.current_gameweek.finished;
+    // Show Weekly during live action, Standings when GW is finished
+    setCurrentPage(isActive ? 'multi-gw' : 'standings');
+    setHasSetInitialPage(true);
+  }, [gwStatus, isInitialLoading, hasSetInitialPage]);
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -118,11 +104,14 @@ function App() {
     }
   };
 
-  // Wait for status check before rendering any component
-  if (!isReady || !currentPage) {
+  // Show loading while data context is initializing
+  if (isInitialLoading || !currentPage) {
     return (
       <div className="min-h-screen bg-slate-900 text-gray-100 flex items-center justify-center">
-        <div className="text-cyan-400 text-lg animate-pulse">Loading...</div>
+        <div className="text-center">
+          <div className="text-cyan-400 text-lg animate-pulse mb-2">Loading FPL Data...</div>
+          <div className="text-gray-500 text-sm">Fetching gameweeks, fixtures, and chips</div>
+        </div>
       </div>
     );
   }
@@ -138,6 +127,15 @@ function App() {
       </main>
       <Navigation currentPage={currentPage} setCurrentPage={setCurrentPage} />
     </div>
+  );
+}
+
+// Main App component wraps everything with DataProvider
+function App() {
+  return (
+    <DataProvider>
+      <AppContent />
+    </DataProvider>
   );
 }
 
