@@ -9,24 +9,31 @@ import {
   Armchair, 
   ArrowLeftRight 
 } from 'lucide-react';
+import { useData } from '../context/DataContext';
 
 // ====== OVERALL LEADERBOARD COMPONENT ======
-// Self-contained - fetches its own data
+// Uses shared DataContext for instant loading
 
 const OverallLeaderboard = () => {
-  const [combinedData, setCombinedData] = useState([]);
-  const [availableGameweeks, setAvailableGameweeks] = useState([]);
-  const [gameweekData, setGameweekData] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
+  // Get shared data from context (already loaded!)
+  const { 
+    gameweekData: contextGameweekData, 
+    availableGameweeks: contextAvailableGameweeks,
+    gwStatus: contextGwStatus,
+    latestGameweek,
+    isInitialLoading,
+    error: contextError,
+    connectionStatus,
+    lastUpdate,
+  } = useData();
+
+  // Component-specific state (modals, selections, etc.)
   const [selectedManager, setSelectedManager] = useState(null);
   const [squadData, setSquadData] = useState(null);
   const [squadLoading, setSquadLoading] = useState(false);
   const [managerHistory, setManagerHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' or 'team'
-  const [gwStatus, setGwStatus] = useState(null);
   const [countdown, setCountdown] = useState('');
 
   // Entry ID mapping (verified against FPL API)
@@ -53,91 +60,20 @@ const OverallLeaderboard = () => {
     'Tony Tharakan': 8592148,
   };
 
-  // Parse CSV text to manager data
-  const parseCsvToManagers = useCallback((csvText, gw) => {
-    if (!csvText || csvText.includes('The game is being updated')) return [];
-    
-    const lines = csvText.split('\n').filter(line => line.trim());
-    if (lines.length < 2) return [];
-    
-    const headers = lines[0].split(',');
-    const managerIdx = headers.indexOf('manager_name');
-    const pointsIdx = headers.indexOf('points_applied');
-    const playerIdx = headers.indexOf('player');
-    const teamNameIdx = headers.indexOf('entry_team_name');
-    const playerCostIdx = headers.indexOf('player_cost');
-    const isCaptainIdx = headers.indexOf('is_captain');
-    const benchPointsIdx = headers.indexOf('bench_points');
-    
-    if (managerIdx === -1 || pointsIdx === -1 || playerIdx === -1) return [];
-    
-    const managers = {};
-    const managerTeamValues = {};
-    const captainChoices = {};
-    
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',');
-      const managerName = cols[managerIdx];
-      const playerName = cols[playerIdx];
-      
-      if (!managerName) continue;
-      
-      if (!managers[managerName]) {
-        managers[managerName] = {
-          manager_name: managerName,
-          team_name: cols[teamNameIdx] || '',
-          total_points: 0,
-          bench_points: 0,
-          captain_player: '',
-        };
-      }
-      
-      if (playerName !== 'TOTAL' && playerCostIdx !== -1) {
-        const cost = parseFloat(cols[playerCostIdx]) || 0;
-        managerTeamValues[managerName] = (managerTeamValues[managerName] || 0) + cost;
-        
-        if (isCaptainIdx !== -1) {
-          const isCaptain = cols[isCaptainIdx];
-          if (isCaptain === 'True' || isCaptain === 'true' || isCaptain === '1') {
-            managers[managerName].captain_player = playerName;
-            captainChoices[playerName] = (captainChoices[playerName] || 0) + 1;
-          }
-        }
-      }
-      
-      if (playerName === 'TOTAL') {
-        managers[managerName].total_points = parseInt(cols[pointsIdx]) || 0;
-        if (benchPointsIdx !== -1) {
-          managers[managerName].bench_points = parseInt(cols[benchPointsIdx]) || 0;
-        }
-      }
-    }
-    
-    let mostPopularCaptain = '';
-    let maxCaptainCount = 0;
-    Object.entries(captainChoices).forEach(([player, count]) => {
-      if (count > maxCaptainCount) {
-        maxCaptainCount = count;
-        mostPopularCaptain = player;
-      }
-    });
-    
-    Object.keys(managers).forEach(name => {
-      managers[name].team_value = managerTeamValues[name] || 0;
-      managers[name].picked_popular_captain = managers[name].captain_player === mostPopularCaptain;
-    });
-    
-    return Object.values(managers);
-  }, []);
+  // Determine if current GW is finished (for stats calculations)
+  const isCurrentGwFinished = useMemo(() => {
+    return contextGwStatus?.current_gameweek?.finished ?? true;
+  }, [contextGwStatus]);
 
   // Build combined data from gwData
   // isCurrentGwFinished: if false, exclude latest GW from GWs won/last and form ONLY
-  const buildCombinedData = useCallback((gwData, gameweeks, isCurrentGwFinished = true) => {
+  const buildCombinedData = (gwData, gameweeks, gwFinished = true) => {
+    const isGwFinished = gwFinished; // Rename to avoid shadowing
     const managerTotals = {};
     const latestGw = gameweeks[gameweeks.length - 1];
     
     // For GWs won/last and form, only use finished GWs
-    const finishedGws = isCurrentGwFinished ? gameweeks : gameweeks.filter(gw => gw < latestGw);
+    const finishedGws = isGwFinished ? gameweeks : gameweeks.filter(gw => gw < latestGw);
     
     // First pass: accumulate ALL data including active GW
     // (points, bench points, chicken picks, team value - these should include active GW)
@@ -209,149 +145,27 @@ const OverallLeaderboard = () => {
     });
     
     return Object.values(managerTotals).sort((a, b) => b.total_points - a.total_points);
-  }, []);
+  };
 
-  // Track if current GW is finished (for stats calculations)
-  const [isCurrentGwFinished, setIsCurrentGwFinished] = useState(true);
+  // Derive combined data from context (INSTANT - no fetching!)
+  const combinedData = useMemo(() => {
+    if (!contextGameweekData || Object.keys(contextGameweekData).length === 0) return [];
+    return buildCombinedData(contextGameweekData, contextAvailableGameweeks, isCurrentGwFinished);
+  }, [contextGameweekData, contextAvailableGameweeks, isCurrentGwFinished]);
 
-  // Fetch leaderboard data - OPTIMIZED
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const CACHE_KEY = 'bpl_standings_v3';
-        
-        // Step 1: Fetch manifest AND GW status in parallel
-        const [manifestRes, statusRes] = await Promise.all([
-          fetch('https://bpl-red-sun-894.fly.dev/api/manifest', { cache: 'no-store' }),
-          fetch('https://bpl-red-sun-894.fly.dev/api/gameweek-status', { cache: 'no-store' })
-        ]);
-        
-        if (!manifestRes.ok) throw new Error('Failed to load manifest');
-        const manifest = await manifestRes.json();
-        
-        // Get finished status from GW status API
-        let gwFinished = true;
-        if (statusRes.ok) {
-          const statusData = await statusRes.json();
-          setGwStatus(statusData);
-          gwFinished = statusData.current_gameweek?.finished ?? true;
-        }
-        setIsCurrentGwFinished(gwFinished);
-
-        const gameweeks = Object.keys(manifest.gameweeks || {}).map(Number).sort((a, b) => a - b);
-        if (gameweeks.length === 0) throw new Error('No gameweek data');
-        const latestGw = gameweeks[gameweeks.length - 1];
-
-        // Step 2: Fetch latest GW immediately (fast ~1-2s)
-        const latestRes = await fetch(`https://bpl-red-sun-894.fly.dev/api/data/${latestGw}`, { cache: 'no-store' });
-        if (!latestRes.ok) throw new Error('Failed to load latest GW');
-        const latestCsv = await latestRes.text();
-        const latestData = parseCsvToManagers(latestCsv, latestGw);
-        
-        // Step 3: Check localStorage cache
-        let gwData = { [latestGw]: latestData };
-        let cachedGws = [];
-        try {
-          const cached = localStorage.getItem(CACHE_KEY);
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            if (parsed.data) {
-              Object.keys(parsed.data).forEach(gw => {
-                const gwNum = parseInt(gw, 10);
-                if (gwNum < latestGw) {
-                  gwData[gwNum] = parsed.data[gw];
-                  cachedGws.push(gwNum);
-                }
-              });
-            }
-          }
-        } catch (e) { /* ignore */ }
-        
-        // Step 4: Show data immediately (with GW finished status)
-        const availableNow = Object.keys(gwData).map(Number).sort((a, b) => a - b);
-        const combinedNow = buildCombinedData(gwData, availableNow, gwFinished);
-        setCombinedData(combinedNow);
-        setAvailableGameweeks(availableNow);
-        setGameweekData(gwData);
-        setLoading(false);
-        
-        // Step 5: Fetch historical in background
-        if (cachedGws.length < latestGw - 1) {
-          fetch('https://bpl-red-sun-894.fly.dev/api/historical', { cache: 'no-store' })
-            .then(res => res.ok ? res.json() : null)
-            .then(historicalData => {
-              if (!historicalData) return;
-              
-              const newGwData = { ...gwData };
-              Object.keys(historicalData.gameweeks || {}).forEach(gwStr => {
-                const gw = parseInt(gwStr, 10);
-                const managers = historicalData.gameweeks[gwStr];
-                
-                // Backend now returns pre-aggregated manager objects
-                // Already has: manager_name, team_name, total_points, bench_points, captain_player, picked_popular_captain
-                newGwData[gw] = managers.map(m => ({
-                  ...m,
-                  manager_name: m.manager_name,
-                  team_name: m.team_name || '',
-                  total_points: m.total_points || 0,
-                  bench_points: m.bench_points || 0,
-                }));
-              });
-              
-              // Save to cache
-              try {
-                localStorage.setItem(CACHE_KEY, JSON.stringify({ data: newGwData, ts: Date.now() }));
-              } catch (e) { /* ignore */ }
-              
-              const allGws = Object.keys(newGwData).map(Number).sort((a, b) => a - b);
-              const combined = buildCombinedData(newGwData, allGws, gwFinished);
-              setCombinedData(combined);
-              setAvailableGameweeks(allGws);
-              setGameweekData(newGwData);
-            })
-            .catch(() => { /* ignore */ });
-        }
-
-      } catch (err) {
-        console.error('Failed to fetch data:', err);
-        setError(err.message);
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // Fetch gameweek status
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch('https://bpl-red-sun-894.fly.dev/api/gameweek-status');
-        if (res.ok) {
-          const data = await res.json();
-          setGwStatus(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch GW status:', err);
-      }
-    };
-    
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // NOTE: Removed fetchAllValues - was making 20 API calls on page load!
-  // Team values are now calculated from CSV data in buildCombinedData
-  // Full squad/bank data is only fetched when clicking on a manager
+  // Use context data directly
+  const gameweekData = contextGameweekData;
+  const availableGameweeks = contextAvailableGameweeks;
+  const gwStatus = contextGwStatus;
+  const loading = isInitialLoading;
+  const error = contextError;
 
   // Countdown timer
   useEffect(() => {
-    if (!gwStatus?.next_gameweek?.deadline_time) return;
+    if (!contextGwStatus?.next_gameweek?.deadline_time) return;
     
     const updateCountdown = () => {
-      const deadline = new Date(gwStatus.next_gameweek.deadline_time);
+      const deadline = new Date(contextGwStatus.next_gameweek.deadline_time);
       const now = new Date();
       const diff = deadline - now;
       
@@ -377,7 +191,7 @@ const OverallLeaderboard = () => {
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
     return () => clearInterval(interval);
-  }, [gwStatus]);
+  }, [contextGwStatus]);
 
   // Calculate position changes from previous GW
   const leaderboardData = useMemo(() => {

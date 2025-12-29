@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Papa from 'papaparse';
+import { useData } from '../context/DataContext';
 
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
@@ -159,321 +160,79 @@ const ChipsLeaderboard = ({ chipsData, data, onManagerClick }) => {
 
 
 const FPLMultiGameweekDashboard = () => {
-  const [data, setData] = useState([]);
-  const [availableGameweeks, setAvailableGameweeks] = useState([]);
-  const [chipsData, setChipsData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [chipsLoading, setChipsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState('connecting');
-  const [lastUpdate, setLastUpdate] = useState(null);
+  // Use shared data context instead of local fetching - INSTANT tab switch!
+  const {
+    gameweekData,
+    availableGameweeks,
+    chipsData,
+    isInitialLoading: loading,
+    error,
+    connectionStatus,
+    lastUpdate,
+  } = useData();
+
+  // Derive data for chips display from gameweekData
+  const data = useMemo(() => {
+    if (!gameweekData || Object.keys(gameweekData).length === 0) return [];
+    
+    // Build manager data with gameweek breakdown for chips display
+    const managers = {};
+    
+    availableGameweeks.forEach(gw => {
+      (gameweekData[gw] || []).forEach(m => {
+        if (!managers[m.manager_name]) {
+          managers[m.manager_name] = {
+            manager_name: m.manager_name,
+            team_name: m.team_name,
+            total_points: 0,
+            gameweeks: {},
+          };
+        }
+        managers[m.manager_name].total_points += m.total_points || 0;
+        managers[m.manager_name].gameweeks[gw] = {
+          points: m.total_points || 0,
+          bench_points: m.bench_points || 0,
+          captain_points: m.captain_points || 0,
+        };
+      });
+    });
+    
+    return Object.values(managers).sort((a, b) => b.total_points - a.total_points);
+  }, [gameweekData, availableGameweeks]);
+
+  const chipsLoading = loading;
   const [selectedManager, setSelectedManager] = useState(null);
   const [showChipModal, setShowChipModal] = useState(false);
   const [showCaptainModal, setShowCaptainModal] = useState(false);
   const [selectedCaptainGW, setSelectedCaptainGW] = useState(null);
 
-  const cycleAbortRef = useRef(null);
-  const fetchCycleIdRef = useRef(0);
-  const eventSourceRef = useRef(null);
-  const manifestVersionRef = useRef(null);
-  const fallbackIntervalRef = useRef(null);
-  const reconnectAttemptsRef = useRef(0);
-  const initialLoadDoneRef = useRef(false);
+  // All data is now loaded from context - no fetch needed!
+  // SSE is handled by context as well
 
-  // Load chips data independently with better error handling
-  useEffect(() => {
-    const fetchChips = async () => {
-      setChipsLoading(true);
-      try {
-        console.log('Fetching chips data...');
-        const response = await fetch('https://bpl-red-sun-894.fly.dev/api/chips');
-        if (!response.ok) {
-          console.warn(`Chips API returned ${response.status}, continuing without chips data`);
-          setChipsData([]);
-          setChipsLoading(false);
-          return;
-        }
-        const data = await response.json();
-        console.log('Chips data loaded:', data.chips?.length || 0, 'managers');
-        setChipsData(data.chips || []);
-      } catch (err) {
-        console.warn('Failed to fetch chips (non-critical):', err);
-        setChipsData([]);
-      } finally {
-        setChipsLoading(false);
-      }
-    };
-    
-    fetchChips();
-  }, []);
-
-  const processGameweekData = useCallback(async (gameweek, manifest, signal, isLatestGw) => {
-    // OPTIMIZATION: Historical gameweeks never change - use cache
-    if (!isLatestGw) {
-      const cached = getCachedDashboardGW(gameweek);
-      if (cached && cached.length > 0) {
-        console.log(`⚡ GW${gameweek} from cache (historical)`);
-        return cached;
-      }
-    }
-
-    try {
-      const gwInfo = manifest?.gameweeks?.[String(gameweek)];
-      if (!gwInfo) {
-        console.warn(`No data for GW${gameweek} in manifest`);
-        return [];
-      }
-
-      const proxyUrl = `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
-      console.log(`${isLatestGw ? '🔴 LIVE' : '📥'} Fetching GW${gameweek}...`);
-      const csvRes = await fetch(proxyUrl, { cache: 'no-store', signal });
-      if (!csvRes.ok) {
-        console.warn(`HTTP ${csvRes.status} for GW${gameweek}`);
-        return [];
-      }
-      const csvText = await csvRes.text();
-
-      if (csvText.trim() === "The game is being updated.") {
-        console.log(`GW${gameweek} is being updated`);
-        return [];
-      }
-
-      const parsed = Papa.parse(csvText, { header: true, dynamicTyping: true, skipEmptyLines: true });
-      if (parsed.errors?.length) {
-        console.warn(`Parsing errors in GW${gameweek}:`, parsed.errors);
-      }
-
-      parsed.data.forEach(row => {
-        if (row.player === 'João Pedro Junqueira de Jesus') row.player = 'João Pedro';
-      });
-
-      // Cache the result for future loads
-      if (parsed.data.length > 0) {
-        setCachedDashboardGW(gameweek, parsed.data);
-      }
-
-      return parsed.data;
-    } catch (err) {
-      if (err?.name !== 'AbortError') {
-        console.error(`GW${gameweek} fetch failed:`, err);
-      }
-      return [];
-    }
-  }, []);
-
-  const fetchData = useCallback(async () => {
-    if (cycleAbortRef.current) cycleAbortRef.current.abort();
-    const abort = new AbortController();
-    cycleAbortRef.current = abort;
-    const myId = ++fetchCycleIdRef.current;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      console.log('📡 Starting optimized data fetch...');
-      
-      // Step 1: Fetch historical data (all GWs except latest) in ONE request
-      const historicalRes = await fetch(
-        'https://bpl-red-sun-894.fly.dev/api/historical',
-        { cache: 'no-store', signal: abort.signal }
-      );
-      
-      if (!historicalRes.ok) throw new Error(`Could not load historical data (${historicalRes.status})`);
-      const historicalData = await historicalRes.json();
-      
-      const latestGw = historicalData.latest;
-      const historicalGws = Object.keys(historicalData.gameweeks || {}).map(Number).sort((a, b) => a - b);
-      
-      console.log(`📦 Historical: GWs ${historicalGws[0] || 'none'}-${historicalGws[historicalGws.length - 1] || 'none'} (${historicalData.cached ? 'cached' : 'fresh'})`);
-      
-      // Step 2: Fetch ONLY the latest gameweek fresh
-      console.log(`🔴 LIVE Fetching GW${latestGw}...`);
-      const latestRes = await fetch(
-        `https://bpl-red-sun-894.fly.dev/api/data/${latestGw}`,
-        { cache: 'no-store', signal: abort.signal }
-      );
-      if (!latestRes.ok) throw new Error(`Could not load latest GW${latestGw}`);
-      const latestCsvText = await latestRes.text();
-      const latestRows = Papa.parse(latestCsvText, { header: true, dynamicTyping: true, skipEmptyLines: true }).data;
-      
-      if (fetchCycleIdRef.current !== myId || abort.signal.aborted) return;
-
-      // Build results array with GW1 hardcoded + historical + latest
-      const gw1Data = [
-        { manager_name: "Garrett Kunkel", entry_team_name: "kunkel_fpl", player: "TOTAL", points_applied: 78, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Andrew Vidal", entry_team_name: "Las Cucarachas", player: "TOTAL", points_applied: 76, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Brett Swikle", entry_team_name: "swikle_time", player: "TOTAL", points_applied: 74, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "John Matthew", entry_team_name: "matthewfpl", player: "TOTAL", points_applied: 73, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Jared Alexander", entry_team_name: "Jared's Jinxes", player: "TOTAL", points_applied: 67, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Joe Curran", entry_team_name: "Curran's Crew", player: "TOTAL", points_applied: 64, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "John Sebastian", entry_team_name: "Sebastian Squad", player: "TOTAL", points_applied: 62, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Nate Cohen", entry_team_name: "Cohen's Corner", player: "TOTAL", points_applied: 60, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Chris Munoz", entry_team_name: "Munoz Magic", player: "TOTAL", points_applied: 60, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Evan Bagheri", entry_team_name: "Bagheri's Best", player: "TOTAL", points_applied: 57, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Dean Maghsadi", entry_team_name: "Dean's Dream", player: "TOTAL", points_applied: 55, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Brian Pleines", entry_team_name: "Pleines Power", player: "TOTAL", points_applied: 53, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Max Maier", entry_team_name: "Maier's Marvels", player: "TOTAL", points_applied: 53, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Adrian McLoughlin", entry_team_name: "McLoughlin FC", player: "TOTAL", points_applied: 52, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Wes H", entry_team_name: "Wes Warriors", player: "TOTAL", points_applied: 50, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Kevin Tomek", entry_team_name: "Tomek's Team", player: "TOTAL", points_applied: 48, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Kevin K", entry_team_name: "Kevin's Kicks", player: "TOTAL", points_applied: 41, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Tony Tharakan", entry_team_name: "Tharakan's Threat", player: "TOTAL", points_applied: 39, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "JP Fischer", entry_team_name: "Fischer's Force", player: "TOTAL", points_applied: 35, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 },
-        { manager_name: "Patrick McCleary", entry_team_name: "McCleary's Might", player: "TOTAL", points_applied: 34, bench_points: 0, is_captain: 'False', multiplier: 1, points_gw: 0 }
-      ];
-
-      // Combine all gameweeks
-      const available = [1, ...historicalGws.filter(gw => gw !== 1), latestGw].sort((a, b) => a - b);
-      setAvailableGameweeks(available);
-      
-      // Build results map
-      const resultsMap = { 1: gw1Data };
-      for (const gwStr of Object.keys(historicalData.gameweeks || {})) {
-        resultsMap[parseInt(gwStr, 10)] = historicalData.gameweeks[gwStr];
-      }
-      resultsMap[latestGw] = latestRows;
-      
-      const results = available.map(gw => resultsMap[gw] || []);
-      console.log(`⚡ Loaded ${available.length} gameweeks (2 network requests total)`);
-      
-      const managerData = {};
-      const captainStats = {}; // Track captain choices per gameweek
-
-      results.forEach((gwData, gwIndex) => {
-        const gameweek = available[gwIndex];
-        const managerStatsThisGw = {};
-        
-        // Initialize captain tracking for this gameweek
-        if (!captainStats[gameweek]) {
-          captainStats[gameweek] = {};
-        }
-
-        gwData.forEach(row => {
-          if (!row.manager_name) return;
-
-          const managerName = normalizeStr(row.manager_name);
-          const currentTeamName = normalizeStr(row.entry_team_name);
-
-          if (!managerStatsThisGw[managerName]) {
-            managerStatsThisGw[managerName] = {
-              total_points: 0,
-              bench_points: 0,
-              captain_player: 'N/A',
-              captain_points: 0,
-              team_name: currentTeamName
-            };
-          }
-
-          managerStatsThisGw[managerName].team_name = currentTeamName;
-
-          if (row.player === 'TOTAL') {
-            managerStatsThisGw[managerName].total_points = parseFloat(row.points_applied) || 0;
-            managerStatsThisGw[managerName].bench_points = parseFloat(row.bench_points) || 0;
-          } else {
-            const isCaptain = row.is_captain === true || ['True', 'true', 1, '1'].includes(row.is_captain);
-            if (isCaptain) {
-              const playerName = row.player;
-              managerStatsThisGw[managerName].captain_player = playerName;
-              managerStatsThisGw[managerName].captain_points = parseFloat(row.points_gw) || 0;
-              
-              // Track captain choice
-              if (!captainStats[gameweek][playerName]) {
-                captainStats[gameweek][playerName] = 0;
-              }
-              captainStats[gameweek][playerName]++;
-            }
-          }
-        });
-
-        Object.entries(managerStatsThisGw).forEach(([name, stats]) => {
-          if (!managerData[name]) {
-            managerData[name] = {
-              manager_name: name,
-              team_name: stats.team_name,
-              total_points: 0,
-              gameweeks: {}
-            };
-          }
-
-          managerData[name].total_points += stats.total_points;
-          managerData[name].team_name = stats.team_name;
-
-          managerData[name].gameweeks[gameweek] = {
-            points: stats.total_points,
-            captain: stats.captain_player,
-            captain_points: stats.captain_points,
-            bench_points: stats.bench_points,
-            chip_used: null
-          };
-        });
-      });
-
-      // Store captain stats in a ref so we can access it later
-      window.captainStatsData = captainStats;
-
-      const combinedDataArray = Object.values(managerData);
-
-      const sortedData = combinedDataArray
-        .sort((a, b) => {
-          if (b.total_points !== a.total_points) {
-            return b.total_points - a.total_points;
-          }
-          return a.manager_name.localeCompare(b.manager_name);
-        })
-        .map((item, index) => {
-          const totalManagers = combinedDataArray.length;
-          let designation = 'Mid-table';
-          if (index < 4) designation = 'Champions League';
-          else if (index === 4) designation = 'Europa League';
-          else if (index >= totalManagers - 3) designation = 'Relegation';
-
-          return {
-            ...item,
-            rank: index + 1,
-            designation,
-            displayName: item.manager_name,
-            chips: []
-          };
-        });
-
-      if (fetchCycleIdRef.current === myId && !abort.signal.aborted) {
-        console.log('Setting data with', sortedData.length, 'managers');
-        setData(sortedData);
-        setError(null);
-        setLastUpdate(new Date());
-        initialLoadDoneRef.current = true;
-      }
-    } catch (err) {
-      if (err?.name !== 'AbortError') {
-        console.error('Error loading data:', err);
-        if (fetchCycleIdRef.current === myId) {
-          setError(`Failed to load data: ${err.message}`);
-        }
-      }
-    } finally {
-      if (fetchCycleIdRef.current === myId && !abort.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, [processGameweekData]);
-
+  // Merge manager data with chips data
   const mergedData = useMemo(() => {
-    // CRITICAL FIX: Only merge if BOTH data sources are ready and non-empty
-    if (data.length === 0 || chipsLoading) {
-      console.log('Skipping merge: data empty or chips still loading', { dataLength: data.length, chipsLoading });
-      return [];
-    }
+    if (data.length === 0 || loading) return [];
 
-    console.log('Merging data:', { managers: data.length, chips: chipsData.length });
-    const chipsMap = new Map(chipsData.map(c => [c.manager_name, c.chips]));
+    const chipsMap = new Map((chipsData || []).map(c => [c.manager_name, c.chips]));
 
-    return data.map(manager => {
+    return data.map((manager, index) => {
       const managerChips = chipsMap.get(manager.manager_name) || [];
-      const managerCopy = { ...manager, chips: managerChips };
+      const totalManagers = data.length;
+      let designation = 'Mid-table';
+      if (index < 4) designation = 'Champions League';
+      else if (index === 4) designation = 'Europa League';
+      else if (index >= totalManagers - 3) designation = 'Relegation';
+
+      const managerCopy = { 
+        ...manager, 
+        chips: managerChips,
+        rank: index + 1,
+        designation,
+        displayName: manager.manager_name,
+      };
 
       managerChips.forEach(chip => {
-        if (managerCopy.gameweeks[chip.event]) {
+        if (managerCopy.gameweeks?.[chip.event]) {
           managerCopy.gameweeks[chip.event] = {
             ...managerCopy.gameweeks[chip.event],
             chip_used: chip.name
@@ -482,110 +241,7 @@ const FPLMultiGameweekDashboard = () => {
       });
       return managerCopy;
     });
-  }, [data, chipsData, chipsLoading]);
-
-  const setupSSE = useCallback(() => {
-    // Only setup SSE after initial data load
-    if (!initialLoadDoneRef.current) {
-      console.log('Skipping SSE setup until initial load is done');
-      return null;
-    }
-
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-
-    console.log('Setting up SSE connection...');
-    const eventSource = new EventSource(SSE_URL);
-    eventSourceRef.current = eventSource;
-    const maxReconnectAttempts = 5;
-
-    eventSource.onopen = () => {
-      console.log('SSE connected');
-      setConnectionStatus('connected');
-      reconnectAttemptsRef.current = 0;
-      if (fallbackIntervalRef.current) {
-        clearInterval(fallbackIntervalRef.current);
-        fallbackIntervalRef.current = null;
-      }
-    };
-
-    eventSource.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        console.log('SSE message received:', message);
-        if (message.type === 'gameweek_updated' && message.data.manifest_version !== manifestVersionRef.current) {
-          console.log('Manifest version changed, fetching new data');
-          fetchData();
-        }
-      } catch (err) {
-        console.error('Error parsing SSE message:', err);
-      }
-    };
-
-    eventSource.onerror = (err) => {
-      console.warn('SSE error:', err);
-      setConnectionStatus('disconnected');
-      eventSource.close();
-      
-      if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-        reconnectAttemptsRef.current++;
-        console.log(`Reconnecting SSE in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
-        setTimeout(() => {
-          if (!eventSourceRef.current || eventSourceRef.current.readyState !== EventSource.OPEN) {
-            setupSSE();
-          }
-        }, delay);
-      } else {
-        console.log('Max reconnect attempts reached, falling back to polling');
-        if (!fallbackIntervalRef.current) {
-          fallbackIntervalRef.current = setInterval(() => fetchData(), FALLBACK_POLL_INTERVAL_MS);
-        }
-      }
-    };
-
-    return eventSource;
-  }, [fetchData]);
-
-  // Create stable reference to setupSSE that won't change
-  const setupSSERef = useRef(setupSSE);
-  useEffect(() => {
-    setupSSERef.current = setupSSE;
-  }, [setupSSE]);
-
-  // Initial data load
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Separate effect for SSE setup after initial load
-  useEffect(() => {
-    if (!initialLoadDoneRef.current) {
-      return;
-    }
-
-    console.log('Initial load complete, setting up SSE');
-    const eventSource = setupSSERef.current();
-
-    return () => {
-      if (eventSource) {
-        console.log('Cleaning up SSE connection');
-        eventSource.close();
-      }
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      if (fallbackIntervalRef.current) {
-        clearInterval(fallbackIntervalRef.current);
-        fallbackIntervalRef.current = null;
-      }
-      if (cycleAbortRef.current) {
-        cycleAbortRef.current.abort();
-      }
-    };
-  }, [data.length]); // Trigger when data loads
+  }, [data, chipsData, loading]);
 
   const handleManagerClick = (managerName) => {
     const manager = mergedData.find(m => m.manager_name === managerName);

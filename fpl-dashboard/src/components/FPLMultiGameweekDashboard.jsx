@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Papa from 'papaparse';
+import { useData } from '../context/DataContext';
 
 // --- Constants ---
 
@@ -2061,7 +2062,55 @@ const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFiltere
 };
 
 const FPLMultiGameweekDashboard = () => {
-  const { loading, error, gameweekData, combinedData, availableGameweeks, latestGameweek, fetchData, connectionStatus, lastUpdate, fixtureData, captainStats, chipsData } = useFplData();
+  // Use shared data context instead of local fetching - INSTANT tab switch!
+  const { 
+    gameweekData, 
+    captainStats,
+    availableGameweeks, 
+    latestGameweek, 
+    fixtureData, 
+    chipsData,
+    isInitialLoading: loading,
+    error,
+    connectionStatus,
+    lastUpdate,
+    refreshLatestGameweek: fetchData,
+  } = useData();
+
+  // Build combinedData from context (derived, not fetched)
+  const combinedData = useMemo(() => {
+    if (!gameweekData || Object.keys(gameweekData).length === 0) return [];
+    
+    const managerNames = gameweekData[availableGameweeks[0]]?.map(m => m.manager_name) || [];
+    
+    return managerNames.map(name => {
+      let cumulativePoints = 0;
+      const managerEntry = { manager_name: name };
+      
+      availableGameweeks.forEach(gw => {
+        const gwStats = gameweekData[gw]?.find(m => m.manager_name === name);
+        const pts = gwStats?.total_points_applied || gwStats?.total_points || 0;
+        cumulativePoints += pts;
+        managerEntry.team_name = gwStats?.team_name || managerEntry.team_name;
+        managerEntry[`gw${gw}_points`] = gwStats?.total_points || 0;
+        if (gwStats?.team_value) {
+          managerEntry[`gw${gw}_team_value`] = gwStats.team_value;
+        }
+      });
+      managerEntry.total_points = cumulativePoints;
+      return managerEntry;
+    })
+      .sort((a, b) => b.total_points - a.total_points)
+      .map((manager, index) => {
+        const gw1Position = gameweekData[availableGameweeks[0]]?.find(m => m.manager_name === manager.manager_name)?.position || 0;
+        return {
+          ...manager,
+          current_position: index + 1,
+          overall_position_change: gw1Position ? gw1Position - (index + 1) : 0,
+        };
+      });
+  }, [gameweekData, availableGameweeks]);
+
   const [selectedView, setSelectedView] = useState('combined');
   const [selectedManager, setSelectedManager] = useState(null);
   const [filterType, setFilterType] = useState('all');
