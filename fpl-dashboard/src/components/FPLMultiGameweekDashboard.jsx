@@ -691,7 +691,8 @@ const playerData = {
     lastUpdate,
     fixtureData,
     captainStats,
-    chipsData // NEW: Return chips data
+    chipsData,
+    projectionsLookup // Projections for player modal
   };
 };
 
@@ -1436,7 +1437,7 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData,
   const teamValue = manager.team_value ? (manager.team_value).toFixed(1) : null;
   
   // Get projection for a player
-  const getProjection = (playerName) => {
+  const getProjection = useCallback((playerName) => {
     if (!projectionsLookup || Object.keys(projectionsLookup).length === 0) return null;
     const key = playerName.toLowerCase();
     // Try exact match first
@@ -1448,7 +1449,7 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData,
     const firstName = key.split(' ')[0];
     if (projectionsLookup[firstName]) return projectionsLookup[firstName];
     return null;
-  };
+  }, [projectionsLookup]);
   
   // Calculate team projected total
   const teamProjectedTotal = useMemo(() => {
@@ -1463,7 +1464,7 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData,
       }
     });
     return total > 0 ? total.toFixed(1) : null;
-  }, [manager.players, projectionsLookup]);
+  }, [manager.players, projectionsLookup, getProjection]);
 
   const calculateLeagueOwnership = (playerName) => {
     if (!manager || !manager.gameweek) return null;
@@ -1614,7 +1615,7 @@ const getFixtureTimingText = (player, currentGameweek) => {
       if (diff >= 3) {
         performanceIndicator = { type: 'over', icon: '🔥', color: 'text-emerald-400' };
       } else if (diff <= -3) {
-        performanceIndicator = { type: 'under', icon: '⚠️', color: 'text-amber-400' };
+        performanceIndicator = { type: 'under', icon: '❄️', color: 'text-sky-400' };
       }
     }
 
@@ -1659,7 +1660,7 @@ const getFixtureTimingText = (player, currentGameweek) => {
             </p>
             {projection && (
               <span className="text-[9px] md:text-[10px] text-gray-500">
-                / {(projection.projected_points * (player.multiplier || 1)).toFixed(1)}
+                : {(projection.projected_points * (player.multiplier || 1)).toFixed(1)}
               </span>
             )}
           </div>
@@ -2118,7 +2119,8 @@ const FPLMultiGameweekDashboard = () => {
     lastUpdate,
     fixtureData,
     captainStats,
-    chipsData 
+    chipsData,
+    projectionsLookup 
   } = useFplData();
 
   const [selectedView, setSelectedView] = useState('combined');
