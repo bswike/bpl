@@ -1633,11 +1633,6 @@ const getFixtureTimingText = (player, currentGameweek) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
-              {performanceIndicator && (
-                <span className={`text-[10px] ${performanceIndicator.color}`}>
-                  {performanceIndicator.icon}
-                </span>
-              )}
               {leagueOwnership && (
                 <span className="text-[9px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
                   {leagueOwnership}%
@@ -1654,16 +1649,21 @@ const getFixtureTimingText = (player, currentGameweek) => {
           )}
         </div>
         <div className="text-right ml-2 md:ml-3 flex-shrink-0">
-          <div className="flex items-center justify-end gap-1.5">
-            <p className="text-base md:text-xl font-bold text-white">
-              {!player.fixture_started ? '-' : actualPoints}
-            </p>
-            {projection && (
+          <p className="text-base md:text-xl font-bold text-white">
+            {!player.fixture_started ? '-' : actualPoints}
+          </p>
+          {projection && (
+            <div className="flex items-center justify-end gap-1 mt-0.5">
               <span className="text-[9px] md:text-[10px] text-gray-500">
-                : {(projection.projected_points * (player.multiplier || 1)).toFixed(1)}
+                Proj: {(projection.projected_points * (player.multiplier || 1)).toFixed(1)}
               </span>
-            )}
-          </div>
+              {performanceIndicator && (
+                <span className={`text-[10px] ${performanceIndicator.color}`}>
+                  {performanceIndicator.icon}
+                </span>
+              )}
+            </div>
+          )}
           {/* Detailed stats - clear stat line */}
           {player.fixture_started && (player.goals_scored > 0 || player.assists > 0 || player.clean_sheets > 0 || player.saves > 0 || player.bonus > 0 || player.yellow_cards > 0 || player.red_cards > 0) && (
             <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-end mt-0.5 text-[9px] md:text-[10px] text-gray-400">
