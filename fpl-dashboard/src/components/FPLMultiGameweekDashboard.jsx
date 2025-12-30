@@ -1649,19 +1649,21 @@ const getFixtureTimingText = (player, currentGameweek) => {
           )}
         </div>
         <div className="text-right ml-2 md:ml-3 flex-shrink-0">
-          <p className="text-base md:text-xl font-bold text-white">
-            {!player.fixture_started ? '-' : actualPoints}
-          </p>
+          <div className="flex items-center justify-end gap-1">
+            <p className="text-base md:text-xl font-bold text-white">
+              {!player.fixture_started ? '-' : actualPoints}
+            </p>
+            {performanceIndicator && (
+              <span className={`text-sm ${performanceIndicator.color}`}>
+                {performanceIndicator.icon}
+              </span>
+            )}
+          </div>
           {projection && (
-            <div className="flex items-center justify-end gap-1 mt-0.5">
+            <div className="flex items-center justify-end mt-0.5">
               <span className="text-[9px] md:text-[10px] text-gray-500">
                 Proj: {(projection.projected_points * (player.multiplier || 1)).toFixed(1)}
               </span>
-              {performanceIndicator && (
-                <span className={`text-[10px] ${performanceIndicator.color}`}>
-                  {performanceIndicator.icon}
-                </span>
-              )}
             </div>
           )}
           {/* Detailed stats - clear stat line */}
