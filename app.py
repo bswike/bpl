@@ -1154,15 +1154,12 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
         rosters_data = scrape_rosters_bytes(gw)
         h = get_file_hash(rosters_data)
 
-        # Upload to legacy path
-        smart_upload_csv(f"fpl_rosters_points_gw{gw}.csv", rosters_data)
+        # Upload to non-versioned path (this is what the manifest will point to)
+        csv_name = f"fpl_rosters_points_gw{gw}.csv"
+        csv_url = f"{PUBLIC_BASE}{csv_name}"
+        uploaded = smart_upload_csv(csv_name, rosters_data)
 
-        # Upload to versioned path
-        ver_name = f"fpl_rosters_points_gw{gw}-{h[:10]}.csv"
-        ver_url = f"{PUBLIC_BASE}{ver_name}"
-        version_uploaded = smart_upload_csv(ver_name, rosters_data)
-
-        if version_uploaded:
+        if uploaded:
             log(f"New version uploaded for GW{gw}, updating manifest...")
             
             # Update manifest directly - NO MORE POINTER FILES
@@ -1179,9 +1176,9 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
             
             timestamp = int(time.time())
             
-            # Store full gameweek info directly in manifest
+            # Store full gameweek info directly in manifest (use non-versioned URL)
             manifest_data['gameweeks'][str(gw)] = {
-                'url': ver_url,
+                'url': csv_url,
                 'hash': h,
                 'timestamp': timestamp,
                 'updated': datetime.utcnow().isoformat() + "Z"
@@ -1260,12 +1257,13 @@ def scraper_worker():
             if ACTIVE != "1":
                 log("inactive (ACTIVE=0)")
             else:
+                # Only scrape the current/latest gameweek during normal operation
+                # Historical gameweeks don't change and don't need re-scraping
                 latest_gw = detect_current_gameweek()
-                successful = 0
-                for gw in range(1, latest_gw + 1):
-                    if scrape_and_upload_gameweek(gw):
-                        successful += 1
-                log(f"Full cycle complete: {successful}/{latest_gw} gameweeks successful")
+                if scrape_and_upload_gameweek(latest_gw):
+                    log(f"Successfully scraped GW{latest_gw}")
+                else:
+                    log(f"Failed to scrape GW{latest_gw}")
         except Exception as e:
             log(f"GENERAL ERROR: {e}")
 
