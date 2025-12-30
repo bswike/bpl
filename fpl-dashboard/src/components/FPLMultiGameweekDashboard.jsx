@@ -1591,49 +1591,19 @@ const getFixtureTimingText = (player, currentGameweek) => {
           <p className="text-base md:text-xl font-bold text-white">
             {!player.fixture_started ? '-' : (player.multiplier === 0 ? player.points_gw : player.points_applied)}
           </p>
-          {/* Detailed stats - clean minimal indicators */}
+          {/* Detailed stats - unified stat line */}
           {player.fixture_started && (player.goals_scored > 0 || player.assists > 0 || player.clean_sheets > 0 || player.saves > 0 || player.bonus > 0 || player.yellow_cards > 0 || player.red_cards > 0) && (
-            <div className="flex flex-wrap gap-1.5 justify-end mt-0.5">
-              {player.goals_scored > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] md:text-[10px] font-medium text-emerald-400">
-                  <span className="uppercase">gs</span>
-                  <span className="font-bold">{player.goals_scored}</span>
-                </span>
-              )}
-              {player.assists > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] md:text-[10px] font-medium text-sky-400">
-                  <span className="uppercase">ast</span>
-                  <span className="font-bold">{player.assists}</span>
-                </span>
-              )}
-              {player.clean_sheets > 0 && (player.position === 'GK' || player.position === 'DEF' || player.position === 'MID') && (
-                <span className="text-[9px] md:text-[10px] font-medium text-violet-400 uppercase">
-                  cs
-                </span>
-              )}
-              {player.saves >= 3 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] md:text-[10px] font-medium text-orange-400">
-                  <span className="uppercase">sav</span>
-                  <span className="font-bold">{player.saves}</span>
-                </span>
-              )}
-              {player.bonus > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] md:text-[10px] font-medium text-amber-400">
-                  <span className="uppercase">bps</span>
-                  <span className="font-bold">{player.bonus}</span>
-                </span>
-              )}
-              {player.yellow_cards > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] md:text-[10px] font-medium text-yellow-400">
-                  <span className="w-1.5 h-2 md:w-2 md:h-2.5 bg-yellow-400 rounded-[1px]"/>
-                </span>
-              )}
-              {player.red_cards > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] md:text-[10px] font-medium text-red-400">
-                  <span className="w-1.5 h-2 md:w-2 md:h-2.5 bg-red-500 rounded-[1px]"/>
-                </span>
-              )}
-            </div>
+            <p className="text-[9px] md:text-[10px] text-gray-400 font-mono tracking-tight">
+              {[
+                player.goals_scored > 0 && `G${player.goals_scored}`,
+                player.assists > 0 && `A${player.assists}`,
+                player.clean_sheets > 0 && (player.position === 'GK' || player.position === 'DEF' || player.position === 'MID') && 'CS',
+                player.saves >= 3 && `S${player.saves}`,
+                player.bonus > 0 && `B${player.bonus}`,
+                player.yellow_cards > 0 && 'YC',
+                player.red_cards > 0 && 'RC',
+              ].filter(Boolean).join(' · ')}
+            </p>
           )}
         </div>
       </div>
