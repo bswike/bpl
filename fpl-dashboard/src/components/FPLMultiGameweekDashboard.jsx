@@ -8,7 +8,7 @@ import Papa from 'papaparse';
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
 const FALLBACK_POLL_INTERVAL_MS = 300000;
-const CACHE_VERSION = 'v7'; // Increment this to invalidate all caches (added detailed player stats)
+const CACHE_VERSION = 'v8'; // Increment this to invalidate all caches (fixed live GW caching)
 
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const truthy = (v) => v === true || v === 'True' || v === 'true' || v === 1 || v === '1';
@@ -401,15 +401,18 @@ const playerData = {
         return { managers: [], captainChoices: {} };
       }
       
-      const proxyUrl = `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
+      // Add cache-busting for live GW to ensure fresh data
+      const proxyUrl = isLatestGw 
+        ? `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}?_t=${Date.now()}`
+        : `https://bpl-red-sun-894.fly.dev/api/data/${gameweek}`;
       console.log(`${isLatestGw ? '🔴 LIVE' : '📥'} Fetching GW${gameweek}...`);
       const csvRes = await fetchWithNoCaching(proxyUrl, signal);
       if (!csvRes.ok) throw new Error(`HTTP ${csvRes.status} for GW${gameweek}`);
       const csvText = await csvRes.text();
       const result = parseCsvToManagers(csvText, gameweek);
       
-      // Cache the result
-      if (result.managers.length > 0) {
+      // Only cache historical gameweeks, never cache live/current GW
+      if (result.managers.length > 0 && !isLatestGw) {
         setCachedGameweek(gameweek, result, expectedHash);
       }
       
