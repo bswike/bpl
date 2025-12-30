@@ -1032,6 +1032,376 @@
       "price": 10.3,
       "pick_pct": 3.9,
       "position": "FWD"
+    },
+    {
+      "name": "De Cuyper",
+      "team": "Brighton",
+      "projected_points": 2.4,
+      "start_pct": 50,
+      "next_fixture": "West Ham (a)",
+      "price": 4.3,
+      "pick_pct": 2.4,
+      "position": "DEF"
+    },
+    {
+      "name": "Struijk",
+      "team": "Leeds",
+      "projected_points": 2.4,
+      "start_pct": 90,
+      "next_fixture": "Liverpool (a)",
+      "price": 4.3,
+      "pick_pct": 0.3,
+      "position": "DEF"
+    },
+    {
+      "name": "Mukiele",
+      "team": "Sunderland",
+      "projected_points": 2.4,
+      "start_pct": 90,
+      "next_fixture": "Man City (H)",
+      "price": 4.2,
+      "pick_pct": 6.9,
+      "position": "DEF"
+    },
+    {
+      "name": "Alderete",
+      "team": "Sunderland",
+      "projected_points": 2.4,
+      "start_pct": 90,
+      "next_fixture": "Man City (H)",
+      "price": 4.0,
+      "pick_pct": 5.3,
+      "position": "DEF"
+    },
+    {
+      "name": "Maatsen",
+      "team": "Aston Villa",
+      "projected_points": 2.3,
+      "start_pct": 80,
+      "next_fixture": "Arsenal (a)",
+      "price": 4.2,
+      "pick_pct": 0.5,
+      "position": "DEF"
+    },
+    {
+      "name": "Mavropanos",
+      "team": "West Ham",
+      "projected_points": 2.2,
+      "start_pct": 60,
+      "next_fixture": "Brighton (H)",
+      "price": 4.4,
+      "pick_pct": 0.1,
+      "position": "DEF"
+    },
+    {
+      "name": "Ballard",
+      "team": "Sunderland",
+      "projected_points": 2.2,
+      "start_pct": 70,
+      "next_fixture": "Man City (H)",
+      "price": 4.7,
+      "pick_pct": 4.0,
+      "position": "DEF"
+    },
+    {
+      "name": "Hume",
+      "team": "Sunderland",
+      "projected_points": 2.2,
+      "start_pct": 90,
+      "next_fixture": "Man City (H)",
+      "price": 4.5,
+      "pick_pct": 0.3,
+      "position": "DEF"
+    },
+    {
+      "name": "Bijol",
+      "team": "Leeds",
+      "projected_points": 2.2,
+      "start_pct": 90,
+      "next_fixture": "Liverpool (a)",
+      "price": 3.9,
+      "pick_pct": 0.5,
+      "position": "DEF"
+    },
+    {
+      "name": "Doherty",
+      "team": "Wolves",
+      "projected_points": 2.2,
+      "start_pct": 90,
+      "next_fixture": "Man Utd (a)",
+      "price": 4.4,
+      "pick_pct": 0.1,
+      "position": "DEF"
+    },
+    {
+      "name": "Frimpong",
+      "team": "Liverpool",
+      "projected_points": 2.1,
+      "start_pct": 40,
+      "next_fixture": "Leeds (H)",
+      "price": 5.7,
+      "pick_pct": 5.2,
+      "position": "DEF"
+    },
+    {
+      "name": "Robertson",
+      "team": "Liverpool",
+      "projected_points": 2.1,
+      "start_pct": 40,
+      "next_fixture": "Leeds (H)",
+      "price": 5.8,
+      "pick_pct": 1.0,
+      "position": "DEF"
+    },
+    {
+      "name": "Canvot",
+      "team": "Crystal Palace",
+      "projected_points": 2.1,
+      "start_pct": 50,
+      "next_fixture": "Fulham (H)",
+      "price": 4.5,
+      "pick_pct": 0.0,
+      "position": "DEF"
+    },
+    {
+      "name": "Bogle",
+      "team": "Leeds",
+      "projected_points": 2.1,
+      "start_pct": 80,
+      "next_fixture": "Liverpool (a)",
+      "price": 4.4,
+      "pick_pct": 0.2,
+      "position": "DEF"
+    },
+    {
+      "name": "Geertruida",
+      "team": "Sunderland",
+      "projected_points": 2.1,
+      "start_pct": 90,
+      "next_fixture": "Man City (H)",
+      "price": 4.5,
+      "pick_pct": 0.0,
+      "position": "DEF"
+    },
+    {
+      "name": "Krejci",
+      "team": "Wolves",
+      "projected_points": 2.1,
+      "start_pct": 90,
+      "next_fixture": "Man Utd (a)",
+      "price": 4.5,
+      "pick_pct": 0.0,
+      "position": "DEF"
+    },
+    {
+      "name": "Fofana",
+      "team": "Chelsea",
+      "projected_points": 2.0,
+      "start_pct": 50,
+      "next_fixture": "Bournemouth (H)",
+      "price": 4.4,
+      "pick_pct": 0.5,
+      "position": "DEF"
+    },
+    {
+      "name": "Ajer",
+      "team": "Brentford",
+      "projected_points": 2.0,
+      "start_pct": 50,
+      "next_fixture": "Spurs (H)",
+      "price": 4.4,
+      "pick_pct": 0.2,
+      "position": "DEF"
+    },
+    {
+      "name": "Scarles",
+      "team": "West Ham",
+      "projected_points": 2.0,
+      "start_pct": 60,
+      "next_fixture": "Brighton (H)",
+      "price": 4.3,
+      "pick_pct": 0.0,
+      "position": "DEF"
+    },
+    {
+      "name": "Gudmundsson",
+      "team": "Leeds",
+      "projected_points": 2.0,
+      "start_pct": 80,
+      "next_fixture": "Liverpool (a)",
+      "price": 3.8,
+      "pick_pct": 3.8,
+      "position": "DEF"
+    },
+    {
+      "name": "Mosquera",
+      "team": "Wolves",
+      "projected_points": 2.0,
+      "start_pct": 80,
+      "next_fixture": "Man Utd (a)",
+      "price": 4.3,
+      "pick_pct": 0.0,
+      "position": "DEF"
+    },
+    {
+      "name": "Truffert",
+      "team": "Bournemouth",
+      "projected_points": 2.0,
+      "start_pct": 90,
+      "next_fixture": "Chelsea (a)",
+      "price": 4.5,
+      "pick_pct": 2.2,
+      "position": "DEF"
+    },
+    {
+      "name": "Diakite",
+      "team": "Bournemouth",
+      "projected_points": 2.0,
+      "start_pct": 90,
+      "next_fixture": "Chelsea (a)",
+      "price": 4.4,
+      "pick_pct": 0.4,
+      "position": "DEF"
+    },
+    {
+      "name": "Lewis",
+      "team": "Man City",
+      "projected_points": 1.9,
+      "start_pct": 40,
+      "next_fixture": "Sunderland (a)",
+      "price": 4.7,
+      "pick_pct": 1.3,
+      "position": "DEF"
+    },
+    {
+      "name": "Hartman",
+      "team": "Burnley",
+      "projected_points": 1.9,
+      "start_pct": 60,
+      "next_fixture": "Newcastle (H)",
+      "price": 4.0,
+      "pick_pct": 0.9,
+      "position": "DEF"
+    },
+    {
+      "name": "Lindelof",
+      "team": "Aston Villa",
+      "projected_points": 1.9,
+      "start_pct": 80,
+      "next_fixture": "Arsenal (a)",
+      "price": 4.5,
+      "pick_pct": 0.1,
+      "position": "DEF"
+    },
+    {
+      "name": "Humphreys",
+      "team": "Burnley",
+      "projected_points": 1.8,
+      "start_pct": 70,
+      "next_fixture": "Newcastle (H)",
+      "price": 3.9,
+      "pick_pct": 0.1,
+      "position": "DEF"
+    },
+    {
+      "name": "Bogarde",
+      "team": "Aston Villa",
+      "projected_points": 1.8,
+      "start_pct": 70,
+      "next_fixture": "Arsenal (a)",
+      "price": 4.0,
+      "pick_pct": 0.5,
+      "position": "DEF"
+    },
+    {
+      "name": "Danso",
+      "team": "Spurs",
+      "projected_points": 1.7,
+      "start_pct": 40,
+      "next_fixture": "Brentford (a)",
+      "price": 4.2,
+      "pick_pct": 0.1,
+      "position": "DEF"
+    },
+    {
+      "name": "Badiashile",
+      "team": "Chelsea",
+      "projected_points": 1.7,
+      "start_pct": 40,
+      "next_fixture": "Bournemouth (H)",
+      "price": 4.4,
+      "pick_pct": 0.0,
+      "position": "DEF"
+    },
+    {
+      "name": "Jimenez",
+      "team": "Bournemouth",
+      "projected_points": 1.7,
+      "start_pct": 70,
+      "next_fixture": "Chelsea (a)",
+      "price": 4.5,
+      "pick_pct": 0.1,
+      "position": "DEF"
+    },
+    {
+      "name": "Ake",
+      "team": "Man City",
+      "projected_points": 1.5,
+      "start_pct": 30,
+      "next_fixture": "Sunderland (a)",
+      "price": 5.3,
+      "pick_pct": 0.6,
+      "position": "DEF"
+    },
+    {
+      "name": "Khusanov",
+      "team": "Man City",
+      "projected_points": 1.4,
+      "start_pct": 30,
+      "next_fixture": "Sunderland (a)",
+      "price": 5.4,
+      "pick_pct": 0.3,
+      "position": "DEF"
+    },
+    {
+      "name": "Tosin",
+      "team": "Chelsea",
+      "projected_points": 1.4,
+      "start_pct": 30,
+      "next_fixture": "Bournemouth (H)",
+      "price": 4.1,
+      "pick_pct": 0.3,
+      "position": "DEF"
+    },
+    {
+      "name": "Acheampong",
+      "team": "Chelsea",
+      "projected_points": 1.4,
+      "start_pct": 30,
+      "next_fixture": "Bournemouth (H)",
+      "price": 3.8,
+      "pick_pct": 1.3,
+      "position": "DEF"
+    },
+    {
+      "name": "Castagne",
+      "team": "Fulham",
+      "projected_points": 1.4,
+      "start_pct": 40,
+      "next_fixture": "Crystal Palace (a)",
+      "price": 4.3,
+      "pick_pct": 0.1,
+      "position": "DEF"
+    },
+    {
+      "name": "Zinchenko",
+      "team": "Notts Forest",
+      "projected_points": 1.3,
+      "start_pct": 30,
+      "next_fixture": "Everton (H)",
+      "price": 4.9,
+      "pick_pct": 0.2,
+      "position": "DEF"
     }
   ]
 }

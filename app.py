@@ -6,7 +6,7 @@ Combines your existing scraper with SSE server
 import os, time, requests, signal, subprocess, hashlib, json, uuid, threading
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-from flask import Flask, Response
+from flask import Flask, Response, request
 from flask_cors import CORS
 import concurrent.futures
 
@@ -992,6 +992,34 @@ def get_projections():
     except Exception as e:
         log(f"[projections] Error: {e}")
         return {'error': str(e), 'players': [], 'lookup': {}}, 500
+
+@app.route('/api/admin/upload-projections', methods=['POST'])
+def upload_projections():
+    """Admin endpoint to upload projections JSON to blob storage."""
+    try:
+        data = request.get_json()
+        if not data or 'players' not in data:
+            return {'error': 'Invalid data - must include players array'}, 400
+        
+        json_bytes = json.dumps(data).encode('utf-8')
+        
+        # Upload to blob storage
+        success = smart_upload_bytes('projections_gw19.json', json_bytes, content_type='application/json')
+        
+        if success:
+            # Clear cache so next request gets fresh data
+            with projections_cache_lock:
+                projections_cache["data"] = None
+                projections_cache["timestamp"] = 0
+            
+            log(f"[projections] Uploaded {len(data['players'])} players")
+            return {'success': True, 'players_count': len(data['players'])}, 200
+        else:
+            return {'success': True, 'message': 'No changes detected (same content)'}, 200
+            
+    except Exception as e:
+        log(f"[projections] Upload error: {e}")
+        return {'error': str(e)}, 500
 
 # ====== YOUR EXISTING SCRAPER LOGIC ======
 def smart_upload_bytes(blob_name: str, data: bytes, content_type: str = "text/plain", headers: dict = None) -> bool:
