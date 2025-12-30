@@ -288,7 +288,16 @@ const playerData = {
   fixture_started: truthy(raw.fixture_started),
   fixture_finished: truthy(raw.fixture_finished),
   status: normalizeStr(raw.status),
-  cost: playerCost
+  cost: playerCost,
+  // Detailed stats
+  goals_scored: toNum(raw.goals_scored),
+  assists: toNum(raw.assists),
+  clean_sheets: toNum(raw.clean_sheets),
+  saves: toNum(raw.saves),
+  bonus: toNum(raw.bonus),
+  yellow_cards: toNum(raw.yellow_cards),
+  red_cards: toNum(raw.red_cards),
+  minutes: toNum(raw.minutes),
 };
         managerStats[manager].players.push(playerData);
         // Add player cost to team value
@@ -1582,6 +1591,46 @@ const getFixtureTimingText = (player, currentGameweek) => {
           <p className="text-base md:text-xl font-bold text-white">
             {!player.fixture_started ? '-' : (player.multiplier === 0 ? player.points_gw : player.points_applied)}
           </p>
+          {/* Detailed stats in small text */}
+          {player.fixture_started && (player.goals_scored > 0 || player.assists > 0 || player.clean_sheets > 0 || player.saves > 0 || player.bonus > 0 || player.yellow_cards > 0 || player.red_cards > 0) && (
+            <div className="flex flex-wrap gap-1 justify-end mt-0.5">
+              {player.goals_scored > 0 && (
+                <span className="text-[8px] md:text-[9px] bg-green-600/30 text-green-400 px-1 rounded">
+                  ⚽{player.goals_scored}
+                </span>
+              )}
+              {player.assists > 0 && (
+                <span className="text-[8px] md:text-[9px] bg-blue-600/30 text-blue-400 px-1 rounded">
+                  🅰️{player.assists}
+                </span>
+              )}
+              {player.clean_sheets > 0 && (player.position === 'GK' || player.position === 'DEF' || player.position === 'MID') && (
+                <span className="text-[8px] md:text-[9px] bg-purple-600/30 text-purple-400 px-1 rounded">
+                  🛡️CS
+                </span>
+              )}
+              {player.saves >= 3 && (
+                <span className="text-[8px] md:text-[9px] bg-yellow-600/30 text-yellow-400 px-1 rounded">
+                  🧤{player.saves}
+                </span>
+              )}
+              {player.bonus > 0 && (
+                <span className="text-[8px] md:text-[9px] bg-amber-600/30 text-amber-400 px-1 rounded">
+                  ⭐{player.bonus}
+                </span>
+              )}
+              {player.yellow_cards > 0 && (
+                <span className="text-[8px] md:text-[9px] bg-yellow-500/30 text-yellow-300 px-1 rounded">
+                  🟨
+                </span>
+              )}
+              {player.red_cards > 0 && (
+                <span className="text-[8px] md:text-[9px] bg-red-600/30 text-red-400 px-1 rounded">
+                  🟥
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );

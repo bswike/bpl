@@ -80,7 +80,7 @@ def get_history(session: requests.Session, entry_id: int) -> Dict[str, Any]:
 
 def get_live_snap(session: requests.Session, gw: int) -> Dict[int, Dict[str, int]]:
     """
-    Returns {element_id: {"points": int, "minutes": int}}
+    Returns {element_id: {"points": int, "minutes": int, "goals_scored": int, ...}}
     """
     r = session.get(LIVE_URL_TPL.format(gw=gw), timeout=20)
     r.raise_for_status()
@@ -92,6 +92,16 @@ def get_live_snap(session: requests.Session, gw: int) -> Dict[int, Dict[str, int
         out[pid] = {
             "points": int(stats.get("total_points", 0) or 0),
             "minutes": int(stats.get("minutes", 0) or 0),
+            "goals_scored": int(stats.get("goals_scored", 0) or 0),
+            "assists": int(stats.get("assists", 0) or 0),
+            "clean_sheets": int(stats.get("clean_sheets", 0) or 0),
+            "saves": int(stats.get("saves", 0) or 0),
+            "bonus": int(stats.get("bonus", 0) or 0),
+            "yellow_cards": int(stats.get("yellow_cards", 0) or 0),
+            "red_cards": int(stats.get("red_cards", 0) or 0),
+            "own_goals": int(stats.get("own_goals", 0) or 0),
+            "penalties_saved": int(stats.get("penalties_saved", 0) or 0),
+            "penalties_missed": int(stats.get("penalties_missed", 0) or 0),
         }
     return out
 
@@ -210,7 +220,7 @@ def rows_from_picks(entry: Dict[str, Any],
         club_id = el["team"]
         club = teams.get(club_id, {}).get("name", club_id)
 
-        snap = live_snap.get(el["id"], {"points": 0, "minutes": 0})
+        snap = live_snap.get(el["id"], {"points": 0, "minutes": 0, "goals_scored": 0, "assists": 0, "clean_sheets": 0, "saves": 0, "bonus": 0, "yellow_cards": 0, "red_cards": 0, "own_goals": 0, "penalties_saved": 0, "penalties_missed": 0})
         raw_pts = snap["points"]
         minutes = snap["minutes"]
 
@@ -254,6 +264,14 @@ def rows_from_picks(entry: Dict[str, Any],
             "kickoff_time": fstat.get("kickoff_time"),
             "fixture_started": fstat.get("started"),
             "fixture_finished": fstat.get("finished"),
+            # Detailed stats
+            "goals_scored": snap["goals_scored"],
+            "assists": snap["assists"],
+            "clean_sheets": snap["clean_sheets"],
+            "saves": snap["saves"],
+            "bonus": snap["bonus"],
+            "yellow_cards": snap["yellow_cards"],
+            "red_cards": snap["red_cards"],
         })
 
     # Calculate actual bench points if Bench Boost was active
@@ -401,9 +419,12 @@ def main():
         "player_cost", "value_ratio", "global_ownership", "global_captain_percent",
         "multiplier", "is_captain", "is_vice_captain",
         "points_gw", "points_applied", "bench_points",
-        "transfer_cost", "event_transfers", "gross_points",  # <-- NEW FIELDS
+        "transfer_cost", "event_transfers", "gross_points",
         "minutes", "status", "opponent_team", "kickoff_time",
         "fixture_started", "fixture_finished",
+        # Detailed stats for player display
+        "goals_scored", "assists", "clean_sheets", "saves", "bonus",
+        "yellow_cards", "red_cards",
     ]
 
     with open(out_path, "w", newline="", encoding="utf-8") as f:
