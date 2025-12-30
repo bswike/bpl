@@ -244,6 +244,14 @@ const useFplData = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Helper to normalize names (remove accents)
+  const normalizeKey = (name) => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  };
+  
   // NEW: Load projections data
   const [projectionsLookup, setProjectionsLookup] = useState({});
   useEffect(() => {
@@ -252,8 +260,13 @@ const useFplData = () => {
         const res = await fetch('https://bpl-red-sun-894.fly.dev/api/projections');
         if (res.ok) {
           const data = await res.json();
-          console.log(`📊 Loaded ${Object.keys(data.lookup || {}).length} player projections`);
-          setProjectionsLookup(data.lookup || {});
+          // Normalize all lookup keys to handle accented characters
+          const normalizedLookup = {};
+          for (const [key, value] of Object.entries(data.lookup || {})) {
+            normalizedLookup[normalizeKey(key)] = value;
+          }
+          console.log(`📊 Loaded ${Object.keys(normalizedLookup).length} player projections`);
+          setProjectionsLookup(normalizedLookup);
         }
       } catch (e) {
         console.warn('Failed to load projections:', e);
@@ -1436,18 +1449,53 @@ const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData,
   // Calculate team value from players in this gameweek's squad
   const teamValue = manager.team_value ? (manager.team_value).toFixed(1) : null;
   
+  // Normalize name: remove accents and convert to lowercase
+  const normalizeName = (name) => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''); // Remove diacritics (é→e, ü→u, etc.)
+  };
+  
   // Get projection for a player
   const getProjection = useCallback((playerName) => {
     if (!projectionsLookup || Object.keys(projectionsLookup).length === 0) return null;
-    const key = playerName.toLowerCase();
+    
+    const normalizedName = normalizeName(playerName);
+    const nameParts = normalizedName.split(' ');
+    
     // Try exact match first
-    if (projectionsLookup[key]) return projectionsLookup[key];
-    // Try last name only
-    const lastName = key.split(' ').pop();
-    if (projectionsLookup[lastName]) return projectionsLookup[lastName];
-    // Try first name only (for single-name players like Salah)
-    const firstName = key.split(' ')[0];
-    if (projectionsLookup[firstName]) return projectionsLookup[firstName];
+    if (projectionsLookup[normalizedName]) return projectionsLookup[normalizedName];
+    
+    // Try each part of the name (handles "David Raya Martin" → "raya")
+    for (const part of nameParts) {
+      if (part.length >= 3 && projectionsLookup[part]) {
+        return projectionsLookup[part];
+      }
+    }
+    
+    // Try combinations for compound names like "Kolo Muani"
+    for (let i = 0; i < nameParts.length - 1; i++) {
+      const compound = `${nameParts[i]} ${nameParts[i + 1]}`;
+      if (projectionsLookup[compound]) return projectionsLookup[compound];
+    }
+    
+    // Try partial match - find any key that contains or is contained in the name
+    const lookupKeys = Object.keys(projectionsLookup);
+    for (const lookupKey of lookupKeys) {
+      // Skip very short keys to avoid false matches
+      if (lookupKey.length < 4) continue;
+      
+      // Check if any part of the player name matches the lookup key
+      if (nameParts.some(part => part.length >= 4 && lookupKey.includes(part))) {
+        return projectionsLookup[lookupKey];
+      }
+      // Check if lookup key matches any part of player name
+      if (normalizedName.includes(lookupKey)) {
+        return projectionsLookup[lookupKey];
+      }
+    }
+    
     return null;
   }, [projectionsLookup]);
   
