@@ -8,7 +8,7 @@ import Papa from 'papaparse';
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
 const FALLBACK_POLL_INTERVAL_MS = 300000;
-const CACHE_VERSION = 'v6'; // Increment this to invalidate all caches
+const CACHE_VERSION = 'v7'; // Increment this to invalidate all caches (added detailed player stats)
 
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const truthy = (v) => v === true || v === 'True' || v === 'true' || v === 1 || v === '1';
