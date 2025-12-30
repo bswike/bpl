@@ -1862,7 +1862,7 @@ const ViewToggleButtons = React.memo(({ availableGameweeks, selectedView, onSele
   );
 });
 
-const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerClick, onFilteredClick, onCaptainClick, chipsData, gameweekData }) => {
+const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerClick, onFilteredClick, onCaptainClick, chipsData, gameweekData, projectionsLookup }) => {
   const isCombined = view === 'combined';
   const position = isCombined ? manager.current_position : manager.position;
   const totalPoints = manager.total_points;
@@ -1912,6 +1912,38 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
   const gridColsMap = { 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6', 7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10', 11: 'md:grid-cols-11', 12: 'md:grid-cols-12' };
   const combinedCols = 3 + availableGameweeks.length + 1;
   const desktopGridClass = isCombined ? (gridColsMap[combinedCols] || `md:grid-cols-12`) : 'md:grid-cols-7';
+
+  // Calculate projected points for upcoming players
+  const upcomingProjectedPoints = useMemo(() => {
+    if (!manager.players || !projectionsLookup || Object.keys(projectionsLookup).length === 0) return null;
+    
+    const normalizeName = (name) => (name || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    
+    let total = 0;
+    manager.players.forEach(p => {
+      // Only count starters (multiplier >= 1) who haven't played yet
+      if (p.multiplier >= 1 && !p.fixture_started) {
+        const normalizedName = normalizeName(p.name);
+        let projection = projectionsLookup[normalizedName];
+        
+        // Try matching by parts of name if not found
+        if (!projection) {
+          const nameParts = normalizedName.split(' ');
+          for (const part of nameParts) {
+            if (projectionsLookup[part]) {
+              projection = projectionsLookup[part];
+              break;
+            }
+          }
+        }
+        
+        if (projection) {
+          total += projection.projected_points * (p.multiplier || 1);
+        }
+      }
+    });
+    return total > 0 ? total.toFixed(1) : null;
+  }, [manager.players, projectionsLookup]);
 
   return (
     <>
@@ -2020,7 +2052,12 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
                 <p className="text-gray-500 text-[9px] -mt-1">players</p>
               </button>
               <button onClick={() => onFilteredClick(manager, 'upcoming')} className="bg-slate-900/50 p-0.5 rounded hover:bg-slate-800 transition-colors">
-                <p className="font-semibold text-yellow-400">Upcoming</p>
+                <p className="font-semibold text-yellow-400 flex items-center justify-center gap-1">
+                  Upcoming
+                  {upcomingProjectedPoints && (
+                    <span className="text-[8px] text-gray-400 font-normal">({upcomingProjectedPoints})</span>
+                  )}
+                </p>
                 <p className="text-gray-200 font-bold text-xs">{manager.players_upcoming || 0}</p>
                 <p className="text-gray-500 text-[9px] -mt-1">players</p>
               </button>
@@ -2083,7 +2120,9 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
               </button>
               <button onClick={() => onFilteredClick(manager, 'upcoming')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
                 <p className="text-yellow-400 font-bold text-lg">{manager.players_upcoming || 0}</p>
-                <p className="text-gray-400 text-xs -mt-1">players</p>
+                <p className="text-gray-400 text-xs -mt-1">
+                  players{upcomingProjectedPoints && <span className="text-gray-500"> ({upcomingProjectedPoints})</span>}
+                </p>
               </button>
               <button onClick={() => onFilteredClick(manager, 'bench')} className="text-center hover:bg-slate-700/50 rounded p-1 transition-colors">
                 <p className="text-orange-400 font-bold text-lg">{Math.round(manager.bench_points) || 0}</p>
@@ -2111,7 +2150,7 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
   );
 });
 
-const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFilteredClick, onCaptainClick, chipsData, gameweekData }) => {
+const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFilteredClick, onCaptainClick, chipsData, gameweekData, projectionsLookup }) => {
   const isCombined = view === 'combined';
   const gridColsMap = { 4: 'md:grid-cols-4', 5: 'md:grid-cols-5', 6: 'md:grid-cols-6', 7: 'md:grid-cols-7', 8: 'md:grid-cols-8', 9: 'md:grid-cols-9', 10: 'md:grid-cols-10', 11: 'md:grid-cols-11', 12: 'md:grid-cols-12' };
   const combinedCols = 3 + availableGameweeks.length + 1;
@@ -2147,6 +2186,7 @@ const Leaderboard = ({ data, view, availableGameweeks, onManagerClick, onFiltere
           onCaptainClick={onCaptainClick}
           chipsData={chipsData}
           gameweekData={gameweekData}
+          projectionsLookup={projectionsLookup}
         />
       ))}
     </div>
@@ -2364,6 +2404,7 @@ const FPLMultiGameweekDashboard = () => {
             onCaptainClick={handleCaptainClick}
             chipsData={chipsData}
             gameweekData={gameweekData}
+            projectionsLookup={projectionsLookup}
           />
         </main>
       </div>
