@@ -1591,42 +1591,59 @@ const getFixtureTimingText = (player, currentGameweek) => {
           <p className="text-base md:text-xl font-bold text-white">
             {!player.fixture_started ? '-' : (player.multiplier === 0 ? player.points_gw : player.points_applied)}
           </p>
-          {/* Detailed stats in small text */}
+          {/* Detailed stats - sleek professional indicators */}
           {player.fixture_started && (player.goals_scored > 0 || player.assists > 0 || player.clean_sheets > 0 || player.saves > 0 || player.bonus > 0 || player.yellow_cards > 0 || player.red_cards > 0) && (
-            <div className="flex flex-wrap gap-1 justify-end mt-0.5">
+            <div className="flex flex-wrap gap-0.5 justify-end mt-0.5">
               {player.goals_scored > 0 && (
-                <span className="text-[8px] md:text-[9px] bg-green-600/30 text-green-400 px-1 rounded">
-                  ⚽{player.goals_scored}
+                <span className="inline-flex items-center gap-0.5 text-[8px] md:text-[9px] font-semibold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full border border-emerald-500/30">
+                  <svg className="w-2 h-2 md:w-2.5 md:h-2.5" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none"/>
+                    <path d="M12 2 L14 8 L20 8 L15 12 L17 18 L12 14 L7 18 L9 12 L4 8 L10 8 Z" fill="currentColor" opacity="0.3"/>
+                  </svg>
+                  {player.goals_scored}
                 </span>
               )}
               {player.assists > 0 && (
-                <span className="text-[8px] md:text-[9px] bg-blue-600/30 text-blue-400 px-1 rounded">
-                  🅰️{player.assists}
+                <span className="inline-flex items-center gap-0.5 text-[8px] md:text-[9px] font-semibold bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded-full border border-sky-500/30">
+                  <svg className="w-2 h-2 md:w-2.5 md:h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M7 17L17 7M17 7H8M17 7V16"/>
+                  </svg>
+                  {player.assists}
                 </span>
               )}
               {player.clean_sheets > 0 && (player.position === 'GK' || player.position === 'DEF' || player.position === 'MID') && (
-                <span className="text-[8px] md:text-[9px] bg-purple-600/30 text-purple-400 px-1 rounded">
-                  🛡️CS
+                <span className="inline-flex items-center gap-0.5 text-[8px] md:text-[9px] font-semibold bg-violet-500/20 text-violet-400 px-1.5 py-0.5 rounded-full border border-violet-500/30">
+                  <svg className="w-2 h-2 md:w-2.5 md:h-2.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  CS
                 </span>
               )}
               {player.saves >= 3 && (
-                <span className="text-[8px] md:text-[9px] bg-yellow-600/30 text-yellow-400 px-1 rounded">
-                  🧤{player.saves}
+                <span className="inline-flex items-center gap-0.5 text-[8px] md:text-[9px] font-semibold bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full border border-orange-500/30">
+                  <svg className="w-2 h-2 md:w-2.5 md:h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 11V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v5M6 11h12v7a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-7z"/>
+                    <path d="M12 11v4"/>
+                  </svg>
+                  {player.saves}
                 </span>
               )}
               {player.bonus > 0 && (
-                <span className="text-[8px] md:text-[9px] bg-amber-600/30 text-amber-400 px-1 rounded">
-                  ⭐{player.bonus}
+                <span className="inline-flex items-center gap-0.5 text-[8px] md:text-[9px] font-bold bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/30">
+                  <svg className="w-2 h-2 md:w-2.5 md:h-2.5" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  {player.bonus}
                 </span>
               )}
               {player.yellow_cards > 0 && (
-                <span className="text-[8px] md:text-[9px] bg-yellow-500/30 text-yellow-300 px-1 rounded">
-                  🟨
+                <span className="inline-flex items-center text-[8px] md:text-[9px] font-bold px-1 py-0.5">
+                  <span className="w-2 h-2.5 md:w-2.5 md:h-3 bg-yellow-400 rounded-sm shadow-sm shadow-yellow-400/50"/>
                 </span>
               )}
               {player.red_cards > 0 && (
-                <span className="text-[8px] md:text-[9px] bg-red-600/30 text-red-400 px-1 rounded">
-                  🟥
+                <span className="inline-flex items-center text-[8px] md:text-[9px] font-bold px-1 py-0.5">
+                  <span className="w-2 h-2.5 md:w-2.5 md:h-3 bg-red-500 rounded-sm shadow-sm shadow-red-500/50"/>
                 </span>
               )}
             </div>
