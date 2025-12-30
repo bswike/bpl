@@ -89,6 +89,29 @@ def update_manifest_in_memory(manifest_data):
         current_manifest = manifest_data.copy()
         log(f"[manifest] Updated in-memory manifest to version {manifest_data.get('version')}")
 
+def load_manifest_from_blob():
+    """Load manifest from blob storage on startup"""
+    global current_manifest
+    try:
+        manifest_url = f"{PUBLIC_BASE}fpl-league-manifest.json?v={bust()}"
+        log(f"[manifest] Loading from blob: {manifest_url}")
+        response = requests.get(manifest_url, timeout=10)
+        if response.ok:
+            manifest_data = response.json()
+            with manifest_lock:
+                current_manifest = manifest_data
+            log(f"[manifest] Loaded from blob: {len(manifest_data.get('gameweeks', {}))} gameweeks")
+            return True
+        else:
+            log(f"[manifest] Failed to load from blob: {response.status_code}")
+            return False
+    except Exception as e:
+        log(f"[manifest] Error loading from blob: {e}")
+        return False
+
+# Load manifest from blob on import
+load_manifest_from_blob()
+
 # ====== PUSH NOTIFICATION ======
 def publish_update(event_type: str, data: dict):
     """Publish update event to Redis for SSE clients"""
