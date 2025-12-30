@@ -1707,10 +1707,10 @@ const getFixtureTimingText = (player, currentGameweek) => {
               </span>
             )}
           </div>
-          {projection && (
+          {player.multiplier > 0 && (
             <div className="flex items-center justify-end mt-0.5">
               <span className="text-[9px] md:text-[10px] text-gray-500">
-                Proj: {(projection.projected_points * (player.multiplier || 1)).toFixed(1)}
+                Proj: {projection ? (projection.projected_points * (player.multiplier || 1)).toFixed(1) : '0.0'}
               </span>
             </div>
           )}
