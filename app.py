@@ -1189,6 +1189,10 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
             manifest_data['updated'] = datetime.utcnow().isoformat() + "Z"
             manifest_data['version'] = str(timestamp)
             manifest_data['timestamp'] = timestamp
+            
+            # Always update latest_gw to the highest gameweek in manifest
+            all_gws = [int(k) for k in manifest_data['gameweeks'].keys()]
+            manifest_data['latest_gw'] = max(all_gws) if all_gws else gw
 
             # Upload to Vercel Blob (backup only)
             manifest_uploaded = smart_upload_bytes(
