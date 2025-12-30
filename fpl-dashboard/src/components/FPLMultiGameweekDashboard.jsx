@@ -705,7 +705,8 @@ const playerData = {
     fixtureData,
     captainStats,
     chipsData,
-    projectionsLookup // Projections for player modal
+    projectionsLookup, // Projections for player modal
+    loadingProgress
   };
 };
 
@@ -1698,14 +1699,14 @@ const getFixtureTimingText = (player, currentGameweek) => {
         </div>
         <div className="text-right ml-2 md:ml-3 flex-shrink-0">
           <div className="flex items-center justify-end gap-1">
-            <p className="text-base md:text-xl font-bold text-white">
-              {!player.fixture_started ? '-' : actualPoints}
-            </p>
             {performanceIndicator && (
               <span className={`text-sm ${performanceIndicator.color}`}>
                 {performanceIndicator.icon}
               </span>
             )}
+            <p className="text-base md:text-xl font-bold text-white">
+              {!player.fixture_started ? '-' : actualPoints}
+            </p>
           </div>
           <div className="flex items-center justify-end mt-0.5">
             <span className="text-[9px] md:text-[10px] text-gray-500">
@@ -2168,7 +2169,8 @@ const FPLMultiGameweekDashboard = () => {
     fixtureData,
     captainStats,
     chipsData,
-    projectionsLookup 
+    projectionsLookup,
+    loadingProgress
   } = useFplData();
 
   const [selectedView, setSelectedView] = useState('combined');
@@ -2234,7 +2236,51 @@ const FPLMultiGameweekDashboard = () => {
   }, []);
 
   if (loading && Object.keys(gameweekData).length === 0) {
-    return <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">Loading FPL Dashboard...</div>;
+    const progress = loadingProgress.total > 0 ? (loadingProgress.current / loadingProgress.total) * 100 : 0;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 gap-6">
+        {/* Spinning circle */}
+        <div className="relative w-20 h-20">
+          <svg className="w-20 h-20 -rotate-90" viewBox="0 0 100 100">
+            {/* Background circle */}
+            <circle
+              cx="50"
+              cy="50"
+              r="40"
+              fill="none"
+              stroke="#1e293b"
+              strokeWidth="8"
+            />
+            {/* Progress circle */}
+            <circle
+              cx="50"
+              cy="50"
+              r="40"
+              fill="none"
+              stroke="#22d3ee"
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={`${progress * 2.51} 251`}
+              className="transition-all duration-300"
+            />
+          </svg>
+          {/* Percentage in center */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-cyan-400 font-bold text-lg">
+              {loadingProgress.total > 0 ? `${Math.round(progress)}%` : ''}
+            </span>
+          </div>
+        </div>
+        <div className="text-cyan-400 text-xl font-medium">
+          Loading FPL Dashboard...
+        </div>
+        {loadingProgress.total > 0 && (
+          <div className="text-gray-500 text-sm">
+            Gameweek {loadingProgress.current} of {loadingProgress.total}
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (error) {

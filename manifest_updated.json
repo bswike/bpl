@@ -1,122 +1,121 @@
 {
   "gameweeks": {
     "1": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw1-d884e3e39a.csv",
-      "hash": "d884e3e39a9f182f401633139a54d75e",
-      "timestamp": 1767120742,
-      "updated": "2025-12-30T18:52:22.643795Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw1-0aad278307.csv",
+      "hash": "0aad278307e2f70723472b319fd44ae0",
+      "timestamp": 1766784061,
+      "updated": "2025-12-26T21:21:01.709431Z"
     },
     "2": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw2-293cf06bcc.csv",
-      "hash": "293cf06bcc45683d3248eaa020b8dc1b",
-      "timestamp": 1767120790,
-      "updated": "2025-12-30T18:53:10.921158Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw2-ba0abebd8c.csv",
+      "hash": "ba0abebd8c626f0a316df2511e6353ee",
+      "timestamp": 1767122264,
+      "updated": "2025-12-30T19:17:44.259125Z"
     },
     "3": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw3-df0d6ac820.csv",
-      "hash": "df0d6ac82088fec11f8773df63c2be2f",
-      "timestamp": 1767120941,
-      "updated": "2025-12-30T18:55:41.779329Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw3-c60b2ad248.csv",
+      "hash": "c60b2ad248e694e6378b563e5022fd28",
+      "timestamp": 1766916343,
+      "updated": "2025-12-28T10:05:43.973947Z"
     },
     "4": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw4-98e16b6e5d.csv",
-      "hash": "98e16b6e5d3813d7054c41e864005b54",
-      "timestamp": 1766760296,
-      "updated": "2025-12-26T14:44:56.709266Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw4-c95e4a6890.csv",
+      "hash": "c95e4a6890b91ac06d7e48729459e57f",
+      "timestamp": 1766919948,
+      "updated": "2025-12-28T11:05:48.893964Z"
     },
     "5": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw5-04af1887aa.csv",
-      "hash": "04af1887aa720142674080113f539a68",
-      "timestamp": 1766786244,
-      "updated": "2025-12-26T21:57:24.770248Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw5-106e767ef2.csv",
+      "hash": "106e767ef2ee3730858664cf76d54d30",
+      "timestamp": 1766784171,
+      "updated": "2025-12-26T21:22:51.477011Z"
     },
     "6": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw6-d356472517.csv",
-      "hash": "d356472517525a91c03978e8783f4312",
-      "timestamp": 1766786539,
-      "updated": "2025-12-26T22:02:19.709006Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw6-2e7c13fbc1.csv",
+      "hash": "2e7c13fbc131fff1dfa6569fc3c06cd1",
+      "timestamp": 1766919953,
+      "updated": "2025-12-28T11:05:53.691406Z"
     },
     "7": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw7-8fd05f7e1d.csv",
-      "hash": "8fd05f7e1d2ccc01803a2895d0e4b1a2",
-      "timestamp": 1767120826,
-      "updated": "2025-12-30T18:53:46.436269Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw7-6e6d158da6.csv",
+      "hash": "6e6d158da6f8cb81070f0ef84dc51e30",
+      "timestamp": 1766763497,
+      "updated": "2025-12-26T15:38:17.431127Z"
     },
     "8": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw8-dc8928136e.csv",
-      "hash": "dc8928136e1f9c2ce6dc860bafaa706d",
-      "timestamp": 1766764027,
-      "updated": "2025-12-26T15:47:07.565290Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw8-83d032a0dd.csv",
+      "hash": "83d032a0dd40d9e826b77a535d896818",
+      "timestamp": 1766783439,
+      "updated": "2025-12-26T21:10:39.279201Z"
     },
     "9": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw9-70fe3672b0.csv",
-      "hash": "70fe3672b0f3cdb9eca4b4d6f31264b3",
-      "timestamp": 1766759298,
-      "updated": "2025-12-26T14:28:18.735428Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw9-b483bdf30b.csv",
+      "hash": "b483bdf30b97a75d48a2a66458b301ec",
+      "timestamp": 1766784216,
+      "updated": "2025-12-26T21:23:36.114507Z"
     },
     "10": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw10-3463f98ca8.csv",
-      "hash": "3463f98ca83ccced3fd2c9aa0a91a4d5",
-      "timestamp": 1767120847,
-      "updated": "2025-12-30T18:54:07.566713Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw10-b8bbe5a878.csv",
+      "hash": "b8bbe5a878db7902ac5440c6a55320f9",
+      "timestamp": 1766914554,
+      "updated": "2025-12-28T09:35:54.054730Z"
     },
     "11": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw11-57038411dc.csv",
-      "hash": "57038411dccb95a7acfa74ab80a9b9ed",
-      "timestamp": 1767116682,
-      "updated": "2025-12-30T17:44:42.346170Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw11-e65d7bae8b.csv",
+      "hash": "e65d7bae8b4c9cdf11f2941aec20a30a",
+      "timestamp": 1766910951,
+      "updated": "2025-12-28T08:35:51.810386Z"
     },
     "12": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw12-e3b16257de.csv",
-      "hash": "e3b16257deea39b1ca13788e29f4155a",
-      "timestamp": 1766762909,
-      "updated": "2025-12-26T15:28:29.764208Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw12-29d96b2d86.csv",
+      "hash": "29d96b2d8623ac92b5062faa932812f9",
+      "timestamp": 1766782096,
+      "updated": "2025-12-26T20:48:16.793995Z"
     },
     "13": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw13-ea086e4a3d.csv",
-      "hash": "ea086e4a3d5762cec616e4509b470887",
-      "timestamp": 1766762660,
-      "updated": "2025-12-26T15:24:20.158685Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw13-0427178707.csv",
+      "hash": "042717870739c821830672f5ff9479a4",
+      "timestamp": 1766784255,
+      "updated": "2025-12-26T21:24:15.636841Z"
     },
     "14": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw14-4451666433.csv",
-      "hash": "44516664334f5733d7e22ae39019f3b0",
-      "timestamp": 1766759308,
-      "updated": "2025-12-26T14:28:28.424890Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw14-82fdbba671.csv",
+      "hash": "82fdbba6717f96c37cad60b9fb35fa1f",
+      "timestamp": 1767121979,
+      "updated": "2025-12-30T19:12:59.756889Z"
     },
     "15": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw15-7fdac09599.csv",
-      "hash": "7fdac09599d8be418fcf1f91bcf4f6bb",
-      "timestamp": 1766759310,
-      "updated": "2025-12-26T14:28:30.182746Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw15-1f2b6dd342.csv",
+      "hash": "1f2b6dd34259c213416be72a9931373c",
+      "timestamp": 1766916370,
+      "updated": "2025-12-28T10:06:10.006766Z"
     },
     "16": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw16-be58a0b8f3.csv",
-      "hash": "be58a0b8f391454615eb4829ebf5dc94",
-      "timestamp": 1767120889,
-      "updated": "2025-12-30T18:54:49.842417Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw16-b20e33e1f5.csv",
+      "hash": "b20e33e1f59a1b5380ff344177efb264",
+      "timestamp": 1766783176,
+      "updated": "2025-12-26T21:06:16.330533Z"
     },
     "17": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw17-d873014d57.csv",
-      "hash": "d873014d5745f16bd92188cbafeca077",
-      "timestamp": 1767120961,
-      "updated": "2025-12-30T18:56:01.033935Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw17-2fddb0d0ac.csv",
+      "hash": "2fddb0d0ac8c379e707a1b85863aa653",
+      "timestamp": 1767122019,
+      "updated": "2025-12-30T19:13:39.420045Z"
     },
     "18": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw18-04df8c383c.csv",
-      "hash": "04df8c383cde323d6524c36e380bce13",
-      "timestamp": 1767116696,
-      "updated": "2025-12-30T17:44:56.749358Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw18.csv",
+      "hash": "96230359960d4760fa1beffac8193542",
+      "timestamp": 1767122724,
+      "updated": "2025-12-30T14:25:24.686023Z"
     },
     "19": {
-      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw19.csv",
-      "hash": "54ae7a0ec2ebb19d6de7b50d45a482ee",
-      "timestamp": 1767121078,
-      "updated": "2025-12-30T13:57:58.998550Z"
+      "url": "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/fpl_rosters_points_gw19-6bd03d6a74.csv",
+      "hash": "6bd03d6a7498981d5b58913a1e73a59a",
+      "timestamp": 1767122040,
+      "updated": "2025-12-30T19:14:00.653052Z"
     }
   },
-  "updated": "2025-12-30T18:56:01.033946Z",
-  "version": "1767120962",
-  "timestamp": 1767120961,
-  "latest_gw": 19
+  "updated": "2025-12-30T19:17:44.259136Z",
+  "version": "1767122264",
+  "timestamp": 1767122264
 }
