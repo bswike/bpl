@@ -1707,13 +1707,11 @@ const getFixtureTimingText = (player, currentGameweek) => {
               </span>
             )}
           </div>
-          {player.multiplier > 0 && (
-            <div className="flex items-center justify-end mt-0.5">
-              <span className="text-[9px] md:text-[10px] text-gray-500">
-                Proj: {projection ? (projection.projected_points * (player.multiplier || 1)).toFixed(1) : '0.0'}
-              </span>
-            </div>
-          )}
+          <div className="flex items-center justify-end mt-0.5">
+            <span className="text-[9px] md:text-[10px] text-gray-500">
+              Proj: {projection ? (projection.projected_points * (player.multiplier || 1)).toFixed(1) : '0.0'}
+            </span>
+          </div>
           {/* Detailed stats - clear stat line */}
           {player.fixture_started && (player.goals_scored > 0 || player.assists > 0 || player.clean_sheets > 0 || player.saves > 0 || player.bonus > 0 || player.yellow_cards > 0 || player.red_cards > 0) && (
             <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-end mt-0.5 text-[9px] md:text-[10px] text-gray-400">
