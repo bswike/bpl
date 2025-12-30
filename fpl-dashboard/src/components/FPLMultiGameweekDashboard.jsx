@@ -1591,19 +1591,31 @@ const getFixtureTimingText = (player, currentGameweek) => {
           <p className="text-base md:text-xl font-bold text-white">
             {!player.fixture_started ? '-' : (player.multiplier === 0 ? player.points_gw : player.points_applied)}
           </p>
-          {/* Detailed stats - unified stat line */}
+          {/* Detailed stats - clear stat line */}
           {player.fixture_started && (player.goals_scored > 0 || player.assists > 0 || player.clean_sheets > 0 || player.saves > 0 || player.bonus > 0 || player.yellow_cards > 0 || player.red_cards > 0) && (
-            <p className="text-[9px] md:text-[10px] text-gray-400 font-mono tracking-tight">
-              {[
-                player.goals_scored > 0 && `G${player.goals_scored}`,
-                player.assists > 0 && `A${player.assists}`,
-                player.clean_sheets > 0 && (player.position === 'GK' || player.position === 'DEF' || player.position === 'MID') && 'CS',
-                player.saves >= 3 && `S${player.saves}`,
-                player.bonus > 0 && `B${player.bonus}`,
-                player.yellow_cards > 0 && 'YC',
-                player.red_cards > 0 && 'RC',
-              ].filter(Boolean).join(' · ')}
-            </p>
+            <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-end mt-0.5 text-[9px] md:text-[10px] text-gray-400">
+              {player.goals_scored > 0 && (
+                <span><span className="text-gray-500">Goals:</span> <span className="text-emerald-400 font-semibold">{player.goals_scored}</span></span>
+              )}
+              {player.assists > 0 && (
+                <span><span className="text-gray-500">Ast:</span> <span className="text-sky-400 font-semibold">{player.assists}</span></span>
+              )}
+              {player.clean_sheets > 0 && (player.position === 'GK' || player.position === 'DEF' || player.position === 'MID') && (
+                <span className="text-violet-400 font-semibold">Clean Sheet</span>
+              )}
+              {player.saves >= 3 && (
+                <span><span className="text-gray-500">Saves:</span> <span className="text-orange-400 font-semibold">{player.saves}</span></span>
+              )}
+              {player.bonus > 0 && (
+                <span><span className="text-gray-500">Bonus:</span> <span className="text-amber-400 font-semibold">{player.bonus}</span></span>
+              )}
+              {player.yellow_cards > 0 && (
+                <span className="text-yellow-400 font-semibold">Yellow</span>
+              )}
+              {player.red_cards > 0 && (
+                <span className="text-red-400 font-semibold">Red</span>
+              )}
+            </div>
           )}
         </div>
       </div>
