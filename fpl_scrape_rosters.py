@@ -424,7 +424,7 @@ def main():
         "fixture_started", "fixture_finished",
         # Detailed stats for player display
         "goals_scored", "assists", "clean_sheets", "saves", "bonus",
-        "yellow_cards", "red_cards",
+        "yellow_cards", "red_cards", "own_goals", "penalties_saved", "penalties_missed",
     ]
 
     with open(out_path, "w", newline="", encoding="utf-8") as f:

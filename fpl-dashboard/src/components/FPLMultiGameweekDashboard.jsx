@@ -328,6 +328,9 @@ const playerData = {
   bonus: toNum(raw.bonus),
   yellow_cards: toNum(raw.yellow_cards),
   red_cards: toNum(raw.red_cards),
+  own_goals: toNum(raw.own_goals),
+  penalties_saved: toNum(raw.penalties_saved),
+  penalties_missed: toNum(raw.penalties_missed),
   minutes: toNum(raw.minutes),
 };
         managerStats[manager].players.push(playerData);
@@ -1717,7 +1720,7 @@ const getFixtureTimingText = (player, currentGameweek) => {
             </span>
           </div>
           {/* Detailed stats - clear stat line */}
-          {player.fixture_started && (player.goals_scored > 0 || player.assists > 0 || player.clean_sheets > 0 || player.saves > 0 || player.bonus > 0 || player.yellow_cards > 0 || player.red_cards > 0) && (
+          {player.fixture_started && (player.goals_scored > 0 || player.assists > 0 || player.clean_sheets > 0 || player.saves > 0 || player.bonus > 0 || player.yellow_cards > 0 || player.red_cards > 0 || player.own_goals > 0 || player.penalties_saved > 0 || player.penalties_missed > 0) && (
             <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-end mt-0.5 text-[9px] md:text-[10px] text-gray-400">
               {player.goals_scored > 0 && (
                 <span><span className="text-gray-500">Goals:</span> <span className="text-emerald-400 font-semibold">{player.goals_scored}</span></span>
@@ -1739,6 +1742,15 @@ const getFixtureTimingText = (player, currentGameweek) => {
               )}
               {player.red_cards > 0 && (
                 <span className="text-red-400 font-semibold">Red</span>
+              )}
+              {player.own_goals > 0 && (
+                <span className="text-red-500 font-semibold">Own Goal</span>
+              )}
+              {player.penalties_saved > 0 && (
+                <span className="text-emerald-400 font-semibold">Pen Saved</span>
+              )}
+              {player.penalties_missed > 0 && (
+                <span className="text-red-400 font-semibold">Missed Pen</span>
               )}
             </div>
           )}
