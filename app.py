@@ -934,6 +934,58 @@ def get_chips():
         log(f"[chips] Error: {e}")
         return {'error': 'Failed to fetch chip data'}, 500
 
+# ====== PROJECTIONS ENDPOINT ======
+projections_cache = {"data": None, "timestamp": 0}
+projections_cache_lock = threading.Lock()
+PROJECTIONS_CACHE_DURATION = 3600  # 1 hour
+
+@app.route('/api/projections')
+def get_projections():
+    """Serve player projections from Fantasy Football Pundit"""
+    try:
+        current_time = time.time()
+        
+        # Check cache
+        with projections_cache_lock:
+            if projections_cache["data"] and (current_time - projections_cache["timestamp"]) < PROJECTIONS_CACHE_DURATION:
+                return projections_cache["data"], 200
+        
+        # Try to load from file
+        projections_file = Path(__file__).parent / 'data' / 'projections_gw19.json'
+        if projections_file.exists():
+            with open(projections_file) as f:
+                data = json.load(f)
+            
+            # Create lookup by player name (case-insensitive)
+            lookup = {}
+            for player in data.get('players', []):
+                name_key = player['name'].lower()
+                lookup[name_key] = player
+                # Also add common variations
+                if '.' in name_key:
+                    lookup[name_key.replace('.', '')] = player
+            
+            result = {
+                'gameweek': data.get('gameweek', 19),
+                'source': data.get('source', 'fantasyfootballpundit.com'),
+                'players': data.get('players', []),
+                'lookup': lookup
+            }
+            
+            # Cache it
+            with projections_cache_lock:
+                projections_cache["data"] = result
+                projections_cache["timestamp"] = current_time
+            
+            log(f"[projections] Served {len(result['players'])} player projections")
+            return result, 200
+        else:
+            return {'error': 'Projections file not found', 'players': [], 'lookup': {}}, 200
+            
+    except Exception as e:
+        log(f"[projections] Error: {e}")
+        return {'error': str(e), 'players': [], 'lookup': {}}, 500
+
 # ====== YOUR EXISTING SCRAPER LOGIC ======
 def smart_upload_bytes(blob_name: str, data: bytes, content_type: str = "text/plain", headers: dict = None) -> bool:
     new_hash = get_file_hash(data)

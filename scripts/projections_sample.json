@@ -1,0 +1,103 @@
+{
+  "headers": [
+    "NAME",
+    "TEAM",
+    "PREDICTED\nPOINTS",
+    "START %\n(THIS GW)",
+    "NEXT\nFIXTURE",
+    "PRICE",
+    "PICK %"
+  ],
+  "players": [
+    {
+      "NAME": "CUNHA",
+      "TEAM": "",
+      "PREDICTED\nPOINTS": "7.2",
+      "START %\n(THIS GW)": "90%",
+      "NEXT\nFIXTURE": "WOLVES (H)",
+      "PRICE": "\u00a38.1M",
+      "PICK %": "10.5%"
+    },
+    {
+      "NAME": "HAALAND",
+      "TEAM": "",
+      "PREDICTED\nPOINTS": "7.1",
+      "START %\n(THIS GW)": "90%",
+      "NEXT\nFIXTURE": "SUNDERLAND (A)",
+      "PRICE": "\u00a315.1M",
+      "PICK %": "74.2%"
+    },
+    {
+      "NAME": "EKITIKE",
+      "TEAM": "",
+      "PREDICTED\nPOINTS": "6.6",
+      "START %\n(THIS GW)": "90%",
+      "NEXT\nFIXTURE": "LEEDS (H)",
+      "PRICE": "\u00a39.1M",
+      "PICK %": "34.7%"
+    },
+    {
+      "NAME": "PALMER",
+      "TEAM": "",
+      "PREDICTED\nPOINTS": "5.8",
+      "START %\n(THIS GW)": "90%",
+      "NEXT\nFIXTURE": "BOURNEMOUTH (H)",
+      "PRICE": "\u00a310.4M",
+      "PICK %": "11.8%"
+    },
+    {
+      "NAME": "SAKA",
+      "TEAM": "",
+      "PREDICTED\nPOINTS": "5.5",
+      "START %\n(THIS GW)": "90%",
+      "NEXT\nFIXTURE": "ASTON VILLA (H)",
+      "PRICE": "\u00a310.3M",
+      "PICK %": "21.7%"
+    },
+    {
+      "NAME": "THIAGO",
+      "TEAM": "",
+      "PREDICTED\nPOINTS": "5.5",
+      "START %\n(THIS GW)": "90%",
+      "NEXT\nFIXTURE": "SPURS (H)",
+      "PRICE": "\u00a37.0M",
+      "PICK %": "29.1%"
+    },
+    {
+      "NAME": "VIRGIL",
+      "TEAM": "",
+      "PREDICTED\nPOINTS": "5.2",
+      "START %\n(THIS GW)": "90%",
+      "NEXT\nFIXTURE": "LEEDS (H)",
+      "PRICE": "\u00a35.9M",
+      "PICK %": "24.6%"
+    },
+    {
+      "NAME": "WIRTZ",
+      "TEAM": "",
+      "PREDICTED\nPOINTS": "5.2",
+      "START %\n(THIS GW)": "90%",
+      "NEXT\nFIXTURE": "LEEDS (H)",
+      "PRICE": "\u00a38.1M",
+      "PICK %": "10.4%"
+    },
+    {
+      "NAME": "FODEN",
+      "TEAM": "",
+      "PREDICTED\nPOINTS": "5.2",
+      "START %\n(THIS GW)": "80%",
+      "NEXT\nFIXTURE": "SUNDERLAND (A)",
+      "PRICE": "\u00a39.0M",
+      "PICK %": "41.1%"
+    },
+    {
+      "NAME": "DALOT",
+      "TEAM": "",
+      "PREDICTED\nPOINTS": "5.2",
+      "START %\n(THIS GW)": "90%",
+      "NEXT\nFIXTURE": "WOLVES (H)",
+      "PRICE": "\u00a34.5M",
+      "PICK %": "3.2%"
+    }
+  ]
+}

@@ -244,6 +244,24 @@ const useFplData = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // NEW: Load projections data
+  const [projectionsLookup, setProjectionsLookup] = useState({});
+  useEffect(() => {
+    const loadProjections = async () => {
+      try {
+        const res = await fetch('https://bpl-red-sun-894.fly.dev/api/projections');
+        if (res.ok) {
+          const data = await res.json();
+          console.log(`📊 Loaded ${Object.keys(data.lookup || {}).length} player projections`);
+          setProjectionsLookup(data.lookup || {});
+        }
+      } catch (e) {
+        console.warn('Failed to load projections:', e);
+      }
+    };
+    loadProjections();
+  }, []);
+
   const parseCsvToManagers = useCallback((csvText, gameweek, preParseRows = null) => {
     // Support both CSV text and pre-parsed rows from /api/historical
     let rows;
@@ -1411,11 +1429,41 @@ if (gwData.defensive_contribution > 0) {
   );
 };
 
-const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData, gameweekData, onPlayerClick }) => {
+const PlayerDetailsModal = ({ manager, onClose, filterType = 'all', fixtureData, gameweekData, onPlayerClick, projectionsLookup = {} }) => {
   if (!manager) return null;
   
   // Calculate team value from players in this gameweek's squad
   const teamValue = manager.team_value ? (manager.team_value).toFixed(1) : null;
+  
+  // Get projection for a player
+  const getProjection = (playerName) => {
+    if (!projectionsLookup || Object.keys(projectionsLookup).length === 0) return null;
+    const key = playerName.toLowerCase();
+    // Try exact match first
+    if (projectionsLookup[key]) return projectionsLookup[key];
+    // Try last name only
+    const lastName = key.split(' ').pop();
+    if (projectionsLookup[lastName]) return projectionsLookup[lastName];
+    // Try first name only (for single-name players like Salah)
+    const firstName = key.split(' ')[0];
+    if (projectionsLookup[firstName]) return projectionsLookup[firstName];
+    return null;
+  };
+  
+  // Calculate team projected total
+  const teamProjectedTotal = useMemo(() => {
+    if (!manager.players || Object.keys(projectionsLookup).length === 0) return null;
+    let total = 0;
+    manager.players.forEach(p => {
+      if (p.multiplier > 0) { // Only count playing players
+        const proj = getProjection(p.name);
+        if (proj) {
+          total += proj.projected_points * p.multiplier;
+        }
+      }
+    });
+    return total > 0 ? total.toFixed(1) : null;
+  }, [manager.players, projectionsLookup]);
 
   const calculateLeagueOwnership = (playerName) => {
     if (!manager || !manager.gameweek) return null;
@@ -1555,23 +1603,40 @@ const getFixtureTimingText = (player, currentGameweek) => {
 
   const renderPlayerRow = (player, idx) => {
     const leagueOwnership = calculateLeagueOwnership(player.name);
+    const projection = getProjection(player.name);
+    const actualPoints = player.fixture_started ? (player.multiplier === 0 ? player.points_gw : player.points_applied) : null;
+    
+    // Determine over/under performance
+    let performanceIndicator = null;
+    if (projection && actualPoints !== null && player.fixture_started) {
+      const projectedPts = projection.projected_points * (player.multiplier || 1);
+      const diff = actualPoints - projectedPts;
+      if (diff >= 3) {
+        performanceIndicator = { type: 'over', icon: '🔥', color: 'text-emerald-400' };
+      } else if (diff <= -3) {
+        performanceIndicator = { type: 'under', icon: '⚠️', color: 'text-amber-400' };
+      }
+    }
 
     return (
       <div 
         key={idx} 
         className="flex items-center justify-between py-2 md:py-2.5 hover:bg-slate-700/30 transition-colors px-2 md:px-3 cursor-pointer"
         onClick={() => {
-  console.log('Player clicked:', player);
-  console.log('Element ID:', player.element_id);
-  console.log('Raw CSV columns available:', Object.keys(player));
-  onPlayerClick && onPlayerClick(player);
-}}
-        >
+          console.log('Player clicked:', player);
+          onPlayerClick && onPlayerClick(player);
+        }}
+      >
         <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
           <span className={`font-bold text-xs md:text-sm ${getPositionColor(player.position)} w-8 md:w-10 flex-shrink-0`}>{player.position}</span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <p className="text-white font-medium text-xs md:text-base truncate">{player.name}</p>
+              {performanceIndicator && (
+                <span className={`text-[10px] ${performanceIndicator.color}`}>
+                  {performanceIndicator.icon}
+                </span>
+              )}
               {leagueOwnership && (
                 <span className="text-[9px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
                   {leagueOwnership}%
@@ -1588,9 +1653,16 @@ const getFixtureTimingText = (player, currentGameweek) => {
           )}
         </div>
         <div className="text-right ml-2 md:ml-3 flex-shrink-0">
-          <p className="text-base md:text-xl font-bold text-white">
-            {!player.fixture_started ? '-' : (player.multiplier === 0 ? player.points_gw : player.points_applied)}
-          </p>
+          <div className="flex items-center justify-end gap-1.5">
+            <p className="text-base md:text-xl font-bold text-white">
+              {!player.fixture_started ? '-' : actualPoints}
+            </p>
+            {projection && (
+              <span className="text-[9px] md:text-[10px] text-gray-500">
+                / {(projection.projected_points * (player.multiplier || 1)).toFixed(1)}
+              </span>
+            )}
+          </div>
           {/* Detailed stats - clear stat line */}
           {player.fixture_started && (player.goals_scored > 0 || player.assists > 0 || player.clean_sheets > 0 || player.saves > 0 || player.bonus > 0 || player.yellow_cards > 0 || player.red_cards > 0) && (
             <div className="flex flex-wrap gap-x-2 gap-y-0.5 justify-end mt-0.5 text-[9px] md:text-[10px] text-gray-400">
@@ -1641,6 +1713,11 @@ const getFixtureTimingText = (player, currentGameweek) => {
           <div className="text-right mx-2 flex-shrink-0">
             <p className="text-xl md:text-2xl font-bold text-cyan-400">{manager.total_points}</p>
             <p className="text-[10px] md:text-xs text-gray-400 whitespace-nowrap">Total Pts</p>
+            {teamProjectedTotal && (
+              <p className="text-[10px] md:text-xs text-gray-500 mt-0.5">
+                Proj: <span className="text-gray-400">{teamProjectedTotal}</span>
+              </p>
+            )}
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors flex-shrink-0">
             <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2136,7 +2213,7 @@ const FPLMultiGameweekDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-gray-100">
-     {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} fixtureData={fixtureData} gameweekData={gameweekData} onPlayerClick={(player) => setSelectedPlayer(player)} />}
+     {selectedManager && <PlayerDetailsModal manager={selectedManager} onClose={handleCloseModal} filterType={filterType} fixtureData={fixtureData} gameweekData={gameweekData} onPlayerClick={(player) => setSelectedPlayer(player)} projectionsLookup={projectionsLookup} />}
 {selectedPlayer && <PlayerStatsModal elementId={selectedPlayer.element_id} playerName={selectedPlayer.name} currentGameweek={selectedManager?.gameweek} onClose={() => setSelectedPlayer(null)} />}
       {showCaptainModal && <CaptainStatsModal gameweek={selectedCaptainGW} captainStats={captainStats} onClose={handleCloseCaptainModal} gameweekData={gameweekData} fixtureData={fixtureData} />}
       <div className="max-w-7xl mx-auto p-2 sm:p-6">
