@@ -941,7 +941,7 @@ PROJECTIONS_CACHE_DURATION = 3600  # 1 hour
 
 @app.route('/api/projections')
 def get_projections():
-    """Serve player projections from Fantasy Football Pundit"""
+    """Serve player projections from Fantasy Football Pundit (via blob storage)"""
     try:
         current_time = time.time()
         
@@ -950,11 +950,13 @@ def get_projections():
             if projections_cache["data"] and (current_time - projections_cache["timestamp"]) < PROJECTIONS_CACHE_DURATION:
                 return projections_cache["data"], 200
         
-        # Try to load from file
-        projections_file = Path(__file__).parent / 'data' / 'projections_gw19.json'
-        if projections_file.exists():
-            with open(projections_file) as f:
-                data = json.load(f)
+        # Fetch from blob storage
+        blob_url = f"{PUBLIC_BASE}projections_gw19.json?_t={int(time.time())}"
+        log(f"[projections] Fetching from {blob_url}")
+        
+        response = requests.get(blob_url, timeout=10)
+        if response.ok:
+            data = response.json()
             
             # Create lookup by player name (case-insensitive)
             lookup = {}
@@ -964,6 +966,10 @@ def get_projections():
                 # Also add common variations
                 if '.' in name_key:
                     lookup[name_key.replace('.', '')] = player
+                # Add last name only
+                parts = name_key.split()
+                if len(parts) > 1:
+                    lookup[parts[-1]] = player
             
             result = {
                 'gameweek': data.get('gameweek', 19),
@@ -980,7 +986,8 @@ def get_projections():
             log(f"[projections] Served {len(result['players'])} player projections")
             return result, 200
         else:
-            return {'error': 'Projections file not found', 'players': [], 'lookup': {}}, 200
+            log(f"[projections] Blob fetch failed: {response.status_code}")
+            return {'error': 'Projections not available', 'players': [], 'lookup': {}}, 200
             
     except Exception as e:
         log(f"[projections] Error: {e}")
