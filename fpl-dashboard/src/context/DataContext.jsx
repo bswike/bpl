@@ -230,10 +230,10 @@ export const DataProvider = ({ children }) => {
         setFixtureData(fixtures);
       }
 
-      // Process chips
+      // Process chips - API returns { chips: [...] }
       if (chipsRes.ok) {
-        const chips = await chipsRes.json();
-        setChipsData(chips.managers || []);
+        const chipsResponse = await chipsRes.json();
+        setChipsData(chipsResponse.chips || []);
       }
 
       // Update state
