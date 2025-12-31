@@ -100,7 +100,7 @@ function AppContent() {
 
   // Show loading while data context is initializing
   if (isInitialLoading || !currentPage) {
-    return <LoadingSpinner fullScreen size="lg" message="Loading FPL Data..." />;
+    return <LoadingSpinner fullScreen size="lg" />;
   }
 
   return (
