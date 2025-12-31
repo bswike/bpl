@@ -84,7 +84,8 @@ const DarkFPLPositionChart = () => {
     availableGameweeks.forEach((gw, gwIdx) => {
       allManagers.forEach(name => {
         const managerGwData = contextGameweekData[gw]?.find(m => m.manager_name === name);
-        const pts = managerGwData?.total_points || 0;
+        // Use net points (after transfer cost deduction) when available
+        const pts = managerGwData?.total_points_applied ?? managerGwData?.total_points ?? 0;
         const bench = managerGwData?.bench_points || 0;
         
         const prevCumulative = gwIdx > 0 ? (cumulativeData[name][`gw${availableGameweeks[gwIdx - 1]}_cumulative`] || 0) : 0;

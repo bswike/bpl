@@ -188,9 +188,11 @@ const FPLMultiGameweekDashboard = () => {
             gameweeks: {},
           };
         }
-        managers[m.manager_name].total_points += m.total_points || 0;
+        // Use net points (after transfer cost deduction) when available
+        const netPts = m.total_points_applied ?? m.total_points ?? 0;
+        managers[m.manager_name].total_points += netPts;
         managers[m.manager_name].gameweeks[gw] = {
-          points: m.total_points || 0,
+          points: netPts,
           bench_points: m.bench_points || 0,
           captain_points: m.captain_points || 0,
         };

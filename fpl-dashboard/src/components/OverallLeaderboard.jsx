@@ -92,8 +92,10 @@ const OverallLeaderboard = () => {
             gw_points_history: [],
           };
         }
-        managerTotals[m.manager_name].total_points += m.total_points;
-        managerTotals[m.manager_name][`gw${gw}_points`] = m.total_points;
+        // Use total_points_applied (net, after transfer cost) when available, otherwise total_points
+        const netPoints = m.total_points_applied ?? m.total_points;
+        managerTotals[m.manager_name].total_points += netPoints;
+        managerTotals[m.manager_name][`gw${gw}_points`] = netPoints;
         managerTotals[m.manager_name].total_bench_points += m.bench_points || 0;
         
         // Chicken picks - include ALL gameweeks including active
@@ -113,16 +115,17 @@ const OverallLeaderboard = () => {
       const gwManagers = gwData[gw] || [];
       if (gwManagers.length === 0) return;
       
-      const maxPoints = Math.max(...gwManagers.map(m => m.total_points || 0));
-      const minPoints = Math.min(...gwManagers.map(m => m.total_points || Infinity));
+      const maxPoints = Math.max(...gwManagers.map(m => m.total_points_applied ?? m.total_points ?? 0));
+      const minPoints = Math.min(...gwManagers.map(m => m.total_points_applied ?? m.total_points ?? Infinity));
       
       if (maxPoints <= 0) return;
       
       gwManagers.forEach(m => {
-        if (m.total_points === maxPoints && managerTotals[m.manager_name]) {
+        const mNetPoints = m.total_points_applied ?? m.total_points ?? 0;
+        if (mNetPoints === maxPoints && managerTotals[m.manager_name]) {
           managerTotals[m.manager_name].gws_won += 1;
         }
-        if (m.total_points === minPoints && managerTotals[m.manager_name]) {
+        if (mNetPoints === minPoints && managerTotals[m.manager_name]) {
           managerTotals[m.manager_name].gws_last += 1;
         }
       });
@@ -132,7 +135,8 @@ const OverallLeaderboard = () => {
     finishedGws.forEach(gw => {
       (gwData[gw] || []).forEach(m => {
         if (managerTotals[m.manager_name]) {
-          managerTotals[m.manager_name].gw_points_history.push({ gw, points: m.total_points });
+          const netPts = m.total_points_applied ?? m.total_points ?? 0;
+          managerTotals[m.manager_name].gw_points_history.push({ gw, points: netPts });
         }
       });
     });
