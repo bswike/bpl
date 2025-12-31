@@ -10,8 +10,8 @@ import React from 'react';
 const LoadingSpinner = ({ progress = null, message = null, size = 'md', fullScreen = false }) => {
   const sizeConfig = {
     sm: { container: 'w-12 h-12', stroke: 4, text: 'text-xs' },
-    md: { container: 'w-20 h-20', stroke: 6, text: 'text-sm' },
-    lg: { container: 'w-24 h-24', stroke: 8, text: 'text-lg' },
+    md: { container: 'w-20 h-20', stroke: 8, text: 'text-lg' },
+    lg: { container: 'w-20 h-20', stroke: 8, text: 'text-lg' }, // Same as md for consistency
   };
   
   const config = sizeConfig[size] || sizeConfig.md;

@@ -107,7 +107,7 @@ function AppContent() {
     <div className="min-h-screen bg-slate-900 text-gray-100 pb-20">
       <main className="w-full px-3 py-4 md:px-6 md:py-6">
         <div className="max-w-7xl mx-auto">
-          <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><LoadingSpinner size="md" /></div>}>
+          <Suspense fallback={<LoadingSpinner fullScreen size="lg" />}>
             {renderCurrentPage()}
           </Suspense>
         </div>

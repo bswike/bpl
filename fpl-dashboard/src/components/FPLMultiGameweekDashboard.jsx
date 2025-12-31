@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Papa from 'papaparse';
+import LoadingSpinner from './LoadingSpinner';
 // Note: This component uses its own useFplData hook for FULL player-level data
 // The DataContext only has aggregated data which isn't enough for PlayerDetailsModal
 
@@ -2294,49 +2295,16 @@ const FPLMultiGameweekDashboard = () => {
 
   if (loading && Object.keys(gameweekData).length === 0) {
     const progress = loadingProgress.total > 0 ? (loadingProgress.current / loadingProgress.total) * 100 : 0;
+    const message = loadingProgress.total > 0 
+      ? `Gameweek ${loadingProgress.current} of ${loadingProgress.total}`
+      : null;
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 gap-6">
-        {/* Spinning circle */}
-        <div className="relative w-20 h-20">
-          <svg className="w-20 h-20 -rotate-90" viewBox="0 0 100 100">
-            {/* Background circle */}
-            <circle
-              cx="50"
-              cy="50"
-              r="40"
-              fill="none"
-              stroke="#1e293b"
-              strokeWidth="8"
-            />
-            {/* Progress circle */}
-            <circle
-              cx="50"
-              cy="50"
-              r="40"
-              fill="none"
-              stroke="#22d3ee"
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={`${progress * 2.51} 251`}
-              className="transition-all duration-300"
-            />
-          </svg>
-          {/* Percentage in center */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-cyan-400 font-bold text-lg">
-              {loadingProgress.total > 0 ? `${Math.round(progress)}%` : ''}
-            </span>
-          </div>
-        </div>
-        <div className="text-cyan-400 text-xl font-medium">
-          Loading FPL Dashboard...
-        </div>
-        {loadingProgress.total > 0 && (
-          <div className="text-gray-500 text-sm">
-            Gameweek {loadingProgress.current} of {loadingProgress.total}
-          </div>
-        )}
-      </div>
+      <LoadingSpinner 
+        fullScreen 
+        size="lg" 
+        progress={progress > 0 ? progress : null}
+        message={message}
+      />
     );
   }
 
