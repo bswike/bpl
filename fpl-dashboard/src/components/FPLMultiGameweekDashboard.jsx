@@ -1960,6 +1960,17 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
     return total > 0 ? total.toFixed(1) : null;
   }, [manager.players, projectionsLookup]);
 
+  // Calculate total projected (points scored + upcoming projected) - only show when no live players
+  const totalProjected = useMemo(() => {
+    if (isCombined) return null; // Don't show for combined view
+    if ((manager.players_live || 0) > 0) return null; // Don't show when players are live
+    if (!upcomingProjectedPoints) return null; // Don't show if no upcoming projections
+    
+    const currentPoints = totalPoints || 0;
+    const upcomingPts = parseFloat(upcomingProjectedPoints) || 0;
+    return (currentPoints + upcomingPts).toFixed(1);
+  }, [isCombined, manager.players_live, totalPoints, upcomingProjectedPoints]);
+
   return (
     <>
       <div className="bg-slate-800/30 rounded-md p-1.5 border border-slate-700">
@@ -1996,6 +2007,9 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
             </div>
             <div className="text-right">
               <p className="text-white font-bold text-base">{totalPoints}</p>
+              {totalProjected && (
+                <p className="text-[9px] text-gray-500">Proj: {totalProjected}</p>
+              )}
             </div>
           </div>
           {isCombined ? (
@@ -2112,7 +2126,12 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
               <p className="text-gray-400 text-xs truncate">"{manager.team_name}"</p>
             </button>
           </div>
-          <div className="text-white font-bold text-lg text-center">{totalPoints}</div>
+          <div className="text-center">
+            <div className="text-white font-bold text-lg">{totalPoints}</div>
+            {totalProjected && (
+              <p className="text-[10px] text-gray-500">Proj: {totalProjected}</p>
+            )}
+          </div>
           {isCombined ? (
             <>
               {availableGameweeks.map(gw => <div key={gw} className="text-center text-gray-300">{manager[`gw${gw}_points`]}</div>)}

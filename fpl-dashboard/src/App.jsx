@@ -20,7 +20,7 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
   const navItems = [
     { id: 'position-chart', label: 'Positions', Icon: TrendingUp },
     { id: 'multi-gw', label: 'Weekly', Icon: BarChart3 },
-    { id: 'standings', label: 'Standings', Icon: Trophy },
+    { id: 'standings', label: 'Table', Icon: Trophy },
     { id: 'dashboard', label: 'Chips', Icon: Table2 },
   ];
 
