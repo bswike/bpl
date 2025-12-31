@@ -2,19 +2,13 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { TrendingUp, BarChart3, Trophy, Table2 } from 'lucide-react';
 import './App.css';
 import { DataProvider, useData } from './context/DataContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
 // Lazy load components for code splitting - only loads when tab is clicked
 const FPLMultiGameweekDashboard = lazy(() => import('./components/FPLMultiGameweekDashboard'));
 const OverallLeaderboard = lazy(() => import('./components/OverallLeaderboard'));
 const FPLDashboard = lazy(() => import('./components/FPLDashboard'));
 const FPLPositionChart = lazy(() => import('./components/FPLPositionChart'));
-
-// Simple loading spinner
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-[60vh]">
-    <div className="text-cyan-400 text-lg animate-pulse">Loading...</div>
-  </div>
-);
 
 const Navigation = ({ currentPage, setCurrentPage }) => {
   const navItems = [
@@ -106,21 +100,14 @@ function AppContent() {
 
   // Show loading while data context is initializing
   if (isInitialLoading || !currentPage) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-cyan-400 text-lg animate-pulse mb-2">Loading FPL Data...</div>
-          <div className="text-gray-500 text-sm">Fetching gameweeks, fixtures, and chips</div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="lg" message="Loading FPL Data..." />;
   }
 
   return (
     <div className="min-h-screen bg-slate-900 text-gray-100 pb-20">
       <main className="w-full px-3 py-4 md:px-6 md:py-6">
         <div className="max-w-7xl mx-auto">
-          <Suspense fallback={<LoadingSpinner />}>
+          <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><LoadingSpinner size="md" /></div>}>
             {renderCurrentPage()}
           </Suspense>
         </div>

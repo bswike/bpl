@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, BarChart, Bar, Cell } from 'recharts';
 import Papa from 'papaparse';
 import { useData } from '../context/DataContext';
+import LoadingSpinner from './LoadingSpinner';
 
 // ---- Constants ----
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
@@ -11,8 +12,15 @@ const FALLBACK_POLL_INTERVAL_MS = 300000; // 5 minutes
 // Cache busting utility
 const bust = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-// Skeleton Loader Component
-const ChartSkeleton = ({ progress, total }) => (
+// Skeleton Loader Component - now uses LoadingSpinner
+const ChartSkeleton = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <LoadingSpinner size="lg" />
+  </div>
+);
+
+// Keep old skeleton for reference but unused
+const _OldChartSkeleton = ({ progress, total }) => (
   <div className="space-y-6 animate-pulse">
     <div className="text-center">
       <div className="h-8 bg-gray-700/80 rounded-md w-1/3 mx-auto mb-3"></div>

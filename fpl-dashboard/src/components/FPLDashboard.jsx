@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Papa from 'papaparse';
 import { useData } from '../context/DataContext';
+import LoadingSpinner from './LoadingSpinner';
 
 const PUBLIC_BASE = 'https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/';
 const SSE_URL = 'https://bpl-red-sun-894.fly.dev/sse/fpl-updates';
@@ -472,11 +473,7 @@ const FPLMultiGameweekDashboard = () => {
   };
 
   if (loading && data.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-900 text-cyan-400 text-xl animate-pulse">
-        Loading Chart Data...
-      </div>
-    );
+    return <LoadingSpinner fullScreen size="lg" />;
   }
 
   if (error) {
@@ -539,8 +536,8 @@ const FPLMultiGameweekDashboard = () => {
           )}
 
           {chipsLoading && (
-            <div className="p-8 text-center">
-              <p className="text-gray-400 animate-pulse">Loading chips data...</p>
+            <div className="p-8 flex justify-center">
+              <LoadingSpinner size="sm" />
             </div>
           )}
         </main>
