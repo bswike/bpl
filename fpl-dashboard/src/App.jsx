@@ -71,17 +71,26 @@ function AppContent() {
   const { gwStatus, isInitialLoading } = useData();
   const [currentPage, setCurrentPage] = useState(null);
   const [hasSetInitialPage, setHasSetInitialPage] = useState(false);
+  const [componentLoaded, setComponentLoaded] = useState(false);
 
-  // Set initial page based on GW status (only once after data loads)
+  // Set initial page immediately - default to Weekly, will update once gwStatus loads
   useEffect(() => {
-    if (hasSetInitialPage || isInitialLoading) return;
+    if (hasSetInitialPage) return;
     
-    // GW is "active" if current_gameweek exists and is NOT finished
-    const isActive = gwStatus?.current_gameweek && !gwStatus.current_gameweek.finished;
-    // Show Weekly during live action, Standings when GW is finished
-    setCurrentPage(isActive ? 'multi-gw' : 'standings');
-    setHasSetInitialPage(true);
-  }, [gwStatus, isInitialLoading, hasSetInitialPage]);
+    // Set default page immediately to avoid waiting for DataContext
+    if (!currentPage) {
+      setCurrentPage('multi-gw'); // Default to Weekly tab
+    }
+    
+    // Once gwStatus loads, update if needed (only matters for finished GWs)
+    if (gwStatus && !isInitialLoading) {
+      const isActive = gwStatus?.current_gameweek && !gwStatus.current_gameweek.finished;
+      if (!isActive && currentPage === 'multi-gw') {
+        setCurrentPage('standings');
+      }
+      setHasSetInitialPage(true);
+    }
+  }, [gwStatus, isInitialLoading, hasSetInitialPage, currentPage]);
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -98,22 +107,24 @@ function AppContent() {
     }
   };
 
-  // Show loading while data context is initializing
-  if (isInitialLoading || !currentPage) {
+  // Don't show a separate loading screen for DataContext
+  // Let the individual components handle their own loading
+  // This avoids multiple loading screens appearing in sequence
+  if (!currentPage) {
     return <LoadingSpinner fullScreen size="lg" />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-100 pb-20">
-      <main className="w-full px-3 py-4 md:px-6 md:py-6">
-        <div className="max-w-7xl mx-auto">
-          <Suspense fallback={<LoadingSpinner fullScreen size="lg" />}>
+    <Suspense fallback={<LoadingSpinner fullScreen size="lg" />}>
+      <div className="min-h-screen bg-slate-900 text-gray-100 pb-20">
+        <main className="w-full px-3 py-4 md:px-6 md:py-6">
+          <div className="max-w-7xl mx-auto">
             {renderCurrentPage()}
-          </Suspense>
-        </div>
-      </main>
-      <Navigation currentPage={currentPage} setCurrentPage={setCurrentPage} />
-    </div>
+          </div>
+        </main>
+        <Navigation currentPage={currentPage} setCurrentPage={setCurrentPage} />
+      </div>
+    </Suspense>
   );
 }
 

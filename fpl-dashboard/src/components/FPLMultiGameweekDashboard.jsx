@@ -2293,6 +2293,7 @@ const FPLMultiGameweekDashboard = () => {
     setSelectedCaptainGW(null);
   }, []);
 
+  // Show loading with progress
   if (loading && Object.keys(gameweekData).length === 0) {
     const progress = loadingProgress.total > 0 ? (loadingProgress.current / loadingProgress.total) * 100 : 0;
     const message = loadingProgress.total > 0 
