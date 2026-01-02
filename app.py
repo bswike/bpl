@@ -1076,9 +1076,9 @@ def upload_csv(gw):
                 current_manifest['version'] = str(timestamp)
                 current_manifest['timestamp'] = timestamp
                 
-                # Upload updated manifest
+                # Upload updated manifest to blob storage (using correct filename)
                 manifest_bytes = json.dumps(current_manifest).encode('utf-8')
-                smart_upload_bytes('manifest.json', manifest_bytes, content_type='application/json')
+                smart_upload_bytes('fpl-league-manifest.json', manifest_bytes, content_type='application/json')
             
             # Clear historical cache
             with historical_cache_lock:
@@ -1241,14 +1241,10 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
         if uploaded:
             log(f"New version uploaded for GW{gw}, updating manifest...")
             
-            # Update manifest directly - NO MORE POINTER FILES
-            manifest_name = "fpl-league-manifest.json"
-            manifest_url = f"{PUBLIC_BASE}{manifest_name}?v={bust()}"
-            try:
-                r = requests.get(manifest_url, timeout=10)
-                manifest_data = r.json() if r.ok else {}
-            except Exception:
-                manifest_data = {}
+            # Use in-memory manifest as source of truth - DON'T load from blob storage
+            # This preserves manual updates and prevents overwriting good data
+            with manifest_lock:
+                manifest_data = current_manifest.copy()
             
             if 'gameweeks' not in manifest_data: 
                 manifest_data['gameweeks'] = {}
@@ -1271,6 +1267,7 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
             manifest_data['latest_gw'] = max(all_gws) if all_gws else gw
 
             # Upload to Vercel Blob (backup only)
+            manifest_name = "fpl-league-manifest.json"
             manifest_uploaded = smart_upload_bytes(
                 manifest_name,
                 json.dumps(manifest_data, indent=2).encode("utf-8"),
