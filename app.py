@@ -1044,6 +1044,56 @@ def upload_projections():
         log(f"[projections] Upload error: {e}")
         return {'error': str(e)}, 500
 
+@app.route('/api/admin/upload-csv/<int:gw>', methods=['POST'])
+def upload_csv(gw):
+    """Admin endpoint to upload CSV data for a specific gameweek."""
+    try:
+        csv_data = request.get_data()
+        if not csv_data:
+            return {'error': 'No CSV data provided'}, 400
+        
+        # Use non-versioned filename for consistency
+        blob_name = f"fpl_rosters_points_gw{gw}.csv"
+        
+        # Upload to blob storage
+        success = smart_upload_csv(blob_name, csv_data)
+        
+        if success:
+            # Update manifest
+            h = get_file_hash(csv_data)
+            timestamp = int(time.time())
+            
+            with manifest_lock:
+                if 'gameweeks' not in current_manifest:
+                    current_manifest['gameweeks'] = {}
+                current_manifest['gameweeks'][str(gw)] = {
+                    'url': f"{PUBLIC_BASE}{blob_name}",
+                    'hash': h,
+                    'timestamp': timestamp,
+                    'updated': datetime.utcnow().isoformat() + "Z"
+                }
+                current_manifest['updated'] = datetime.utcnow().isoformat() + "Z"
+                current_manifest['version'] = str(timestamp)
+                current_manifest['timestamp'] = timestamp
+                
+                # Upload updated manifest
+                manifest_bytes = json.dumps(current_manifest).encode('utf-8')
+                smart_upload_bytes('manifest.json', manifest_bytes, content_type='application/json')
+            
+            # Clear historical cache
+            with historical_cache_lock:
+                historical_cache["data"] = None
+                historical_cache["timestamp"] = 0
+            
+            log(f"[admin] Uploaded CSV for GW{gw} ({len(csv_data)} bytes)")
+            return {'success': True, 'gw': gw, 'blob': blob_name, 'hash': h}, 200
+        else:
+            return {'success': True, 'message': 'No changes detected (same content)'}, 200
+            
+    except Exception as e:
+        log(f"[admin] CSV upload error for GW{gw}: {e}")
+        return {'error': str(e)}, 500
+
 # ====== YOUR EXISTING SCRAPER LOGIC ======
 def smart_upload_bytes(blob_name: str, data: bytes, content_type: str = "text/plain", headers: dict = None) -> bool:
     new_hash = get_file_hash(data)
