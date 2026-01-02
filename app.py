@@ -1159,22 +1159,40 @@ def scrape_rosters_bytes(gw: int) -> bytes:
     ], output_file)
 
 def detect_current_gameweek() -> int:
-    log("Detecting current gameweek...")
-    latest_gw = 1
-    for gw in range(1, MAX_GAMEWEEK + 1):
-        try:
-            test_output = get_output_file_path("rosters_points", gw)
-            test_cmd = ["python3", "fpl_scrape_rosters.py", "--gw", str(gw), "--entries", "394273"]
-            proc = subprocess.run(test_cmd, cwd="/app", capture_output=True, text=True, timeout=30)
-            if proc.returncode == 0 and test_output.exists() and test_output.stat().st_size > 0:
-                latest_gw = gw
-                if test_output.exists(): test_output.unlink()
-            else:
+    """
+    Use the official FPL API to determine the current gameweek.
+    This is more reliable than testing each GW individually.
+    Returns the current/live gameweek number, or None if API fails.
+    """
+    log("Detecting current gameweek from FPL API...")
+    try:
+        r = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/", timeout=30)
+        r.raise_for_status()
+        data = r.json()
+        
+        current_gw = None
+        for event in data.get('events', []):
+            if event.get('is_current'):
+                current_gw = event['id']
                 break
-        except Exception:
-            break
-    log(f"Latest available gameweek: GW{latest_gw}")
-    return latest_gw
+        
+        if current_gw:
+            log(f"Current gameweek from FPL API: GW{current_gw}")
+            return current_gw
+        
+        # Fallback: find the latest finished or in-progress gameweek
+        for event in reversed(data.get('events', [])):
+            if event.get('finished') or event.get('data_checked'):
+                current_gw = event['id']
+                log(f"Fallback: using latest finished GW{current_gw}")
+                return current_gw
+        
+        log("Warning: Could not determine current gameweek from API")
+        return None
+        
+    except Exception as e:
+        log(f"Error detecting current gameweek: {e}")
+        return None
 
 def is_game_day() -> bool:
     now_utc = datetime.now(timezone.utc)
@@ -1202,6 +1220,17 @@ def get_dynamic_interval() -> int:
 def scrape_and_upload_gameweek(gw: int) -> bool:
     try:
         rosters_data = scrape_rosters_bytes(gw)
+        
+        # Validate the scraped data before uploading
+        # Count number of TOTAL rows (one per manager)
+        rosters_text = rosters_data.decode('utf-8', errors='ignore')
+        total_count = rosters_text.count(',TOTAL,')
+        
+        if total_count < 15:  # We expect ~20 managers, flag if less than 15
+            log(f"WARNING: GW{gw} scrape only has {total_count} managers - likely incomplete, NOT uploading")
+            return False
+        
+        log(f"GW{gw} scrape has {total_count} managers - looks complete")
         h = get_file_hash(rosters_data)
 
         # Upload to non-versioned path (this is what the manifest will point to)
@@ -1307,13 +1336,24 @@ def scraper_worker():
             if ACTIVE != "1":
                 log("inactive (ACTIVE=0)")
             else:
-                # Only scrape the current/latest gameweek during normal operation
-                # Historical gameweeks don't change and don't need re-scraping
-                latest_gw = detect_current_gameweek()
-                if scrape_and_upload_gameweek(latest_gw):
-                    log(f"Successfully scraped GW{latest_gw}")
+                # Only scrape the current gameweek - NEVER re-scrape finished gameweeks
+                current_gw = detect_current_gameweek()
+                
+                if current_gw is None:
+                    log("Could not determine current gameweek - skipping this cycle")
                 else:
-                    log(f"Failed to scrape GW{latest_gw}")
+                    # Double-check: only scrape if this is actually the current GW in manifest
+                    # This prevents accidentally overwriting wrong gameweeks
+                    with manifest_lock:
+                        manifest_latest = current_manifest.get('latest_gw', 0)
+                    
+                    if current_gw >= manifest_latest:
+                        if scrape_and_upload_gameweek(current_gw):
+                            log(f"Successfully scraped GW{current_gw}")
+                        else:
+                            log(f"Failed to scrape GW{current_gw}")
+                    else:
+                        log(f"Skipping GW{current_gw} - manifest shows GW{manifest_latest} is latest")
         except Exception as e:
             log(f"GENERAL ERROR: {e}")
 
