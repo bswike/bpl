@@ -48,7 +48,8 @@ def get_bootstrap(session: requests.Session) -> Dict[str, Any]:
     # Enhanced to include global ownership data
     elements = {}
     for e in data["elements"]:
-        player_name = f'{e["first_name"]} {e["second_name"]}'
+        # Use web_name (display name like "Salah", "M. Cunha") instead of full government name
+        player_name = e.get("web_name", f'{e["first_name"]} {e["second_name"]}')
         elements[e["id"]] = {
             **e,
             "cost": e["now_cost"] / 10.0,
