@@ -122,6 +122,17 @@ export const DataProvider = ({ children }) => {
         managerStats[manager].transfer_cost = toNum(raw.transfer_cost);
         managerStats[manager].event_transfers = toNum(raw.event_transfers);
         
+        // Total value = squad + bank (in tenths from API, e.g., 1037 = £103.7m)
+        const totalValueRaw = toNum(raw.total_value);
+        if (totalValueRaw > 0) {
+          managerStats[manager].total_value = totalValueRaw / 10; // Convert to millions
+        }
+        // Bank value (in tenths)
+        const bankRaw = toNum(raw.bank);
+        if (bankRaw > 0) {
+          managerStats[manager].bank = bankRaw / 10; // Convert to millions
+        }
+        
         const chip = normalizeStr(raw.active_chip);
         if (chip && chip !== 'None' && chip !== 'none') {
           managerStats[manager].chip_used = chip;
