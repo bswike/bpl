@@ -253,12 +253,18 @@ const useFplData = () => {
       .replace(/[\u0300-\u036f]/g, '');
   };
   
-  // NEW: Load projections data
+  // NEW: Load projections data for the current gameweek
   const [projectionsLookup, setProjectionsLookup] = useState({});
+  const [projectionsGameweek, setProjectionsGameweek] = useState(null);
+  
   useEffect(() => {
-    const loadProjections = async () => {
+    const loadProjections = async (gw) => {
       try {
-        const res = await fetch('https://bpl-red-sun-894.fly.dev/api/projections');
+        // Request projections for specific gameweek, or default to latest
+        const url = gw 
+          ? `https://bpl-red-sun-894.fly.dev/api/projections?gw=${gw}`
+          : 'https://bpl-red-sun-894.fly.dev/api/projections';
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
           // Normalize all lookup keys to handle accented characters
@@ -266,15 +272,23 @@ const useFplData = () => {
           for (const [key, value] of Object.entries(data.lookup || {})) {
             normalizedLookup[normalizeKey(key)] = value;
           }
-          console.log(`📊 Loaded ${Object.keys(normalizedLookup).length} player projections`);
+          console.log(`📊 Loaded ${Object.keys(normalizedLookup).length} player projections for GW${data.gameweek}`);
           setProjectionsLookup(normalizedLookup);
+          setProjectionsGameweek(data.gameweek);
         }
       } catch (e) {
         console.warn('Failed to load projections:', e);
       }
     };
-    loadProjections();
-  }, []);
+    
+    // Load projections immediately (will default to latest GW)
+    // Re-load if latestGameweek changes and projections are for a different GW
+    if (latestGameweek && projectionsGameweek !== latestGameweek) {
+      loadProjections(latestGameweek);
+    } else if (!projectionsGameweek) {
+      loadProjections();
+    }
+  }, [latestGameweek, projectionsGameweek]);
 
   const parseCsvToManagers = useCallback((csvText, gameweek, preParseRows = null) => {
     // Support both CSV text and pre-parsed rows from /api/historical

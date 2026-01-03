@@ -958,58 +958,98 @@ def get_chips():
         return {'error': 'Failed to fetch chip data'}, 500
 
 # ====== PROJECTIONS ENDPOINT ======
-projections_cache = {"data": None, "timestamp": 0}
+# Per-gameweek projections cache
+projections_cache = {}  # {gw: {"data": ..., "timestamp": ...}}
 projections_cache_lock = threading.Lock()
 PROJECTIONS_CACHE_DURATION = 3600  # 1 hour
 
+def build_projections_lookup(data):
+    """Create lookup by player name (case-insensitive) with common variations"""
+    lookup = {}
+    for player in data.get('players', []):
+        name_key = player['name'].lower()
+        lookup[name_key] = player
+        # Also add common variations
+        if '.' in name_key:
+            lookup[name_key.replace('.', '')] = player
+        # Add last name only
+        parts = name_key.split()
+        if len(parts) > 1:
+            lookup[parts[-1]] = player
+    return lookup
+
 @app.route('/api/projections')
 def get_projections():
-    """Serve player projections from Fantasy Football Pundit (via blob storage)"""
+    """Serve player projections from Fantasy Football Pundit (via blob storage)
+    
+    Query params:
+        gw (optional): Gameweek number. If not provided, uses the current gameweek from manifest.
+    """
     try:
         current_time = time.time()
         
-        # Check cache
+        # Determine which gameweek to fetch
+        requested_gw = request.args.get('gw', type=int)
+        
+        if requested_gw is None:
+            # Use latest gameweek from manifest
+            with manifest_lock:
+                requested_gw = current_manifest.get('latest_gw', 20)
+        
+        cache_key = str(requested_gw)
+        
+        # Check per-gameweek cache
         with projections_cache_lock:
-            if projections_cache["data"] and (current_time - projections_cache["timestamp"]) < PROJECTIONS_CACHE_DURATION:
-                return projections_cache["data"], 200
+            if cache_key in projections_cache:
+                cached = projections_cache[cache_key]
+                if cached["data"] and (current_time - cached["timestamp"]) < PROJECTIONS_CACHE_DURATION:
+                    log(f"[projections] Serving GW{requested_gw} from cache")
+                    return cached["data"], 200
         
         # Fetch from blob storage
-        blob_url = f"{PUBLIC_BASE}projections_gw19.json?_t={int(time.time())}"
-        log(f"[projections] Fetching from {blob_url}")
+        blob_url = f"{PUBLIC_BASE}projections_gw{requested_gw}.json?_t={int(time.time())}"
+        log(f"[projections] Fetching GW{requested_gw} from {blob_url}")
         
         response = requests.get(blob_url, timeout=10)
         if response.ok:
             data = response.json()
-            
-            # Create lookup by player name (case-insensitive)
-            lookup = {}
-            for player in data.get('players', []):
-                name_key = player['name'].lower()
-                lookup[name_key] = player
-                # Also add common variations
-                if '.' in name_key:
-                    lookup[name_key.replace('.', '')] = player
-                # Add last name only
-                parts = name_key.split()
-                if len(parts) > 1:
-                    lookup[parts[-1]] = player
+            lookup = build_projections_lookup(data)
             
             result = {
-                'gameweek': data.get('gameweek', 19),
+                'gameweek': data.get('gameweek', requested_gw),
                 'source': data.get('source', 'fantasyfootballpundit.com'),
                 'players': data.get('players', []),
                 'lookup': lookup
             }
             
-            # Cache it
+            # Cache it per gameweek
             with projections_cache_lock:
-                projections_cache["data"] = result
-                projections_cache["timestamp"] = current_time
+                projections_cache[cache_key] = {
+                    "data": result,
+                    "timestamp": current_time
+                }
             
-            log(f"[projections] Served {len(result['players'])} player projections")
+            log(f"[projections] Served {len(result['players'])} player projections for GW{requested_gw}")
             return result, 200
         else:
-            log(f"[projections] Blob fetch failed: {response.status_code}")
+            log(f"[projections] Blob fetch failed for GW{requested_gw}: {response.status_code}")
+            # Try falling back to the previous gameweek if not found
+            if requested_gw > 1:
+                fallback_gw = requested_gw - 1
+                log(f"[projections] Trying fallback to GW{fallback_gw}")
+                fallback_url = f"{PUBLIC_BASE}projections_gw{fallback_gw}.json?_t={int(time.time())}"
+                fallback_response = requests.get(fallback_url, timeout=10)
+                if fallback_response.ok:
+                    data = fallback_response.json()
+                    lookup = build_projections_lookup(data)
+                    result = {
+                        'gameweek': data.get('gameweek', fallback_gw),
+                        'source': data.get('source', 'fantasyfootballpundit.com'),
+                        'players': data.get('players', []),
+                        'lookup': lookup,
+                        'note': f'Using GW{fallback_gw} projections (GW{requested_gw} not available)'
+                    }
+                    return result, 200
             return {'error': 'Projections not available', 'players': [], 'lookup': {}}, 200
             
     except Exception as e:
@@ -1017,26 +1057,39 @@ def get_projections():
         return {'error': str(e), 'players': [], 'lookup': {}}, 500
 
 @app.route('/api/admin/upload-projections', methods=['POST'])
-def upload_projections():
-    """Admin endpoint to upload projections JSON to blob storage."""
+@app.route('/api/admin/upload-projections/<int:gw>', methods=['POST'])
+def upload_projections(gw=None):
+    """Admin endpoint to upload projections JSON to blob storage.
+    
+    Args:
+        gw (optional): Gameweek number. If not provided, uses the gameweek from the JSON data.
+    """
     try:
         data = request.get_json()
         if not data or 'players' not in data:
             return {'error': 'Invalid data - must include players array'}, 400
         
-        json_bytes = json.dumps(data).encode('utf-8')
+        # Determine gameweek from URL param or from data
+        target_gw = gw if gw else data.get('gameweek', 20)
         
-        # Upload to blob storage
-        success = smart_upload_bytes('projections_gw19.json', json_bytes, content_type='application/json')
+        # Ensure gameweek is set in the data
+        data['gameweek'] = target_gw
+        
+        json_bytes = json.dumps(data, indent=2).encode('utf-8')
+        
+        # Upload to blob storage with gameweek-specific filename
+        filename = f'projections_gw{target_gw}.json'
+        success = smart_upload_bytes(filename, json_bytes, content_type='application/json')
         
         if success:
-            # Clear cache so next request gets fresh data
+            # Clear cache for this gameweek so next request gets fresh data
+            cache_key = str(target_gw)
             with projections_cache_lock:
-                projections_cache["data"] = None
-                projections_cache["timestamp"] = 0
+                if cache_key in projections_cache:
+                    del projections_cache[cache_key]
             
-            log(f"[projections] Uploaded {len(data['players'])} players")
-            return {'success': True, 'players_count': len(data['players'])}, 200
+            log(f"[projections] Uploaded {len(data['players'])} players for GW{target_gw}")
+            return {'success': True, 'gameweek': target_gw, 'players_count': len(data['players'])}, 200
         else:
             return {'success': True, 'message': 'No changes detected (same content)'}, 200
             
