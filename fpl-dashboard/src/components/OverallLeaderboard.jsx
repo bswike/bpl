@@ -104,9 +104,11 @@ const OverallLeaderboard = () => {
           managerTotals[m.manager_name].chicken_picks += 1;
         }
         
-        // Track MAX team value across all gameweeks
-        if (m.team_value && m.team_value > (managerTotals[m.manager_name].team_value || 0)) {
-          managerTotals[m.manager_name].team_value = m.team_value;
+        // Use total_value (squad + bank) if available, otherwise fall back to team_value
+        // Track the max across all gameweeks
+        const valueToUse = m.total_value || m.team_value || 0;
+        if (valueToUse > (managerTotals[m.manager_name].team_value || 0)) {
+          managerTotals[m.manager_name].team_value = valueToUse;
         }
       });
     });
@@ -719,10 +721,10 @@ const ManagerOverviewModal = ({
                     sortDesc={true}
                   />
                   
-                  {/* Max Team Value - highest value achieved across all GWs */}
+                  {/* Total Value - squad value + bank */}
                   <StatRow 
                     icon={Wallet} 
-                    label="Max Team Value" 
+                    label="Total Value" 
                     value={currentManager?.team_value ? currentManager.team_value.toFixed(1) : '-'}
                     suffix="m"
                     rank={getValueRank(manager.manager_name)}

@@ -195,11 +195,15 @@ def rows_from_picks(entry: Dict[str, Any],
     team_total = 0
     team_value = 0
 
-    # ===== TRANSFER COST EXTRACTION =====
-    # The picks endpoint includes entry_history with event_transfers_cost
+    # ===== ENTRY HISTORY DATA =====
+    # The picks endpoint includes entry_history with transfers, bank, and value
     entry_history = picks.get("entry_history", {})
     transfer_cost = int(entry_history.get("event_transfers_cost", 0) or 0)
     event_transfers = int(entry_history.get("event_transfers", 0) or 0)
+    # Bank value in tenths (e.g., 15 = £1.5m) - convert to full value like player costs
+    bank_value = int(entry_history.get("bank", 0) or 0)
+    # Total value from FPL API (squad value + bank, in tenths)
+    api_total_value = int(entry_history.get("value", 0) or 0)
     # ===================================
 
     # Bench Boost Detection
@@ -291,6 +295,10 @@ def rows_from_picks(entry: Dict[str, Any],
     # Calculate net points (total minus transfer hits)
     net_points = team_total - transfer_cost
     
+    # Total value = squad value + bank (both in tenths, e.g., 1000 = £100.0m)
+    # api_total_value already includes bank from FPL API
+    total_value_with_bank = api_total_value  # Use API's total value directly
+    
     rows.append({
         "entry_id": entry_id,
         "entry_team_name": team_name,
@@ -316,9 +324,11 @@ def rows_from_picks(entry: Dict[str, Any],
         "fixture_started": "",
         "fixture_finished": "",
         "bench_points": calculated_bench_points,
-        "transfer_cost": transfer_cost,      # <-- NEW: Transfer hits for this GW
-        "event_transfers": event_transfers,   # <-- NEW: Number of transfers made
-        "gross_points": team_total,           # <-- NEW: Points before deductions
+        "transfer_cost": transfer_cost,      # <-- Transfer hits for this GW
+        "event_transfers": event_transfers,   # <-- Number of transfers made
+        "gross_points": team_total,           # <-- Points before deductions
+        "bank": bank_value,                   # <-- Bank value (in tenths, e.g., 15 = £1.5m)
+        "total_value": total_value_with_bank, # <-- Squad + Bank total value (in tenths)
     })
 
     return rows
@@ -425,6 +435,8 @@ def main():
         # Detailed stats for player display
         "goals_scored", "assists", "clean_sheets", "saves", "bonus",
         "yellow_cards", "red_cards", "own_goals", "penalties_saved", "penalties_missed",
+        # Team value fields (TOTAL row only)
+        "bank", "total_value",
     ]
 
     with open(out_path, "w", newline="", encoding="utf-8") as f:

@@ -374,6 +374,16 @@ const playerData = {
         managerStats[manager].total_points = toNum(raw.gross_points); // Weekly display (no transfer cost)
         managerStats[manager].total_points_applied = toNum(raw.points_gw); // For cumulative (with transfer cost)
         managerStats[manager].bench_points = toNum(raw.bench_points);
+        // Total value = squad + bank (in tenths from API, e.g., 1037 = £103.7m)
+        const totalValueRaw = toNum(raw.total_value);
+        if (totalValueRaw > 0) {
+          managerStats[manager].total_value = totalValueRaw / 10; // Convert to millions (e.g., 1037 -> 103.7)
+        }
+        // Bank value (in tenths)
+        const bankRaw = toNum(raw.bank);
+        if (bankRaw > 0) {
+          managerStats[manager].bank = bankRaw / 10; // Convert to millions
+        }
       }
     }
     
