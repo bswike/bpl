@@ -104,8 +104,8 @@ const OverallLeaderboard = () => {
           managerTotals[m.manager_name].chicken_picks += 1;
         }
         
-        // Team value from latest GW
-        if (gw === latestGw && m.team_value) {
+        // Track MAX team value across all gameweeks
+        if (m.team_value && m.team_value > (managerTotals[m.manager_name].team_value || 0)) {
           managerTotals[m.manager_name].team_value = m.team_value;
         }
       });
@@ -719,10 +719,10 @@ const ManagerOverviewModal = ({
                     sortDesc={true}
                   />
                   
-                  {/* Team Value - use CSV data for consistency with leaderboard */}
+                  {/* Max Team Value - highest value achieved across all GWs */}
                   <StatRow 
                     icon={Wallet} 
-                    label="Team Value" 
+                    label="Max Team Value" 
                     value={currentManager?.team_value ? currentManager.team_value.toFixed(1) : '-'}
                     suffix="m"
                     rank={getValueRank(manager.manager_name)}
