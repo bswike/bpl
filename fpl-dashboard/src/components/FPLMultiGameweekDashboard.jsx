@@ -371,8 +371,9 @@ const playerData = {
         }
         if (mult === 0) managerStats[manager].bench_points += toNum(raw.points_gw);
       } else { // This block handles the player === "TOTAL" row
-        managerStats[manager].total_points = toNum(raw.gross_points); // Weekly display (no transfer cost)
-        managerStats[manager].total_points_applied = toNum(raw.points_gw); // For cumulative (with transfer cost)
+        managerStats[manager].total_points = toNum(raw.gross_points); // Weekly display (gross points before transfer hits)
+        managerStats[manager].total_points_applied = toNum(raw.points_applied); // For cumulative (NET points after transfer hits)
+        managerStats[manager].transfer_cost = toNum(raw.transfer_cost); // Transfer hits this GW
         managerStats[manager].bench_points = toNum(raw.bench_points);
         // Total value = squad + bank (in tenths from API, e.g., 1037 = £103.7m)
         const totalValueRaw = toNum(raw.total_value);
@@ -2015,6 +2016,9 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
             </div>
             <div className="text-right">
               <p className="text-white font-bold text-base">{totalPoints}</p>
+              {!isCombined && manager.transfer_cost > 0 && (
+                <p className="text-[9px] text-red-400">(-{manager.transfer_cost} hit)</p>
+              )}
               {totalProjected && (
                 <p className="text-[9px] text-gray-500">Proj: {totalProjected}</p>
               )}
@@ -2136,6 +2140,9 @@ const ManagerRow = React.memo(({ manager, view, availableGameweeks, onManagerCli
           </div>
           <div className="text-center">
             <div className="text-white font-bold text-lg">{totalPoints}</div>
+            {!isCombined && manager.transfer_cost > 0 && (
+              <p className="text-[10px] text-red-400">(-{manager.transfer_cost} hit)</p>
+            )}
             {totalProjected && (
               <p className="text-[10px] text-gray-500">Proj: {totalProjected}</p>
             )}
