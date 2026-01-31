@@ -1105,6 +1105,14 @@ def upload_csv(gw):
         if not csv_data:
             return {'error': 'No CSV data provided'}, 400
         
+        # CRITICAL: Validate the data before uploading
+        is_valid, reason = validate_csv_data(csv_data, gw)
+        if not is_valid:
+            log(f"[admin] REJECTED GW{gw} upload: {reason}")
+            return {'error': f'Invalid data: {reason}'}, 400
+        
+        log(f"[admin] GW{gw} data validated: {reason}")
+        
         # Use non-versioned filename for consistency
         blob_name = f"fpl_rosters_points_gw{gw}.csv"
         
@@ -1270,20 +1278,49 @@ def get_dynamic_interval() -> int:
     return GAMEDAY_INTERVAL if is_game_day() else NON_GAMEDAY_INTERVAL
 
 # ====== ENHANCED UPLOAD WITH PUSH ======
+def validate_csv_data(csv_data: bytes, gw: int) -> tuple[bool, str]:
+    """
+    Validate CSV data before uploading to prevent corrupting good data.
+    Returns (is_valid, reason).
+    """
+    try:
+        text = csv_data.decode('utf-8', errors='ignore').strip()
+        
+        # Check for FPL maintenance messages
+        if 'game is being updated' in text.lower():
+            return False, "Contains FPL maintenance message"
+        
+        # Check for valid CSV header
+        if not text.startswith('entry_id,'):
+            return False, f"Invalid CSV header (starts with: {text[:50]}...)"
+        
+        # Count TOTAL rows (one per manager)
+        total_count = text.count(',TOTAL,')
+        if total_count < 15:  # We expect ~20 managers
+            return False, f"Only {total_count} managers found (expected ~20)"
+        
+        # Check file size (should be at least 10KB for valid data)
+        if len(csv_data) < 10000:
+            return False, f"File too small ({len(csv_data)} bytes)"
+        
+        return True, f"Valid: {total_count} managers, {len(csv_data)} bytes"
+        
+    except Exception as e:
+        return False, f"Validation error: {e}"
+
 def scrape_and_upload_gameweek(gw: int) -> bool:
     try:
         rosters_data = scrape_rosters_bytes(gw)
         
-        # Validate the scraped data before uploading
-        # Count number of TOTAL rows (one per manager)
-        rosters_text = rosters_data.decode('utf-8', errors='ignore')
-        total_count = rosters_text.count(',TOTAL,')
+        # CRITICAL: Validate data BEFORE uploading to prevent corruption
+        is_valid, reason = validate_csv_data(rosters_data, gw)
         
-        if total_count < 15:  # We expect ~20 managers, flag if less than 15
-            log(f"WARNING: GW{gw} scrape only has {total_count} managers - likely incomplete, NOT uploading")
+        if not is_valid:
+            log(f"REJECTED GW{gw} upload: {reason}")
+            log(f"Keeping existing data intact - NOT uploading bad data")
             return False
         
-        log(f"GW{gw} scrape has {total_count} managers - looks complete")
+        log(f"GW{gw} data validated: {reason}")
         h = get_file_hash(rosters_data)
 
         # Upload to non-versioned path (this is what the manifest will point to)
@@ -1351,11 +1388,10 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
         return True
 
     except Exception as e:
-        log(f"GW{gw} ERROR: {e}")
-        try:
-            smart_upload_csv(f"fpl_rosters_points_gw{gw}.csv", b"The game is being updated.")
-        except Exception as upload_err:
-            log(f"Failed to upload updating sentinel for GW{gw}: {upload_err}")
+        # CRITICAL FIX: DO NOT upload placeholder/sentinel data on failure
+        # This was causing good data to be overwritten with "The game is being updated."
+        log(f"GW{gw} scrape FAILED: {e}")
+        log(f"Keeping existing data intact - NOT uploading anything")
         return False
 
 # ====== BACKGROUND WORKERS ======
