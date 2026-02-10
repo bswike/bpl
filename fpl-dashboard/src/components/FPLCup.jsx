@@ -167,16 +167,29 @@ const FPLCup = () => {
     const homeScore = homeData.total_points || 0;
     const awayScore = awayData.total_points || 0;
     const isLive = gw === latestGameweek;
-    const homeLivePlayers = homeData.players_live || 0;
-    const awayLivePlayers = awayData.players_live || 0;
-    const hasLivePlayers = homeLivePlayers > 0 || awayLivePlayers > 0;
+    
+    // Calculate starters only (multiplier >= 1) - excludes bench
+    const homeStarters = (homeData.players || []).filter(p => p.multiplier >= 1);
+    const awayStarters = (awayData.players || []).filter(p => p.multiplier >= 1);
+    
+    // Live = started but not finished
+    const homeLive = homeStarters.filter(p => p.fixture_started && !p.fixture_finished).length;
+    const awayLive = awayStarters.filter(p => p.fixture_started && !p.fixture_finished).length;
+    
+    // Remaining = not yet started
+    const homeRemaining = homeStarters.filter(p => !p.fixture_started).length;
+    const awayRemaining = awayStarters.filter(p => !p.fixture_started).length;
+    
+    const hasLivePlayers = homeLive > 0 || awayLive > 0;
 
     return {
       status: isLive ? (hasLivePlayers ? 'live' : 'today') : 'completed',
       homeScore,
       awayScore,
-      homeLive: homeLivePlayers,
-      awayLive: awayLivePlayers,
+      homeLive,
+      awayLive,
+      homeRemaining,
+      awayRemaining,
       winner: homeScore > awayScore ? 'home' : (awayScore > homeScore ? 'away' : 'draw')
     };
   };
@@ -331,9 +344,14 @@ const FPLCup = () => {
                         <div className={`text-sm ${result.winner === 'home' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
                           {match.home}
                         </div>
-                        {isLive && result.homeLive > 0 && (
-                          <div className="text-[10px] text-cyan-400">
-                            {result.homeLive} playing
+                        {isLive && (result.homeLive > 0 || result.homeRemaining > 0) && (
+                          <div className="text-[10px] flex items-center justify-end gap-2">
+                            {result.homeLive > 0 && (
+                              <span className="text-cyan-400">{result.homeLive} playing</span>
+                            )}
+                            {result.homeRemaining > 0 && (
+                              <span className="text-yellow-400">{result.homeRemaining} left</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -366,9 +384,14 @@ const FPLCup = () => {
                         <div className={`text-sm ${result.winner === 'away' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
                           {match.away}
                         </div>
-                        {isLive && result.awayLive > 0 && (
-                          <div className="text-[10px] text-cyan-400">
-                            {result.awayLive} playing
+                        {isLive && (result.awayLive > 0 || result.awayRemaining > 0) && (
+                          <div className="text-[10px] flex items-center gap-2">
+                            {result.awayLive > 0 && (
+                              <span className="text-cyan-400">{result.awayLive} playing</span>
+                            )}
+                            {result.awayRemaining > 0 && (
+                              <span className="text-yellow-400">{result.awayRemaining} left</span>
+                            )}
                           </div>
                         )}
                       </div>
