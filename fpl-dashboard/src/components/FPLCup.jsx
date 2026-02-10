@@ -166,11 +166,17 @@ const FPLCup = () => {
 
     const homeScore = homeData.total_points || 0;
     const awayScore = awayData.total_points || 0;
+    const isLive = gw === latestGameweek;
+    const homeLivePlayers = homeData.players_live || 0;
+    const awayLivePlayers = awayData.players_live || 0;
+    const hasLivePlayers = homeLivePlayers > 0 || awayLivePlayers > 0;
 
     return {
-      status: 'completed',
+      status: isLive ? (hasLivePlayers ? 'live' : 'today') : 'completed',
       homeScore,
       awayScore,
+      homeLive: homeLivePlayers,
+      awayLive: awayLivePlayers,
       winner: homeScore > awayScore ? 'home' : (awayScore > homeScore ? 'away' : 'draw')
     };
   };
@@ -304,17 +310,43 @@ const FPLCup = () => {
               <div className="p-4 space-y-3">
                 {matchday.matches.map((match, mIdx) => {
                   const result = getMatchResult(match, matchday.gameweek);
+                  const isLive = result.status === 'live' || result.status === 'today';
                   
                   return (
                     <div 
                       key={mIdx}
-                      className="flex items-center justify-between bg-slate-900/50 rounded-lg p-3"
+                      className={`flex items-center justify-between rounded-lg p-3 ${
+                        isLive ? 'bg-cyan-900/20 border border-cyan-600/30' : 'bg-slate-900/50'
+                      }`}
                     >
-                      <div className={`flex-1 text-right text-sm ${result.winner === 'home' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
-                        {match.home}
+                      <div className="flex-1 text-right">
+                        <div className={`text-sm ${result.winner === 'home' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
+                          {match.home}
+                        </div>
+                        {isLive && result.homeLive > 0 && (
+                          <div className="text-[10px] text-cyan-400">
+                            {result.homeLive} playing
+                          </div>
+                        )}
                       </div>
-                      <div className="px-4 min-w-[80px] text-center">
-                        {result.status === 'completed' ? (
+                      <div className="px-4 min-w-[100px] text-center">
+                        {result.status === 'live' ? (
+                          <div>
+                            <div className="flex items-center justify-center gap-1 mb-0.5">
+                              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                              <span className="text-[10px] text-red-400 font-medium">LIVE</span>
+                            </div>
+                            <span className="font-bold text-cyan-400 text-lg">
+                              {result.homeScore} - {result.awayScore}
+                            </span>
+                          </div>
+                        ) : result.status === 'today' ? (
+                          <div>
+                            <span className="font-bold text-white text-lg">
+                              {result.homeScore} - {result.awayScore}
+                            </span>
+                          </div>
+                        ) : result.status === 'completed' ? (
                           <span className="font-bold text-white">
                             {result.homeScore} - {result.awayScore}
                           </span>
@@ -322,8 +354,15 @@ const FPLCup = () => {
                           <span className="text-gray-500 text-sm">vs</span>
                         )}
                       </div>
-                      <div className={`flex-1 text-left text-sm ${result.winner === 'away' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
-                        {match.away}
+                      <div className="flex-1 text-left">
+                        <div className={`text-sm ${result.winner === 'away' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
+                          {match.away}
+                        </div>
+                        {isLive && result.awayLive > 0 && (
+                          <div className="text-[10px] text-cyan-400">
+                            {result.awayLive} playing
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
