@@ -57,7 +57,7 @@ const GROUP_COLORS = {
 };
 
 const FPLCup = () => {
-  const { gwData, latestGameweek } = useData();
+  const { gameweekData, latestGameweek } = useData();
   const [selectedTab, setSelectedTab] = useState('groups');
   const [selectedGroup, setSelectedGroup] = useState('A');
 
@@ -84,7 +84,7 @@ const FPLCup = () => {
       const groupFixtures = CUP_CONFIG.fixtures[groupName] || [];
       groupFixtures.forEach(matchday => {
         const gw = matchday.gameweek;
-        const gwManagers = gwData?.[gw] || [];
+        const gwManagers = gameweekData?.[gw] || [];
 
         const scores = {};
         gwManagers.forEach(m => {
@@ -129,7 +129,7 @@ const FPLCup = () => {
     });
 
     return standings;
-  }, [gwData]);
+  }, [gameweekData]);
 
   // Get all qualifiers (top 2 from each group) sorted by overall performance
   const knockoutSeedings = useMemo(() => {
@@ -156,7 +156,7 @@ const FPLCup = () => {
 
   // Get match result for display
   const getMatchResult = (match, gw) => {
-    const gwManagers = gwData?.[gw] || [];
+    const gwManagers = gameweekData?.[gw] || [];
     const homeData = gwManagers.find(m => m.manager_name === match.home);
     const awayData = gwManagers.find(m => m.manager_name === match.away);
     
