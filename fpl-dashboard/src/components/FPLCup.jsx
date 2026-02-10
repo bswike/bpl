@@ -872,62 +872,67 @@ const H2HModal = ({ match, onClose, onPlayerClick, fixtureData }) => {
     });
   };
 
-  // Build aligned rows: common players side by side, then unique players
-  const buildAlignedRows = (homePlayers, awayPlayers) => {
-    const homeList = [...(homePlayers || [])];
-    const awayList = [...(awayPlayers || [])];
-    const rows = [];
-    const usedAwayIndices = new Set();
+  // Build aligned rows by position: GK, DEF, MID, FWD - with common players in same row
+  const buildAlignedRowsByPosition = (homePlayers, awayPlayers) => {
+    const positions = ['GK', 'DEF', 'MID', 'FWD'];
+    const allRows = [];
 
-    // First pass: find common players and pair them
-    homeList.forEach((homePlayer) => {
-      const awayIdx = awayList.findIndex((awayPlayer, idx) => 
-        !usedAwayIndices.has(idx) && 
-        (awayPlayer.element_id === homePlayer.element_id || awayPlayer.name === homePlayer.name)
+    positions.forEach(pos => {
+      const homeInPos = (homePlayers || []).filter(p => p.position === pos);
+      const awayInPos = (awayPlayers || []).filter(p => p.position === pos);
+      const usedAwayIndices = new Set();
+      const posRows = [];
+
+      // First: find and pair common players in this position
+      homeInPos.forEach(homePlayer => {
+        const awayIdx = awayInPos.findIndex((awayPlayer, idx) => 
+          !usedAwayIndices.has(idx) && 
+          (awayPlayer.element_id === homePlayer.element_id || awayPlayer.name === homePlayer.name)
+        );
+        
+        if (awayIdx !== -1) {
+          usedAwayIndices.add(awayIdx);
+          posRows.push({ 
+            home: homePlayer, 
+            away: awayInPos[awayIdx], 
+            isCommon: true,
+            position: pos
+          });
+        }
+      });
+
+      // Get remaining unique players for this position
+      const remainingHome = homeInPos.filter(hp => 
+        !posRows.some(r => r.home?.element_id === hp.element_id || r.home?.name === hp.name)
       );
-      
-      if (awayIdx !== -1) {
-        usedAwayIndices.add(awayIdx);
-        rows.push({ 
-          home: homePlayer, 
-          away: awayList[awayIdx], 
-          isCommon: true 
+      const remainingAway = awayInPos.filter((_, idx) => !usedAwayIndices.has(idx));
+
+      // Sort remaining by points
+      remainingHome.sort((a, b) => (b.points_applied || 0) - (a.points_applied || 0));
+      remainingAway.sort((a, b) => (b.points_applied || 0) - (a.points_applied || 0));
+
+      // Pair up remaining (unique) players
+      const maxRemaining = Math.max(remainingHome.length, remainingAway.length);
+      for (let i = 0; i < maxRemaining; i++) {
+        posRows.push({
+          home: remainingHome[i] || null,
+          away: remainingAway[i] || null,
+          isCommon: false,
+          position: pos
         });
       }
-    });
 
-    // Second pass: add remaining home players (unique to home)
-    const remainingHome = homeList.filter(hp => 
-      !rows.some(r => r.home?.element_id === hp.element_id || r.home?.name === hp.name)
-    );
-    
-    // Get remaining away players (unique to away)
-    const remainingAway = awayList.filter((_, idx) => !usedAwayIndices.has(idx));
-
-    // Sort remaining by position
-    const sortedRemainingHome = sortPlayers(remainingHome);
-    const sortedRemainingAway = sortPlayers(remainingAway);
-
-    // Pair up remaining players (or leave empty on one side)
-    const maxRemaining = Math.max(sortedRemainingHome.length, sortedRemainingAway.length);
-    for (let i = 0; i < maxRemaining; i++) {
-      rows.push({
-        home: sortedRemainingHome[i] || null,
-        away: sortedRemainingAway[i] || null,
-        isCommon: false
+      // Add all rows for this position (common first, then unique)
+      posRows.sort((a, b) => {
+        if (a.isCommon && !b.isCommon) return -1;
+        if (!a.isCommon && b.isCommon) return 1;
+        return 0;
       });
-    }
 
-    // Sort final rows: common players first (by position), then unique players
-    return rows.sort((a, b) => {
-      // Common players first
-      if (a.isCommon && !b.isCommon) return -1;
-      if (!a.isCommon && b.isCommon) return 1;
-      // Then by position
-      const aPos = getPositionOrder(a.home?.position || a.away?.position);
-      const bPos = getPositionOrder(b.home?.position || b.away?.position);
-      return aPos - bPos;
+      allRows.push(...posRows);
     });
+
+    return allRows;
   };
 
   const homeStartersRaw = home.players?.filter(p => p.multiplier >= 1) || [];
@@ -935,8 +940,8 @@ const H2HModal = ({ match, onClose, onPlayerClick, fixtureData }) => {
   const homeBenchRaw = home.players?.filter(p => p.multiplier === 0) || [];
   const awayBenchRaw = away.players?.filter(p => p.multiplier === 0) || [];
 
-  const starterRows = buildAlignedRows(homeStartersRaw, awayStartersRaw);
-  const benchRows = buildAlignedRows(homeBenchRaw, awayBenchRaw);
+  const starterRows = buildAlignedRowsByPosition(homeStartersRaw, awayStartersRaw);
+  const benchRows = buildAlignedRowsByPosition(homeBenchRaw, awayBenchRaw);
 
   const homeTotal = home.total_points || 0;
   const awayTotal = away.total_points || 0;
