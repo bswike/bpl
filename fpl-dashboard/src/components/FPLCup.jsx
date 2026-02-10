@@ -63,6 +63,7 @@ const FPLCup = () => {
   const [selectedGroup, setSelectedGroup] = useState('A');
   const [selectedManager, setSelectedManager] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [h2hMatch, setH2hMatch] = useState(null); // { home, away, gameweek }
 
   // Handler to open manager modal - find manager data in current or relevant GW
   const handleManagerClick = useCallback((managerName, gw = null) => {
@@ -74,8 +75,26 @@ const FPLCup = () => {
     }
   }, [gameweekData, latestGameweek]);
 
+  // Handler to open H2H view
+  const handleH2HClick = useCallback((match, gw) => {
+    const gwManagers = gameweekData?.[gw] || [];
+    const homeData = gwManagers.find(m => m.manager_name === match.home);
+    const awayData = gwManagers.find(m => m.manager_name === match.away);
+    if (homeData && awayData) {
+      setH2hMatch({
+        home: { ...homeData, gameweek: gw },
+        away: { ...awayData, gameweek: gw },
+        gameweek: gw
+      });
+    }
+  }, [gameweekData]);
+
   const handleCloseModal = useCallback(() => {
     setSelectedManager(null);
+  }, []);
+
+  const handleCloseH2H = useCallback(() => {
+    setH2hMatch(null);
   }, []);
 
   // Calculate group standings based on H2H results
@@ -378,7 +397,11 @@ const FPLCup = () => {
                           </div>
                         )}
                       </div>
-                      <div className="px-4 min-w-[100px] text-center">
+                      <button 
+                        onClick={() => handleH2HClick(match, matchday.gameweek)}
+                        className="px-4 min-w-[100px] text-center hover:bg-slate-700/50 rounded-lg py-1 transition-colors cursor-pointer"
+                        title="View Head-to-Head"
+                      >
                         {result.status === 'live' ? (
                           <div>
                             <div className="flex items-center justify-center gap-1 mb-0.5">
@@ -388,21 +411,26 @@ const FPLCup = () => {
                             <span className="font-bold text-cyan-400 text-lg">
                               {result.homeScore} - {result.awayScore}
                             </span>
+                            <div className="text-[9px] text-gray-500 mt-0.5">tap for H2H</div>
                           </div>
                         ) : result.status === 'today' ? (
                           <div>
                             <span className="font-bold text-white text-lg">
                               {result.homeScore} - {result.awayScore}
                             </span>
+                            <div className="text-[9px] text-gray-500 mt-0.5">tap for H2H</div>
                           </div>
                         ) : result.status === 'completed' ? (
-                          <span className="font-bold text-white">
-                            {result.homeScore} - {result.awayScore}
-                          </span>
+                          <div>
+                            <span className="font-bold text-white">
+                              {result.homeScore} - {result.awayScore}
+                            </span>
+                            <div className="text-[9px] text-gray-500 mt-0.5">tap for H2H</div>
+                          </div>
                         ) : (
                           <span className="text-gray-500 text-sm">vs</span>
                         )}
-                      </div>
+                      </button>
                       <div className="flex-1 text-left">
                         <button 
                           onClick={() => handleManagerClick(match.away, matchday.gameweek)}
@@ -796,10 +824,223 @@ const FPLCup = () => {
         <PlayerStatsModal 
           elementId={selectedPlayer.element_id} 
           playerName={selectedPlayer.name} 
-          currentGameweek={selectedManager?.gameweek} 
+          currentGameweek={selectedManager?.gameweek || h2hMatch?.gameweek} 
           onClose={() => setSelectedPlayer(null)} 
         />
       )}
+
+      {/* H2H Match Modal */}
+      {h2hMatch && (
+        <H2HModal 
+          match={h2hMatch}
+          onClose={handleCloseH2H}
+          onPlayerClick={(player) => setSelectedPlayer(player)}
+          fixtureData={fixtureData}
+        />
+      )}
+    </div>
+  );
+};
+
+// Head-to-Head Modal Component
+const H2HModal = ({ match, onClose, onPlayerClick, fixtureData }) => {
+  const { home, away, gameweek } = match;
+  
+  const getPositionOrder = (pos) => {
+    const order = { GK: 1, DEF: 2, MID: 3, FWD: 4 };
+    return order[pos] || 5;
+  };
+
+  const getPositionColor = (pos) => {
+    const colors = { GK: 'text-yellow-400', DEF: 'text-blue-400', MID: 'text-green-400', FWD: 'text-red-400' };
+    return colors[pos] || 'text-gray-400';
+  };
+
+  const getPositionBg = (pos) => {
+    const colors = { GK: 'bg-yellow-500/10', DEF: 'bg-blue-500/10', MID: 'bg-green-500/10', FWD: 'bg-red-500/10' };
+    return colors[pos] || 'bg-gray-500/10';
+  };
+
+  // Sort players by position and then by points
+  const sortPlayers = (players) => {
+    return [...(players || [])].sort((a, b) => {
+      if (a.multiplier === 0 && b.multiplier > 0) return 1;
+      if (a.multiplier > 0 && b.multiplier === 0) return -1;
+      const posOrder = getPositionOrder(a.position) - getPositionOrder(b.position);
+      if (posOrder !== 0) return posOrder;
+      return (b.points_applied || 0) - (a.points_applied || 0);
+    });
+  };
+
+  const homeStarters = sortPlayers(home.players?.filter(p => p.multiplier >= 1));
+  const awayStarters = sortPlayers(away.players?.filter(p => p.multiplier >= 1));
+  const homeBench = sortPlayers(home.players?.filter(p => p.multiplier === 0));
+  const awayBench = sortPlayers(away.players?.filter(p => p.multiplier === 0));
+
+  const homeTotal = home.total_points || 0;
+  const awayTotal = away.total_points || 0;
+  const isLive = home.players?.some(p => p.fixture_started && !p.fixture_finished) || 
+                 away.players?.some(p => p.fixture_started && !p.fixture_finished);
+
+  const renderPlayer = (player, side) => {
+    if (!player) return <div className="h-10" />;
+    
+    const isCaptain = player.is_captain;
+    const isVice = player.is_vice_captain;
+    const isPlaying = player.fixture_started && !player.fixture_finished;
+    const isFinished = player.fixture_finished;
+    const points = player.multiplier === 0 ? player.points_gw : player.points_applied;
+
+    return (
+      <button
+        onClick={() => onPlayerClick(player)}
+        className={`w-full flex items-center gap-2 p-1.5 rounded-lg transition-colors hover:bg-slate-700/50 ${
+          side === 'home' ? 'flex-row' : 'flex-row-reverse'
+        } ${getPositionBg(player.position)}`}
+      >
+        <div className={`flex-1 ${side === 'home' ? 'text-left' : 'text-right'}`}>
+          <div className="flex items-center gap-1" style={{ flexDirection: side === 'home' ? 'row' : 'row-reverse' }}>
+            <span className={`text-[10px] font-bold ${getPositionColor(player.position)}`}>
+              {player.position}
+            </span>
+            <span className={`text-xs truncate ${isPlaying ? 'text-cyan-300' : 'text-gray-200'}`}>
+              {player.name}
+              {isCaptain && <span className="ml-1 text-yellow-400 font-bold">(C)</span>}
+              {isVice && <span className="ml-1 text-gray-400">(V)</span>}
+            </span>
+          </div>
+          <div className={`text-[9px] text-gray-500 ${side === 'home' ? 'text-left' : 'text-right'}`}>
+            {player.team}
+          </div>
+        </div>
+        <div className={`flex items-center gap-1 ${side === 'home' ? 'flex-row' : 'flex-row-reverse'}`}>
+          {isPlaying && (
+            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+          )}
+          <span className={`text-sm font-bold min-w-[24px] ${
+            isPlaying ? 'text-cyan-400' : 
+            isFinished ? 'text-white' : 
+            'text-gray-500'
+          } ${side === 'home' ? 'text-right' : 'text-left'}`}>
+            {player.fixture_started ? points : '-'}
+          </span>
+        </div>
+      </button>
+    );
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-2"
+      onClick={onClose}
+    >
+      <div
+        className="bg-slate-900 rounded-xl border border-slate-700 w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 p-4 border-b border-slate-700">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-gray-400">GW{gameweek} • Head-to-Head</span>
+            <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl leading-none">×</button>
+          </div>
+          
+          {/* Score Display */}
+          <div className="flex items-center justify-center gap-4">
+            <div className="text-right flex-1">
+              <p className="text-white font-bold text-lg truncate">{home.manager_name}</p>
+              <p className="text-gray-500 text-xs truncate">{home.team_name}</p>
+            </div>
+            <div className="flex items-center gap-3 px-4">
+              <span className={`text-3xl font-black ${homeTotal > awayTotal ? 'text-green-400' : homeTotal < awayTotal ? 'text-red-400' : 'text-white'}`}>
+                {homeTotal}
+              </span>
+              <div className="flex flex-col items-center">
+                {isLive && (
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse mb-1"></span>
+                )}
+                <span className="text-gray-500 text-sm">-</span>
+              </div>
+              <span className={`text-3xl font-black ${awayTotal > homeTotal ? 'text-green-400' : awayTotal < homeTotal ? 'text-red-400' : 'text-white'}`}>
+                {awayTotal}
+              </span>
+            </div>
+            <div className="text-left flex-1">
+              <p className="text-white font-bold text-lg truncate">{away.manager_name}</p>
+              <p className="text-gray-500 text-xs truncate">{away.team_name}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Players Grid */}
+        <div className="flex-1 overflow-y-auto p-3">
+          {/* Starting XI */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2 px-2">
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Starting XI</span>
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Starting XI</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              {Array.from({ length: Math.max(homeStarters.length, awayStarters.length) }).map((_, idx) => (
+                <React.Fragment key={idx}>
+                  <div>{renderPlayer(homeStarters[idx], 'home')}</div>
+                  <div>{renderPlayer(awayStarters[idx], 'away')}</div>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          {/* Bench */}
+          <div className="border-t border-slate-700/50 pt-3">
+            <div className="flex items-center justify-between mb-2 px-2">
+              <span className="text-[10px] uppercase tracking-wider text-gray-600 font-bold">Bench</span>
+              <span className="text-[10px] uppercase tracking-wider text-gray-600 font-bold">Bench</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1 opacity-60">
+              {Array.from({ length: Math.max(homeBench.length, awayBench.length) }).map((_, idx) => (
+                <React.Fragment key={idx}>
+                  <div>{renderPlayer(homeBench[idx], 'home')}</div>
+                  <div>{renderPlayer(awayBench[idx], 'away')}</div>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Stats */}
+        <div className="bg-slate-800/50 border-t border-slate-700 p-3">
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div className="flex items-center justify-around">
+              <div>
+                <p className="text-cyan-400 font-bold">{home.players?.filter(p => p.multiplier >= 1 && p.fixture_started && !p.fixture_finished).length || 0}</p>
+                <p className="text-[9px] text-gray-500 uppercase">Playing</p>
+              </div>
+              <div>
+                <p className="text-yellow-400 font-bold">{home.players?.filter(p => p.multiplier >= 1 && !p.fixture_started).length || 0}</p>
+                <p className="text-[9px] text-gray-500 uppercase">Left</p>
+              </div>
+              <div>
+                <p className="text-gray-400 font-bold">{home.bench_points || 0}</p>
+                <p className="text-[9px] text-gray-500 uppercase">Bench</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-around">
+              <div>
+                <p className="text-gray-400 font-bold">{away.bench_points || 0}</p>
+                <p className="text-[9px] text-gray-500 uppercase">Bench</p>
+              </div>
+              <div>
+                <p className="text-yellow-400 font-bold">{away.players?.filter(p => p.multiplier >= 1 && !p.fixture_started).length || 0}</p>
+                <p className="text-[9px] text-gray-500 uppercase">Left</p>
+              </div>
+              <div>
+                <p className="text-cyan-400 font-bold">{away.players?.filter(p => p.multiplier >= 1 && p.fixture_started && !p.fixture_finished).length || 0}</p>
+                <p className="text-[9px] text-gray-500 uppercase">Playing</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
