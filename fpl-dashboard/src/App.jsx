@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { TrendingUp, BarChart3, Trophy, Table2 } from 'lucide-react';
+import { TrendingUp, BarChart3, Trophy, Table2, Award } from 'lucide-react';
 import './App.css';
 import { DataProvider, useData } from './context/DataContext';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -9,12 +9,14 @@ const FPLMultiGameweekDashboard = lazy(() => import('./components/FPLMultiGamewe
 const OverallLeaderboard = lazy(() => import('./components/OverallLeaderboard'));
 const FPLDashboard = lazy(() => import('./components/FPLDashboard'));
 const FPLPositionChart = lazy(() => import('./components/FPLPositionChart'));
+const FPLCup = lazy(() => import('./components/FPLCup'));
 
 const Navigation = ({ currentPage, setCurrentPage }) => {
   const navItems = [
     { id: 'position-chart', label: 'Positions', Icon: TrendingUp },
     { id: 'multi-gw', label: 'Weekly', Icon: BarChart3 },
     { id: 'standings', label: 'Table', Icon: Trophy },
+    { id: 'cup', label: 'Cup', Icon: Award },
     { id: 'dashboard', label: 'Chips', Icon: Table2 },
   ];
 
@@ -102,6 +104,8 @@ function AppContent() {
         return <FPLPositionChart />;
       case 'standings':
         return <OverallLeaderboard />;
+      case 'cup':
+        return <FPLCup />;
       default:
         return <FPLMultiGameweekDashboard />;
     }
