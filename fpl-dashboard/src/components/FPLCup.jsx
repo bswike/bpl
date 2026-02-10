@@ -872,10 +872,71 @@ const H2HModal = ({ match, onClose, onPlayerClick, fixtureData }) => {
     });
   };
 
-  const homeStarters = sortPlayers(home.players?.filter(p => p.multiplier >= 1));
-  const awayStarters = sortPlayers(away.players?.filter(p => p.multiplier >= 1));
-  const homeBench = sortPlayers(home.players?.filter(p => p.multiplier === 0));
-  const awayBench = sortPlayers(away.players?.filter(p => p.multiplier === 0));
+  // Build aligned rows: common players side by side, then unique players
+  const buildAlignedRows = (homePlayers, awayPlayers) => {
+    const homeList = [...(homePlayers || [])];
+    const awayList = [...(awayPlayers || [])];
+    const rows = [];
+    const usedAwayIndices = new Set();
+
+    // First pass: find common players and pair them
+    homeList.forEach((homePlayer) => {
+      const awayIdx = awayList.findIndex((awayPlayer, idx) => 
+        !usedAwayIndices.has(idx) && 
+        (awayPlayer.element_id === homePlayer.element_id || awayPlayer.name === homePlayer.name)
+      );
+      
+      if (awayIdx !== -1) {
+        usedAwayIndices.add(awayIdx);
+        rows.push({ 
+          home: homePlayer, 
+          away: awayList[awayIdx], 
+          isCommon: true 
+        });
+      }
+    });
+
+    // Second pass: add remaining home players (unique to home)
+    const remainingHome = homeList.filter(hp => 
+      !rows.some(r => r.home?.element_id === hp.element_id || r.home?.name === hp.name)
+    );
+    
+    // Get remaining away players (unique to away)
+    const remainingAway = awayList.filter((_, idx) => !usedAwayIndices.has(idx));
+
+    // Sort remaining by position
+    const sortedRemainingHome = sortPlayers(remainingHome);
+    const sortedRemainingAway = sortPlayers(remainingAway);
+
+    // Pair up remaining players (or leave empty on one side)
+    const maxRemaining = Math.max(sortedRemainingHome.length, sortedRemainingAway.length);
+    for (let i = 0; i < maxRemaining; i++) {
+      rows.push({
+        home: sortedRemainingHome[i] || null,
+        away: sortedRemainingAway[i] || null,
+        isCommon: false
+      });
+    }
+
+    // Sort final rows: common players first (by position), then unique players
+    return rows.sort((a, b) => {
+      // Common players first
+      if (a.isCommon && !b.isCommon) return -1;
+      if (!a.isCommon && b.isCommon) return 1;
+      // Then by position
+      const aPos = getPositionOrder(a.home?.position || a.away?.position);
+      const bPos = getPositionOrder(b.home?.position || b.away?.position);
+      return aPos - bPos;
+    });
+  };
+
+  const homeStartersRaw = home.players?.filter(p => p.multiplier >= 1) || [];
+  const awayStartersRaw = away.players?.filter(p => p.multiplier >= 1) || [];
+  const homeBenchRaw = home.players?.filter(p => p.multiplier === 0) || [];
+  const awayBenchRaw = away.players?.filter(p => p.multiplier === 0) || [];
+
+  const starterRows = buildAlignedRows(homeStartersRaw, awayStartersRaw);
+  const benchRows = buildAlignedRows(homeBenchRaw, awayBenchRaw);
 
   const homeTotal = home.total_points || 0;
   const awayTotal = away.total_points || 0;
@@ -981,13 +1042,24 @@ const H2HModal = ({ match, onClose, onPlayerClick, fixtureData }) => {
               <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Starting XI</span>
             </div>
             <div className="grid grid-cols-2 gap-1">
-              {Array.from({ length: Math.max(homeStarters.length, awayStarters.length) }).map((_, idx) => (
+              {starterRows.map((row, idx) => (
                 <React.Fragment key={idx}>
-                  <div>{renderPlayer(homeStarters[idx], 'home')}</div>
-                  <div>{renderPlayer(awayStarters[idx], 'away')}</div>
+                  <div className={row.isCommon ? 'ring-1 ring-purple-500/30 rounded-lg' : ''}>
+                    {renderPlayer(row.home, 'home')}
+                  </div>
+                  <div className={row.isCommon ? 'ring-1 ring-purple-500/30 rounded-lg' : ''}>
+                    {renderPlayer(row.away, 'away')}
+                  </div>
                 </React.Fragment>
               ))}
             </div>
+            {starterRows.some(r => r.isCommon) && (
+              <div className="text-center mt-2">
+                <span className="text-[9px] text-purple-400">
+                  ⚡ Purple highlight = both managers own this player
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Bench */}
@@ -997,10 +1069,14 @@ const H2HModal = ({ match, onClose, onPlayerClick, fixtureData }) => {
               <span className="text-[10px] uppercase tracking-wider text-gray-600 font-bold">Bench</span>
             </div>
             <div className="grid grid-cols-2 gap-1 opacity-60">
-              {Array.from({ length: Math.max(homeBench.length, awayBench.length) }).map((_, idx) => (
+              {benchRows.map((row, idx) => (
                 <React.Fragment key={idx}>
-                  <div>{renderPlayer(homeBench[idx], 'home')}</div>
-                  <div>{renderPlayer(awayBench[idx], 'away')}</div>
+                  <div className={row.isCommon ? 'ring-1 ring-purple-500/30 rounded-lg' : ''}>
+                    {renderPlayer(row.home, 'home')}
+                  </div>
+                  <div className={row.isCommon ? 'ring-1 ring-purple-500/30 rounded-lg' : ''}>
+                    {renderPlayer(row.away, 'away')}
+                  </div>
                 </React.Fragment>
               ))}
             </div>
