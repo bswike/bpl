@@ -192,16 +192,24 @@ const FPLCup = () => {
     return 'groups';
   }, [latestGameweek]);
 
+  const isGroupStageLive = latestGameweek >= 26 && latestGameweek <= 28;
+
   const renderGroupTable = (groupName) => {
     const standings = groupStandings[groupName] || [];
     
     return (
       <div className="bg-slate-800/50 rounded-xl overflow-hidden border border-slate-700">
-        <div className={`bg-gradient-to-r ${GROUP_COLORS[groupName]} px-4 py-3`}>
+        <div className={`bg-gradient-to-r ${GROUP_COLORS[groupName]} px-4 py-3 flex items-center justify-between`}>
           <h3 className="text-white font-bold text-lg flex items-center gap-2">
             <Users size={18} />
             Group {groupName}
           </h3>
+          {isGroupStageLive && (
+            <span className="flex items-center gap-1 text-xs bg-black/30 px-2 py-1 rounded-full">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              <span className="text-white font-medium">LIVE</span>
+            </span>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -677,10 +685,19 @@ const FPLCup = () => {
 
       {/* Content */}
       {selectedTab === 'groups' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {['A', 'B', 'C', 'D', 'E'].map(g => (
-            <div key={g}>{renderGroupTable(g)}</div>
-          ))}
+        <div className="space-y-4">
+          {isGroupStageLive && (
+            <div className="bg-cyan-900/20 border border-cyan-600/30 rounded-lg px-4 py-2 flex items-center gap-2">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              <span className="text-cyan-400 font-medium text-sm">Live Standings</span>
+              <span className="text-gray-400 text-sm">• Updates as GW{latestGameweek} scores change</span>
+            </div>
+          )}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            {['A', 'B', 'C', 'D', 'E'].map(g => (
+              <div key={g}>{renderGroupTable(g)}</div>
+            ))}
+          </div>
         </div>
       )}
 
