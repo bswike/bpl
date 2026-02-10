@@ -1,33 +1,36 @@
 {
+  "format": "5_groups_of_4",
   "seeding_gw": 25,
   "groups": {
     "A": [
       "Garrett Kunkel",
-      "Max Maier",
-      "Evan Bagheri",
-      "Andrew Vidal",
-      "Patrick McCleary"
+      "Wes H",
+      "John Matthew",
+      "Chris Munoz"
     ],
     "B": [
       "Kevin Tomek",
-      "Tony Tharakan",
       "Brett Swikle",
-      "JP Fischer",
-      "Jared Alexander"
+      "Andrew Vidal",
+      "Patrick McCleary"
     ],
     "C": [
       "Dean Maghsadi",
-      "Wes H",
-      "John Matthew",
-      "Nate Cohen",
-      "Chris Munoz"
+      "Tony Tharakan",
+      "Adrian McLoughlin",
+      "JP Fischer"
     ],
     "D": [
       "John Sebastian",
-      "Joe Curran",
+      "Max Maier",
       "Kevin K",
-      "Adrian McLoughlin",
       "Brian Pleines"
+    ],
+    "E": [
+      "Joe Curran",
+      "Evan Bagheri",
+      "Nate Cohen",
+      "Jared Alexander"
     ]
   },
   "points_at_seeding": {
@@ -52,107 +55,46 @@
     "Patrick McCleary": 1202,
     "Jared Alexander": 1078
   },
-  "knockout_bracket": {
-    "QF1": {
-      "team1": "A1",
-      "team2": "B2"
-    },
-    "QF2": {
-      "team1": "C1",
-      "team2": "D2"
-    },
-    "QF3": {
-      "team1": "B1",
-      "team2": "A2"
-    },
-    "QF4": {
-      "team1": "D1",
-      "team2": "C2"
-    }
-  },
-  "schedule": {
-    "group_stage": [
-      26,
-      27,
-      28,
-      29,
-      30
-    ],
-    "quarterfinals": 31,
-    "semifinals": 32,
-    "final": 33
-  },
   "fixtures": {
     "A": [
       {
         "gameweek": 26,
         "matches": [
           {
-            "home": "Max Maier",
-            "away": "Patrick McCleary"
+            "home": "Garrett Kunkel",
+            "away": "Chris Munoz"
           },
           {
-            "home": "Evan Bagheri",
-            "away": "Andrew Vidal"
+            "home": "Wes H",
+            "away": "John Matthew"
           }
-        ],
-        "bye": "Garrett Kunkel"
+        ]
       },
       {
         "gameweek": 27,
         "matches": [
           {
             "home": "Garrett Kunkel",
-            "away": "Patrick McCleary"
+            "away": "John Matthew"
           },
           {
-            "home": "Max Maier",
-            "away": "Evan Bagheri"
+            "home": "Chris Munoz",
+            "away": "Wes H"
           }
-        ],
-        "bye": "Andrew Vidal"
+        ]
       },
       {
         "gameweek": 28,
         "matches": [
           {
             "home": "Garrett Kunkel",
-            "away": "Andrew Vidal"
+            "away": "Wes H"
           },
           {
-            "home": "Patrick McCleary",
-            "away": "Evan Bagheri"
+            "home": "John Matthew",
+            "away": "Chris Munoz"
           }
-        ],
-        "bye": "Max Maier"
-      },
-      {
-        "gameweek": 29,
-        "matches": [
-          {
-            "home": "Garrett Kunkel",
-            "away": "Evan Bagheri"
-          },
-          {
-            "home": "Andrew Vidal",
-            "away": "Max Maier"
-          }
-        ],
-        "bye": "Patrick McCleary"
-      },
-      {
-        "gameweek": 30,
-        "matches": [
-          {
-            "home": "Garrett Kunkel",
-            "away": "Max Maier"
-          },
-          {
-            "home": "Andrew Vidal",
-            "away": "Patrick McCleary"
-          }
-        ],
-        "bye": "Evan Bagheri"
+        ]
       }
     ],
     "B": [
@@ -160,71 +102,40 @@
         "gameweek": 26,
         "matches": [
           {
-            "home": "Tony Tharakan",
-            "away": "Jared Alexander"
+            "home": "Kevin Tomek",
+            "away": "Patrick McCleary"
           },
           {
             "home": "Brett Swikle",
-            "away": "JP Fischer"
+            "away": "Andrew Vidal"
           }
-        ],
-        "bye": "Kevin Tomek"
+        ]
       },
       {
         "gameweek": 27,
         "matches": [
           {
             "home": "Kevin Tomek",
-            "away": "Jared Alexander"
+            "away": "Andrew Vidal"
           },
           {
-            "home": "Tony Tharakan",
+            "home": "Patrick McCleary",
             "away": "Brett Swikle"
           }
-        ],
-        "bye": "JP Fischer"
+        ]
       },
       {
         "gameweek": 28,
         "matches": [
           {
             "home": "Kevin Tomek",
-            "away": "JP Fischer"
-          },
-          {
-            "home": "Jared Alexander",
-            "away": "Brett Swikle"
-          }
-        ],
-        "bye": "Tony Tharakan"
-      },
-      {
-        "gameweek": 29,
-        "matches": [
-          {
-            "home": "Kevin Tomek",
             "away": "Brett Swikle"
           },
           {
-            "home": "JP Fischer",
-            "away": "Tony Tharakan"
+            "home": "Andrew Vidal",
+            "away": "Patrick McCleary"
           }
-        ],
-        "bye": "Jared Alexander"
-      },
-      {
-        "gameweek": 30,
-        "matches": [
-          {
-            "home": "Kevin Tomek",
-            "away": "Tony Tharakan"
-          },
-          {
-            "home": "JP Fischer",
-            "away": "Jared Alexander"
-          }
-        ],
-        "bye": "Brett Swikle"
+        ]
       }
     ],
     "C": [
@@ -232,71 +143,40 @@
         "gameweek": 26,
         "matches": [
           {
-            "home": "Wes H",
-            "away": "Chris Munoz"
+            "home": "Dean Maghsadi",
+            "away": "JP Fischer"
           },
           {
-            "home": "John Matthew",
-            "away": "Nate Cohen"
+            "home": "Tony Tharakan",
+            "away": "Adrian McLoughlin"
           }
-        ],
-        "bye": "Dean Maghsadi"
+        ]
       },
       {
         "gameweek": 27,
         "matches": [
           {
             "home": "Dean Maghsadi",
-            "away": "Chris Munoz"
+            "away": "Adrian McLoughlin"
           },
           {
-            "home": "Wes H",
-            "away": "John Matthew"
+            "home": "JP Fischer",
+            "away": "Tony Tharakan"
           }
-        ],
-        "bye": "Nate Cohen"
+        ]
       },
       {
         "gameweek": 28,
         "matches": [
           {
             "home": "Dean Maghsadi",
-            "away": "Nate Cohen"
+            "away": "Tony Tharakan"
           },
           {
-            "home": "Chris Munoz",
-            "away": "John Matthew"
+            "home": "Adrian McLoughlin",
+            "away": "JP Fischer"
           }
-        ],
-        "bye": "Wes H"
-      },
-      {
-        "gameweek": 29,
-        "matches": [
-          {
-            "home": "Dean Maghsadi",
-            "away": "John Matthew"
-          },
-          {
-            "home": "Nate Cohen",
-            "away": "Wes H"
-          }
-        ],
-        "bye": "Chris Munoz"
-      },
-      {
-        "gameweek": 30,
-        "matches": [
-          {
-            "home": "Dean Maghsadi",
-            "away": "Wes H"
-          },
-          {
-            "home": "Nate Cohen",
-            "away": "Chris Munoz"
-          }
-        ],
-        "bye": "John Matthew"
+        ]
       }
     ],
     "D": [
@@ -304,85 +184,96 @@
         "gameweek": 26,
         "matches": [
           {
-            "home": "Joe Curran",
+            "home": "John Sebastian",
             "away": "Brian Pleines"
           },
           {
-            "home": "Kevin K",
-            "away": "Adrian McLoughlin"
+            "home": "Max Maier",
+            "away": "Kevin K"
           }
-        ],
-        "bye": "John Sebastian"
+        ]
       },
       {
         "gameweek": 27,
         "matches": [
           {
             "home": "John Sebastian",
-            "away": "Brian Pleines"
+            "away": "Kevin K"
           },
           {
-            "home": "Joe Curran",
-            "away": "Kevin K"
+            "home": "Brian Pleines",
+            "away": "Max Maier"
           }
-        ],
-        "bye": "Adrian McLoughlin"
+        ]
       },
       {
         "gameweek": 28,
         "matches": [
           {
             "home": "John Sebastian",
-            "away": "Adrian McLoughlin"
+            "away": "Max Maier"
           },
           {
-            "home": "Brian Pleines",
-            "away": "Kevin K"
-          }
-        ],
-        "bye": "Joe Curran"
-      },
-      {
-        "gameweek": 29,
-        "matches": [
-          {
-            "home": "John Sebastian",
-            "away": "Kevin K"
-          },
-          {
-            "home": "Adrian McLoughlin",
-            "away": "Joe Curran"
-          }
-        ],
-        "bye": "Brian Pleines"
-      },
-      {
-        "gameweek": 30,
-        "matches": [
-          {
-            "home": "John Sebastian",
-            "away": "Joe Curran"
-          },
-          {
-            "home": "Adrian McLoughlin",
+            "home": "Kevin K",
             "away": "Brian Pleines"
           }
-        ],
-        "bye": "Kevin K"
+        ]
+      }
+    ],
+    "E": [
+      {
+        "gameweek": 26,
+        "matches": [
+          {
+            "home": "Joe Curran",
+            "away": "Jared Alexander"
+          },
+          {
+            "home": "Evan Bagheri",
+            "away": "Nate Cohen"
+          }
+        ]
+      },
+      {
+        "gameweek": 27,
+        "matches": [
+          {
+            "home": "Joe Curran",
+            "away": "Nate Cohen"
+          },
+          {
+            "home": "Jared Alexander",
+            "away": "Evan Bagheri"
+          }
+        ]
+      },
+      {
+        "gameweek": 28,
+        "matches": [
+          {
+            "home": "Joe Curran",
+            "away": "Evan Bagheri"
+          },
+          {
+            "home": "Nate Cohen",
+            "away": "Jared Alexander"
+          }
+        ]
       }
     ]
   },
-  "format": {
-    "group_stage": {
-      "teams_per_group": 5,
-      "matches_per_team": 4,
-      "win_points": 3,
-      "draw_points": 1,
-      "loss_points": 0,
-      "advance": 2
-    },
-    "knockout": {
-      "single_elimination": true
-    }
+  "schedule": {
+    "group_stage": [
+      26,
+      27,
+      28
+    ],
+    "quarterfinals": 29,
+    "semifinals": 30,
+    "final": 31
+  },
+  "advancement": {
+    "from_groups": "5 group winners + 3 best runners-up",
+    "to_knockout": 8
   }
 }
