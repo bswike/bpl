@@ -1859,29 +1859,115 @@ const StatCard = React.memo(({ title, value, unit, icon, onClick, isClickable })
   </div>
 ));
 
-const ViewToggleButtons = React.memo(({ availableGameweeks, selectedView, onSelectView }) => {
-  const colorMap = {
-    selected: {
-      gw1: 'bg-blue-600 text-white', gw2: 'bg-green-600 text-white', gw3: 'bg-orange-600 text-white',
-      gw4: 'bg-purple-600 text-white', gw5: 'bg-pink-600 text-white', gw6: 'bg-indigo-600 text-white',
-      combined: 'bg-teal-600 text-white'
-    },
-    default: 'bg-slate-700 text-gray-300 hover:bg-slate-600'
+const ViewToggleButtons = React.memo(({ availableGameweeks, selectedView, onSelectView, latestGameweek }) => {
+  const scrollRef = useRef(null);
+  const isCombined = selectedView === 'combined';
+  const currentGw = isCombined ? null : parseInt(selectedView.replace('gw', ''), 10);
+
+  // Scroll to selected GW on mount and when selection changes
+  useEffect(() => {
+    if (scrollRef.current && currentGw) {
+      const container = scrollRef.current;
+      const selectedBtn = container.querySelector(`[data-gw="${currentGw}"]`);
+      if (selectedBtn) {
+        const containerWidth = container.offsetWidth;
+        const btnLeft = selectedBtn.offsetLeft;
+        const btnWidth = selectedBtn.offsetWidth;
+        container.scrollTo({
+          left: btnLeft - containerWidth / 2 + btnWidth / 2,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [currentGw]);
+
+  const handlePrev = () => {
+    if (currentGw && currentGw > availableGameweeks[0]) {
+      onSelectView(`gw${currentGw - 1}`);
+    }
   };
-  const getButtonClass = (viewKey, isSelected) => {
-    const base = 'px-2 py-1 rounded-md font-semibold transition-colors duration-200 text-xs';
-    return isSelected ? `${base} ${colorMap.selected[viewKey] || colorMap.selected.combined}` : `${base} ${colorMap.default}`;
+
+  const handleNext = () => {
+    if (currentGw && currentGw < availableGameweeks[availableGameweeks.length - 1]) {
+      onSelectView(`gw${currentGw + 1}`);
+    }
   };
+
   return (
-    <div className="flex justify-center flex-wrap gap-1.5 mb-3">
-      {availableGameweeks.map(gw => (
-        <button key={`gw${gw}`} onClick={() => onSelectView(`gw${gw}`)} className={getButtonClass(`gw${gw}`, selectedView === `gw${gw}`)}>
-          GW{gw}
+    <div className="flex flex-col items-center gap-2 mb-3">
+      {/* Combined Toggle */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => onSelectView('combined')}
+          className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 ${
+            isCombined 
+              ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg shadow-cyan-500/25' 
+              : 'bg-slate-700/50 text-gray-400 hover:bg-slate-600/50 hover:text-gray-200'
+          }`}
+        >
+          Season Total
         </button>
-      ))}
-      <button onClick={() => onSelectView('combined')} className={getButtonClass('combined', selectedView === 'combined')}>
-        Combined
-      </button>
+        <span className="text-gray-500 text-sm">or</span>
+        <span className="text-gray-400 text-sm">Select Gameweek:</span>
+      </div>
+
+      {/* GW Scroll Picker */}
+      <div className="flex items-center gap-2 w-full max-w-md">
+        {/* Left Arrow */}
+        <button
+          onClick={handlePrev}
+          disabled={isCombined || currentGw === availableGameweeks[0]}
+          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+            isCombined || currentGw === availableGameweeks[0]
+              ? 'bg-slate-800/50 text-gray-600 cursor-not-allowed'
+              : 'bg-slate-700 text-gray-300 hover:bg-slate-600 hover:text-white'
+          }`}
+        >
+          ‹
+        </button>
+
+        {/* Scrollable GW List */}
+        <div 
+          ref={scrollRef}
+          className="flex-1 overflow-x-auto flex gap-1 py-2 px-1 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        >
+          {availableGameweeks.map(gw => {
+            const isSelected = currentGw === gw;
+            const isLive = gw === latestGameweek;
+            return (
+              <button
+                key={gw}
+                data-gw={gw}
+                onClick={() => onSelectView(`gw${gw}`)}
+                className={`flex-shrink-0 snap-center px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 min-w-[52px] ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/25 scale-105'
+                    : 'bg-slate-800/80 text-gray-400 hover:bg-slate-700 hover:text-gray-200'
+                }`}
+              >
+                <span className="block text-[10px] uppercase tracking-wide opacity-70">GW</span>
+                <span className="block text-lg leading-none">{gw}</span>
+                {isLive && !isSelected && (
+                  <span className="block text-[8px] text-green-400 mt-0.5">LIVE</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right Arrow */}
+        <button
+          onClick={handleNext}
+          disabled={isCombined || currentGw === availableGameweeks[availableGameweeks.length - 1]}
+          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+            isCombined || currentGw === availableGameweeks[availableGameweeks.length - 1]
+              ? 'bg-slate-800/50 text-gray-600 cursor-not-allowed'
+              : 'bg-slate-700 text-gray-300 hover:bg-slate-600 hover:text-white'
+          }`}
+        >
+          ›
+        </button>
+      </div>
     </div>
   );
 });
@@ -2398,6 +2484,7 @@ const FPLMultiGameweekDashboard = () => {
             availableGameweeks={availableGameweeks}
             selectedView={selectedView}
             onSelectView={setSelectedView}
+            latestGameweek={latestGameweek}
           />
         </header>
         <section className="grid grid-cols-2 gap-2 sm:gap-6 mb-4 sm:mb-8">
