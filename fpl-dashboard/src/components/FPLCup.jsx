@@ -400,53 +400,12 @@ const FPLCup = () => {
     );
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {!groupStageComplete && (
-          <div className="bg-amber-900/20 border border-amber-600/50 rounded-lg p-4 text-amber-200 text-sm">
+          <div className="bg-amber-900/20 border border-amber-600/50 rounded-lg p-3 text-amber-200 text-sm">
             <strong>Group Stage in Progress</strong> - Bracket will update after GW28.
           </div>
         )}
-
-        {/* Knockout Seedings */}
-        <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Trophy size={20} className="text-yellow-400" />
-            Knockout Qualifiers (10 Teams)
-          </h3>
-          
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            {(groupStageComplete ? knockoutSeedings : Array(10).fill(null)).map((team, idx) => {
-              const seed = idx + 1;
-              const isPlayIn = seed >= 7;
-              const hasBye = seed <= 6;
-              
-              return (
-                <div 
-                  key={idx}
-                  className={`p-2 rounded-lg text-center ${
-                    isPlayIn ? 'bg-orange-900/30 border border-orange-600/30' : 
-                    'bg-green-900/20 border border-green-600/30'
-                  }`}
-                >
-                  <div className={`text-xs font-bold ${isPlayIn ? 'text-orange-400' : 'text-green-400'}`}>
-                    Seed {seed}
-                  </div>
-                  <div className="text-sm text-white truncate mt-1">
-                    {team?.name || 'TBD'}
-                  </div>
-                  {team && (
-                    <div className="text-xs text-gray-500">
-                      {team.cup_points}pts • Grp {team.group}
-                    </div>
-                  )}
-                  <div className={`text-[10px] mt-1 ${isPlayIn ? 'text-orange-400' : 'text-green-400'}`}>
-                    {isPlayIn ? '⚡ Play-In' : '✓ Bye to QF'}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Bracket Visualization */}
         <div className="overflow-x-auto pb-4">
