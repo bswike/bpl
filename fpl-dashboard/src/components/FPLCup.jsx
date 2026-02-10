@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useData } from '../context/DataContext';
 import { Trophy, Users, Calendar, ChevronRight, Star, Zap } from 'lucide-react';
+import { PlayerDetailsModal, PlayerStatsModal } from './FPLMultiGameweekDashboard';
 
 // Cup configuration - 5 Groups of 4 with Play-In
 const CUP_CONFIG = {
@@ -57,9 +58,25 @@ const GROUP_COLORS = {
 };
 
 const FPLCup = () => {
-  const { gameweekData, latestGameweek } = useData();
+  const { gameweekData, latestGameweek, fixtureData, projectionsLookup } = useData();
   const [selectedTab, setSelectedTab] = useState('groups');
   const [selectedGroup, setSelectedGroup] = useState('A');
+  const [selectedManager, setSelectedManager] = useState(null);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+
+  // Handler to open manager modal - find manager data in current or relevant GW
+  const handleManagerClick = useCallback((managerName, gw = null) => {
+    const targetGw = gw || latestGameweek;
+    const gwManagers = gameweekData?.[targetGw] || [];
+    const managerData = gwManagers.find(m => m.manager_name === managerName);
+    if (managerData) {
+      setSelectedManager({ ...managerData, gameweek: targetGw });
+    }
+  }, [gameweekData, latestGameweek]);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedManager(null);
+  }, []);
 
   // Calculate group standings based on H2H results
   const groupStandings = useMemo(() => {
@@ -255,12 +272,15 @@ const FPLCup = () => {
                       )}
                     </td>
                     <td className="px-3 py-2">
-                      <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleManagerClick(team.name)}
+                        className="flex items-center gap-2 hover:text-cyan-400 transition-colors text-left"
+                      >
                         {idx === 0 && <Star size={14} className="text-yellow-400" />}
-                        <span className={qualifies ? 'text-white font-medium' : 'text-gray-300'}>
+                        <span className={`underline decoration-slate-600 hover:decoration-cyan-400 ${qualifies ? 'text-white font-medium' : 'text-gray-300'}`}>
                           {team.name}
                         </span>
-                      </div>
+                      </button>
                     </td>
                     <td className="text-center px-2 py-2 text-gray-400">{team.played}</td>
                     <td className="text-center px-2 py-2 text-green-400">{team.won}</td>
@@ -341,9 +361,12 @@ const FPLCup = () => {
                       }`}
                     >
                       <div className="flex-1 text-right">
-                        <div className={`text-sm ${result.winner === 'home' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
+                        <button 
+                          onClick={() => handleManagerClick(match.home, matchday.gameweek)}
+                          className={`text-sm hover:text-cyan-400 transition-colors underline decoration-slate-600 hover:decoration-cyan-400 ${result.winner === 'home' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
+                        >
                           {match.home}
-                        </div>
+                        </button>
                         {isLive && (result.homeLive > 0 || result.homeRemaining > 0) && (
                           <div className="text-[10px] flex items-center justify-end gap-2">
                             {result.homeLive > 0 && (
@@ -381,9 +404,12 @@ const FPLCup = () => {
                         )}
                       </div>
                       <div className="flex-1 text-left">
-                        <div className={`text-sm ${result.winner === 'away' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
+                        <button 
+                          onClick={() => handleManagerClick(match.away, matchday.gameweek)}
+                          className={`text-sm hover:text-cyan-400 transition-colors underline decoration-slate-600 hover:decoration-cyan-400 ${result.winner === 'away' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
+                        >
                           {match.away}
-                        </div>
+                        </button>
                         {isLive && (result.awayLive > 0 || result.awayRemaining > 0) && (
                           <div className="text-[10px] flex items-center gap-2">
                             {result.awayLive > 0 && (
@@ -431,7 +457,7 @@ const FPLCup = () => {
     };
 
     // Bracket match component with live scores
-    const BracketMatch = ({ label, team1Name, team2Name, matchGw, isPlayIn = false, isFinal = false }) => {
+    const BracketMatch = ({ label, team1Name, team2Name, matchGw, isPlayIn = false, isFinal = false, onTeamClick }) => {
       const isCurrentRound = matchGw === latestGameweek;
       const isCompleted = matchGw < latestGameweek;
       const team1Score = getLiveScore(team1Name, matchGw);
@@ -467,9 +493,15 @@ const FPLCup = () => {
             <div className={`flex items-center justify-between rounded px-2 py-1.5 ${
               winner === 'team1' ? 'bg-green-900/50 border border-green-600/50' : 'bg-slate-900/50'
             }`}>
-              <span className={`text-xs truncate flex-1 ${winner === 'team1' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
+              <button 
+                onClick={() => onTeamClick && team1Name && !team1Name.startsWith('Seed') && !team1Name.startsWith('Winner') && onTeamClick(team1Name, matchGw)}
+                disabled={!team1Name || team1Name.startsWith('Seed') || team1Name.startsWith('Winner')}
+                className={`text-xs truncate flex-1 text-left hover:text-cyan-400 transition-colors ${
+                  !team1Name || team1Name.startsWith('Seed') || team1Name.startsWith('Winner') ? 'cursor-default' : 'cursor-pointer underline decoration-slate-600 hover:decoration-cyan-400'
+                } ${winner === 'team1' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
+              >
                 {team1Name}
-              </span>
+              </button>
               {hasScores && (
                 <span className={`text-sm font-bold ml-2 ${isLive ? 'text-cyan-400' : 'text-white'}`}>
                   {team1Score.score}
@@ -480,9 +512,15 @@ const FPLCup = () => {
             <div className={`flex items-center justify-between rounded px-2 py-1.5 ${
               winner === 'team2' ? 'bg-green-900/50 border border-green-600/50' : 'bg-slate-900/50'
             }`}>
-              <span className={`text-xs truncate flex-1 ${winner === 'team2' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
+              <button 
+                onClick={() => onTeamClick && team2Name && !team2Name.startsWith('Seed') && !team2Name.startsWith('Winner') && onTeamClick(team2Name, matchGw)}
+                disabled={!team2Name || team2Name.startsWith('Seed') || team2Name.startsWith('Winner')}
+                className={`text-xs truncate flex-1 text-left hover:text-cyan-400 transition-colors ${
+                  !team2Name || team2Name.startsWith('Seed') || team2Name.startsWith('Winner') ? 'cursor-default' : 'cursor-pointer underline decoration-slate-600 hover:decoration-cyan-400'
+                } ${winner === 'team2' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
+              >
                 {team2Name}
-              </span>
+              </button>
               {hasScores && (
                 <span className={`text-sm font-bold ml-2 ${isLive ? 'text-cyan-400' : 'text-white'}`}>
                   {team2Score.score}
@@ -541,6 +579,7 @@ const FPLCup = () => {
                 team2Name={getTeamBySeed(10).name}
                 matchGw={29}
                 isPlayIn={true}
+                onTeamClick={handleManagerClick}
               />
               <BracketMatch 
                 label="PI-B: 8 vs 9" 
@@ -548,6 +587,7 @@ const FPLCup = () => {
                 team2Name={getTeamBySeed(9).name}
                 matchGw={29}
                 isPlayIn={true}
+                onTeamClick={handleManagerClick}
               />
               <div className="text-center text-xs text-gray-500 mt-2">
                 Seeds 1-6 have BYE
@@ -569,24 +609,28 @@ const FPLCup = () => {
                 team1Name={getTeamBySeed(1).name}
                 team2Name={getPlayInWinner('PI-B')}
                 matchGw={30}
+                onTeamClick={handleManagerClick}
               />
               <BracketMatch 
                 label="QF2" 
                 team1Name={getTeamBySeed(4).name}
                 team2Name={getTeamBySeed(5).name}
                 matchGw={30}
+                onTeamClick={handleManagerClick}
               />
               <BracketMatch 
                 label="QF3" 
                 team1Name={getTeamBySeed(2).name}
                 team2Name={getPlayInWinner('PI-A')}
                 matchGw={30}
+                onTeamClick={handleManagerClick}
               />
               <BracketMatch 
                 label="QF4" 
                 team1Name={getTeamBySeed(3).name}
                 team2Name={getTeamBySeed(6).name}
                 matchGw={30}
+                onTeamClick={handleManagerClick}
               />
             </div>
 
@@ -605,6 +649,7 @@ const FPLCup = () => {
                 team1Name={getQFWinner(1)}
                 team2Name={getQFWinner(2)}
                 matchGw={31}
+                onTeamClick={handleManagerClick}
               />
               <div className="h-8"></div>
               <BracketMatch 
@@ -612,6 +657,7 @@ const FPLCup = () => {
                 team1Name={getQFWinner(3)}
                 team2Name={getQFWinner(4)}
                 matchGw={31}
+                onTeamClick={handleManagerClick}
               />
             </div>
 
@@ -631,6 +677,7 @@ const FPLCup = () => {
                 team2Name={sfComplete ? "Winner SF2" : "Winner SF2"}
                 matchGw={32}
                 isFinal={true}
+                onTeamClick={handleManagerClick}
               />
             </div>
           </div>
@@ -732,6 +779,27 @@ const FPLCup = () => {
         <strong className="text-gray-400">Format:</strong> 5 Groups of 4 → Top 2 qualify (10 teams) → Seeds 7-10 play Play-In → 8 teams for Quarterfinals •
         <strong className="text-gray-400 ml-2">Scoring:</strong> Win = 3 pts, Draw = 1 pt
       </div>
+
+      {/* Manager Team Modal */}
+      {selectedManager && (
+        <PlayerDetailsModal 
+          manager={selectedManager} 
+          onClose={handleCloseModal} 
+          filterType="all" 
+          fixtureData={fixtureData || { fixtures: [], teamMap: {}, playerTeamMap: {} }} 
+          gameweekData={gameweekData} 
+          onPlayerClick={(player) => setSelectedPlayer(player)}
+          projectionsLookup={projectionsLookup || {}}
+        />
+      )}
+      {selectedPlayer && (
+        <PlayerStatsModal 
+          elementId={selectedPlayer.element_id} 
+          playerName={selectedPlayer.name} 
+          currentGameweek={selectedManager?.gameweek} 
+          onClose={() => setSelectedPlayer(null)} 
+        />
+      )}
     </div>
   );
 };

@@ -2430,3 +2430,4 @@ const FPLMultiGameweekDashboard = () => {
 };
 
 export default FPLMultiGameweekDashboard;
+export { PlayerDetailsModal, PlayerStatsModal };
