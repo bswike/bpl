@@ -377,27 +377,112 @@ const FPLCup = () => {
 
   const renderBracket = () => {
     const groupStageComplete = latestGameweek >= 28;
+    const playInComplete = latestGameweek >= 29;
+    const qfComplete = latestGameweek >= 30;
+    const sfComplete = latestGameweek >= 31;
     
     // Get team by seed
     const getTeamBySeed = (seed) => {
-      if (!groupStageComplete) return `Seed ${seed}`;
+      if (!groupStageComplete) return { name: `Seed ${seed}`, score: null };
       const team = knockoutSeedings.find(t => t.seed === seed);
-      return team?.name || `Seed ${seed}`;
+      return { name: team?.name || `Seed ${seed}`, seed };
     };
 
-    const BracketMatch = ({ label, team1, team2, round, isPlayIn = false }) => (
-      <div className={`rounded-lg border overflow-hidden w-48 ${
-        isPlayIn ? 'bg-orange-900/30 border-orange-600/50' : 'bg-slate-800 border-slate-700'
-      }`}>
-        <div className={`text-xs text-center py-1 ${isPlayIn ? 'bg-orange-900/50 text-orange-300' : 'bg-slate-900 text-gray-500'}`}>
-          {label}
+    // Get live score for a team in a specific GW
+    const getLiveScore = (teamName, gw) => {
+      if (!teamName || teamName.startsWith('Seed ') || teamName.startsWith('Winner ')) return null;
+      const gwManagers = gameweekData?.[gw] || [];
+      const manager = gwManagers.find(m => m.manager_name === teamName);
+      return manager ? {
+        score: manager.total_points || 0,
+        live: manager.players_live || 0
+      } : null;
+    };
+
+    // Bracket match component with live scores
+    const BracketMatch = ({ label, team1Name, team2Name, matchGw, isPlayIn = false, isFinal = false }) => {
+      const isCurrentRound = matchGw === latestGameweek;
+      const isCompleted = matchGw < latestGameweek;
+      const team1Score = getLiveScore(team1Name, matchGw);
+      const team2Score = getLiveScore(team2Name, matchGw);
+      const hasScores = team1Score !== null && team2Score !== null;
+      const isLive = isCurrentRound && hasScores;
+      
+      // Determine winner
+      let winner = null;
+      if (hasScores && isCompleted) {
+        winner = team1Score.score > team2Score.score ? 'team1' : (team2Score.score > team1Score.score ? 'team2' : null);
+      }
+
+      return (
+        <div className={`rounded-lg border overflow-hidden w-52 ${
+          isFinal ? 'bg-gradient-to-b from-yellow-900/30 to-amber-900/30 border-yellow-600/50' :
+          isPlayIn ? 'bg-orange-900/30 border-orange-600/50' : 
+          isLive ? 'bg-cyan-900/30 border-cyan-500' :
+          'bg-slate-800 border-slate-700'
+        }`}>
+          <div className={`text-xs text-center py-1 flex items-center justify-center gap-1 ${
+            isFinal ? 'bg-yellow-900/50 text-yellow-300' :
+            isPlayIn ? 'bg-orange-900/50 text-orange-300' : 
+            isLive ? 'bg-cyan-900/50 text-cyan-300' :
+            'bg-slate-900 text-gray-500'
+          }`}>
+            {isLive && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
+            {label}
+            {isCompleted && <span className="ml-1 text-green-400">✓</span>}
+          </div>
+          <div className="p-2 space-y-1">
+            {/* Team 1 */}
+            <div className={`flex items-center justify-between rounded px-2 py-1.5 ${
+              winner === 'team1' ? 'bg-green-900/50 border border-green-600/50' : 'bg-slate-900/50'
+            }`}>
+              <span className={`text-xs truncate flex-1 ${winner === 'team1' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
+                {team1Name}
+              </span>
+              {hasScores && (
+                <span className={`text-sm font-bold ml-2 ${isLive ? 'text-cyan-400' : 'text-white'}`}>
+                  {team1Score.score}
+                </span>
+              )}
+            </div>
+            {/* Team 2 */}
+            <div className={`flex items-center justify-between rounded px-2 py-1.5 ${
+              winner === 'team2' ? 'bg-green-900/50 border border-green-600/50' : 'bg-slate-900/50'
+            }`}>
+              <span className={`text-xs truncate flex-1 ${winner === 'team2' ? 'text-green-400 font-bold' : 'text-gray-300'}`}>
+                {team2Name}
+              </span>
+              {hasScores && (
+                <span className={`text-sm font-bold ml-2 ${isLive ? 'text-cyan-400' : 'text-white'}`}>
+                  {team2Score.score}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="p-2 space-y-1">
-          <div className="bg-slate-900/50 rounded px-2 py-1.5 text-xs text-gray-300 truncate">{team1}</div>
-          <div className="bg-slate-900/50 rounded px-2 py-1.5 text-xs text-gray-300 truncate">{team2}</div>
-        </div>
-      </div>
-    );
+      );
+    };
+
+    // Get Play-In winners (for QF matchups)
+    const getPlayInWinner = (matchId) => {
+      if (!playInComplete) return `Winner ${matchId}`;
+      const seeds = matchId === 'PI-A' ? [7, 10] : [8, 9];
+      const team1 = getTeamBySeed(seeds[0]);
+      const team2 = getTeamBySeed(seeds[1]);
+      const score1 = getLiveScore(team1.name, 29);
+      const score2 = getLiveScore(team2.name, 29);
+      if (score1 && score2) {
+        return score1.score > score2.score ? team1.name : team2.name;
+      }
+      return `Winner ${matchId}`;
+    };
+
+    // Get QF winners (for SF matchups)
+    const getQFWinner = (qfNum) => {
+      if (!qfComplete) return `Winner QF${qfNum}`;
+      // This would need actual QF matchup tracking - simplified for now
+      return `Winner QF${qfNum}`;
+    };
 
     return (
       <div className="space-y-4">
@@ -409,23 +494,28 @@ const FPLCup = () => {
 
         {/* Bracket Visualization */}
         <div className="overflow-x-auto pb-4">
-          <div className="flex items-start justify-center gap-4 min-w-[900px]">
+          <div className="flex items-start justify-center gap-4 min-w-[950px]">
             
             {/* Play-In */}
             <div className="space-y-3">
-              <h4 className="text-center text-orange-400 text-sm mb-2 flex items-center justify-center gap-1">
+              <h4 className={`text-center text-sm mb-2 flex items-center justify-center gap-1 ${
+                latestGameweek === 29 ? 'text-cyan-400 font-bold' : 'text-orange-400'
+              }`}>
                 <Zap size={14} /> Play-In (GW29)
+                {latestGameweek === 29 && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-1"></span>}
               </h4>
               <BracketMatch 
                 label="PI-A: 7 vs 10" 
-                team1={getTeamBySeed(7)} 
-                team2={getTeamBySeed(10)}
+                team1Name={getTeamBySeed(7).name}
+                team2Name={getTeamBySeed(10).name}
+                matchGw={29}
                 isPlayIn={true}
               />
               <BracketMatch 
                 label="PI-B: 8 vs 9" 
-                team1={getTeamBySeed(8)} 
-                team2={getTeamBySeed(9)}
+                team1Name={getTeamBySeed(8).name}
+                team2Name={getTeamBySeed(9).name}
+                matchGw={29}
                 isPlayIn={true}
               />
               <div className="text-center text-xs text-gray-500 mt-2">
@@ -437,26 +527,35 @@ const FPLCup = () => {
 
             {/* Quarterfinals */}
             <div className="space-y-3">
-              <h4 className="text-center text-gray-400 text-sm mb-2">Quarterfinals (GW30)</h4>
+              <h4 className={`text-center text-sm mb-2 ${
+                latestGameweek === 30 ? 'text-cyan-400 font-bold' : 'text-gray-400'
+              }`}>
+                Quarterfinals (GW30)
+                {latestGameweek === 30 && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-1 inline-block"></span>}
+              </h4>
               <BracketMatch 
                 label="QF1" 
-                team1={getTeamBySeed(1)} 
-                team2="Winner PI-B"
+                team1Name={getTeamBySeed(1).name}
+                team2Name={getPlayInWinner('PI-B')}
+                matchGw={30}
               />
               <BracketMatch 
                 label="QF2" 
-                team1={getTeamBySeed(4)} 
-                team2={getTeamBySeed(5)}
+                team1Name={getTeamBySeed(4).name}
+                team2Name={getTeamBySeed(5).name}
+                matchGw={30}
               />
               <BracketMatch 
                 label="QF3" 
-                team1={getTeamBySeed(2)} 
-                team2="Winner PI-A"
+                team1Name={getTeamBySeed(2).name}
+                team2Name={getPlayInWinner('PI-A')}
+                matchGw={30}
               />
               <BracketMatch 
                 label="QF4" 
-                team1={getTeamBySeed(3)} 
-                team2={getTeamBySeed(6)}
+                team1Name={getTeamBySeed(3).name}
+                team2Name={getTeamBySeed(6).name}
+                matchGw={30}
               />
             </div>
 
@@ -464,17 +563,24 @@ const FPLCup = () => {
 
             {/* Semifinals */}
             <div className="space-y-3 mt-12">
-              <h4 className="text-center text-gray-400 text-sm mb-2">Semifinals (GW31)</h4>
+              <h4 className={`text-center text-sm mb-2 ${
+                latestGameweek === 31 ? 'text-cyan-400 font-bold' : 'text-gray-400'
+              }`}>
+                Semifinals (GW31)
+                {latestGameweek === 31 && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-1 inline-block"></span>}
+              </h4>
               <BracketMatch 
                 label="SF1" 
-                team1="Winner QF1" 
-                team2="Winner QF2"
+                team1Name={getQFWinner(1)}
+                team2Name={getQFWinner(2)}
+                matchGw={31}
               />
               <div className="h-8"></div>
               <BracketMatch 
                 label="SF2" 
-                team1="Winner QF3" 
-                team2="Winner QF4"
+                team1Name={getQFWinner(3)}
+                team2Name={getQFWinner(4)}
+                matchGw={31}
               />
             </div>
 
@@ -482,16 +588,19 @@ const FPLCup = () => {
 
             {/* Final */}
             <div className="space-y-3 mt-20">
-              <h4 className="text-center text-gray-400 text-sm mb-2">Final (GW32)</h4>
-              <div className="bg-gradient-to-r from-yellow-600 to-amber-600 rounded-lg overflow-hidden w-52 shadow-lg shadow-yellow-900/30">
-                <div className="text-xs text-center py-1 bg-yellow-900/50 text-yellow-200 flex items-center justify-center gap-1">
-                  <Trophy size={12} /> FINAL
-                </div>
-                <div className="p-3 space-y-2 bg-slate-900/80">
-                  <div className="bg-slate-800 rounded px-2 py-1.5 text-sm text-gray-400 truncate text-center">Winner SF1</div>
-                  <div className="bg-slate-800 rounded px-2 py-1.5 text-sm text-gray-400 truncate text-center">Winner SF2</div>
-                </div>
-              </div>
+              <h4 className={`text-center text-sm mb-2 ${
+                latestGameweek === 32 ? 'text-cyan-400 font-bold' : 'text-gray-400'
+              }`}>
+                Final (GW32)
+                {latestGameweek === 32 && <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse ml-1 inline-block"></span>}
+              </h4>
+              <BracketMatch 
+                label="🏆 FINAL"
+                team1Name={sfComplete ? "Winner SF1" : "Winner SF1"}
+                team2Name={sfComplete ? "Winner SF2" : "Winner SF2"}
+                matchGw={32}
+                isFinal={true}
+              />
             </div>
           </div>
         </div>
