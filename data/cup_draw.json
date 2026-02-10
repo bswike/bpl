@@ -1,5 +1,5 @@
 {
-  "format": "5_groups_of_4",
+  "format": "5_groups_of_4_with_playin",
   "seeding_gw": 25,
   "groups": {
     "A": [
@@ -268,12 +268,68 @@
       27,
       28
     ],
-    "quarterfinals": 29,
-    "semifinals": 30,
-    "final": 31
+    "play_in": 29,
+    "quarterfinals": 30,
+    "semifinals": 31,
+    "final": 32
   },
   "advancement": {
-    "from_groups": "5 group winners + 3 best runners-up",
-    "to_knockout": 8
+    "from_groups": "Top 2 from each group = 10 teams",
+    "play_in": "Seeds 7-10 play (2 matches) \u2192 2 advance",
+    "to_quarterfinals": "Seeds 1-6 + 2 play-in winners = 8 teams"
+  },
+  "knockout_structure": {
+    "play_in": [
+      {
+        "match": "PI-A",
+        "seed1": 7,
+        "seed2": 10,
+        "description": "7th vs 10th"
+      },
+      {
+        "match": "PI-B",
+        "seed1": 8,
+        "seed2": 9,
+        "description": "8th vs 9th"
+      }
+    ],
+    "quarterfinals": [
+      {
+        "match": "QF1",
+        "team1": "Seed 1",
+        "team2": "Winner PI-B"
+      },
+      {
+        "match": "QF2",
+        "team1": "Seed 4",
+        "team2": "Seed 5"
+      },
+      {
+        "match": "QF3",
+        "team1": "Seed 2",
+        "team2": "Winner PI-A"
+      },
+      {
+        "match": "QF4",
+        "team1": "Seed 3",
+        "team2": "Seed 6"
+      }
+    ],
+    "semifinals": [
+      {
+        "match": "SF1",
+        "team1": "Winner QF1",
+        "team2": "Winner QF2"
+      },
+      {
+        "match": "SF2",
+        "team1": "Winner QF3",
+        "team2": "Winner QF4"
+      }
+    ],
+    "final": {
+      "team1": "Winner SF1",
+      "team2": "Winner SF2"
+    }
   }
 }

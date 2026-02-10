@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { Trophy, Users, Calendar, ChevronRight, Star, Medal } from 'lucide-react';
+import { Trophy, Users, Calendar, ChevronRight, Star, Zap } from 'lucide-react';
 
-// Cup configuration - 5 Groups of 4
+// Cup configuration - 5 Groups of 4 with Play-In
 const CUP_CONFIG = {
   seeding_gw: 25,
   groups: {
@@ -41,9 +41,10 @@ const CUP_CONFIG = {
   },
   schedule: {
     group_stage: [26, 27, 28],
-    quarterfinals: 29,
-    semifinals: 30,
-    final: 31
+    play_in: 29,
+    quarterfinals: 30,
+    semifinals: 31,
+    final: 32
   }
 };
 
@@ -69,6 +70,7 @@ const FPLCup = () => {
       teams.forEach(team => {
         groupStats[team] = {
           name: team,
+          group: groupName,
           played: 0,
           won: 0,
           drawn: 0,
@@ -129,18 +131,27 @@ const FPLCup = () => {
     return standings;
   }, [gwData]);
 
-  // Get all runners-up sorted to find best 3
-  const bestRunnersUp = useMemo(() => {
-    const runnersUp = [];
+  // Get all qualifiers (top 2 from each group) sorted by overall performance
+  const knockoutSeedings = useMemo(() => {
+    const qualifiers = [];
+    
     Object.entries(groupStandings).forEach(([group, standings]) => {
-      if (standings.length >= 2) {
-        runnersUp.push({ ...standings[1], group });
-      }
+      // Top 2 from each group qualify
+      standings.slice(0, 2).forEach((team, position) => {
+        qualifiers.push({
+          ...team,
+          group,
+          group_position: position + 1
+        });
+      });
     });
-    return runnersUp.sort((a, b) => {
+
+    // Sort by cup points, then points for
+    return qualifiers.sort((a, b) => {
       if (b.cup_points !== a.cup_points) return b.cup_points - a.cup_points;
-      return b.points_for - a.points_for;
-    });
+      if (b.points_for !== a.points_for) return b.points_for - a.points_for;
+      return (b.points_for - b.points_against) - (a.points_for - a.points_against);
+    }).map((team, idx) => ({ ...team, seed: idx + 1 }));
   }, [groupStandings]);
 
   // Get match result for display
@@ -168,17 +179,15 @@ const FPLCup = () => {
     if (!latestGameweek) return 'upcoming';
     if (latestGameweek < 26) return 'upcoming';
     if (latestGameweek <= 28) return 'groups';
-    if (latestGameweek === 29) return 'quarterfinals';
-    if (latestGameweek === 30) return 'semifinals';
-    if (latestGameweek >= 31) return 'final';
+    if (latestGameweek === 29) return 'play-in';
+    if (latestGameweek === 30) return 'quarterfinals';
+    if (latestGameweek === 31) return 'semifinals';
+    if (latestGameweek >= 32) return 'final';
     return 'groups';
   }, [latestGameweek]);
 
   const renderGroupTable = (groupName) => {
     const standings = groupStandings[groupName] || [];
-    
-    // Check if this runner-up qualifies
-    const qualifyingRunnersUp = bestRunnersUp.slice(0, 3).map(r => r.name);
     
     return (
       <div className="bg-slate-800/50 rounded-xl overflow-hidden border border-slate-700">
@@ -204,17 +213,12 @@ const FPLCup = () => {
             </thead>
             <tbody>
               {standings.map((team, idx) => {
-                const isWinner = idx === 0;
-                const isRunnerUp = idx === 1;
-                const qualifiesAsRunnerUp = isRunnerUp && qualifyingRunnersUp.includes(team.name);
-                const qualifies = isWinner || qualifiesAsRunnerUp;
+                const qualifies = idx < 2;
                 
                 return (
                   <tr 
                     key={team.name}
-                    className={`border-b border-slate-700/50 ${
-                      qualifies ? 'bg-green-900/20' : ''
-                    }`}
+                    className={`border-b border-slate-700/50 ${qualifies ? 'bg-green-900/20' : ''}`}
                   >
                     <td className="px-3 py-2">
                       {qualifies ? (
@@ -225,8 +229,7 @@ const FPLCup = () => {
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
-                        {isWinner && <Star size={14} className="text-yellow-400" />}
-                        {qualifiesAsRunnerUp && <Medal size={14} className="text-cyan-400" />}
+                        {idx === 0 && <Star size={14} className="text-yellow-400" />}
                         <span className={qualifies ? 'text-white font-medium' : 'text-gray-300'}>
                           {team.name}
                         </span>
@@ -244,9 +247,9 @@ const FPLCup = () => {
             </tbody>
           </table>
         </div>
-        <div className="px-3 py-2 bg-slate-900/50 text-xs text-gray-500 flex gap-4">
-          <span><Star size={10} className="inline text-yellow-400 mr-1" />Group Winner</span>
-          <span><Medal size={10} className="inline text-cyan-400 mr-1" />Best Runner-up</span>
+        <div className="px-3 py-2 bg-slate-900/50 text-xs text-gray-500">
+          <span className="inline-block w-2 h-2 bg-green-600 rounded mr-1"></span>
+          Top 2 advance to knockout
         </div>
       </div>
     );
@@ -336,30 +339,26 @@ const FPLCup = () => {
   const renderBracket = () => {
     const groupStageComplete = latestGameweek >= 28;
     
-    // Get qualified teams
-    const getQualifiedTeams = () => {
-      const winners = {};
-      const runnersUp = [];
-      
-      Object.entries(groupStandings).forEach(([group, standings]) => {
-        if (standings.length >= 1) {
-          winners[group] = standings[0]?.name || `${group}1`;
-        }
-        if (standings.length >= 2) {
-          runnersUp.push({ name: standings[1]?.name, group, ...standings[1] });
-        }
-      });
-      
-      // Sort runners-up to find best 3
-      runnersUp.sort((a, b) => {
-        if (b.cup_points !== a.cup_points) return b.cup_points - a.cup_points;
-        return b.points_for - a.points_for;
-      });
-      
-      return { winners, bestRunnersUp: runnersUp.slice(0, 3) };
+    // Get team by seed
+    const getTeamBySeed = (seed) => {
+      if (!groupStageComplete) return `Seed ${seed}`;
+      const team = knockoutSeedings.find(t => t.seed === seed);
+      return team?.name || `Seed ${seed}`;
     };
 
-    const { winners, bestRunnersUp: qualifiedRU } = getQualifiedTeams();
+    const BracketMatch = ({ label, team1, team2, round, isPlayIn = false }) => (
+      <div className={`rounded-lg border overflow-hidden w-48 ${
+        isPlayIn ? 'bg-orange-900/30 border-orange-600/50' : 'bg-slate-800 border-slate-700'
+      }`}>
+        <div className={`text-xs text-center py-1 ${isPlayIn ? 'bg-orange-900/50 text-orange-300' : 'bg-slate-900 text-gray-500'}`}>
+          {label}
+        </div>
+        <div className="p-2 space-y-1">
+          <div className="bg-slate-900/50 rounded px-2 py-1.5 text-xs text-gray-300 truncate">{team1}</div>
+          <div className="bg-slate-900/50 rounded px-2 py-1.5 text-xs text-gray-300 truncate">{team2}</div>
+        </div>
+      </div>
+    );
 
     return (
       <div className="space-y-6">
@@ -369,104 +368,130 @@ const FPLCup = () => {
           </div>
         )}
 
-        {/* Qualification Summary */}
+        {/* Knockout Seedings */}
         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
           <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <Trophy size={20} className="text-yellow-400" />
-            Knockout Qualifiers (8 Teams)
+            Knockout Qualifiers (10 Teams)
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-sm font-medium text-gray-400 mb-2">Group Winners (5)</h4>
-              <div className="space-y-1">
-                {['A', 'B', 'C', 'D', 'E'].map(g => (
-                  <div key={g} className="flex items-center gap-2 text-sm">
-                    <Star size={12} className="text-yellow-400" />
-                    <span className={`px-2 py-0.5 rounded text-xs bg-gradient-to-r ${GROUP_COLORS[g]} text-white`}>
-                      {g}
-                    </span>
-                    <span className="text-white">
-                      {groupStageComplete ? winners[g] : `${g}1`}
-                    </span>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {(groupStageComplete ? knockoutSeedings : Array(10).fill(null)).map((team, idx) => {
+              const seed = idx + 1;
+              const isPlayIn = seed >= 7;
+              const hasBye = seed <= 6;
+              
+              return (
+                <div 
+                  key={idx}
+                  className={`p-2 rounded-lg text-center ${
+                    isPlayIn ? 'bg-orange-900/30 border border-orange-600/30' : 
+                    'bg-green-900/20 border border-green-600/30'
+                  }`}
+                >
+                  <div className={`text-xs font-bold ${isPlayIn ? 'text-orange-400' : 'text-green-400'}`}>
+                    Seed {seed}
                   </div>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium text-gray-400 mb-2">Best Runners-Up (3)</h4>
-              <div className="space-y-1">
-                {groupStageComplete ? (
-                  qualifiedRU.map((ru, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm">
-                      <Medal size={12} className="text-cyan-400" />
-                      <span className={`px-2 py-0.5 rounded text-xs bg-gradient-to-r ${GROUP_COLORS[ru.group]} text-white`}>
-                        {ru.group}
-                      </span>
-                      <span className="text-white">{ru.name}</span>
-                      <span className="text-gray-500 text-xs">({ru.cup_points}pts, {ru.points_for}PF)</span>
+                  <div className="text-sm text-white truncate mt-1">
+                    {team?.name || 'TBD'}
+                  </div>
+                  {team && (
+                    <div className="text-xs text-gray-500">
+                      {team.cup_points}pts • Grp {team.group}
                     </div>
-                  ))
-                ) : (
-                  <div className="text-gray-500 text-sm italic">TBD after group stage</div>
-                )}
-              </div>
-            </div>
+                  )}
+                  <div className={`text-[10px] mt-1 ${isPlayIn ? 'text-orange-400' : 'text-green-400'}`}>
+                    {isPlayIn ? '⚡ Play-In' : '✓ Bye to QF'}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Bracket Visualization */}
         <div className="overflow-x-auto pb-4">
-          <div className="flex items-center justify-center gap-6 min-w-[700px]">
-            {/* Quarterfinals */}
+          <div className="flex items-start justify-center gap-4 min-w-[900px]">
+            
+            {/* Play-In */}
             <div className="space-y-3">
-              <h4 className="text-center text-gray-400 text-sm mb-2">Quarterfinals (GW29)</h4>
-              {[1, 2, 3, 4].map(qf => (
-                <div key={qf} className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden w-44">
-                  <div className="text-xs text-center py-1 bg-slate-900 text-gray-500">QF{qf}</div>
-                  <div className="p-2 space-y-1">
-                    <div className="bg-slate-900/50 rounded px-2 py-1.5 text-xs text-gray-400 truncate">
-                      {groupStageComplete ? (qf <= 5 ? winners[['A', 'B', 'C', 'D', 'E'][qf-1]] : 'TBD') : `Seed ${qf}`}
-                    </div>
-                    <div className="bg-slate-900/50 rounded px-2 py-1.5 text-xs text-gray-400 truncate">
-                      {groupStageComplete && qualifiedRU[qf-1] ? qualifiedRU[qf > 3 ? qf - 4 : qf - 1]?.name : 'TBD'}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <ChevronRight className="text-gray-600" size={24} />
-
-            {/* Semifinals */}
-            <div className="space-y-3">
-              <h4 className="text-center text-gray-400 text-sm mb-2">Semifinals (GW30)</h4>
-              <div className="space-y-6">
-                {[1, 2].map(sf => (
-                  <div key={sf} className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden w-44">
-                    <div className="text-xs text-center py-1 bg-slate-900 text-gray-500">SF{sf}</div>
-                    <div className="p-2 space-y-1">
-                      <div className="bg-slate-900/50 rounded px-2 py-1.5 text-xs text-gray-500 truncate">Winner QF{sf * 2 - 1}</div>
-                      <div className="bg-slate-900/50 rounded px-2 py-1.5 text-xs text-gray-500 truncate">Winner QF{sf * 2}</div>
-                    </div>
-                  </div>
-                ))}
+              <h4 className="text-center text-orange-400 text-sm mb-2 flex items-center justify-center gap-1">
+                <Zap size={14} /> Play-In (GW29)
+              </h4>
+              <BracketMatch 
+                label="PI-A: 7 vs 10" 
+                team1={getTeamBySeed(7)} 
+                team2={getTeamBySeed(10)}
+                isPlayIn={true}
+              />
+              <BracketMatch 
+                label="PI-B: 8 vs 9" 
+                team1={getTeamBySeed(8)} 
+                team2={getTeamBySeed(9)}
+                isPlayIn={true}
+              />
+              <div className="text-center text-xs text-gray-500 mt-2">
+                Seeds 1-6 have BYE
               </div>
             </div>
 
-            <ChevronRight className="text-gray-600" size={24} />
+            <ChevronRight className="text-gray-600 mt-16" size={24} />
+
+            {/* Quarterfinals */}
+            <div className="space-y-3">
+              <h4 className="text-center text-gray-400 text-sm mb-2">Quarterfinals (GW30)</h4>
+              <BracketMatch 
+                label="QF1" 
+                team1={getTeamBySeed(1)} 
+                team2="Winner PI-B"
+              />
+              <BracketMatch 
+                label="QF2" 
+                team1={getTeamBySeed(4)} 
+                team2={getTeamBySeed(5)}
+              />
+              <BracketMatch 
+                label="QF3" 
+                team1={getTeamBySeed(2)} 
+                team2="Winner PI-A"
+              />
+              <BracketMatch 
+                label="QF4" 
+                team1={getTeamBySeed(3)} 
+                team2={getTeamBySeed(6)}
+              />
+            </div>
+
+            <ChevronRight className="text-gray-600 mt-24" size={24} />
+
+            {/* Semifinals */}
+            <div className="space-y-3 mt-12">
+              <h4 className="text-center text-gray-400 text-sm mb-2">Semifinals (GW31)</h4>
+              <BracketMatch 
+                label="SF1" 
+                team1="Winner QF1" 
+                team2="Winner QF2"
+              />
+              <div className="h-8"></div>
+              <BracketMatch 
+                label="SF2" 
+                team1="Winner QF3" 
+                team2="Winner QF4"
+              />
+            </div>
+
+            <ChevronRight className="text-gray-600 mt-24" size={24} />
 
             {/* Final */}
-            <div className="space-y-3">
-              <h4 className="text-center text-gray-400 text-sm mb-2">Final (GW31)</h4>
-              <div className="bg-gradient-to-r from-yellow-600 to-amber-600 rounded-lg overflow-hidden w-48 shadow-lg shadow-yellow-900/30">
+            <div className="space-y-3 mt-20">
+              <h4 className="text-center text-gray-400 text-sm mb-2">Final (GW32)</h4>
+              <div className="bg-gradient-to-r from-yellow-600 to-amber-600 rounded-lg overflow-hidden w-52 shadow-lg shadow-yellow-900/30">
                 <div className="text-xs text-center py-1 bg-yellow-900/50 text-yellow-200 flex items-center justify-center gap-1">
                   <Trophy size={12} /> FINAL
                 </div>
                 <div className="p-3 space-y-2 bg-slate-900/80">
-                  <div className="bg-slate-800 rounded px-2 py-1.5 text-xs text-gray-400 truncate text-center">Winner SF1</div>
-                  <div className="bg-slate-800 rounded px-2 py-1.5 text-xs text-gray-400 truncate text-center">Winner SF2</div>
+                  <div className="bg-slate-800 rounded px-2 py-1.5 text-sm text-gray-400 truncate text-center">Winner SF1</div>
+                  <div className="bg-slate-800 rounded px-2 py-1.5 text-sm text-gray-400 truncate text-center">Winner SF2</div>
                 </div>
               </div>
             </div>
@@ -485,18 +510,40 @@ const FPLCup = () => {
           <div>
             <h1 className="text-2xl font-bold text-white">BPL Mid-Season Cup</h1>
             <p className="text-yellow-200 text-sm">
-              5 Groups • 8 Team Knockout • GW26-31
+              5 Groups • Play-In • 8 Team Knockout
             </p>
           </div>
         </div>
       </div>
 
       {/* Current Phase */}
-      <div className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 text-sm flex-wrap">
         <Calendar size={16} className="text-gray-400" />
         <span className="text-gray-400">Current Phase:</span>
         <span className="text-cyan-400 font-medium capitalize">{currentPhase}</span>
         {latestGameweek && <span className="text-gray-500">• GW{latestGameweek}</span>}
+      </div>
+
+      {/* Schedule Overview */}
+      <div className="flex gap-2 text-xs flex-wrap">
+        {[
+          { label: 'Groups', gws: '26-28', active: currentPhase === 'groups' },
+          { label: 'Play-In', gws: '29', active: currentPhase === 'play-in' },
+          { label: 'QF', gws: '30', active: currentPhase === 'quarterfinals' },
+          { label: 'SF', gws: '31', active: currentPhase === 'semifinals' },
+          { label: 'Final', gws: '32', active: currentPhase === 'final' },
+        ].map(phase => (
+          <div 
+            key={phase.label}
+            className={`px-3 py-1 rounded-full ${
+              phase.active 
+                ? 'bg-cyan-500 text-black font-medium' 
+                : 'bg-slate-800 text-gray-400'
+            }`}
+          >
+            {phase.label} <span className="opacity-70">GW{phase.gws}</span>
+          </div>
+        ))}
       </div>
 
       {/* Tabs */}
@@ -535,9 +582,8 @@ const FPLCup = () => {
 
       {/* Legend */}
       <div className="bg-slate-800/30 rounded-lg p-4 text-xs text-gray-500">
-        <strong className="text-gray-400">Format:</strong> 5 Groups of 4 → 5 Winners + 3 Best Runners-Up = 8 Teams for Knockout •
-        <strong className="text-gray-400 ml-2">Scoring:</strong> Win = 3 pts, Draw = 1 pt •
-        <strong className="text-gray-400 ml-2">Tiebreaker:</strong> Points For, then Goal Difference
+        <strong className="text-gray-400">Format:</strong> 5 Groups of 4 → Top 2 qualify (10 teams) → Seeds 7-10 play Play-In → 8 teams for Quarterfinals •
+        <strong className="text-gray-400 ml-2">Scoring:</strong> Win = 3 pts, Draw = 1 pt
       </div>
     </div>
   );
