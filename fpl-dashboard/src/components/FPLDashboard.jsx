@@ -36,14 +36,20 @@ const setCachedDashboardGW = (gameweek, data) => {
 
 // --- Chips Components (Moved Outside) ---
 
+// Second half of the season starts at GW20
+const SECOND_HALF_START_GW = 20;
+
 const ChipsManagerRow = React.memo(({ manager, rank, data, onManagerClick }) => {
   const managerFullData = data.find(m => m.manager_name === manager.manager_name);
-  const totalChips = manager.chips.length;
+  
+  // Filter chips to only show second half of season (GW20+)
+  const secondHalfChips = manager.chips.filter(c => c.event >= SECOND_HALF_START_GW);
+  const totalChips = secondHalfChips.length;
 
-  const wildcards = manager.chips.filter(c => c.name === 'wildcard');
-  const freehits = manager.chips.filter(c => c.name === 'freehit');
-  const bboosts = manager.chips.filter(c => c.name === 'bboost');
-  const tripleCaps = manager.chips.filter(c => c.name === '3xc');
+  const wildcards = secondHalfChips.filter(c => c.name === 'wildcard');
+  const freehits = secondHalfChips.filter(c => c.name === 'freehit');
+  const bboosts = secondHalfChips.filter(c => c.name === 'bboost');
+  const tripleCaps = secondHalfChips.filter(c => c.name === '3xc');
 
   const renderChipInfo = (chips, chipType) => {
     if (chips.length === 0) return <span className="text-gray-500">—</span>;
@@ -262,7 +268,10 @@ const FPLMultiGameweekDashboard = () => {
   const ChipModal = () => {
     if (!selectedManager) return null;
 
-    const chipStats = selectedManager.chips?.map(chip => {
+    // Filter to only show chips from second half (GW20+)
+    const secondHalfChips = (selectedManager.chips || []).filter(c => c.event >= SECOND_HALF_START_GW);
+    
+    const chipStats = secondHalfChips.map(chip => {
       const gwData = selectedManager.gameweeks[chip.event];
       const gwTotalPoints = gwData?.points || 0;
 
@@ -494,7 +503,7 @@ const FPLMultiGameweekDashboard = () => {
     );
   }
 
-  const gameweekRangeText = availableGameweeks.length > 0 ? `GW${availableGameweeks[0]}-${availableGameweeks[availableGameweeks.length - 1]}` : '';
+  const gameweekRangeText = `Second Half (GW${SECOND_HALF_START_GW}+)`;
   const statusColor = connectionStatus === 'connected' ? 'bg-green-500' :
                      connectionStatus === 'disconnected' ? 'bg-yellow-500' : 'bg-gray-500';
   const statusText = connectionStatus === 'connected' ? 'Live' :
