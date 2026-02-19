@@ -65,6 +65,48 @@ const FPLCup = () => {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [h2hMatch, setH2hMatch] = useState(null); // { home, away, gameweek }
 
+  // Calculate seeds based on cumulative points through GW25 (entering GW26)
+  const managerSeeds = useMemo(() => {
+    const seedingGw = CUP_CONFIG.seeding_gw; // GW25
+    const managerTotals = {};
+
+    // Sum up points from GW1 through GW25
+    for (let gw = 1; gw <= seedingGw; gw++) {
+      const gwManagers = gameweekData?.[gw] || [];
+      gwManagers.forEach(m => {
+        if (!managerTotals[m.manager_name]) {
+          managerTotals[m.manager_name] = 0;
+        }
+        // Use net points (total_points_applied) when available
+        managerTotals[m.manager_name] += (m.total_points_applied ?? m.total_points ?? 0);
+      });
+    }
+
+    // Sort by total points and assign seeds
+    const sorted = Object.entries(managerTotals)
+      .sort(([, a], [, b]) => b - a)
+      .map(([name], idx) => ({ name, seed: idx + 1 }));
+
+    // Create lookup map
+    const seedMap = {};
+    sorted.forEach(({ name, seed }) => {
+      seedMap[name] = seed;
+    });
+
+    return seedMap;
+  }, [gameweekData]);
+
+  // Helper to get seed badge
+  const getSeedBadge = (managerName) => {
+    const seed = managerSeeds[managerName];
+    if (!seed) return null;
+    return (
+      <span className="text-[10px] bg-slate-700 text-gray-300 px-1.5 py-0.5 rounded-full font-mono">
+        #{seed}
+      </span>
+    );
+  };
+
   // Handler to open manager modal - find manager data in current or relevant GW
   const handleManagerClick = useCallback((managerName, gw = null) => {
     const targetGw = gw || latestGameweek;
@@ -299,6 +341,7 @@ const FPLCup = () => {
                         <span className={`underline decoration-slate-600 hover:decoration-cyan-400 ${qualifies ? 'text-white font-medium' : 'text-gray-300'}`}>
                           {team.name}
                         </span>
+                        {getSeedBadge(team.name)}
                       </button>
                     </td>
                     <td className="text-center px-2 py-2 text-gray-400">{team.played}</td>
@@ -380,12 +423,15 @@ const FPLCup = () => {
                       }`}
                     >
                       <div className="flex-1 text-right">
-                        <button 
-                          onClick={() => handleManagerClick(match.home, matchday.gameweek)}
-                          className={`text-sm hover:text-cyan-400 transition-colors underline decoration-slate-600 hover:decoration-cyan-400 ${result.winner === 'home' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
-                        >
-                          {match.home}
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button 
+                            onClick={() => handleManagerClick(match.home, matchday.gameweek)}
+                            className={`text-sm hover:text-cyan-400 transition-colors underline decoration-slate-600 hover:decoration-cyan-400 ${result.winner === 'home' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
+                          >
+                            {match.home}
+                          </button>
+                          {getSeedBadge(match.home)}
+                        </div>
                         {isLive && (result.homeLive > 0 || result.homeRemaining > 0) && (
                           <div className="text-[10px] flex items-center justify-end gap-2">
                             {result.homeLive > 0 && (
@@ -432,12 +478,15 @@ const FPLCup = () => {
                         )}
                       </button>
                       <div className="flex-1 text-left">
-                        <button 
-                          onClick={() => handleManagerClick(match.away, matchday.gameweek)}
-                          className={`text-sm hover:text-cyan-400 transition-colors underline decoration-slate-600 hover:decoration-cyan-400 ${result.winner === 'away' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
-                        >
-                          {match.away}
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {getSeedBadge(match.away)}
+                          <button 
+                            onClick={() => handleManagerClick(match.away, matchday.gameweek)}
+                            className={`text-sm hover:text-cyan-400 transition-colors underline decoration-slate-600 hover:decoration-cyan-400 ${result.winner === 'away' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
+                          >
+                            {match.away}
+                          </button>
+                        </div>
                         {isLive && (result.awayLive > 0 || result.awayRemaining > 0) && (
                           <div className="text-[10px] flex items-center gap-2">
                             {result.awayLive > 0 && (
@@ -836,6 +885,7 @@ const FPLCup = () => {
           onClose={handleCloseH2H}
           onPlayerClick={(player) => setSelectedPlayer(player)}
           fixtureData={fixtureData}
+          managerSeeds={managerSeeds}
         />
       )}
     </div>
@@ -843,8 +893,18 @@ const FPLCup = () => {
 };
 
 // Head-to-Head Modal Component
-const H2HModal = ({ match, onClose, onPlayerClick, fixtureData }) => {
+const H2HModal = ({ match, onClose, onPlayerClick, fixtureData, managerSeeds = {} }) => {
   const { home, away, gameweek } = match;
+  
+  const getSeedBadge = (managerName) => {
+    const seed = managerSeeds[managerName];
+    if (!seed) return null;
+    return (
+      <span className="text-xs bg-slate-700 text-gray-300 px-1.5 py-0.5 rounded-full font-mono">
+        #{seed}
+      </span>
+    );
+  };
   
   const getPositionOrder = (pos) => {
     const order = { GK: 1, DEF: 2, MID: 3, FWD: 4 };
@@ -1014,7 +1074,10 @@ const H2HModal = ({ match, onClose, onPlayerClick, fixtureData }) => {
           {/* Score Display */}
           <div className="flex items-center justify-center gap-4">
             <div className="text-right flex-1">
-              <p className="text-white font-bold text-lg truncate">{home.manager_name}</p>
+              <div className="flex items-center justify-end gap-2">
+                <p className="text-white font-bold text-lg truncate">{home.manager_name}</p>
+                {getSeedBadge(home.manager_name)}
+              </div>
               <p className="text-gray-500 text-xs truncate">{home.team_name}</p>
             </div>
             <div className="flex items-center gap-3 px-4">
@@ -1032,7 +1095,10 @@ const H2HModal = ({ match, onClose, onPlayerClick, fixtureData }) => {
               </span>
             </div>
             <div className="text-left flex-1">
-              <p className="text-white font-bold text-lg truncate">{away.manager_name}</p>
+              <div className="flex items-center gap-2">
+                {getSeedBadge(away.manager_name)}
+                <p className="text-white font-bold text-lg truncate">{away.manager_name}</p>
+              </div>
               <p className="text-gray-500 text-xs truncate">{away.team_name}</p>
             </div>
           </div>
