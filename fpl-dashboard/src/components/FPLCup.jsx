@@ -365,139 +365,168 @@ const FPLCup = () => {
   };
 
   const renderFixtures = () => {
-    const fixtures = CUP_CONFIG.fixtures[selectedGroup] || [];
+    // Collect all matches by gameweek
+    const matchesByGW = {};
+    const groupStageGWs = CUP_CONFIG.schedule.group_stage; // [26, 27, 28]
+    
+    groupStageGWs.forEach(gw => {
+      matchesByGW[gw] = [];
+    });
+    
+    // Gather all matches from all groups, organized by GW
+    Object.entries(CUP_CONFIG.fixtures).forEach(([groupName, groupFixtures]) => {
+      groupFixtures.forEach(matchday => {
+        matchday.matches.forEach(match => {
+          matchesByGW[matchday.gameweek].push({
+            ...match,
+            group: groupName
+          });
+        });
+      });
+    });
     
     return (
-      <div className="space-y-4">
-        <div className="flex gap-2 mb-4 flex-wrap">
-          {['A', 'B', 'C', 'D', 'E'].map(g => (
-            <button
-              key={g}
-              onClick={() => setSelectedGroup(g)}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                selectedGroup === g 
-                  ? `bg-gradient-to-r ${GROUP_COLORS[g]} text-white` 
-                  : 'bg-slate-800 text-gray-400 hover:bg-slate-700'
-              }`}
-            >
-              Group {g}
-            </button>
-          ))}
-        </div>
-
-        {fixtures.map((matchday, idx) => {
-          const isCurrentGW = matchday.gameweek === latestGameweek;
-          const isPast = matchday.gameweek < latestGameweek;
+      <div className="space-y-6">
+        {groupStageGWs.map((gw, gwIdx) => {
+          const isCurrentGW = gw === latestGameweek;
+          const isPast = gw < latestGameweek;
+          const matches = matchesByGW[gw] || [];
           
           return (
             <div 
-              key={matchday.gameweek}
+              key={gw}
               className={`bg-slate-800/50 rounded-xl border ${
                 isCurrentGW ? 'border-cyan-500' : 'border-slate-700'
               } overflow-hidden`}
             >
-              <div className={`px-4 py-2 ${isCurrentGW ? 'bg-cyan-900/30' : 'bg-slate-900/50'} flex justify-between items-center`}>
-                <span className="text-sm font-medium text-gray-300">
-                  Matchday {idx + 1} • GW{matchday.gameweek}
-                </span>
-                {isCurrentGW && (
-                  <span className="text-xs bg-cyan-500 text-black px-2 py-0.5 rounded-full font-medium">
-                    LIVE
+              <div className={`px-4 py-3 ${isCurrentGW ? 'bg-cyan-900/30' : 'bg-slate-900/50'} flex justify-between items-center`}>
+                <div>
+                  <span className="text-lg font-bold text-white">
+                    Gameweek {gw}
                   </span>
-                )}
-                {isPast && (
-                  <span className="text-xs text-green-400">✓ Completed</span>
-                )}
+                  <span className="text-sm text-gray-400 ml-2">
+                    Matchday {gwIdx + 1}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isCurrentGW && (
+                    <span className="text-xs bg-cyan-500 text-black px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
+                      LIVE
+                    </span>
+                  )}
+                  {isPast && (
+                    <span className="text-xs text-green-400 flex items-center gap-1">
+                      <span>✓</span> Completed
+                    </span>
+                  )}
+                  <span className="text-xs text-gray-500">{matches.length} matches</span>
+                </div>
               </div>
               
-              <div className="p-4 space-y-3">
-                {matchday.matches.map((match, mIdx) => {
-                  const result = getMatchResult(match, matchday.gameweek);
-                  const isLive = result.status === 'live' || result.status === 'today';
+              <div className="p-4 space-y-2">
+                {/* Group matches by group for visual organization */}
+                {['A', 'B', 'C', 'D', 'E'].map(groupName => {
+                  const groupMatches = matches.filter(m => m.group === groupName);
+                  if (groupMatches.length === 0) return null;
                   
                   return (
-                    <div 
-                      key={mIdx}
-                      className={`flex items-center justify-between rounded-lg p-3 ${
-                        isLive ? 'bg-cyan-900/20 border border-cyan-600/30' : 'bg-slate-900/50'
-                      }`}
-                    >
-                      <div className="flex-1 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button 
-                            onClick={() => handleManagerClick(match.home, matchday.gameweek)}
-                            className={`text-sm hover:text-cyan-400 transition-colors underline decoration-slate-600 hover:decoration-cyan-400 ${result.winner === 'home' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
-                          >
-                            {match.home}
-                          </button>
-                          {getSeedBadge(match.home)}
-                        </div>
-                        {isLive && (result.homeLive > 0 || result.homeRemaining > 0) && (
-                          <div className="text-[10px] flex items-center justify-end gap-2">
-                            {result.homeLive > 0 && (
-                              <span className="text-cyan-400">{result.homeLive} playing</span>
-                            )}
-                            {result.homeRemaining > 0 && (
-                              <span className="text-yellow-400">{result.homeRemaining} left</span>
-                            )}
-                          </div>
-                        )}
+                    <div key={groupName} className="space-y-2">
+                      <div className="flex items-center gap-2 px-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded bg-gradient-to-r ${GROUP_COLORS[groupName]} text-white`}>
+                          Group {groupName}
+                        </span>
                       </div>
-                      <button 
-                        onClick={() => handleH2HClick(match, matchday.gameweek)}
-                        className="px-4 min-w-[100px] text-center hover:bg-slate-700/50 rounded-lg py-1 transition-colors cursor-pointer"
-                        title="View Head-to-Head"
-                      >
-                        {result.status === 'live' ? (
-                          <div>
-                            <div className="flex items-center justify-center gap-1 mb-0.5">
-                              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                              <span className="text-[10px] text-red-400 font-medium">LIVE</span>
+                      {groupMatches.map((match, mIdx) => {
+                        const result = getMatchResult(match, gw);
+                        const isLive = result.status === 'live' || result.status === 'today';
+                        
+                        return (
+                          <div 
+                            key={mIdx}
+                            className={`flex items-center justify-between rounded-lg p-3 ${
+                              isLive ? 'bg-cyan-900/20 border border-cyan-600/30' : 'bg-slate-900/50'
+                            }`}
+                          >
+                            <div className="flex-1 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button 
+                                  onClick={() => handleManagerClick(match.home, gw)}
+                                  className={`text-sm hover:text-cyan-400 transition-colors underline decoration-slate-600 hover:decoration-cyan-400 ${result.winner === 'home' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
+                                >
+                                  {match.home}
+                                </button>
+                                {getSeedBadge(match.home)}
+                              </div>
+                              {isLive && (result.homeLive > 0 || result.homeRemaining > 0) && (
+                                <div className="text-[10px] flex items-center justify-end gap-2">
+                                  {result.homeLive > 0 && (
+                                    <span className="text-cyan-400">{result.homeLive} playing</span>
+                                  )}
+                                  {result.homeRemaining > 0 && (
+                                    <span className="text-yellow-400">{result.homeRemaining} left</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            <span className="font-bold text-cyan-400 text-lg">
-                              {result.homeScore} - {result.awayScore}
-                            </span>
-                            <div className="text-[9px] text-gray-500 mt-0.5">tap for H2H</div>
+                            <button 
+                              onClick={() => handleH2HClick(match, gw)}
+                              className="px-4 min-w-[100px] text-center hover:bg-slate-700/50 rounded-lg py-1 transition-colors cursor-pointer"
+                              title="View Head-to-Head"
+                            >
+                              {result.status === 'live' ? (
+                                <div>
+                                  <div className="flex items-center justify-center gap-1 mb-0.5">
+                                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                    <span className="text-[10px] text-red-400 font-medium">LIVE</span>
+                                  </div>
+                                  <span className="font-bold text-cyan-400 text-lg">
+                                    {result.homeScore} - {result.awayScore}
+                                  </span>
+                                  <div className="text-[9px] text-gray-500 mt-0.5">tap for H2H</div>
+                                </div>
+                              ) : result.status === 'today' ? (
+                                <div>
+                                  <span className="font-bold text-white text-lg">
+                                    {result.homeScore} - {result.awayScore}
+                                  </span>
+                                  <div className="text-[9px] text-gray-500 mt-0.5">tap for H2H</div>
+                                </div>
+                              ) : result.status === 'completed' ? (
+                                <div>
+                                  <span className="font-bold text-white">
+                                    {result.homeScore} - {result.awayScore}
+                                  </span>
+                                  <div className="text-[9px] text-gray-500 mt-0.5">tap for H2H</div>
+                                </div>
+                              ) : (
+                                <span className="text-gray-500 text-sm">vs</span>
+                              )}
+                            </button>
+                            <div className="flex-1 text-left">
+                              <div className="flex items-center gap-1.5">
+                                {getSeedBadge(match.away)}
+                                <button 
+                                  onClick={() => handleManagerClick(match.away, gw)}
+                                  className={`text-sm hover:text-cyan-400 transition-colors underline decoration-slate-600 hover:decoration-cyan-400 ${result.winner === 'away' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
+                                >
+                                  {match.away}
+                                </button>
+                              </div>
+                              {isLive && (result.awayLive > 0 || result.awayRemaining > 0) && (
+                                <div className="text-[10px] flex items-center gap-2">
+                                  {result.awayLive > 0 && (
+                                    <span className="text-cyan-400">{result.awayLive} playing</span>
+                                  )}
+                                  {result.awayRemaining > 0 && (
+                                    <span className="text-yellow-400">{result.awayRemaining} left</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        ) : result.status === 'today' ? (
-                          <div>
-                            <span className="font-bold text-white text-lg">
-                              {result.homeScore} - {result.awayScore}
-                            </span>
-                            <div className="text-[9px] text-gray-500 mt-0.5">tap for H2H</div>
-                          </div>
-                        ) : result.status === 'completed' ? (
-                          <div>
-                            <span className="font-bold text-white">
-                              {result.homeScore} - {result.awayScore}
-                            </span>
-                            <div className="text-[9px] text-gray-500 mt-0.5">tap for H2H</div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">vs</span>
-                        )}
-                      </button>
-                      <div className="flex-1 text-left">
-                        <div className="flex items-center gap-1.5">
-                          {getSeedBadge(match.away)}
-                          <button 
-                            onClick={() => handleManagerClick(match.away, matchday.gameweek)}
-                            className={`text-sm hover:text-cyan-400 transition-colors underline decoration-slate-600 hover:decoration-cyan-400 ${result.winner === 'away' ? 'text-green-400 font-bold' : 'text-gray-300'}`}
-                          >
-                            {match.away}
-                          </button>
-                        </div>
-                        {isLive && (result.awayLive > 0 || result.awayRemaining > 0) && (
-                          <div className="text-[10px] flex items-center gap-2">
-                            {result.awayLive > 0 && (
-                              <span className="text-cyan-400">{result.awayLive} playing</span>
-                            )}
-                            {result.awayRemaining > 0 && (
-                              <span className="text-yellow-400">{result.awayRemaining} left</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
