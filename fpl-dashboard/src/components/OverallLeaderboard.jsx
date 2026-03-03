@@ -316,14 +316,14 @@ const OverallLeaderboard = () => {
     
     const messages = [];
     
-    // Find managers who moved up
+    // Find managers who moved up and record ALL their overtakes
     leaderboardData.forEach((manager) => {
       if (manager.positionChange > 0) {
         // Find who they overtook (managers now below them who were above them)
         const currentPos = manager.position;
         const previousPos = currentPos + manager.positionChange;
         
-        // Find managers they passed
+        // Find ALL managers they passed
         for (let pos = currentPos + 1; pos <= previousPos; pos++) {
           const overtaken = leaderboardData.find(m => m.position === pos);
           if (overtaken) {
@@ -331,16 +331,19 @@ const OverallLeaderboard = () => {
               mover: manager.manager_name,
               overtaken: overtaken.manager_name,
               newPosition: currentPos,
+              previousPosition: previousPos,
               positionsGained: manager.positionChange,
             });
-            break; // Just show the most significant overtake
           }
         }
       }
     });
     
-    // Sort by positions gained (most dramatic first)
-    messages.sort((a, b) => b.positionsGained - a.positionsGained);
+    // Sort by new position (top of table first), then by positions gained
+    messages.sort((a, b) => {
+      if (a.newPosition !== b.newPosition) return a.newPosition - b.newPosition;
+      return b.positionsGained - a.positionsGained;
+    });
     
     return messages;
   }, [leaderboardData]);
