@@ -374,6 +374,18 @@ const OverallLeaderboard = () => {
         const currPos = currentPositions[manager.manager_name];
         const posChange = prevPos - currPos;
         
+        // Debug JP Fischer specifically for latest GW
+        if (manager.manager_name === 'JP Fischer' && gwIdx === availableGameweeks.length - 1) {
+          console.log(`[Overtakes Debug] JP Fischer in GW${currentGW}: prevPos=${prevPos}, currPos=${currPos}, change=${posChange}`);
+          if (posChange > 0) {
+            console.log(`[Overtakes Debug] JP passed positions ${currPos} to ${prevPos - 1}`);
+            for (let pos = currPos; pos < prevPos; pos++) {
+              const found = prevSorted.find(m => m.position === pos);
+              console.log(`  Position ${pos}: ${found ? found.name : 'NOT FOUND'}`);
+            }
+          }
+        }
+        
         if (posChange > 0) {
           // They moved up - find who they passed (people who WERE at positions currPos to prevPos-1)
           for (let pos = currPos; pos < prevPos; pos++) {
@@ -404,7 +416,13 @@ const OverallLeaderboard = () => {
     messages.forEach(m => { gwCounts[m.gameweek] = (gwCounts[m.gameweek] || 0) + 1; });
     console.log('[Overtakes] Total messages:', messages.length, 'Per GW:', gwCounts);
     if (messages.length > 0) {
-      console.log('[Overtakes] First 5 messages:', messages.slice(0, 5));
+      console.log('[Overtakes] First 10 messages:', messages.slice(0, 10));
+    }
+    
+    // Debug: Find any JP Fischer overtakes
+    const jpOvertakes = messages.filter(m => m.mover === 'JP Fischer' || m.overtaken === 'JP Fischer');
+    if (jpOvertakes.length > 0) {
+      console.log('[Overtakes] JP Fischer related:', jpOvertakes);
     }
     
     return messages;
