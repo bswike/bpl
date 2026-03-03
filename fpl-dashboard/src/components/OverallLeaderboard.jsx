@@ -314,6 +314,15 @@ const OverallLeaderboard = () => {
   const overtakeMessages = useMemo(() => {
     if (!combinedData || combinedData.length === 0 || availableGameweeks.length < 2) return [];
     
+    // Debug: Check what gameweeks are available and sample data
+    console.log('[Overtakes] Available GWs:', availableGameweeks);
+    if (combinedData[0]) {
+      const sampleManager = combinedData[0];
+      const gwKeys = Object.keys(sampleManager).filter(k => k.startsWith('gw') && k.endsWith('_points'));
+      console.log('[Overtakes] Sample manager:', sampleManager.manager_name, 'GW point keys:', gwKeys);
+      gwKeys.forEach(k => console.log(`  ${k}:`, sampleManager[k]));
+    }
+    
     const messages = [];
     
     // Calculate standings after each gameweek and find overtakes
@@ -389,6 +398,14 @@ const OverallLeaderboard = () => {
       if (b.gameweek !== a.gameweek) return b.gameweek - a.gameweek;
       return a.newPosition - b.newPosition;
     });
+    
+    // Debug: Show message counts per GW
+    const gwCounts = {};
+    messages.forEach(m => { gwCounts[m.gameweek] = (gwCounts[m.gameweek] || 0) + 1; });
+    console.log('[Overtakes] Total messages:', messages.length, 'Per GW:', gwCounts);
+    if (messages.length > 0) {
+      console.log('[Overtakes] First 5 messages:', messages.slice(0, 5));
+    }
     
     return messages;
   }, [combinedData, availableGameweeks]);
