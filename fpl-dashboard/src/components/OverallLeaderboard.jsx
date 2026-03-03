@@ -348,60 +348,98 @@ const OverallLeaderboard = () => {
 
       {/* Leaderboard Rows */}
       <div className="divide-y divide-slate-800/50">
-        {leaderboardData.map((manager, idx) => (
-          <div
-            key={manager.manager_name}
-            onClick={() => handleManagerClick(manager)}
-            className={`flex items-center px-3 py-2.5 cursor-pointer transition-colors hover:bg-slate-800/50 ${
-              idx === 0 ? 'bg-yellow-900/10' : idx === 1 ? 'bg-slate-700/10' : idx === 2 ? 'bg-amber-900/10' : ''
-            }`}
-          >
-            {/* Position */}
-            <div className="w-8 text-center">
-              {idx === 0 ? (
-                <span className="text-yellow-500 text-sm">①</span>
-              ) : idx === 1 ? (
-                <span className="text-gray-400 text-sm">②</span>
-              ) : idx === 2 ? (
-                <span className="text-amber-600 text-sm">③</span>
-              ) : (
-                <span className="text-gray-500 text-xs">{manager.position}</span>
+        {leaderboardData.map((manager, idx) => {
+          const isRelegation = idx >= 17; // Positions 18, 19, 20
+          const isTopThree = idx < 3;
+          
+          return (
+            <React.Fragment key={manager.manager_name}>
+              {/* Relegation Zone Divider - after position 17 */}
+              {idx === 17 && (
+                <div className="relative py-3">
+                  <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[3px] bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
+                  <div className="relative flex items-center justify-center">
+                    <div className="bg-slate-900 px-4 py-1 rounded-full border-2 border-red-500/50 flex items-center gap-2">
+                      <span className="text-red-500 text-lg">⚠️</span>
+                      <span className="text-red-400 font-bold text-sm uppercase tracking-wider">Relegation Zone</span>
+                      <span className="text-red-500 text-lg">⚠️</span>
+                    </div>
+                  </div>
+                </div>
               )}
-            </div>
+              
+              <div
+                onClick={() => handleManagerClick(manager)}
+                className={`flex items-center px-3 py-2.5 cursor-pointer transition-colors hover:bg-slate-800/50 ${
+                  isRelegation 
+                    ? 'bg-red-950/40 border-l-4 border-red-500' 
+                    : idx === 0 ? 'bg-yellow-900/10' 
+                    : idx === 1 ? 'bg-slate-700/10' 
+                    : idx === 2 ? 'bg-amber-900/10' 
+                    : ''
+                }`}
+              >
+                {/* Position */}
+                <div className="w-8 text-center">
+                  {idx === 0 ? (
+                    <span className="text-yellow-500 text-sm">①</span>
+                  ) : idx === 1 ? (
+                    <span className="text-gray-400 text-sm">②</span>
+                  ) : idx === 2 ? (
+                    <span className="text-amber-600 text-sm">③</span>
+                  ) : isRelegation ? (
+                    <span className="text-red-400 text-xs font-bold">{manager.position}</span>
+                  ) : (
+                    <span className="text-gray-500 text-xs">{manager.position}</span>
+                  )}
+                </div>
 
-            {/* Manager Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm text-white truncate">{manager.manager_name}</span>
-                {manager.team_value > 0 && (
-                  <span className="text-[10px] text-green-400">£{manager.team_value.toFixed(1)}m</span>
-                )}
-                {manager.gws_won > 0 && (
-                  <span className="text-[10px] text-yellow-400">🏆{manager.gws_won}</span>
-                )}
+                {/* Manager Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-sm truncate ${isRelegation ? 'text-red-200' : 'text-white'}`}>
+                      {manager.manager_name}
+                    </span>
+                    {isRelegation && (
+                      <span className="text-[10px] bg-red-500/30 text-red-300 px-1.5 py-0.5 rounded font-medium">
+                        REL
+                      </span>
+                    )}
+                    {manager.team_value > 0 && (
+                      <span className="text-[10px] text-green-400">£{manager.team_value.toFixed(1)}m</span>
+                    )}
+                    {manager.gws_won > 0 && (
+                      <span className="text-[10px] text-yellow-400">🏆{manager.gws_won}</span>
+                    )}
+                  </div>
+                  <div className={`text-[10px] truncate ${isRelegation ? 'text-red-400/60' : 'text-gray-600'}`}>
+                    {manager.team_name}
+                  </div>
+                </div>
+
+                {/* Position Change */}
+                <div className="w-10 text-center text-xs">
+                  {manager.positionChange > 0 ? (
+                    <span className="text-green-500">+{manager.positionChange}</span>
+                  ) : manager.positionChange < 0 ? (
+                    <span className="text-red-500">{manager.positionChange}</span>
+                  ) : (
+                    <span className="text-gray-600">-</span>
+                  )}
+                </div>
+
+                {/* Points */}
+                <div className="w-14 text-right">
+                  <span className={`text-sm font-semibold ${
+                    isRelegation ? 'text-red-300' : isTopThree ? 'text-white' : 'text-gray-300'
+                  }`}>
+                    {manager.total_points}
+                  </span>
+                </div>
               </div>
-              <div className="text-[10px] text-gray-600 truncate">{manager.team_name}</div>
-            </div>
-
-            {/* Position Change */}
-            <div className="w-10 text-center text-xs">
-              {manager.positionChange > 0 ? (
-                <span className="text-green-500">+{manager.positionChange}</span>
-              ) : manager.positionChange < 0 ? (
-                <span className="text-red-500">{manager.positionChange}</span>
-              ) : (
-                <span className="text-gray-600">-</span>
-              )}
-            </div>
-
-            {/* Points */}
-            <div className="w-14 text-right">
-              <span className={`text-sm font-semibold ${idx < 3 ? 'text-white' : 'text-gray-300'}`}>
-                {manager.total_points}
-              </span>
-            </div>
-          </div>
-        ))}
+            </React.Fragment>
+          );
+        })}
       </div>
 
       {/* Manager Overview Modal */}
