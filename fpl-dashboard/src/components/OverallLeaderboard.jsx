@@ -366,10 +366,10 @@ const OverallLeaderboard = () => {
         const posChange = prevPos - currPos;
         
         if (posChange > 0) {
-          // They moved up - find who they passed
-          for (let pos = currPos + 1; pos <= prevPos; pos++) {
-            const overtaken = currentSorted.find(m => m.position === pos);
-            if (overtaken) {
+          // They moved up - find who they passed (people who WERE at positions currPos to prevPos-1)
+          for (let pos = currPos; pos < prevPos; pos++) {
+            const overtaken = prevSorted.find(m => m.position === pos);
+            if (overtaken && overtaken.name !== manager.manager_name) {
               messages.push({
                 gameweek: currentGW,
                 mover: manager.manager_name,
@@ -431,10 +431,10 @@ const OverallLeaderboard = () => {
       {overtakeMessages.length > 0 && (
         <div className="mb-3 rounded-lg overflow-hidden border border-red-500/30 bg-gradient-to-r from-red-950 via-slate-900 to-red-950">
           <div className="flex items-center">
-            {/* Ticker Badge */}
+            {/* Breaking Badge */}
             <div className="flex-shrink-0 bg-red-600 px-3 py-2 flex items-center gap-1.5">
               <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-              <span className="text-white font-black text-xs uppercase tracking-wider">OVERTAKES</span>
+              <span className="text-white font-black text-xs uppercase tracking-wider">BREAKING</span>
             </div>
             
             {/* Scrolling Content */}
