@@ -391,6 +391,10 @@ const OverallLeaderboard = () => {
           for (let pos = currPos; pos < prevPos; pos++) {
             const overtaken = prevSorted.find(m => m.position === pos);
             if (overtaken && overtaken.name !== manager.manager_name) {
+              // Debug: log every push for JP Fischer
+              if (manager.manager_name === 'JP Fischer') {
+                console.log(`[Overtakes PUSH] JP Fischer overtook ${overtaken.name} in GW${currentGW}`);
+              }
               messages.push({
                 gameweek: currentGW,
                 mover: manager.manager_name,
@@ -416,13 +420,23 @@ const OverallLeaderboard = () => {
     messages.forEach(m => { gwCounts[m.gameweek] = (gwCounts[m.gameweek] || 0) + 1; });
     console.log('[Overtakes] Total messages:', messages.length, 'Per GW:', gwCounts);
     if (messages.length > 0) {
-      console.log('[Overtakes] First 10 messages:', messages.slice(0, 10));
+      console.log('[Overtakes] First 3 messages:', JSON.stringify(messages.slice(0, 3)));
+      // Find GW29 messages specifically
+      const gw29 = messages.filter(m => m.gameweek === 29);
+      console.log('[Overtakes] GW29 messages:', JSON.stringify(gw29));
     }
     
     // Debug: Find any JP Fischer overtakes
     const jpOvertakes = messages.filter(m => m.mover === 'JP Fischer' || m.overtaken === 'JP Fischer');
+    console.log('[Overtakes] JP Fischer related count:', jpOvertakes.length);
     if (jpOvertakes.length > 0) {
-      console.log('[Overtakes] JP Fischer related:', jpOvertakes);
+      console.log('[Overtakes] JP Fischer related:', JSON.stringify(jpOvertakes));
+    } else {
+      // Check if JP Fischer name exists in any message
+      const jpMover = messages.filter(m => m.mover && m.mover.includes('JP'));
+      const jpOvertaken = messages.filter(m => m.overtaken && m.overtaken.includes('JP'));
+      console.log('[Overtakes] Messages with JP in mover:', jpMover.length, jpMover.slice(0, 3).map(m => m.mover));
+      console.log('[Overtakes] Messages with JP in overtaken:', jpOvertaken.length, jpOvertaken.slice(0, 3).map(m => m.overtaken));
     }
     
     return messages;
