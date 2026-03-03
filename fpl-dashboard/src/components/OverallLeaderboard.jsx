@@ -310,43 +310,88 @@ const OverallLeaderboard = () => {
 
   const latestGW = availableGameweeks[availableGameweeks.length - 1] || 0;
 
-  // Generate overtake messages from position changes
+  // Generate overtake messages from ALL gameweeks
   const overtakeMessages = useMemo(() => {
-    if (!leaderboardData || leaderboardData.length === 0) return [];
+    if (!combinedData || combinedData.length === 0 || availableGameweeks.length < 2) return [];
     
     const messages = [];
     
-    // Find managers who moved up and record ALL their overtakes
-    leaderboardData.forEach((manager) => {
-      if (manager.positionChange > 0) {
-        // Find who they overtook (managers now below them who were above them)
-        const currentPos = manager.position;
-        const previousPos = currentPos + manager.positionChange;
+    // Calculate standings after each gameweek and find overtakes
+    for (let gwIdx = 1; gwIdx < availableGameweeks.length; gwIdx++) {
+      const currentGW = availableGameweeks[gwIdx];
+      const prevGW = availableGameweeks[gwIdx - 1];
+      
+      // Calculate cumulative standings BEFORE this GW (after prevGW)
+      const prevStandings = {};
+      combinedData.forEach(manager => {
+        let cumulative = 0;
+        for (let i = 0; i <= gwIdx - 1; i++) {
+          cumulative += manager[`gw${availableGameweeks[i]}_points`] || 0;
+        }
+        prevStandings[manager.manager_name] = cumulative;
+      });
+      
+      const prevSorted = Object.entries(prevStandings)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name], idx) => ({ name, position: idx + 1 }));
+      
+      const prevPositions = {};
+      prevSorted.forEach(({ name, position }) => {
+        prevPositions[name] = position;
+      });
+      
+      // Calculate cumulative standings AFTER this GW
+      const currentStandings = {};
+      combinedData.forEach(manager => {
+        let cumulative = 0;
+        for (let i = 0; i <= gwIdx; i++) {
+          cumulative += manager[`gw${availableGameweeks[i]}_points`] || 0;
+        }
+        currentStandings[manager.manager_name] = cumulative;
+      });
+      
+      const currentSorted = Object.entries(currentStandings)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name], idx) => ({ name, position: idx + 1 }));
+      
+      const currentPositions = {};
+      currentSorted.forEach(({ name, position }) => {
+        currentPositions[name] = position;
+      });
+      
+      // Find overtakes for this GW
+      combinedData.forEach(manager => {
+        const prevPos = prevPositions[manager.manager_name];
+        const currPos = currentPositions[manager.manager_name];
+        const posChange = prevPos - currPos;
         
-        // Find ALL managers they passed
-        for (let pos = currentPos + 1; pos <= previousPos; pos++) {
-          const overtaken = leaderboardData.find(m => m.position === pos);
-          if (overtaken) {
-            messages.push({
-              mover: manager.manager_name,
-              overtaken: overtaken.manager_name,
-              newPosition: currentPos,
-              previousPosition: previousPos,
-              positionsGained: manager.positionChange,
-            });
+        if (posChange > 0) {
+          // They moved up - find who they passed
+          for (let pos = currPos + 1; pos <= prevPos; pos++) {
+            const overtaken = currentSorted.find(m => m.position === pos);
+            if (overtaken) {
+              messages.push({
+                gameweek: currentGW,
+                mover: manager.manager_name,
+                overtaken: overtaken.name,
+                newPosition: currPos,
+                previousPosition: prevPos,
+                positionsGained: posChange,
+              });
+            }
           }
         }
-      }
-    });
+      });
+    }
     
-    // Sort by new position (top of table first), then by positions gained
+    // Sort by gameweek (most recent first), then by position
     messages.sort((a, b) => {
-      if (a.newPosition !== b.newPosition) return a.newPosition - b.newPosition;
-      return b.positionsGained - a.positionsGained;
+      if (b.gameweek !== a.gameweek) return b.gameweek - a.gameweek;
+      return a.newPosition - b.newPosition;
     });
     
     return messages;
-  }, [leaderboardData]);
+  }, [combinedData, availableGameweeks]);
 
   if (loading) {
     return (
@@ -386,10 +431,10 @@ const OverallLeaderboard = () => {
       {overtakeMessages.length > 0 && (
         <div className="mb-3 rounded-lg overflow-hidden border border-red-500/30 bg-gradient-to-r from-red-950 via-slate-900 to-red-950">
           <div className="flex items-center">
-            {/* Breaking Badge */}
+            {/* Ticker Badge */}
             <div className="flex-shrink-0 bg-red-600 px-3 py-2 flex items-center gap-1.5">
               <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-              <span className="text-white font-black text-xs uppercase tracking-wider">BREAKING</span>
+              <span className="text-white font-black text-xs uppercase tracking-wider">OVERTAKES</span>
             </div>
             
             {/* Scrolling Content */}
@@ -398,7 +443,7 @@ const OverallLeaderboard = () => {
                 {/* Duplicate messages for seamless loop */}
                 {[...overtakeMessages, ...overtakeMessages].map((msg, idx) => (
                   <span key={idx} className="flex items-center gap-2 text-sm">
-                    <span className="text-yellow-400">📊</span>
+                    <span className="text-purple-400 font-bold text-xs bg-purple-500/20 px-1.5 py-0.5 rounded">GW{msg.gameweek}</span>
                     <span className="text-gray-300">In</span>
                     <span className="text-cyan-400 font-bold">{msg.newPosition}{getOrdinalSuffix(msg.newPosition)}</span>
                     <span className="text-gray-300">place,</span>
