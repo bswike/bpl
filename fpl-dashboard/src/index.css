@@ -20,3 +20,21 @@ html, body {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ESPN-style scrolling ticker animation */
+@keyframes scroll-x {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll-x {
+  animation: scroll-x 20s linear infinite;
+}
+
+.animate-scroll-x:hover {
+  animation-play-state: paused;
+}

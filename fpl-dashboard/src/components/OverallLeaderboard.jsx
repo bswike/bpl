@@ -302,7 +302,48 @@ const OverallLeaderboard = () => {
     return <span className="text-gray-500">-</span>;
   };
 
+  const getOrdinalSuffix = (n) => {
+    const s = ['th', 'st', 'nd', 'rd'];
+    const v = n % 100;
+    return s[(v - 20) % 10] || s[v] || s[0];
+  };
+
   const latestGW = availableGameweeks[availableGameweeks.length - 1] || 0;
+
+  // Generate overtake messages from position changes
+  const overtakeMessages = useMemo(() => {
+    if (!leaderboardData || leaderboardData.length === 0) return [];
+    
+    const messages = [];
+    
+    // Find managers who moved up
+    leaderboardData.forEach((manager) => {
+      if (manager.positionChange > 0) {
+        // Find who they overtook (managers now below them who were above them)
+        const currentPos = manager.position;
+        const previousPos = currentPos + manager.positionChange;
+        
+        // Find managers they passed
+        for (let pos = currentPos + 1; pos <= previousPos; pos++) {
+          const overtaken = leaderboardData.find(m => m.position === pos);
+          if (overtaken) {
+            messages.push({
+              mover: manager.manager_name,
+              overtaken: overtaken.manager_name,
+              newPosition: currentPos,
+              positionsGained: manager.positionChange,
+            });
+            break; // Just show the most significant overtake
+          }
+        }
+      }
+    });
+    
+    // Sort by positions gained (most dramatic first)
+    messages.sort((a, b) => b.positionsGained - a.positionsGained);
+    
+    return messages;
+  }, [leaderboardData]);
 
   if (loading) {
     return (
@@ -337,6 +378,41 @@ const OverallLeaderboard = () => {
           </div>
         )}
       </div>
+
+      {/* ESPN-style Scrolling Ticker */}
+      {overtakeMessages.length > 0 && (
+        <div className="mb-3 rounded-lg overflow-hidden border border-red-500/30 bg-gradient-to-r from-red-950 via-slate-900 to-red-950">
+          <div className="flex items-center">
+            {/* Breaking Badge */}
+            <div className="flex-shrink-0 bg-red-600 px-3 py-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+              <span className="text-white font-black text-xs uppercase tracking-wider">BREAKING</span>
+            </div>
+            
+            {/* Scrolling Content */}
+            <div className="flex-1 overflow-hidden relative">
+              <div className="animate-scroll-x flex items-center gap-12 py-2 px-4 whitespace-nowrap">
+                {/* Duplicate messages for seamless loop */}
+                {[...overtakeMessages, ...overtakeMessages].map((msg, idx) => (
+                  <span key={idx} className="flex items-center gap-2 text-sm">
+                    <span className="text-yellow-400">📊</span>
+                    <span className="text-gray-300">In</span>
+                    <span className="text-cyan-400 font-bold">{msg.newPosition}{getOrdinalSuffix(msg.newPosition)}</span>
+                    <span className="text-gray-300">place,</span>
+                    <span className="text-green-400 font-bold">{msg.mover}</span>
+                    <span className="text-gray-300">overtook</span>
+                    <span className="text-red-400 font-bold">{msg.overtaken}</span>
+                    {msg.positionsGained > 1 && (
+                      <span className="text-yellow-400 text-xs">(+{msg.positionsGained} spots!)</span>
+                    )}
+                    <span className="text-gray-600 mx-4">•</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Table Header */}
       <div className="flex items-center px-3 py-2 text-[10px] text-gray-500 uppercase tracking-wider border-b border-slate-700/50">
