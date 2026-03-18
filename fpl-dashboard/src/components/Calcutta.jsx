@@ -1593,13 +1593,10 @@ function RegionBracket({ region }) {
           <span style={{ color: '#1e2a40' }}>/</span>
           <span style={{ color: '#3a4a6a' }}>${histAvg}</span>
         </span>
-        <span style={{ fontSize: 6, flexShrink: 0, display: 'flex', gap: 1, alignItems: 'center', marginLeft: 1 }}>
-          <span style={{ color: n >= 50 ? '#2ecc71' : n >= 25 ? '#e9c46a' : '#3a4a6a', fontWeight: 700 }}>{team.s16.replace('%','')}</span>
-          <span style={{ color: '#1e2a40' }}>/</span>
-          <span style={{ color: parseInt(team.tr) >= 50 ? '#7c5cfc' : '#3a4a6a' }}>{team.tr.replace('%','')}</span>
-          <span style={{ color: '#1e2a40' }}>/</span>
-          <span style={{ color: parseInt(team.em) >= 50 ? '#e9c46a' : '#3a4a6a' }}>{team.em.replace('%','')}</span>
-        </span>
+        {(() => {
+          const avg3 = Math.round(((parseInt(team.s16)||0) + (parseInt(team.tr)||0) + (parseInt(team.em)||0)) / 3);
+          return <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 700, marginLeft: 1, color: avg3 >= 50 ? '#2ecc71' : avg3 >= 25 ? '#e9c46a' : '#3a4a6a' }}>{avg3}%</span>;
+        })()}
       </div>
     );
   };
@@ -1658,7 +1655,7 @@ function RegionBracket({ region }) {
         <div style={{ fontSize: 7, textAlign: "center", padding: "0 8px 6px", display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
           <span>EV<span style={{ color: "#3a4a6a" }}>/</span>avg cost</span>
           <span style={{ color: "#3a4a6a" }}>│</span>
-          <span>S16%: <span style={{ color: "#2ecc71" }}>DK</span><span style={{ color: "#3a4a6a" }}>/</span><span style={{ color: "#7c5cfc" }}>Torik</span><span style={{ color: "#3a4a6a" }}>/</span><span style={{ color: "#e9c46a" }}>EvMiya</span></span>
+          <span>S16% avg (DK + Torik + EvMiya)</span>
         </div>
         <div style={{ display: 'flex', marginBottom: 4, minWidth: 480, paddingLeft: 8, paddingRight: 8 }}>
           {roundCols.map((c, i) => (
