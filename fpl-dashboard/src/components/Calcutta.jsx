@@ -350,7 +350,8 @@ const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:25
 const HIST_ROI = {16:0.17,15:0.32,14:-0.81,13:-0.77,12:-0.59,11:0.19,10:-0.48,9:0.30,8:-0.39,7:-0.30,6:0.09,5:0.18,4:-0.08,3:0.02,2:-0.15,1:0.20};
 
 
-const TABS = ["2026 Prep", "Teams", "Leaderboard", "Seed ROI", "Strategy"];
+const MAIN_TABS = ["2026 Prep", "Teams", "Seed ROI"];
+const EXTRA_TABS = ["Leaderboard", "Strategy"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("2026 Prep");
@@ -395,28 +396,56 @@ export default function App() {
         }}>2023 — 2024 — 2025</div>
       </div>
 
-      {/* Tab nav */}
+      {/* Main tabs */}
       <div style={{
         display: "flex",
         justifyContent: "center",
-        gap: 4,
-        marginBottom: 20,
+        gap: 6,
+        marginBottom: 10,
         flexWrap: "wrap",
       }}>
-        {TABS.map(tab => (
+        {MAIN_TABS.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             style={{
-              padding: "8px 18px",
+              padding: "10px 22px",
               background: activeTab === tab
                 ? "linear-gradient(135deg, #4a9eff22, #7c5cfc22)"
                 : "transparent",
               border: `1px solid ${activeTab === tab ? "#4a9eff" : "#1e2a40"}`,
               borderRadius: 6,
-              color: activeTab === tab ? "#4a9eff" : "#5a6a8a",
+              color: activeTab === tab ? "#4a9eff" : "#8a9aba",
               fontFamily: "inherit",
-              fontSize: 12,
+              fontSize: 13,
+              fontWeight: activeTab === tab ? 700 : 500,
+              cursor: "pointer",
+              letterSpacing: 1,
+              transition: "all 0.2s",
+            }}
+          >{tab}</button>
+        ))}
+      </div>
+
+      {/* Secondary tabs — smaller, muted */}
+      <div style={{
+        display: "flex",
+        justifyContent: "center",
+        gap: 12,
+        marginBottom: 20,
+      }}>
+        {EXTRA_TABS.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              padding: "4px 10px",
+              background: "transparent",
+              border: "none",
+              borderBottom: activeTab === tab ? "1px solid #4a9eff" : "1px solid transparent",
+              color: activeTab === tab ? "#4a9eff" : "#3a4a6a",
+              fontFamily: "inherit",
+              fontSize: 10,
               fontWeight: activeTab === tab ? 600 : 400,
               cursor: "pointer",
               letterSpacing: 1,
@@ -1693,7 +1722,7 @@ function AuctionPrep() {
       {/* View Toggle — bracket is wide; scroll/swipe horizontally on small screens */}
       <div style={{ marginBottom: 10, textAlign: "center" }}>
         <div style={{ fontSize: 9, color: "#5a6a8a", letterSpacing: 0.5, marginBottom: 8, lineHeight: 1.4 }}>
-          <strong style={{ color: "#e9c46a" }}>Regional bracket:</strong> tap <strong style={{ color: "#4a9eff" }}>Bracket</strong> below, then East / South / West / Midwest / Final Four.
+          <strong style={{ color: "#e9c46a" }}>Regional bracket:</strong> tap <strong style={{ color: "#4a9eff" }}>Bracket</strong> below, then East / South / West / Midwest.
           On phone, <strong style={{ color: "#c8d6e5" }}>swipe left</strong> on the bracket to see all rounds.
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
@@ -1807,7 +1836,6 @@ function AuctionPrep() {
             { key: "S", label: "South", color: "#e63946" },
             { key: "W", label: "West", color: "#2ecc71" },
             { key: "MW", label: "Midwest", color: "#e9c46a" },
-            { key: "FF", label: "Final Four", color: "#7c5cfc" },
           ].map(r => (
             <button key={r.key} onClick={() => setBracketRegion(r.key)} style={{
               padding: '6px 14px',
@@ -1822,11 +1850,7 @@ function AuctionPrep() {
           ))}
         </div>
 
-        {bracketRegion === "FF" ? (
-          <FinalFourBracket />
-        ) : (
-          <RegionBracket region={bracketRegion} />
-        )}
+        <RegionBracket region={bracketRegion} />
 
         <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 6, textAlign: "center" }}>
           S16% = Sweet 16 implied probability (BetMGM/DK) · Tap region tabs to navigate
