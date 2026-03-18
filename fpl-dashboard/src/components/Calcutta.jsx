@@ -1527,6 +1527,8 @@ function AuctionPrep() {
     </div>
   );
 }
+
+function SectionTitle({ children }) {
   return (
     <h2 style={{
       fontFamily: "'Space Grotesk', sans-serif",
