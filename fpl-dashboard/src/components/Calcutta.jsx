@@ -867,8 +867,16 @@ function Strategy({ year }) {
           padding: 14,
           border: "1px solid #1e2a40",
         }}>
-          <div style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>
+          <div style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
             Winners (Positive ROI)
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #1e2a40", marginBottom: 4 }}>
+            <span style={{ fontSize: 9, color: "#3a4a6a", letterSpacing: 1 }}>SYNDICATE</span>
+            <div style={{ display: "flex", gap: 12 }}>
+              <span style={{ fontSize: 9, color: "#3a4a6a", letterSpacing: 1, minWidth: 65, textAlign: "right" }}>SPENT</span>
+              <span style={{ fontSize: 9, color: "#3a4a6a", letterSpacing: 1, minWidth: 70, textAlign: "right" }}>NET P/L</span>
+              <span style={{ fontSize: 9, color: "#3a4a6a", letterSpacing: 1, minWidth: 50, textAlign: "right" }}>ROI</span>
+            </div>
           </div>
           {spendData.filter(d => d.net > 0).sort((a, b) => b.roi - a.roi).map((d, i) => (
             <div key={i} style={{
@@ -886,8 +894,9 @@ function Strategy({ year }) {
                 {year === "All" && <span style={{ color: "#3a4a6a", fontSize: 9 }}>'{String(d.year).slice(2)}</span>}
               </div>
               <div style={{ display: "flex", gap: 12 }}>
-                <span style={{ color: "#5a6a8a" }}>{fmtDollar(d.spent)}</span>
-                <span style={{ color: "#2ecc71", fontWeight: 600, minWidth: 60, textAlign: "right" }}>{fmtPct(d.roi)}</span>
+                <span style={{ color: "#5a6a8a", minWidth: 65, textAlign: "right" }}>{fmtDollar(d.spent)}</span>
+                <span style={{ color: "#2ecc71", fontWeight: 600, minWidth: 70, textAlign: "right" }}>{fmt(d.net)}</span>
+                <span style={{ color: "#2ecc71", fontWeight: 600, minWidth: 50, textAlign: "right" }}>{fmtPct(d.roi)}</span>
               </div>
             </div>
           ))}
@@ -898,8 +907,16 @@ function Strategy({ year }) {
           padding: 14,
           border: "1px solid #1e2a40",
         }}>
-          <div style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>
+          <div style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 6 }}>
             Losers (Negative ROI)
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid #1e2a40", marginBottom: 4 }}>
+            <span style={{ fontSize: 9, color: "#3a4a6a", letterSpacing: 1 }}>SYNDICATE</span>
+            <div style={{ display: "flex", gap: 12 }}>
+              <span style={{ fontSize: 9, color: "#3a4a6a", letterSpacing: 1, minWidth: 65, textAlign: "right" }}>SPENT</span>
+              <span style={{ fontSize: 9, color: "#3a4a6a", letterSpacing: 1, minWidth: 70, textAlign: "right" }}>NET P/L</span>
+              <span style={{ fontSize: 9, color: "#3a4a6a", letterSpacing: 1, minWidth: 50, textAlign: "right" }}>ROI</span>
+            </div>
           </div>
           {spendData.filter(d => d.net < 0).sort((a, b) => a.roi - b.roi).map((d, i) => (
             <div key={i} style={{
@@ -917,8 +934,9 @@ function Strategy({ year }) {
                 {year === "All" && <span style={{ color: "#3a4a6a", fontSize: 9 }}>'{String(d.year).slice(2)}</span>}
               </div>
               <div style={{ display: "flex", gap: 12 }}>
-                <span style={{ color: "#5a6a8a" }}>{fmtDollar(d.spent)}</span>
-                <span style={{ color: "#e63946", fontWeight: 600, minWidth: 60, textAlign: "right" }}>{fmtPct(d.roi)}</span>
+                <span style={{ color: "#5a6a8a", minWidth: 65, textAlign: "right" }}>{fmtDollar(d.spent)}</span>
+                <span style={{ color: "#e63946", fontWeight: 600, minWidth: 70, textAlign: "right" }}>{fmt(d.net)}</span>
+                <span style={{ color: "#e63946", fontWeight: 600, minWidth: 50, textAlign: "right" }}>{fmtPct(d.roi)}</span>
               </div>
             </div>
           ))}
