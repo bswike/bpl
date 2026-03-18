@@ -404,6 +404,10 @@ function getTeamValue(team) {
   const tr = TORIK_ROUNDS[key] || [0,0,0,0,0,0];
   const em = EM_ROUNDS[key] || [0,0,0,0,0,0];
   const avg = tr.map((v, i) => (v + em[i]) / 2);
+  // R64 payout for 1v16 and 2v15 is based on covering the spread, not just winning
+  // Hogan 3yr ATS: 1s 11/12=92%, 2s 11/12=92%, 15s 4/12=35%, 16s 5/12=42%
+  if (team.s <= 2) avg[0] = 0.92;
+  else if (team.s >= 15) avg[0] = team.s === 16 ? 0.42 : 0.35;
   const roundEV = avg.map((p, i) => Math.round(p * HOGAN_INCR[i]));
   const fairValue = roundEV.reduce((a, b) => a + b, 0);
   const histAvg = HIST_AVG_PRICE[team.s] || 100;
