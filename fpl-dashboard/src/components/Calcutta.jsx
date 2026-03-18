@@ -348,6 +348,27 @@ const BRACKET_2026 = [
 
 const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:250,7:290,6:420,5:550,4:680,3:950,2:1550,1:2100};
 const HIST_ROI = {16:0.17,15:0.32,14:-0.81,13:-0.77,12:-0.59,11:0.19,10:-0.48,9:0.30,8:-0.39,7:-0.30,6:0.09,5:0.18,4:-0.08,3:0.02,2:-0.15,1:0.20};
+// Expected payout if team reaches S16, by seed (accounts for deeper run probability)
+// Derived from 3yr Hogan data: ~$27K pot, payout structure favors deep runs
+const S16_PAYOUT = {1:4500,2:3000,3:2200,4:1800,5:1500,6:1200,7:1100,8:1000,9:1000,10:950,11:1000,12:900,13:850,14:800,15:700,16:600};
+const NON_S16_VALUE = {1:200,2:150,3:100,4:80,5:60,6:40,7:30,8:20,9:20,10:15,11:15,12:10,13:5,14:5,15:30,16:25};
+
+function getTeamValue(team) {
+  const trPct = (parseInt(team.tr) || 0) / 100;
+  const emPct = (parseInt(team.em) || 0) / 100;
+  const modelS16 = (trPct + emPct) / 2;
+  const payout = S16_PAYOUT[team.s] || 1000;
+  const nonS16 = NON_S16_VALUE[team.s] || 10;
+  const fairValue = Math.round(modelS16 * payout + (1 - modelS16) * nonS16);
+  const histAvg = HIST_AVG_PRICE[team.s] || 100;
+  const ratio = fairValue / histAvg;
+  let label, color;
+  if (ratio >= 1.25) { label = "BUY"; color = "#2ecc71"; }
+  else if (ratio >= 0.9) { label = "FAIR"; color = "#e9c46a"; }
+  else if (ratio >= 0.6) { label = "MEH"; color = "#5a6a8a"; }
+  else { label = "AVOID"; color = "#e63946"; }
+  return { fairValue, label, color, modelS16: Math.round(modelS16 * 100) };
+}
 
 
 const MAIN_TABS = ["2026 Prep", "Teams", "Seed ROI"];
@@ -1567,8 +1588,16 @@ function RegionBracket({ region }) {
         }}
         aria-label="Regional bracket — scroll horizontally to see all rounds"
       >
-        <div style={{ fontSize: 8, color: "#7c5cfc", textAlign: "center", padding: "4px 8px 6px", fontWeight: 600 }}>
+        <div style={{ fontSize: 8, textAlign: "center", padding: "4px 8px 2px", fontWeight: 600, color: "#7c5cfc" }}>
           ← Swipe / scroll sideways for full bracket →
+        </div>
+        <div style={{ fontSize: 7, textAlign: "center", padding: "0 8px 6px", display: "flex", justifyContent: "center", gap: 8 }}>
+          <span>S16%:</span>
+          <span style={{ color: "#2ecc71" }}>DK Implied</span>
+          <span style={{ color: "#3a4a6a" }}>/</span>
+          <span style={{ color: "#7c5cfc" }}>Torik</span>
+          <span style={{ color: "#3a4a6a" }}>/</span>
+          <span style={{ color: "#e9c46a" }}>EvanMiya</span>
         </div>
         <div style={{ display: 'flex', marginBottom: 4, minWidth: 480, paddingLeft: 8, paddingRight: 8 }}>
           {roundCols.map((c, i) => (
@@ -1774,6 +1803,7 @@ function AuctionPrep() {
         {filteredBracket.map((team, i) => {
           const tier = getTier(team.odds);
           const histAvg = HIST_AVG_PRICE[team.s] || 0;
+          const val = getTeamValue(team);
           const isRegionStart = i === 0 || filteredBracket[i-1]?.r !== team.r;
           return (
             <div key={i}>
@@ -1793,7 +1823,7 @@ function AuctionPrep() {
                 background: team.s <= 2 ? "#1A2A3E" : team.s <= 4 ? "#151D2E" : "transparent",
                 borderBottom: "1px solid #111827",
                 borderRadius: 4,
-                gap: 8,
+                gap: 6,
               }}>
                 {/* Left: seed badge + team */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
@@ -1815,32 +1845,45 @@ function AuctionPrep() {
                     </div>
                   </div>
                 </div>
-                {/* Right: S16 odds (3 sources) + avg price */}
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                {/* Middle: S16 odds (3 sources) */}
+                <div style={{ flexShrink: 0 }}>
                   <div style={{ display: "flex", gap: 5, justifyContent: "flex-end", alignItems: "baseline" }}>
-                    <div>
+                    <div style={{ textAlign: "center" }}>
                       <div style={{
-                        fontSize: 12, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+                        fontSize: 11, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
                         color: parseInt(team.s16) >= 50 ? "#2ecc71" : parseInt(team.s16) >= 25 ? "#2ecc71aa" : "#5a6a8a",
                       }}>{team.s16}</div>
-                      <div style={{ fontSize: 6, color: "#3a4a6a" }}>BetMGM</div>
+                      <div style={{ fontSize: 6, color: "#3a4a6a" }}>DK</div>
                     </div>
-                    <div>
+                    <div style={{ textAlign: "center" }}>
                       <div style={{
-                        fontSize: 12, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+                        fontSize: 11, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
                         color: parseInt(team.tr) >= 50 ? "#7c5cfc" : parseInt(team.tr) >= 25 ? "#7c5cfcaa" : "#4a5a7a",
                       }}>{team.tr}</div>
-                      <div style={{ fontSize: 6, color: "#3a4a6a" }}>T-Rank</div>
+                      <div style={{ fontSize: 6, color: "#3a4a6a" }}>Torik</div>
                     </div>
-                    <div>
+                    <div style={{ textAlign: "center" }}>
                       <div style={{
-                        fontSize: 12, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+                        fontSize: 11, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
                         color: parseInt(team.em) >= 50 ? "#e9c46a" : parseInt(team.em) >= 25 ? "#e9c46aaa" : "#4a5a7a",
                       }}>{team.em}</div>
                       <div style={{ fontSize: 6, color: "#3a4a6a" }}>EvMiya</div>
                     </div>
                   </div>
-                  <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 3 }}>{fmtDollar(histAvg)} avg</div>
+                </div>
+                {/* Right: Value estimate */}
+                <div style={{ textAlign: "right", flexShrink: 0, minWidth: 58 }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+                    color: val.color,
+                  }}>{fmtDollar(val.fairValue)}</div>
+                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 1 }}>
+                    <span style={{
+                      fontSize: 7, fontWeight: 700, padding: "1px 4px", borderRadius: 3,
+                      background: `${val.color}22`, color: val.color, letterSpacing: 0.5,
+                    }}>{val.label}</span>
+                  </div>
+                  <div style={{ fontSize: 8, color: "#3a4a6a", marginTop: 1 }}>{fmtDollar(histAvg)} avg</div>
                 </div>
               </div>
             </div>
@@ -1848,7 +1891,7 @@ function AuctionPrep() {
         })}
       </div>
       <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 6, textAlign: "center" }}>
-        Showing {filteredBracket.length} of 64 teams · S16%: <span style={{color:"#2ecc71"}}>BetMGM</span> / <span style={{color:"#7c5cfc"}}>T-Rank</span> / <span style={{color:"#e9c46a"}}>EvanMiya</span> · Prices = historical avg for seed
+        Showing {filteredBracket.length} of 64 · S16%: <span style={{color:"#2ecc71"}}>DK</span> / <span style={{color:"#7c5cfc"}}>Torik</span> / <span style={{color:"#e9c46a"}}>EvMiya</span> · Value = model avg × seed payout vs historical price
       </div>
       </>
       ) : (
@@ -1877,7 +1920,7 @@ function AuctionPrep() {
         <RegionBracket region={bracketRegion} />
 
         <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 6, textAlign: "center" }}>
-          S16%: <span style={{ color: "#2ecc71" }}>BetMGM</span> / <span style={{ color: "#7c5cfc" }}>T-Rank</span> / <span style={{ color: "#e9c46a" }}>EvanMiya</span>
+          S16%: <span style={{ color: "#2ecc71" }}>DK Implied</span> / <span style={{ color: "#7c5cfc" }}>Torik</span> / <span style={{ color: "#e9c46a" }}>EvanMiya</span>
         </div>
       </>
       )}
