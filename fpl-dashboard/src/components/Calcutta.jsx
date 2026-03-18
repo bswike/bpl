@@ -2036,10 +2036,6 @@ function AuctionPrep() {
         </div>
 
         <RegionBracket region={bracketRegion} />
-
-        <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 6, textAlign: "center" }}>
-          S16%: <span style={{ color: "#2ecc71" }}>DK Implied</span> / <span style={{ color: "#7c5cfc" }}>Torik</span> / <span style={{ color: "#e9c46a" }}>EvanMiya</span>
-        </div>
       </>
       )}
 
