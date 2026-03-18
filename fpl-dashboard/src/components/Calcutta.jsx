@@ -1191,6 +1191,124 @@ function Strategy({ year }) {
           </div>
         </div>
       </div>
+
+      {/* ══════ HOGAN CALCUTTA INTELLIGENCE (moved from 2026 Prep) ══════ */}
+      <div style={{ marginTop: 28 }}>
+        <SectionTitle>Hogan Calcutta Intelligence (3-Year Analysis)</SectionTitle>
+
+        <div style={{
+          background: "linear-gradient(135deg, #111827, #1a2a3e)", borderRadius: 10, padding: 16,
+          border: "1px solid #4a9eff44", marginBottom: 16,
+        }}>
+          <div style={{ fontSize: 11, color: "#4a9eff", letterSpacing: 2, textTransform: "uppercase", fontWeight: 700, marginBottom: 10 }}>
+            The #1 Rule: Sweet 16 Teams = 89% of All Money
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+            {[
+              { yr: "2023", pct: "89%", s16roi: "110%" },
+              { yr: "2024", pct: "87%", s16roi: "52%" },
+              { yr: "2025", pct: "90%", s16roi: "51%" },
+            ].map(d => (
+              <div key={d.yr} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 9, color: "#4a6a8a" }}>{d.yr}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#2ecc71", fontFamily: "'Space Grotesk', sans-serif" }}>{d.pct}</div>
+                <div style={{ fontSize: 9, color: "#5a6a8a" }}>of pot → S16 teams</div>
+                <div style={{ fontSize: 11, color: "#2ecc71", fontWeight: 600, marginTop: 4 }}>{d.s16roi} ROI</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: "#8a9aba", lineHeight: 1.6 }}>
+            Teams that don't make the Sweet 16 collectively lose money every single year. Your entire strategy should maximize S16 ownership.
+          </div>
+        </div>
+
+        <SubTitle>Which S16 Teams Make the Most Money?</SubTitle>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+          {[
+            { label: "Cheap S16 ($50-500)", roi: "449%", color: "#7c5cfc", ex: "FAU '23, NC State '24, Princeton '23, Oakland '24, Arkansas '25" },
+            { label: "Mid S16 ($500-1500)", roi: "85%", color: "#4a9eff", ex: "SDSU '23, Clemson '24, Alabama '24, BYU '25" },
+            { label: "Expensive S16 ($1500+)", roi: "10%", color: "#e9c46a", ex: "Champs barely profit. Houston '24 at $2650 = -$1586" },
+          ].map(d => (
+            <div key={d.label} style={{ background: "#111827", borderRadius: 8, padding: 12, border: `1px solid ${d.color}33` }}>
+              <div style={{ fontSize: 9, color: d.color, letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>{d.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: d.color, fontFamily: "'Space Grotesk', sans-serif", marginTop: 4 }}>{d.roi}</div>
+              <div style={{ fontSize: 9, color: "#5a6a8a" }}>3yr avg ROI</div>
+              <div style={{ fontSize: 8, color: "#4a5a7a", marginTop: 4 }}>{d.ex}</div>
+            </div>
+          ))}
+        </div>
+
+        <SubTitle>What Winners Did</SubTitle>
+        <div style={{ maxHeight: 260, overflowY: "auto", borderRadius: 8 }}>
+          {[
+            { yr:"2023", name:"Bacon", spent:"$3,650", roi:"+145%", s16:3, key:"UConn $1,020 + SDSU $620 + Tennessee $780", insight:"Two mid-priced S16 teams + cheap Cinderella champ" },
+            { yr:"2024", name:"Curran", spent:"$3,360", roi:"+127%", s16:3, key:"Purdue $2,800 + NC State $200 + Oakland $60", insight:"One big dog + two dirt-cheap Cinderellas" },
+            { yr:"2024", name:"Hudachek", spent:"$5,530", roi:"+70%", s16:2, key:"UConn $3,350 + Alabama $680", insight:"All-in on champ + cheap 4-seed that ran" },
+            { yr:"2025", name:"Crumbling", spent:"$4,450", roi:"+37%", s16:3, key:"Florida $2,800 + Purdue $550 + Kentucky $700", insight:"Champ anchor + two value 3-4 seeds" },
+            { yr:"2025", name:"Bacon", spent:"$4,540", roi:"+34%", s16:2, key:"Houston $1,900 + Tennessee $1,350", insight:"Two strong 2-seeds, both made S16+" },
+          ].map((w, i) => (
+            <div key={i} style={{ padding: "8px 10px", borderBottom: "1px solid #111827", background: i === 0 ? "#111d2e" : "transparent", borderRadius: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontWeight: 700, fontSize: 12 }}>{w.name} <span style={{ color: "#3a4a6a", fontSize: 9 }}>{w.yr} · {w.spent}</span></span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={{ fontSize: 10, color: "#4a9eff" }}>{w.s16} S16</span>
+                  <span style={{ color: "#2ecc71", fontWeight: 700 }}>{w.roi}</span>
+                </div>
+              </div>
+              <div style={{ fontSize: 10, color: "#8a9aba", marginTop: 2 }}>{w.key}</div>
+              <div style={{ fontSize: 9, color: "#e9c46a", marginTop: 1 }}>{w.insight}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <SubTitle>Calcutta Strategy (Applied to Hogan Rules)</SubTitle>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
+            {[
+              { title: "Portfolio > Single Pick", body: "Winners averaged 2.4 S16 teams. Every year at least one expensive 1-2 seed flames out (Alabama '23, Houston '24, St. John's '25). Diversify." },
+              { title: "South Region = Cheapest", body: "First region auctioned is 15-20% cheaper than the last. South teams are your best value. Houston/Illinois/Vanderbilt going early = opportunity." },
+              { title: "Stay Under $3K for Steal Round", body: "Budget $2,800-2,900 in Round 1. The steal round lets you poach overpaid teams. 10% juice still profitable if team was bought 20%+ over fair value." },
+              { title: "Buy S16 Probability, Not Names", body: "Vanderbilt (55% S16) will go cheaper than UNC (25% S16, star OUT). Iowa (30%, underseeded) cheaper than a 7-seed with same odds. This is the edge." },
+              { title: "9s and 11s Are Cinderella Gold", body: "Made S16 in 8 of last 9 tourneys at Hogan prices of $150-250. One S16 run pays for 5+ failed tickets. FAU ($220→+$2,588), NC State ($200→+$2,994)." },
+              { title: "Don't Cannibalize Your Bracket", body: "Don't buy the 1-seed AND 4-5 seed in the same region half — one kills the other in the S16. Pick a side." },
+              { title: "Duke Goes Last = Wild Card", body: "Last 1-seed is often 10-15% cheaper due to budget exhaustion. If the room is tapped, Duke could be a steal. If not, let someone else overpay for the Foster injury risk." },
+            ].map((p, i) => (
+              <div key={i} style={{ background: "#111827", borderRadius: 6, padding: "8px 10px", border: "1px solid #1e2a40" }}>
+                <div style={{ fontSize: 10, color: "#e9c46a", fontWeight: 700 }}>{p.title}</div>
+                <div style={{ fontSize: 9, color: "#7a8aaa", lineHeight: 1.5, marginTop: 2 }}>{p.body}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16, background: "linear-gradient(135deg, #111827, #1a1f2e)", borderRadius: 10, padding: 14, border: "1px solid #2ecc7144" }}>
+          <div style={{ fontSize: 11, color: "#2ecc71", letterSpacing: 2, textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>
+            Model Portfolio (~$2,900)
+          </div>
+          {[
+            { t: "Houston (2S)", price: "$1,800", s16: "82%", role: "Anchor" },
+            { t: "Vanderbilt (5S)", price: "$450", s16: "55%", role: "Value" },
+            { t: "Saint Louis (9MW)", price: "$170", s16: "32%", role: "Cheap" },
+            { t: "VCU (11S)", price: "$200", s16: "25%", role: "Cinderella" },
+            { t: "Iowa (9S)", price: "$160", s16: "30%", role: "Underseeded" },
+            { t: "15-seed pair", price: "$70", s16: "ATS", role: "Lottery" },
+          ].map((p, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", borderBottom: "1px solid #1a2a3e", fontSize: 11 }}>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 8, padding: "1px 4px", borderRadius: 3, background: "#2ecc7122", color: "#2ecc71", fontWeight: 600 }}>{p.role}</span>
+                <span style={{ fontWeight: 500 }}>{p.t}</span>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <span style={{ color: "#4a9eff", fontSize: 10 }}>{p.s16}</span>
+                <span style={{ fontWeight: 600, minWidth: 45, textAlign: "right" }}>{p.price}</span>
+              </div>
+            </div>
+          ))}
+          <div style={{ fontSize: 9, color: "#5a6a8a", marginTop: 6 }}>
+            ~$2,850 total · 5 S16 shots · Steal round eligible · Need 2+ S16 = profit
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1561,40 +1679,6 @@ function AuctionPrep() {
     <div>
       <SectionTitle>2026 Auction Prep</SectionTitle>
 
-      {/* Rules - compact */}
-      <div style={{
-        background: "#111827", borderRadius: 8, padding: "10px 12px", border: "1px solid #1e2a40", marginBottom: 14,
-      }}>
-        <div style={{ fontSize: 9, color: "#e9c46a", letterSpacing: 1, marginBottom: 4, textTransform: "uppercase", fontWeight: 600 }}>
-          Rules
-        </div>
-        <div style={{ fontSize: 10, color: "#8a9aba", lineHeight: 1.5 }}>
-          $3K cap · 9 syndicates · South → MW → West → East · 
-          16s packaged (DK spreads) · 15s paired · 1s/2s NOT randomized · 
-          Last off board: Florida → Michigan → Arizona → Duke · 
-          Steal round: under $3K only · 10% juice on steals
-        </div>
-      </div>
-
-      {/* Strategy cards - 2x2 on mobile */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-        {[
-          { label: "Sweet Spots", seeds: "1, 5, 9, 15-16", roi: "+20% avg", color: "#2ecc71" },
-          { label: "Money Pits", seeds: "8, 10, 12-14", roi: "-50% avg", color: "#e63946" },
-          { label: "Value Zone", seeds: "3, 6, 11", roi: "+5-19%", color: "#4a9eff" },
-          { label: "High Variance", seeds: "2, 4, 7", roi: "-8 to -30%", color: "#e9c46a" },
-        ].map(card => (
-          <div key={card.label} style={{
-            background: "#111827", borderRadius: 8, padding: "10px 12px",
-            border: `1px solid ${card.color}33`,
-          }}>
-            <div style={{ fontSize: 9, color: card.color, letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>{card.label}</div>
-            <div style={{ fontSize: 13, color: "#e8e6e3", fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", marginTop: 3 }}>{card.seeds}</div>
-            <div style={{ fontSize: 10, color: card.color, marginTop: 1 }}>{card.roi}</div>
-          </div>
-        ))}
-      </div>
-
       {/* View Toggle — bracket is wide; scroll/swipe horizontally on small screens */}
       <div style={{ marginBottom: 10, textAlign: "center" }}>
         <div style={{ fontSize: 9, color: "#5a6a8a", letterSpacing: 0.5, marginBottom: 8, lineHeight: 1.4 }}>
@@ -1739,195 +1823,100 @@ function AuctionPrep() {
       </>
       )}
 
-      {/* Target picks - stacked on mobile */}
+      {/* Seed value summary cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 18 }}>
+        {[
+          { label: "Sweet Spots", seeds: "1, 5, 9, 15-16", roi: "+20% avg", color: "#2ecc71" },
+          { label: "Money Pits", seeds: "8, 10, 12-14", roi: "-50% avg", color: "#e63946" },
+          { label: "Value Zone", seeds: "3, 6, 11", roi: "+5-19%", color: "#4a9eff" },
+          { label: "High Variance", seeds: "2, 4, 7", roi: "-8 to -30%", color: "#e9c46a" },
+        ].map(card => (
+          <div key={card.label} style={{
+            background: "#111827", borderRadius: 8, padding: "10px 12px",
+            border: `1px solid ${card.color}33`,
+          }}>
+            <div style={{ fontSize: 9, color: card.color, letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>{card.label}</div>
+            <div style={{ fontSize: 13, color: "#e8e6e3", fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", marginTop: 3 }}>{card.seeds}</div>
+            <div style={{ fontSize: 10, color: card.color, marginTop: 1 }}>{card.roi}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Recommended Targets — driven by S16%, historical seed pricing & ROI */}
       <div style={{ marginTop: 24 }}>
         <SubTitle>Recommended Targets</SubTitle>
+        <div style={{ fontSize: 9, color: "#5a6a8a", marginBottom: 10, lineHeight: 1.5 }}>
+          Based on S16 implied probability, 3-year historical avg price by seed, and seed-level ROI.
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 10 }}>
-          <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #e6394633" }}>
-            <div style={{ fontSize: 10, color: "#e63946", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Big Dogs ($1,500+)</div>
+          <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #2ecc7133" }}>
+            <div style={{ fontSize: 10, color: "#2ecc71", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>High S16% / Strong ROI Seeds</div>
             {[
-              { t: "Houston", s: "2S", why: "Lost title game, elite D, +1000", target: "$1,800-2,100" },
-              { t: "Iowa State", s: "2MW", why: "KenPom #4 defense, +1800", target: "$1,400-1,600" },
-              { t: "UConn", s: "2E", why: "2x champ coach, +1700", target: "$1,400-1,700" },
+              { t: "Michigan", s: "1MW", s16: "92%", avg: "$2,100", roi: "+20%", why: "31-3, #1 KenPom. 1-seeds hit S16 75% of time at +20% ROI" },
+              { t: "Arizona", s: "1W", s16: "92%", avg: "$2,100", roi: "+20%", why: "32-2, healthiest 1-seed. 1-seeds are highest-probability S16 bets" },
+              { t: "Vanderbilt", s: "5S", s16: "55%", avg: "$550", roi: "+18%", why: "5-seeds: 42% S16 rate, best value in bracket at only $550 avg" },
+              { t: "Texas Tech", s: "5MW", s16: "52%", avg: "$550", roi: "+18%", why: "5s dodge 1-seeds until E8, face 4/12 in R2. Beat UF by 17" },
+              { t: "St. John's", s: "5E", s16: "55%", avg: "$550", roi: "+18%", why: "BE champ, underseeded per Nate Silver. 5-seed sweet spot" },
+              { t: "Iowa", s: "9S", s16: "30%", avg: "$200", roi: "+30%", why: "9-seeds: +30% ROI at $200 avg. Underseeded per KenPom" },
+              { t: "Saint Louis", s: "9MW", s16: "32%", avg: "$200", roi: "+30%", why: "A10 champ, top-15 O & D. 9s are historically underpriced" },
             ].map((pick, i) => (
               <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: 600 }}>{pick.t} <span style={{ color: "#4a6a8a", fontSize: 9 }}>({pick.s})</span></span>
-                  <span style={{ color: "#2ecc71", fontWeight: 600, fontSize: 10 }}>{pick.target}</span>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ color: parseInt(pick.s16) >= 50 ? "#2ecc71" : "#e9c46a", fontWeight: 700, fontSize: 10 }}>{pick.s16}</span>
+                    <span style={{ color: "#5a6a8a", fontSize: 9 }}>{pick.avg}</span>
+                  </div>
                 </div>
                 <div style={{ color: "#5a6a8a", fontSize: 9, marginTop: 2 }}>{pick.why}</div>
               </div>
             ))}
           </div>
-          <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #4a9eff33" }}>
-            <div style={{ fontSize: 10, color: "#4a9eff", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Value Picks ($200-800)</div>
+          <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #7c5cfc33" }}>
+            <div style={{ fontSize: 10, color: "#7c5cfc", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Cinderella Value (cheap + positive ROI seeds)</div>
             {[
-              { t: "Illinois", s: "3S", why: "Young, explosive O, +1900", target: "$900-1,100" },
-              { t: "Vanderbilt", s: "5S", why: "Expert sleeper pick, +5000", target: "$400-550" },
-              { t: "BYU", s: "6W", why: "Dybantsa = top-5 NBA pick, +5000", target: "$350-450" },
-              { t: "Saint Louis", s: "9MW", why: "A10 champ, elite metrics", target: "$150-200" },
-              { t: "VCU", s: "11S", why: "16 of last 17 W, chameleon", target: "$180-250" },
+              { t: "VCU", s: "11S", s16: "25%", avg: "$220", roi: "+19%", why: "11-seeds: 25% S16 rate, +19% ROI. 16 of last 17 W, coin-flip vs 6-seed" },
+              { t: "South Florida", s: "11E", s16: "20%", avg: "$220", roi: "+19%", why: "CBS sleeper pick. 11 vs 6 matchups are near coin flips historically" },
+              { t: "BYU", s: "6W", s16: "40%", avg: "$420", roi: "+9%", why: "6-seeds: +9% ROI. Dybantsa = top-5 NBA pick, legit S16 contender" },
+              { t: "Illinois", s: "3S", s16: "68%", avg: "$950", roi: "+2%", why: "3-seeds are breakeven but high-floor. Young, explosive offense" },
+              { t: "Idaho", s: "15S", s16: "2%", avg: "$72", roi: "+32%", why: "15-seeds: +32% ROI at $72 avg. +23.5 spread = ATS lottery ticket" },
+              { t: "16-seed pkg", s: "16", s16: "ATS", avg: "$48", roi: "+17%", why: "16s at ~$48 = cheapest lottery. 42% covered the spread over 3yrs" },
             ].map((pick, i) => (
-              <div key={i} style={{ padding: "5px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
+              <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: 600 }}>{pick.t} <span style={{ color: "#4a6a8a", fontSize: 9 }}>({pick.s})</span></span>
-                  <span style={{ color: "#2ecc71", fontWeight: 600, fontSize: 10 }}>{pick.target}</span>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ color: "#7c5cfc", fontWeight: 700, fontSize: 10 }}>{pick.s16}</span>
+                    <span style={{ color: "#5a6a8a", fontSize: 9 }}>{pick.avg}</span>
+                  </div>
                 </div>
                 <div style={{ color: "#5a6a8a", fontSize: 9, marginTop: 2 }}>{pick.why}</div>
               </div>
             ))}
-          </div>
-        </div>
-        <div style={{ marginTop: 10, background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #2ecc7133" }}>
-          <div style={{ fontSize: 10, color: "#2ecc71", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>Lottery Tickets ($40-150) — 15s/16s = +25% ROI</div>
-          <div style={{ fontSize: 10, color: "#8a9aba", lineHeight: 1.7 }}>
-            16-seed package (~$50) · Idaho +23.5 vs Houston · Furman +20.5 vs UConn · 
-            South Florida (11E) · McNeese (12S) · Texas (11W, FF winner)
           </div>
         </div>
       </div>
 
-      {/* Fade list */}
+      {/* Fade list — seeds with negative ROI or bad S16% relative to price */}
       <div style={{ marginTop: 14, background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #e6394633" }}>
-        <div style={{ fontSize: 10, color: "#e63946", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
-          Fade List
+        <div style={{ fontSize: 10, color: "#e63946", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>
+          Overpriced / Negative ROI — Fade or Buy Cheap
         </div>
+        <div style={{ fontSize: 9, color: "#4a5a7a", marginBottom: 8 }}>Seeds with historically negative ROI or S16% that doesn't justify the price.</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {[
-            { t: "Louisville (6E)", why: "3-6 vs Top 25" },
-            { t: "Georgia (8MW)", why: "315th pts allowed" },
-            { t: "Tennessee (6MW)", why: "Lost 4 of last 6" },
-            { t: "Florida (1S)", why: "Champ tax = overpay" },
-            { t: "Duke (1E)", why: "Last off board, injury" },
+            { t: "Georgia (8MW)", why: "8-seeds: -39% ROI, $250 avg. 315th pts allowed" },
+            { t: "Louisville (6E)", why: "3-6 vs Top 25, Brown out. 32% S16 at $420 = thin" },
+            { t: "Tennessee (6MW)", why: "Lost 4 of last 6. 38% S16 doesn't justify bidding war" },
+            { t: "Missouri (10W)", why: "10-seeds: -48% ROI. Worst value zone in bracket" },
+            { t: "Any 12-14 seed over $150", why: "12s -59%, 13s -77%, 14s -81% ROI. Don't chase" },
+            { t: "Any 2-seed over $1,600", why: "2s: -15% ROI at $1,550 avg. Near 1-seed price, less upside" },
           ].map((fade, i) => (
-            <div key={i} style={{ fontSize: 10 }}>
+            <div key={i} style={{ fontSize: 10, padding: "3px 0" }}>
               <span style={{ color: "#e63946", fontWeight: 600 }}>{fade.t}</span>
               <div style={{ color: "#4a5a7a", fontSize: 9 }}>{fade.why}</div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* ══════ HOGAN CALCUTTA INTELLIGENCE ══════ */}
-      <div style={{ marginTop: 28 }}>
-        <SectionTitle>Hogan Calcutta Intelligence (3-Year Analysis)</SectionTitle>
-
-        {/* THE KEY INSIGHT */}
-        <div style={{
-          background: "linear-gradient(135deg, #111827, #1a2a3e)", borderRadius: 10, padding: 16,
-          border: "1px solid #4a9eff44", marginBottom: 16,
-        }}>
-          <div style={{ fontSize: 11, color: "#4a9eff", letterSpacing: 2, textTransform: "uppercase", fontWeight: 700, marginBottom: 10 }}>
-            The #1 Rule: Sweet 16 Teams = 89% of All Money
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
-            {[
-              { yr: "2023", pct: "89%", s16roi: "110%" },
-              { yr: "2024", pct: "87%", s16roi: "52%" },
-              { yr: "2025", pct: "90%", s16roi: "51%" },
-            ].map(d => (
-              <div key={d.yr} style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 9, color: "#4a6a8a" }}>{d.yr}</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#2ecc71", fontFamily: "'Space Grotesk', sans-serif" }}>{d.pct}</div>
-                <div style={{ fontSize: 9, color: "#5a6a8a" }}>of pot → S16 teams</div>
-                <div style={{ fontSize: 11, color: "#2ecc71", fontWeight: 600, marginTop: 4 }}>{d.s16roi} ROI</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ fontSize: 10, color: "#8a9aba", lineHeight: 1.6 }}>
-            Teams that don't make the Sweet 16 collectively lose money every single year. Your entire strategy should maximize S16 ownership.
-          </div>
-        </div>
-
-        {/* S16 tier breakdown */}
-        <SubTitle>Which S16 Teams Make the Most Money?</SubTitle>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
-          {[
-            { label: "Cheap S16 ($50-500)", roi: "449%", color: "#7c5cfc", ex: "FAU '23, NC State '24, Princeton '23, Oakland '24, Arkansas '25" },
-            { label: "Mid S16 ($500-1500)", roi: "85%", color: "#4a9eff", ex: "SDSU '23, Clemson '24, Alabama '24, BYU '25" },
-            { label: "Expensive S16 ($1500+)", roi: "10%", color: "#e9c46a", ex: "Champs barely profit. Houston '24 at $2650 = -$1586" },
-          ].map(d => (
-            <div key={d.label} style={{ background: "#111827", borderRadius: 8, padding: 12, border: `1px solid ${d.color}33` }}>
-              <div style={{ fontSize: 9, color: d.color, letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>{d.label}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: d.color, fontFamily: "'Space Grotesk', sans-serif", marginTop: 4 }}>{d.roi}</div>
-              <div style={{ fontSize: 9, color: "#5a6a8a" }}>3yr avg ROI</div>
-              <div style={{ fontSize: 8, color: "#4a5a7a", marginTop: 4 }}>{d.ex}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Winning formula */}
-        <SubTitle>What Winners Did</SubTitle>
-        <div style={{ maxHeight: 260, overflowY: "auto", borderRadius: 8 }}>
-          {[
-            { yr:"2023", name:"Bacon", spent:"$3,650", roi:"+145%", s16:3, key:"UConn $1,020 + SDSU $620 + Tennessee $780", insight:"Two mid-priced S16 teams + cheap Cinderella champ" },
-            { yr:"2024", name:"Curran", spent:"$3,360", roi:"+127%", s16:3, key:"Purdue $2,800 + NC State $200 + Oakland $60", insight:"One big dog + two dirt-cheap Cinderellas" },
-            { yr:"2024", name:"Hudachek", spent:"$5,530", roi:"+70%", s16:2, key:"UConn $3,350 + Alabama $680", insight:"All-in on champ + cheap 4-seed that ran" },
-            { yr:"2025", name:"Crumbling", spent:"$4,450", roi:"+37%", s16:3, key:"Florida $2,800 + Purdue $550 + Kentucky $700", insight:"Champ anchor + two value 3-4 seeds" },
-            { yr:"2025", name:"Bacon", spent:"$4,540", roi:"+34%", s16:2, key:"Houston $1,900 + Tennessee $1,350", insight:"Two strong 2-seeds, both made S16+" },
-          ].map((w, i) => (
-            <div key={i} style={{ padding: "8px 10px", borderBottom: "1px solid #111827", background: i === 0 ? "#111d2e" : "transparent", borderRadius: 4 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 700, fontSize: 12 }}>{w.name} <span style={{ color: "#3a4a6a", fontSize: 9 }}>{w.yr} · {w.spent}</span></span>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <span style={{ fontSize: 10, color: "#4a9eff" }}>{w.s16} S16</span>
-                  <span style={{ color: "#2ecc71", fontWeight: 700 }}>{w.roi}</span>
-                </div>
-              </div>
-              <div style={{ fontSize: 10, color: "#8a9aba", marginTop: 2 }}>{w.key}</div>
-              <div style={{ fontSize: 9, color: "#e9c46a", marginTop: 1 }}>{w.insight}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Strategy principles */}
-        <div style={{ marginTop: 16 }}>
-          <SubTitle>Calcutta Strategy (Applied to Hogan Rules)</SubTitle>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
-            {[
-              { title: "Portfolio > Single Pick", body: "Winners averaged 2.4 S16 teams. Every year at least one expensive 1-2 seed flames out (Alabama '23, Houston '24, St. John's '25). Diversify." },
-              { title: "South Region = Cheapest", body: "First region auctioned is 15-20% cheaper than the last. South teams are your best value. Houston/Illinois/Vanderbilt going early = opportunity." },
-              { title: "Stay Under $3K for Steal Round", body: "Budget $2,800-2,900 in Round 1. The steal round lets you poach overpaid teams. 10% juice still profitable if team was bought 20%+ over fair value." },
-              { title: "Buy S16 Probability, Not Names", body: "Vanderbilt (55% S16) will go cheaper than UNC (25% S16, star OUT). Iowa (30%, underseeded) cheaper than a 7-seed with same odds. This is the edge." },
-              { title: "9s and 11s Are Cinderella Gold", body: "Made S16 in 8 of last 9 tourneys at Hogan prices of $150-250. One S16 run pays for 5+ failed tickets. FAU ($220→+$2,588), NC State ($200→+$2,994)." },
-              { title: "Don't Cannibalize Your Bracket", body: "Don't buy the 1-seed AND 4-5 seed in the same region half — one kills the other in the S16. Pick a side." },
-              { title: "Duke Goes Last = Wild Card", body: "Last 1-seed is often 10-15% cheaper due to budget exhaustion. If the room is tapped, Duke could be a steal. If not, let someone else overpay for the Foster injury risk." },
-            ].map((p, i) => (
-              <div key={i} style={{ background: "#111827", borderRadius: 6, padding: "8px 10px", border: "1px solid #1e2a40" }}>
-                <div style={{ fontSize: 10, color: "#e9c46a", fontWeight: 700 }}>{p.title}</div>
-                <div style={{ fontSize: 9, color: "#7a8aaa", lineHeight: 1.5, marginTop: 2 }}>{p.body}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Model portfolio */}
-        <div style={{ marginTop: 16, background: "linear-gradient(135deg, #111827, #1a1f2e)", borderRadius: 10, padding: 14, border: "1px solid #2ecc7144" }}>
-          <div style={{ fontSize: 11, color: "#2ecc71", letterSpacing: 2, textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>
-            Model Portfolio (~$2,900)
-          </div>
-          {[
-            { t: "Houston (2S)", price: "$1,800", s16: "82%", role: "Anchor" },
-            { t: "Vanderbilt (5S)", price: "$450", s16: "55%", role: "Value" },
-            { t: "Saint Louis (9MW)", price: "$170", s16: "32%", role: "Cheap" },
-            { t: "VCU (11S)", price: "$200", s16: "25%", role: "Cinderella" },
-            { t: "Iowa (9S)", price: "$160", s16: "30%", role: "Underseeded" },
-            { t: "15-seed pair", price: "$70", s16: "ATS", role: "Lottery" },
-          ].map((p, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", borderBottom: "1px solid #1a2a3e", fontSize: 11 }}>
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span style={{ fontSize: 8, padding: "1px 4px", borderRadius: 3, background: "#2ecc7122", color: "#2ecc71", fontWeight: 600 }}>{p.role}</span>
-                <span style={{ fontWeight: 500 }}>{p.t}</span>
-              </div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <span style={{ color: "#4a9eff", fontSize: 10 }}>{p.s16}</span>
-                <span style={{ fontWeight: 600, minWidth: 45, textAlign: "right" }}>{p.price}</span>
-              </div>
-            </div>
-          ))}
-          <div style={{ fontSize: 9, color: "#5a6a8a", marginTop: 6 }}>
-            ~$2,850 total · 5 S16 shots · Steal round eligible · Need 2+ S16 = profit
-          </div>
         </div>
       </div>
     </div>
