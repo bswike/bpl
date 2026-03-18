@@ -2065,71 +2065,91 @@ function AuctionPrep() {
         ))}
       </div>
 
-      {/* Recommended Targets — dynamically computed from round-by-round EV */}
-      {(() => {
-        const scored = BRACKET_2026.map(team => {
-          const val = getTeamValue(team);
-          const ratio = val.fairValue / val.expectedCost;
-          return { ...team, val, ratio };
-        });
-        const buys = scored.filter(t => t.val.label === "BUY").sort((a, b) => b.ratio - a.ratio);
-        const fairs = scored.filter(t => t.val.label === "FAIR").sort((a, b) => b.ratio - a.ratio);
-        const avoids = scored.filter(t => t.val.label === "AVOID" || t.val.label === "MEH").sort((a, b) => a.ratio - b.ratio);
-
-        const PickRow = ({ pick, accentColor }) => (
-          <div style={{ padding: "6px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontWeight: 600 }}>{pick.t} <span style={{ color: "#4a6a8a", fontSize: 9 }}>({pick.s}{pick.r})</span></span>
-              <div style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-                <span style={{ color: accentColor, fontWeight: 700, fontSize: 11 }}>{fmtDollar(pick.val.fairValue)}</span>
-                <span style={{ color: "#3a4a6a", fontSize: 9 }}>/ {fmtDollar(pick.val.expectedCost)}</span>
-                <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: `${accentColor}22`, color: accentColor }}>{pick.ratio.toFixed(2)}x</span>
-              </div>
-            </div>
-            {pick.note && <div style={{ color: "#5a6a8a", fontSize: 9, marginTop: 2 }}>{pick.note}</div>}
-          </div>
-        );
-
-        return (
-          <>
-            <div style={{ marginTop: 24 }}>
-              <SubTitle>Recommended Targets</SubTitle>
-              <div style={{ fontSize: 9, color: "#5a6a8a", marginBottom: 10, lineHeight: 1.5 }}>
-                EV = round-by-round P(advance) × Hogan payout (scaled 1.11x for 9-syn pot). Ratio = EV ÷ expected 9-syn cost per seed.
-                Costs adjusted with dampened tier-specific premiums from 2024 (the last 9-syndicate year).
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 10 }}>
-                <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #2ecc7133" }}>
-                  <div style={{ fontSize: 10, color: "#2ecc71", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>BUY — EV exceeds expected cost by 25%+</div>
-                  {buys.slice(0, 10).map((pick, i) => <PickRow key={i} pick={pick} accentColor="#2ecc71" />)}
-                </div>
-                <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #7c5cfc33" }}>
-                  <div style={{ fontSize: 10, color: "#7c5cfc", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>FAIR — near breakeven, worth watching</div>
-                  {fairs.slice(0, 10).map((pick, i) => <PickRow key={i} pick={pick} accentColor="#7c5cfc" />)}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: 14, background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #e6394633" }}>
-              <div style={{ fontSize: 10, color: "#e63946", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>
-                AVOID — EV well below expected cost
-              </div>
-              <div style={{ fontSize: 9, color: "#4a5a7a", marginBottom: 8 }}>Teams where round-by-round EV is significantly less than what they'll cost in a 9-syn auction. Only buy at a steep discount.</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                {avoids.slice(0, 10).map((fade, i) => (
-                  <div key={i} style={{ fontSize: 10, padding: "4px 0" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ color: "#e63946", fontWeight: 600 }}>{fade.t} <span style={{ color: "#4a5a7a", fontSize: 9 }}>{fade.s}{fade.r}</span></span>
-                      <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#e6394622", color: "#e63946" }}>{fade.ratio.toFixed(2)}x</span>
-                    </div>
-                    <div style={{ color: "#4a5a7a", fontSize: 9, marginTop: 1 }}>EV {fmtDollar(fade.val.fairValue)} vs {fmtDollar(fade.val.expectedCost)} exp cost{fade.note ? ` — ${fade.note}` : ""}</div>
+      {/* Recommended Targets — driven by round-by-round EV vs 9-syn expected cost */}
+      <div style={{ marginTop: 24 }}>
+        <SubTitle>Recommended Targets</SubTitle>
+        <div style={{ fontSize: 9, color: "#5a6a8a", marginBottom: 10, lineHeight: 1.5 }}>
+          EV = round-by-round P(advance) × Hogan payout (scaled 1.11x for 9-syn pot). Ratio = EV ÷ expected 9-syn cost per seed.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 10 }}>
+          <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #2ecc7133" }}>
+            <div style={{ fontSize: 10, color: "#2ecc71", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>BUY — EV exceeds price by 25%+</div>
+            {[
+              { t: "Tennessee", s: "6MW", ev: "$753", cost: "$361", ratio: "2.09x", why: "Best value in the field. Models love deep run odds (40% S16, 17% E8). Lost 4 of 6 suppresses price" },
+              { t: "Louisville", s: "6E", ev: "$626", cost: "$361", ratio: "1.73x", why: "37% S16 (Torik) with deep E8 value. 6-seeds have +9% hist ROI. Brown injury = buy-low" },
+              { t: "St. John's", s: "5E", ev: "$902", cost: "$524", ratio: "1.72x", why: "BE champ. 50-55% S16 across models. 5-seeds dodge 1s until E8 — great bracket path" },
+              { t: "Vanderbilt", s: "5S", ev: "$890", cost: "$524", ratio: "1.70x", why: "Both models agree: ~51% S16. Beat Florida by 17. Expert sleeper at deflated 5-seed cost" },
+              { t: "UCLA", s: "7E", ev: "$480", cost: "$285", ratio: "1.68x", why: "Both models have 24-26% S16 but deep run EV is unusual for a 7-seed at this price" },
+              { t: "Illinois", s: "3S", ev: "$1,680", cost: "$1,076", ratio: "1.56x", why: "Models avg 82% S16 — highest non-1-seed. E8 value is massive. Young, explosive O" },
+              { t: "Arkansas", s: "4W", ev: "$950", cost: "$746", ratio: "1.27x", why: "Models avg 58% S16 — highest 4-seed. Friendly bracket path boosts deep round value" },
+              { t: "Michigan", s: "1MW", ev: "$2,919", cost: "$2,352", ratio: "1.24x", why: "31-3, #1 KenPom. Deepest EV profile of any team. Best 1-seed by model — but 9-syn price is steep" },
+            ].map((pick, i) => (
+              <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 600 }}>{pick.t} <span style={{ color: "#4a6a8a", fontSize: 9 }}>({pick.s})</span></span>
+                  <div style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
+                    <span style={{ color: "#2ecc71", fontWeight: 700, fontSize: 11 }}>{pick.ev}</span>
+                    <span style={{ color: "#3a4a6a", fontSize: 9 }}>/ {pick.cost}</span>
+                    <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#2ecc7122", color: "#2ecc71" }}>{pick.ratio}</span>
                   </div>
-                ))}
+                </div>
+                <div style={{ color: "#5a6a8a", fontSize: 9, marginTop: 2 }}>{pick.why}</div>
               </div>
+            ))}
+          </div>
+          <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #7c5cfc33" }}>
+            <div style={{ fontSize: 10, color: "#7c5cfc", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Cinderella / Cheap Value</div>
+            {[
+              { t: "16-seed pkg", s: "all 16s", ev: "$76", cost: "$56", ratio: "1.36x", why: "42% ATS cover rate in Hogan (5/12). $76 EV at $56 cost = best ROI per dollar in the auction" },
+              { t: "Ohio State", s: "8E", ev: "$290", cost: "$231", ratio: "1.26x", why: "Models like them more than other 8s. Rare deep value for an 8-seed at deflated 9-syn price" },
+              { t: "Iowa", s: "9S", ev: "$254", cost: "$224", ratio: "1.13x", why: "9-seeds are historically underpriced (+30% ROI). Underseeded per KenPom" },
+              { t: "Texas", s: "11W", ev: "$253", cost: "$223", ratio: "1.13x", why: "Won First Four. 13-15% S16 across models. S16 value at cheap 11-seed pricing" },
+              { t: "Utah State", s: "9W", ev: "$230", cost: "$224", ratio: "1.03x", why: "MWC champ. 9-seeds at this price are a sweet spot in 9-syn auctions" },
+              { t: "Furman", s: "15E", ev: "$67", cost: "$75", ratio: "0.89x", why: "Best 15-seed by model. 35% ATS cover = $63 R64 value. If spread is generous, worth a flier" },
+            ].map((pick, i) => (
+              <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 600 }}>{pick.t} <span style={{ color: "#4a6a8a", fontSize: 9 }}>({pick.s})</span></span>
+                  <div style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
+                    <span style={{ color: "#7c5cfc", fontWeight: 700, fontSize: 11 }}>{pick.ev}</span>
+                    <span style={{ color: "#3a4a6a", fontSize: 9 }}>/ {pick.cost}</span>
+                    <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#7c5cfc22", color: "#7c5cfc" }}>{pick.ratio}</span>
+                  </div>
+                </div>
+                <div style={{ color: "#5a6a8a", fontSize: 9, marginTop: 2 }}>{pick.why}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Avoid list — EV well below expected cost */}
+      <div style={{ marginTop: 14, background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #e6394633" }}>
+        <div style={{ fontSize: 10, color: "#e63946", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>
+          AVOID — EV well below price
+        </div>
+        <div style={{ fontSize: 9, color: "#4a5a7a", marginBottom: 8 }}>Teams where round-by-round EV is significantly less than what they'll cost. Only buy at a steep discount.</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+          {[
+            { t: "North Carolina 6S", ev: "$234", cost: "$361", ratio: "0.65x", why: "Wilson out (broken thumb). EV is well below even the deflated 9-syn 6-seed cost" },
+            { t: "UConn 2E", ev: "$1,417", cost: "$1,710", ratio: "0.83x", why: "2x champ Hurley tax. Models coolest on this 2-seed — only 68-72% S16" },
+            { t: "BYU 6W", ev: "$294", cost: "$361", ratio: "0.81x", why: "Dybantsa hype will inflate price past $400. EV says $294 — let someone else overpay" },
+            { t: "Saint Louis 9MW", ev: "$152", cost: "$224", ratio: "0.68x", why: "DK has 32% S16 but both models say 4-5%. Massive line discrepancy" },
+            { t: "Any 12-seed over $100", ev: "$57-93", cost: "$213", ratio: "0.27-0.44x", why: "Worst EV tier. Even best 12 (Akron $93) is half the expected cost" },
+            { t: "All 13-14 seeds", ev: "$7-64", cost: "$62-95", ratio: "0.11-0.67x", why: "Never justify the price. Hofstra ($64) is the only one close to breakeven" },
+            { t: "Villanova 8W", ev: "$143", cost: "$231", ratio: "0.62x", why: "Both models under 7% S16. Back in tourney but not competitive at 8-seed cost" },
+            { t: "Georgia 8MW", ev: "$177", cost: "$231", ratio: "0.77x", why: "315th pts allowed. 8-seeds are -39% ROI historically. Don't overpay" },
+          ].map((fade, i) => (
+            <div key={i} style={{ fontSize: 10, padding: "4px 0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#e63946", fontWeight: 600 }}>{fade.t}</span>
+                <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: "#e6394622", color: "#e63946" }}>{fade.ratio}</span>
+              </div>
+              <div style={{ color: "#4a5a7a", fontSize: 9, marginTop: 1 }}>EV {fade.ev} vs {fade.cost} exp — {fade.why}</div>
             </div>
-          </>
-        );
-      })()}
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
