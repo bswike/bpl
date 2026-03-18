@@ -1890,7 +1890,7 @@ function AuctionPrep() {
               { t: "Michigan", s: "1MW", s16: "92%", avg: "$2,100", roi: "+20%", why: "31-3, #1 KenPom. 1-seeds hit S16 75% of time at +20% ROI" },
               { t: "Arizona", s: "1W", s16: "92%", avg: "$2,100", roi: "+20%", why: "32-2, healthiest 1-seed. 1-seeds are highest-probability S16 bets" },
               { t: "Vanderbilt", s: "5S", s16: "55%", avg: "$550", roi: "+18%", why: "5-seeds: 42% S16 rate, best value in bracket at only $550 avg" },
-              { t: "Texas Tech", s: "5MW", s16: "52%", avg: "$550", roi: "+18%", why: "5s dodge 1-seeds until E8, face 4/12 in R2. Beat UF by 17" },
+              { t: "Texas Tech", s: "5MW", s16: "52%", avg: "$550", roi: "+18%", why: "5s dodge 1-seeds until E8, face 4/12 in R2. Strong Big 12 résumé" },
               { t: "St. John's", s: "5E", s16: "55%", avg: "$550", roi: "+18%", why: "BE champ, underseeded per Nate Silver. 5-seed sweet spot" },
               { t: "Iowa", s: "9S", s16: "30%", avg: "$200", roi: "+30%", why: "9-seeds: +30% ROI at $200 avg. Underseeded per KenPom" },
               { t: "Saint Louis", s: "9MW", s16: "32%", avg: "$200", roi: "+30%", why: "A10 champ, top-15 O & D. 9s are historically underpriced" },
