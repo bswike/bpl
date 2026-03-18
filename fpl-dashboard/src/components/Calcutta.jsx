@@ -2289,40 +2289,48 @@ function SpendingAnalysis() {
             </div>
           </div>
 
-          {/* Year-over-year deltas */}
-          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e6e3", marginBottom: 4 }}>2023 → 2024: Where the Extra $6,290 Went</div>
-            <div style={{ fontSize: 10, color: "#5a6a8a", marginBottom: 14 }}>Change in total spending per seed line</div>
-            {(() => {
-              const d23 = yearData[0].bySeed;
-              const d24 = yearData[1].bySeed;
-              const deltas = [];
-              for (let s = 1; s <= 16; s++) deltas.push({ seed: s, delta: d24[s].total - d23[s].total });
-              deltas.sort((a, b) => b.delta - a.delta);
-              const maxAbs = Math.max(...deltas.map(d => Math.abs(d.delta)));
-              return deltas.map(d => (
-                <div key={d.seed} style={{ display: "flex", alignItems: "center", marginBottom: 3, fontSize: 11 }}>
-                  <span style={{ width: 50, color: "#8a9aba", fontWeight: 500 }}>Seed {d.seed}</span>
-                  <div style={{ flex: 1, display: "flex", alignItems: "center", height: 16 }}>
-                    {d.delta >= 0 ? (
-                      <div style={{ marginLeft: "50%", width: `${(d.delta / maxAbs) * 50}%`, height: 12, background: "#2ecc71", borderRadius: "0 3px 3px 0", minWidth: d.delta > 0 ? 2 : 0 }} />
-                    ) : (
-                      <>
-                        <div style={{ marginLeft: `${50 + (d.delta / maxAbs) * 50}%`, width: `${(-d.delta / maxAbs) * 50}%`, height: 12, background: "#e63946", borderRadius: "3px 0 0 3px", minWidth: 2 }} />
-                      </>
-                    )}
+          {/* Year-over-year deltas — both transitions */}
+          {[
+            { from: 0, to: 1, title: "2023 → 2024: Where the Extra $6,290 Went", subtitle: "8 → 9 syndicates (+Tomek)", accentUp: "#2ecc71", accentDown: "#e63946",
+              blurb: <>
+                <span style={{ color: "#e63946", fontWeight: 600 }}>70% of the increase</span> went to 1-seeds alone ($4,430). Top 3 seeds absorbed $7,280 — more than the total pot increase.
+                Mid-tier 5 and 6 seeds actually got <span style={{ color: "#2ecc71" }}>cheaper</span> as budgets were exhausted on the top.
+              </> },
+            { from: 1, to: 2, title: "2024 → 2025: The Correction (−$4,280)", subtitle: "9 → 8 syndicates (−Smith)", accentUp: "#2ecc71", accentDown: "#4a9eff",
+              blurb: <>
+                1-seeds gave back <span style={{ color: "#4a9eff", fontWeight: 600 }}>$1,850</span> and 2-seeds dropped <span style={{ color: "#4a9eff", fontWeight: 600 }}>$1,300</span> — almost the exact reverse of the 2024 inflation.
+                Mid-tier (5-8) partially recovered as spending re-balanced. The bottom (13-16) stayed flat across all 3 years.
+              </> },
+          ].map(({ from, to, title, subtitle, accentUp, accentDown, blurb }) => {
+            const dFrom = yearData[from].bySeed;
+            const dTo = yearData[to].bySeed;
+            const deltas = [];
+            for (let s = 1; s <= 16; s++) deltas.push({ seed: s, delta: dTo[s].total - dFrom[s].total });
+            deltas.sort((a, b) => b.delta - a.delta);
+            const maxAbs = Math.max(...deltas.map(d => Math.abs(d.delta)));
+            return (
+              <div key={title} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e6e3", marginBottom: 2 }}>{title}</div>
+                <div style={{ fontSize: 10, color: "#5a6a8a", marginBottom: 14 }}>{subtitle}</div>
+                {deltas.map(d => (
+                  <div key={d.seed} style={{ display: "flex", alignItems: "center", marginBottom: 3, fontSize: 11 }}>
+                    <span style={{ width: 50, color: "#8a9aba", fontWeight: 500 }}>Seed {d.seed}</span>
+                    <div style={{ flex: 1, display: "flex", alignItems: "center", height: 16 }}>
+                      {d.delta >= 0 ? (
+                        <div style={{ marginLeft: "50%", width: `${(d.delta / maxAbs) * 50}%`, height: 12, background: accentUp, borderRadius: "0 3px 3px 0", minWidth: d.delta > 0 ? 2 : 0 }} />
+                      ) : (
+                        <div style={{ marginLeft: `${50 + (d.delta / maxAbs) * 50}%`, width: `${(-d.delta / maxAbs) * 50}%`, height: 12, background: accentDown, borderRadius: "3px 0 0 3px", minWidth: 2 }} />
+                      )}
+                    </div>
+                    <span style={{ width: 65, textAlign: "right", color: d.delta >= 0 ? accentUp : accentDown, fontWeight: 600, fontSize: 10 }}>
+                      {d.delta >= 0 ? "+" : ""}${d.delta.toLocaleString()}
+                    </span>
                   </div>
-                  <span style={{ width: 65, textAlign: "right", color: d.delta >= 0 ? "#2ecc71" : "#e63946", fontWeight: 600, fontSize: 10 }}>
-                    {d.delta >= 0 ? "+" : ""}{d.delta < 0 ? "−" : ""}${Math.abs(d.delta).toLocaleString()}
-                  </span>
-                </div>
-              ));
-            })()}
-            <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 10, lineHeight: 1.5 }}>
-              <span style={{ color: "#e63946", fontWeight: 600 }}>70% of the increase</span> went to 1-seeds alone ($4,430). Top 3 seeds absorbed $7,280 — more than the total pot increase.
-              Mid-tier 5 and 6 seeds actually got <span style={{ color: "#2ecc71" }}>cheaper</span> as budgets were exhausted on the top.
-            </div>
-          </div>
+                ))}
+                <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 10, lineHeight: 1.5 }}>{blurb}</div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -2339,6 +2347,7 @@ function SpendingAnalysis() {
                       <th key={yd.year} style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>{yd.year}</th>
                     ))}
                     <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Δ 23→24</th>
+                    <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Δ 24→25</th>
                     <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>% of Pot</th>
                   </tr>
                 </thead>
@@ -2347,7 +2356,8 @@ function SpendingAnalysis() {
                     const d23 = yearData[0].bySeed[seed];
                     const d24 = yearData[1].bySeed[seed];
                     const d25 = yearData[2].bySeed[seed];
-                    const delta = d24.avg - d23.avg;
+                    const delta1 = d24.avg - d23.avg;
+                    const delta2 = d25.avg - d24.avg;
                     const avgPctOfPot = ((d23.pctOfPot + d24.pctOfPot + d25.pctOfPot) / 3);
                     const isTop = seed <= 2;
                     return (
@@ -2356,8 +2366,11 @@ function SpendingAnalysis() {
                         <td style={{ padding: "5px 8px", textAlign: "right", color: "#8a9aba" }}>${d23.avg.toLocaleString()}</td>
                         <td style={{ padding: "5px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${d24.avg.toLocaleString()}</td>
                         <td style={{ padding: "5px 8px", textAlign: "right", color: "#8a9aba" }}>${d25.avg.toLocaleString()}</td>
-                        <td style={{ padding: "5px 8px", textAlign: "right", color: delta >= 0 ? "#2ecc71" : "#e63946", fontWeight: 600 }}>
-                          {delta >= 0 ? "+" : ""}{delta < 0 ? "−" : ""}${Math.abs(delta).toLocaleString()}
+                        <td style={{ padding: "5px 8px", textAlign: "right", color: delta1 >= 0 ? "#2ecc71" : "#e63946", fontWeight: 600 }}>
+                          {delta1 >= 0 ? "+" : ""}${delta1.toLocaleString()}
+                        </td>
+                        <td style={{ padding: "5px 8px", textAlign: "right", color: delta2 >= 0 ? "#2ecc71" : "#e63946", fontWeight: 600 }}>
+                          {delta2 >= 0 ? "+" : ""}${delta2.toLocaleString()}
                         </td>
                         <td style={{ padding: "5px 8px", textAlign: "right", color: "#5a6a8a" }}>{avgPctOfPot.toFixed(1)}%</td>
                       </tr>
