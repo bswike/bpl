@@ -348,18 +348,64 @@ const BRACKET_2026 = [
 
 const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:250,7:290,6:420,5:550,4:680,3:950,2:1550,1:2100};
 const HIST_ROI = {16:0.17,15:0.32,14:-0.81,13:-0.77,12:-0.59,11:0.19,10:-0.48,9:0.30,8:-0.39,7:-0.30,6:0.09,5:0.18,4:-0.08,3:0.02,2:-0.15,1:0.20};
-// Expected payout if team reaches S16, by seed (accounts for deeper run probability)
-// Derived from 3yr Hogan data: ~$27K pot, payout structure favors deep runs
-const S16_PAYOUT = {1:4500,2:3000,3:2200,4:1800,5:1500,6:1200,7:1100,8:1000,9:1000,10:950,11:1000,12:900,13:850,14:800,15:700,16:600};
-const NON_S16_VALUE = {1:200,2:150,3:100,4:80,5:60,6:40,7:30,8:20,9:20,10:15,11:15,12:10,13:5,14:5,15:30,16:25};
+// Round-by-round probabilities: [R32, S16, E8, F4, F2, Champ] as decimals — T-Rank model
+const TORIK_ROUNDS = {
+  "S-16":[.009,0,0,0,0,0],"S-15":[.037,.005,0,0,0,0],"S-14":[.036,.006,0,0,0,0],"S-13":[.081,.008,0,0,0,0],
+  "S-12":[.156,.038,.005,.001,0,0],"S-11":[.366,.062,.012,.002,0,0],"S-10":[.398,.077,.02,.005,.001,0],
+  "S-9":[.539,.118,.048,.013,.004,.001],"S-8":[.461,.088,.033,.008,.002,0],"S-7":[.602,.154,.05,.015,.004,.001],
+  "S-6":[.634,.166,.048,.013,.003,.001],"S-5":[.844,.506,.197,.076,.03,.01],"S-4":[.919,.448,.153,.052,.017,.005],
+  "S-3":[.964,.767,.419,.233,.117,.056],"S-2":[.963,.764,.45,.258,.137,.069],"S-1":[.991,.793,.564,.324,.176,.093],
+  "MW-16":[.016,.002,0,0,0,0],"MW-15":[.023,.001,0,0,0,0],"MW-14":[.079,.01,.001,0,0,0],"MW-13":[.146,.025,.002,0,0,0],
+  "MW-12":[.168,.042,.004,.001,0,0],"MW-11":[.237,.07,.016,.003,.001,0],"MW-10":[.518,.129,.048,.011,.003,.001],
+  "MW-9":[.45,.054,.016,.004,.001,0],"MW-8":[.55,.078,.027,.008,.002,0],"MW-7":[.482,.114,.041,.009,.002,0],
+  "MW-6":[.763,.399,.172,.058,.022,.007],"MW-5":[.832,.492,.157,.072,.029,.01],"MW-4":[.854,.442,.128,.054,.019,.006],
+  "MW-3":[.921,.521,.229,.079,.029,.01],"MW-2":[.977,.756,.494,.231,.115,.052],"MW-1":[.984,.866,.666,.471,.297,.179],
+  "W-16":[.011,.001,0,0,0,0],"W-15":[.03,.003,0,0,0,0],"W-14":[.064,.009,.001,0,0,0],"W-13":[.106,.018,.001,0,0,0],
+  "W-12":[.152,.028,.002,0,0,0],"W-11":[.434,.128,.032,.006,.001,0],"W-10":[.432,.085,.027,.005,.001,0],
+  "W-9":[.544,.096,.04,.013,.004,.001],"W-8":[.456,.068,.025,.008,.002,0],"W-7":[.568,.138,.052,.012,.003,0],
+  "W-6":[.566,.196,.058,.014,.003,.001],"W-5":[.848,.443,.13,.052,.016,.005],"W-4":[.894,.511,.158,.067,.022,.007],
+  "W-3":[.936,.668,.311,.125,.046,.016],"W-2":[.97,.774,.519,.256,.123,.056],"W-1":[.989,.835,.643,.441,.259,.148],
+  "E-16":[.015,.001,0,0,0,0],"E-15":[.038,.004,0,0,0,0],"E-14":[.093,.013,.002,0,0,0],"E-13":[.144,.024,.001,0,0,0],
+  "E-12":[.177,.048,.004,.001,0,0],"E-11":[.258,.072,.018,.003,0,0],"E-10":[.296,.06,.015,.002,0,0],
+  "E-9":[.318,.032,.009,.002,0,0],"E-8":[.682,.126,.058,.023,.007,.002],"E-7":[.704,.257,.106,.027,.008,.002],
+  "E-6":[.742,.372,.185,.058,.021,.007],"E-5":[.823,.495,.147,.074,.026,.009],"E-4":[.856,.433,.111,.051,.017,.005],
+  "E-3":[.907,.543,.285,.1,.038,.013],"E-2":[.962,.679,.39,.146,.06,.023],"E-1":[.985,.84,.669,.512,.33,.203],
+};
+// Round-by-round probabilities — EvanMiya model
+const EM_ROUNDS = {
+  "S-16":[.002,0,0,0,0,0],"S-15":[.006,.001,0,0,0,0],"S-14":[.009,.001,0,0,0,0],"S-13":[.121,.014,0,0,0,0],
+  "S-12":[.143,.039,.002,0,0,0],"S-11":[.539,.086,.014,.003,0,0],"S-10":[.37,.042,.007,.001,.001,0],
+  "S-9":[.596,.087,.037,.008,.001,0],"S-8":[.404,.049,.017,.003,.001,0],"S-7":[.63,.128,.041,.011,.002,.001],
+  "S-6":[.461,.051,.006,.001,0,0],"S-5":[.857,.509,.152,.052,.016,.004],"S-4":[.879,.438,.122,.036,.009,.002],
+  "S-3":[.991,.863,.386,.17,.07,.023],"S-2":[.995,.829,.546,.301,.153,.068],"S-1":[.998,.863,.669,.414,.228,.104],
+  "MW-16":[.001,0,0,0,0,0],"MW-15":[.013,.001,0,0,0,0],"MW-14":[.047,.003,0,0,0,0],"MW-13":[.177,.064,.004,0,0,0],
+  "MW-12":[.33,.082,.003,0,0,0],"MW-11":[.179,.041,.005,0,0,0],"MW-10":[.392,.062,.019,.002,0,0],
+  "MW-9":[.489,.04,.019,.006,.001,0],"MW-8":[.511,.034,.016,.004,.001,0],"MW-7":[.608,.132,.05,.006,.001,0],
+  "MW-6":[.821,.415,.163,.034,.009,.002],"MW-5":[.67,.291,.037,.01,.002,0],"MW-4":[.823,.563,.068,.021,.005,.001],
+  "MW-3":[.953,.541,.226,.061,.02,.006],"MW-2":[.987,.806,.537,.185,.075,.028],"MW-1":[.999,.926,.853,.67,.435,.276],
+  "W-16":[.006,.001,0,0,0,0],"W-15":[.003,0,0,0,0,0],"W-14":[.035,.004,0,0,0,0],"W-13":[.046,.009,0,0,0,0],
+  "W-12":[.243,.031,.002,0,0,0],"W-11":[.518,.153,.033,.006,.001,0],"W-10":[.341,.031,.007,.001,0,0],
+  "W-9":[.596,.071,.03,.009,.001,0],"W-8":[.404,.026,.007,.001,0,0],"W-7":[.66,.118,.044,.008,.001,0],
+  "W-6":[.483,.131,.024,.003,.001,0],"W-5":[.757,.303,.059,.02,.004,.001],"W-4":[.955,.657,.158,.063,.016,.005],
+  "W-3":[.965,.712,.278,.079,.016,.005],"W-2":[.997,.851,.614,.265,.111,.047],"W-1":[.994,.903,.746,.544,.299,.177],
+  "E-16":[.004,.001,0,0,0,0],"E-15":[.036,.005,0,0,0,0],"E-14":[.062,.005,0,0,0,0],"E-13":[.078,.007,0,0,0,0],
+  "E-12":[.14,.035,.002,0,0,0],"E-11":[.29,.088,.027,.003,.001,0],"E-10":[.262,.041,.008,.001,0,0],
+  "E-9":[.356,.032,.01,.003,.001,0],"E-8":[.644,.083,.036,.014,.003,0],"E-7":[.738,.234,.082,.015,.003,.001],
+  "E-6":[.71,.263,.108,.017,.003,.001],"E-5":[.86,.554,.156,.085,.03,.009],"E-4":[.922,.405,.079,.035,.01,.002],
+  "E-3":[.938,.644,.366,.123,.047,.015],"E-2":[.964,.719,.409,.137,.052,.016],"E-1":[.996,.885,.716,.568,.369,.207],
+};
+// Avg cumulative Hogan payout per round reached (2023-2025 data)
+const HOGAN_PAYOUT = [163, 958, 1931, 2911, 3916, 4483];
+const HOGAN_INCR = HOGAN_PAYOUT.map((v, i) => i === 0 ? v : v - HOGAN_PAYOUT[i - 1]);
+const ROUND_LABELS = ["R32","S16","E8","F4","F2","Ch"];
 
 function getTeamValue(team) {
-  const trPct = (parseInt(team.tr) || 0) / 100;
-  const emPct = (parseInt(team.em) || 0) / 100;
-  const modelS16 = (trPct + emPct) / 2;
-  const payout = S16_PAYOUT[team.s] || 1000;
-  const nonS16 = NON_S16_VALUE[team.s] || 10;
-  const fairValue = Math.round(modelS16 * payout + (1 - modelS16) * nonS16);
+  const key = `${team.r}-${team.s}`;
+  const tr = TORIK_ROUNDS[key] || [0,0,0,0,0,0];
+  const em = EM_ROUNDS[key] || [0,0,0,0,0,0];
+  const avg = tr.map((v, i) => (v + em[i]) / 2);
+  const roundEV = avg.map((p, i) => Math.round(p * HOGAN_INCR[i]));
+  const fairValue = roundEV.reduce((a, b) => a + b, 0);
   const histAvg = HIST_AVG_PRICE[team.s] || 100;
   const ratio = fairValue / histAvg;
   let label, color;
@@ -367,7 +413,7 @@ function getTeamValue(team) {
   else if (ratio >= 0.9) { label = "FAIR"; color = "#e9c46a"; }
   else if (ratio >= 0.6) { label = "MEH"; color = "#5a6a8a"; }
   else { label = "AVOID"; color = "#e63946"; }
-  return { fairValue, label, color, modelS16: Math.round(modelS16 * 100) };
+  return { fairValue, label, color, roundEV, avg };
 }
 
 
@@ -1871,19 +1917,38 @@ function AuctionPrep() {
                     </div>
                   </div>
                 </div>
-                {/* Right: Value estimate */}
-                <div style={{ textAlign: "right", flexShrink: 0, minWidth: 58 }}>
-                  <div style={{
-                    fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
-                    color: val.color,
-                  }}>{fmtDollar(val.fairValue)}</div>
-                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, marginTop: 1 }}>
+                {/* Right: EV with round breakdown */}
+                <div style={{ flexShrink: 0, minWidth: 120 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", justifyContent: "flex-end", gap: 5 }}>
+                    <span style={{
+                      fontSize: 14, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+                      color: val.color,
+                    }}>{fmtDollar(val.fairValue)}</span>
                     <span style={{
                       fontSize: 7, fontWeight: 700, padding: "1px 4px", borderRadius: 3,
                       background: `${val.color}22`, color: val.color, letterSpacing: 0.5,
                     }}>{val.label}</span>
                   </div>
-                  <div style={{ fontSize: 8, color: "#3a4a6a", marginTop: 1 }}>{fmtDollar(histAvg)} avg</div>
+                  <div style={{ display: "flex", gap: 1, justifyContent: "flex-end", marginTop: 3 }}>
+                    {ROUND_LABELS.map((rl, ri) => {
+                      const v = val.roundEV[ri];
+                      const pct = val.fairValue > 0 ? v / val.fairValue : 0;
+                      return (
+                        <div key={rl} style={{ textAlign: "center", minWidth: 17 }}>
+                          <div style={{
+                            fontSize: 7, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif",
+                            color: v >= 100 ? "#8ab4c8" : v > 0 ? "#4a5a7a" : "#2a3548",
+                          }}>{v > 0 ? `$${v}` : "–"}</div>
+                          <div style={{
+                            height: 2, borderRadius: 1, marginTop: 1,
+                            background: v > 0 ? `rgba(74,158,255,${Math.min(pct * 3, 1)})` : "#1a2030",
+                          }} />
+                          <div style={{ fontSize: 5, color: "#3a4a6a", marginTop: 1 }}>{rl}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize: 7, color: "#3a4a6a", marginTop: 2, textAlign: "right" }}>{fmtDollar(histAvg)} hist avg</div>
                 </div>
               </div>
             </div>
@@ -1891,7 +1956,7 @@ function AuctionPrep() {
         })}
       </div>
       <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 6, textAlign: "center" }}>
-        Showing {filteredBracket.length} of 64 · S16%: <span style={{color:"#2ecc71"}}>DK</span> / <span style={{color:"#7c5cfc"}}>Torik</span> / <span style={{color:"#e9c46a"}}>EvMiya</span> · Value = model avg × seed payout vs historical price
+        Showing {filteredBracket.length} of 64 · S16%: <span style={{color:"#2ecc71"}}>DK</span> / <span style={{color:"#7c5cfc"}}>Torik</span> / <span style={{color:"#e9c46a"}}>EvMiya</span> · EV = round-by-round P(advance) × avg Hogan payout '23-'25
       </div>
       </>
       ) : (
