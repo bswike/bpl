@@ -1201,46 +1201,57 @@ function Strategy({ year }) {
 
 function TeamExplorer({ year }) {
   const [sortKey, setSortKey] = useState("net");
+  const [sortDir, setSortDir] = useState("desc");
   const [filterSyndicate, setFilterSyndicate] = useState("All");
+
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir(d => d === "desc" ? "asc" : "desc");
+    } else {
+      setSortKey(key);
+      setSortDir(key === "team" || key === "syndicate" ? "asc" : "desc");
+    }
+  };
 
   const teams = useMemo(() => {
     const years = year === "All" ? [2023, 2024, 2025] : [parseInt(year)];
     let filtered = ALL_TEAMS.filter(t => years.includes(t.year));
     if (filterSyndicate !== "All") filtered = filtered.filter(t => t.s === filterSyndicate);
+    const dir = sortDir === "desc" ? 1 : -1;
     const sortFns = {
-      net: (a, b) => b.n - a.n,
-      price: (a, b) => b.p - a.p,
-      seed: (a, b) => a.seed - b.seed,
-      roi: (a, b) => (b.p ? b.n / b.p : 0) - (a.p ? a.n / a.p : 0),
+      net: (a, b) => dir * (b.n - a.n),
+      price: (a, b) => dir * (b.p - a.p),
+      seed: (a, b) => dir * (a.seed - b.seed),
+      roi: (a, b) => dir * ((b.p ? b.n / b.p : 0) - (a.p ? a.n / a.p : 0)),
+      team: (a, b) => dir * a.t.localeCompare(b.t),
+      syndicate: (a, b) => dir * a.s.localeCompare(b.s),
+      won: (a, b) => dir * (b.w - a.w),
+      year: (a, b) => dir * (b.year - a.year),
     };
     return filtered.sort(sortFns[sortKey] || sortFns.net);
-  }, [year, sortKey, filterSyndicate]);
+  }, [year, sortKey, sortDir, filterSyndicate]);
 
   const allNames = [...new Set(ALL_TEAMS.map(t => t.s))].sort();
+
+  const columns = [
+    { key: "team", label: "Team", align: "left" },
+    { key: "seed", label: "Seed", align: "left" },
+    { key: "syndicate", label: "Syndicate", align: "left" },
+    { key: "price", label: "Price", align: "right" },
+    { key: "won", label: "Won", align: "right" },
+    { key: "net", label: "Net", align: "right" },
+    { key: "roi", label: "ROI", align: "right" },
+    { key: "year", label: "Year", align: "right" },
+  ];
+
+  const arrow = (key) => sortKey === key ? (sortDir === "desc" ? " ▼" : " ▲") : "";
 
   return (
     <div>
       <SectionTitle>Team Explorer</SectionTitle>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1 }}>SORT:</span>
-        {[["net", "Net P/L"], ["price", "Price"], ["seed", "Seed"], ["roi", "ROI"]].map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => setSortKey(k)}
-            style={{
-              padding: "4px 10px",
-              background: sortKey === k ? "#4a9eff22" : "transparent",
-              border: `1px solid ${sortKey === k ? "#4a9eff" : "#1e2a40"}`,
-              borderRadius: 4,
-              color: sortKey === k ? "#4a9eff" : "#5a6a8a",
-              fontFamily: "inherit",
-              fontSize: 10,
-              cursor: "pointer",
-            }}
-          >{label}</button>
-        ))}
-        <span style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1, marginLeft: 12 }}>SYNDICATE:</span>
+        <span style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1 }}>SYNDICATE:</span>
         <select
           value={filterSyndicate}
           onChange={e => setFilterSyndicate(e.target.value)}
@@ -1257,28 +1268,36 @@ function TeamExplorer({ year }) {
           <option value="All">All</option>
           {allNames.map(n => <option key={n} value={n}>{n}</option>)}
         </select>
+        <span style={{ fontSize: 9, color: "#3a4a6a", marginLeft: 8 }}>Tap any column header to sort</span>
       </div>
 
-      <div style={{ maxHeight: 520, overflowY: "auto", borderRadius: 8, border: "1px solid #1e2a40" }}>
+      <div style={{ maxHeight: 600, overflowY: "auto", borderRadius: 8, border: "1px solid #1e2a40" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
           <thead style={{ position: "sticky", top: 0, background: "#0d1321", zIndex: 1 }}>
             <tr style={{ borderBottom: "1px solid #1e2a40" }}>
-              {["Team", "Seed", "Syndicate", "Price", "Won", "Net", "ROI", "Year"].map((h, i) => (
-                <th key={i} style={{
-                  padding: "8px 8px",
-                  textAlign: i >= 3 ? "right" : "left",
-                  color: "#4a6a8a",
-                  fontWeight: 500,
-                  fontSize: 9,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  whiteSpace: "nowrap",
-                }}>{h}</th>
+              {columns.map(col => (
+                <th
+                  key={col.key}
+                  onClick={() => handleSort(col.key)}
+                  style={{
+                    padding: "8px 8px",
+                    textAlign: col.align,
+                    color: sortKey === col.key ? "#4a9eff" : "#4a6a8a",
+                    fontWeight: sortKey === col.key ? 700 : 500,
+                    fontSize: 9,
+                    letterSpacing: 1,
+                    textTransform: "uppercase",
+                    whiteSpace: "nowrap",
+                    cursor: "pointer",
+                    userSelect: "none",
+                    borderBottom: sortKey === col.key ? "2px solid #4a9eff" : "none",
+                  }}
+                >{col.label}{arrow(col.key)}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {teams.slice(0, 100).map((t, i) => {
+            {teams.map((t, i) => {
               const roi = t.p ? t.n / t.p : 0;
               return (
                 <tr key={i} style={{ borderBottom: "1px solid #0d1321" }}>
@@ -1312,7 +1331,7 @@ function TeamExplorer({ year }) {
         </table>
       </div>
       <div style={{ fontSize: 10, color: "#3a4a6a", marginTop: 8, textAlign: "center" }}>
-        Showing {Math.min(teams.length, 100)} of {teams.length} teams
+        Showing {teams.length} teams
       </div>
     </div>
   );
