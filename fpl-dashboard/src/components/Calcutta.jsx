@@ -411,9 +411,11 @@ function getTeamValue(team) {
   const tr = TORIK_ROUNDS[key] || [0,0,0,0,0,0];
   const em = EM_ROUNDS[key] || [0,0,0,0,0,0];
   const avg = tr.map((v, i) => (v + em[i]) / 2);
-  // R64 payout for 1v16 and 2v15 is based on covering the spread, not just winning
-  // Hogan 3yr ATS: 1s 11/12=92%, 2s 11/12=92%, 15s 4/12=35%, 16s 5/12=42%
-  if (team.s <= 2) avg[0] = 0.92;
+  // R64 payout for 1v16 and 2v15 is ATS (cover the spread), not just winning
+  // 3yr observed: 1s 11/12, 2s 11/12 — but small sample & complementary logic
+  // (1-cover ≈ 1 - 16-cover) suggests ~58-65%. Blend to 75% for 1s, 78% for 2s.
+  if (team.s === 1) avg[0] = 0.75;
+  else if (team.s === 2) avg[0] = 0.78;
   else if (team.s >= 15) avg[0] = team.s === 16 ? 0.42 : 0.35;
   const roundEV = avg.map((p, i) => Math.round(p * HOGAN_INCR[i]));
   const fairValue = roundEV.reduce((a, b) => a + b, 0);
