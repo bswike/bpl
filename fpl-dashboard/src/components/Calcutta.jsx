@@ -350,7 +350,7 @@ const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:25
 const HIST_ROI = {16:0.17,15:0.32,14:-0.81,13:-0.77,12:-0.59,11:0.19,10:-0.48,9:0.30,8:-0.39,7:-0.30,6:0.09,5:0.18,4:-0.08,3:0.02,2:-0.15,1:0.20};
 
 
-const TABS = ["2026 Prep", "Leaderboard", "Seed ROI", "Strategy", "Teams"];
+const TABS = ["2026 Prep", "Teams", "Leaderboard", "Seed ROI", "Strategy"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("2026 Prep");
@@ -1241,7 +1241,6 @@ function TeamExplorer({ year }) {
     { key: "won", label: "Won", align: "right" },
     { key: "net", label: "Net", align: "right" },
     { key: "roi", label: "ROI", align: "right" },
-    { key: "year", label: "Year", align: "right" },
   ];
 
   const arrow = (key) => sortKey === key ? (sortDir === "desc" ? " ▼" : " ▲") : "";
@@ -1301,7 +1300,7 @@ function TeamExplorer({ year }) {
               const roi = t.p ? t.n / t.p : 0;
               return (
                 <tr key={i} style={{ borderBottom: "1px solid #0d1321" }}>
-                  <td style={{ padding: "6px 8px", fontWeight: 500 }}>{t.t}</td>
+                  <td style={{ padding: "6px 8px", fontWeight: 500 }}>{t.t} <span style={{ fontSize: 9, color: "#3a4a6a", fontWeight: 400 }}>'{String(t.year).slice(2)}</span></td>
                   <td style={{ padding: "6px 8px", color: "#5a6a8a" }}>{t.sd}</td>
                   <td style={{ padding: "6px 8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -1323,7 +1322,6 @@ function TeamExplorer({ year }) {
                     color: roi >= 0 ? "#2ecc71" : "#e63946",
                     fontSize: 10,
                   }}>{fmtPct(roi)}</td>
-                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#3a4a6a", fontSize: 10 }}>{t.year}</td>
                 </tr>
               );
             })}
