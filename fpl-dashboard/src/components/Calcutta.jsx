@@ -266,7 +266,8 @@ const fmt = (n) => {
 };
 const fmtPct = (n) => {
   if (n === undefined || n === null) return "—";
-  return `${(n * 100).toFixed(1)}%`;
+  const pct = (n * 100).toFixed(1);
+  return n > 0 ? `+${pct}%` : `${pct}%`;
 };
 const fmtDollar = (n) => `$${Math.round(n).toLocaleString()}`;
 
@@ -353,18 +354,21 @@ const calculateMedianROI = () => {
   const roiBySeed = {};
   // Group ROI by seed
   ALL_TEAMS.forEach(t => {
-    if (!roiBySeed[t.seed]) roiBySeed[t.seed] = [];
+    const seed = t.seed;
+    if (!roiBySeed[seed]) roiBySeed[seed] = [];
     const roi = t.p > 0 ? t.n / t.p : 0;
-    roiBySeed[t.seed].push(roi);
+    roiBySeed[seed].push(roi);
   });
   // Calculate median for each seed
   const medians = {};
-  Object.keys(roiBySeed).forEach(seed => {
-    const sorted = roiBySeed[seed].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    medians[seed] = sorted.length % 2 !== 0 
-      ? sorted[mid] 
-      : (sorted[mid - 1] + sorted[mid]) / 2;
+  Object.keys(roiBySeed).forEach(seedStr => {
+    const seed = parseInt(seedStr);
+    const values = [...roiBySeed[seed]]; // Clone to avoid mutation
+    values.sort((a, b) => a - b);
+    const mid = Math.floor(values.length / 2);
+    medians[seed] = values.length % 2 !== 0 
+      ? values[mid] 
+      : (values[mid - 1] + values[mid]) / 2;
   });
   return medians;
 };
@@ -665,7 +669,7 @@ function SeedROI({ year }) {
     filtered.forEach(t => {
       const s = t.seed;
       if (!seedMap[s]) {
-        seedMap[s] = { seed: s, count: 0, totalSpent: 0, totalWon: 0, totalNet: 0, winners: 0 };
+        seedMap[s] = { seed: s, count: 0, totalSpent: 0, totalWon: 0, totalNet: 0, winners: 0, s16: 0 };
         roiLists[s] = [];
       }
       seedMap[s].count++;
@@ -673,6 +677,8 @@ function SeedROI({ year }) {
       seedMap[s].totalWon += t.w;
       seedMap[s].totalNet += t.n;
       if (t.n > 0) seedMap[s].winners++;
+      // Sweet 16 = won at least 2 games = winnings >= $700 (R1 ~$156-200, R2 adds ~$600+)
+      if (t.w >= 700) seedMap[s].s16++;
       // Track individual ROI for median
       const indivRoi = t.p > 0 ? t.n / t.p : 0;
       roiLists[s].push(indivRoi);
@@ -719,7 +725,7 @@ function SeedROI({ year }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: "1px solid #1e2a40" }}>
-              {["Seed", "Avg $", "Net", "Avg ROI", "Med ROI", "Hit %", ""].map((h,i) => (
+              {["Seed", "Avg $", "Net", "S16 %", "Hit %", "Med ROI", ""].map((h,i) => (
                 <th key={i} style={{
                   padding: "8px 8px",
                   textAlign: i >= 1 ? "right" : "left",
@@ -758,16 +764,16 @@ function SeedROI({ year }) {
                     color: isPos ? "#2ecc71" : "#e63946",
                   }}>{fmt(d.totalNet)}</td>
                   <td style={{
-                    padding: "8px 8px", textAlign: "right", fontSize: 11,
-                    color: roi >= 0 ? "#2ecc71" : "#e63946",
-                  }}>{fmtPct(roi)}</td>
-                  <td style={{
                     padding: "8px 8px", textAlign: "right", fontWeight: 700, fontSize: 11,
-                    color: d.medianRoi >= 0 ? "#2ecc71" : "#e63946",
-                  }}>{fmtPct(d.medianRoi)}</td>
+                    color: d.s16 / d.count >= 0.5 ? "#2ecc71" : d.s16 / d.count >= 0.25 ? "#e9c46a" : "#e63946",
+                  }}>{d.count ? `${Math.round(d.s16 / d.count * 100)}%` : "—"}</td>
                   <td style={{ padding: "8px 8px", textAlign: "right", color: "#7a8aaa", fontSize: 11 }}>
                     {d.count ? `${Math.round(d.winners / d.count * 100)}%` : "—"}
                   </td>
+                  <td style={{
+                    padding: "8px 8px", textAlign: "right", fontSize: 10,
+                    color: d.medianRoi >= 0 ? "#2ecc71" : "#e63946",
+                  }}>{fmtPct(d.medianRoi)}</td>
                   <td style={{ padding: "8px 10px", width: "18%" }}>
                     <div style={{
                       height: 8, borderRadius: 4,
