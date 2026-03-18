@@ -348,10 +348,10 @@ const BRACKET_2026 = [
 const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:250,7:290,6:420,5:550,4:680,3:950,2:1550,1:2100};
 const HIST_ROI = {16:0.17,15:0.32,14:-0.81,13:-0.77,12:-0.59,11:0.19,10:-0.48,9:0.30,8:-0.39,7:-0.30,6:0.09,5:0.18,4:-0.08,3:0.02,2:-0.15,1:0.20};
 
-const TABS = ["Leaderboard", "Seed ROI", "Strategy", "Teams", "2026 Prep"];
+const TABS = ["2026 Prep", "Leaderboard", "Seed ROI", "Strategy", "Teams"];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("Leaderboard");
+  const [activeTab, setActiveTab] = useState("2026 Prep");
   const [selectedYear, setSelectedYear] = useState("All");
 
   return (
@@ -424,7 +424,8 @@ export default function App() {
         ))}
       </div>
 
-      {/* Year filter */}
+      {/* Year filter - only show for historical tabs */}
+      {activeTab !== "2026 Prep" && (
       <div style={{
         display: "flex",
         justifyContent: "center",
@@ -449,12 +450,13 @@ export default function App() {
           >{y}</button>
         ))}
       </div>
+      )}
 
+      {activeTab === "2026 Prep" && <AuctionPrep />}
       {activeTab === "Leaderboard" && <Leaderboard year={selectedYear} />}
       {activeTab === "Seed ROI" && <SeedROI year={selectedYear} />}
       {activeTab === "Strategy" && <Strategy year={selectedYear} />}
       {activeTab === "Teams" && <TeamExplorer year={selectedYear} />}
-      {activeTab === "2026 Prep" && <AuctionPrep />}
     </div>
   );
 }
@@ -1201,126 +1203,139 @@ function AuctionPrep() {
   }, [regionFilter, showTier]);
 
   const regions = ["All", "S", "MW", "W", "E"];
-  const regionNames = { All: "All Regions", S: "South (1st)", MW: "Midwest (2nd)", W: "West (3rd)", E: "East (Last)" };
+  const regionLabels = { All: "All", S: "South", MW: "Midwest", W: "West", E: "East" };
   const tiers = ["All", "Elite", "Contender", "Mid", "Long Shot", "Lottery"];
 
   return (
     <div>
       <SectionTitle>2026 Auction Prep</SectionTitle>
+
+      {/* Rules - compact */}
       <div style={{
-        background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #1e2a40", marginBottom: 16,
+        background: "#111827", borderRadius: 8, padding: "10px 12px", border: "1px solid #1e2a40", marginBottom: 14,
       }}>
-        <div style={{ fontSize: 10, color: "#e9c46a", letterSpacing: 1, marginBottom: 6, textTransform: "uppercase", fontWeight: 600 }}>
-          Rules Recap
+        <div style={{ fontSize: 9, color: "#e9c46a", letterSpacing: 1, marginBottom: 4, textTransform: "uppercase", fontWeight: 600 }}>
+          Rules
         </div>
-        <div style={{ fontSize: 11, color: "#8a9aba", lineHeight: 1.6 }}>
-          $3K soft cap · 9 syndicates · Order: South → MW → West → East · 
+        <div style={{ fontSize: 10, color: "#8a9aba", lineHeight: 1.5 }}>
+          $3K cap · 9 syndicates · South → MW → West → East · 
           16s packaged (DK spreads) · 15s paired · 1s/2s NOT randomized · 
-          Last 4 off board: Florida → Michigan → Arizona → Duke · 
-          Steal round: under $3K cap only · 10% juice on steals
+          Last off board: Florida → Michigan → Arizona → Duke · 
+          Steal round: under $3K only · 10% juice on steals
         </div>
       </div>
 
-      {/* Strategy cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10, marginBottom: 20 }}>
+      {/* Strategy cards - 2x2 on mobile */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
         {[
-          { label: "Sweet Spots", seeds: "1, 5, 9, 15-16", roi: "+20% avg ROI", color: "#2ecc71" },
-          { label: "Money Pits", seeds: "8, 10, 12-14", roi: "-50% avg ROI", color: "#e63946" },
-          { label: "Value Zone", seeds: "3, 6, 11", roi: "+5-19% ROI", color: "#4a9eff" },
-          { label: "High Variance", seeds: "2, 4, 7", roi: "-8 to -30% ROI", color: "#e9c46a" },
+          { label: "Sweet Spots", seeds: "1, 5, 9, 15-16", roi: "+20% avg", color: "#2ecc71" },
+          { label: "Money Pits", seeds: "8, 10, 12-14", roi: "-50% avg", color: "#e63946" },
+          { label: "Value Zone", seeds: "3, 6, 11", roi: "+5-19%", color: "#4a9eff" },
+          { label: "High Variance", seeds: "2, 4, 7", roi: "-8 to -30%", color: "#e9c46a" },
         ].map(card => (
           <div key={card.label} style={{
-            background: "#111827", borderRadius: 8, padding: 12,
+            background: "#111827", borderRadius: 8, padding: "10px 12px",
             border: `1px solid ${card.color}33`,
           }}>
-            <div style={{ fontSize: 10, color: card.color, letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>{card.label}</div>
-            <div style={{ fontSize: 14, color: "#e8e6e3", fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", marginTop: 4 }}>{card.seeds}</div>
-            <div style={{ fontSize: 11, color: card.color, marginTop: 2 }}>{card.roi}</div>
+            <div style={{ fontSize: 9, color: card.color, letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>{card.label}</div>
+            <div style={{ fontSize: 13, color: "#e8e6e3", fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", marginTop: 3 }}>{card.seeds}</div>
+            <div style={{ fontSize: 10, color: card.color, marginTop: 1 }}>{card.roi}</div>
           </div>
         ))}
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1 }}>REGION:</span>
-        {regions.map(r => (
-          <button key={r} onClick={() => setRegionFilter(r)} style={{
-            padding: "4px 10px", background: regionFilter === r ? "#4a9eff22" : "transparent",
-            border: `1px solid ${regionFilter === r ? "#4a9eff" : "#1e2a40"}`, borderRadius: 4,
-            color: regionFilter === r ? "#4a9eff" : "#5a6a8a", fontFamily: "inherit", fontSize: 10, cursor: "pointer",
-          }}>{regionNames[r]}</button>
-        ))}
-        <span style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1, marginLeft: 12 }}>TIER:</span>
-        {tiers.map(t => (
-          <button key={t} onClick={() => setShowTier(t)} style={{
-            padding: "4px 10px", background: showTier === t ? "#4a9eff22" : "transparent",
-            border: `1px solid ${showTier === t ? "#4a9eff" : "#1e2a40"}`, borderRadius: 4,
-            color: showTier === t ? (tierColors[t] || "#4a9eff") : "#5a6a8a", fontFamily: "inherit", fontSize: 10, cursor: "pointer",
-          }}>{t}</button>
-        ))}
+      {/* Filters - stacked for mobile */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
+          {regions.map(r => (
+            <button key={r} onClick={() => setRegionFilter(r)} style={{
+              padding: "6px 12px", background: regionFilter === r ? "#4a9eff" : "transparent",
+              border: `1px solid ${regionFilter === r ? "#4a9eff" : "#1e2a40"}`, borderRadius: 4,
+              color: regionFilter === r ? "#0a0e17" : "#5a6a8a", fontFamily: "inherit", fontSize: 11,
+              fontWeight: regionFilter === r ? 700 : 400, cursor: "pointer",
+            }}>{regionLabels[r]}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {tiers.map(t => (
+            <button key={t} onClick={() => setShowTier(t)} style={{
+              padding: "6px 10px", background: showTier === t ? `${tierColors[t] || "#4a9eff"}` : "transparent",
+              border: `1px solid ${showTier === t ? (tierColors[t] || "#4a9eff") : "#1e2a40"}`, borderRadius: 4,
+              color: showTier === t ? "#0a0e17" : (tierColors[t] || "#5a6a8a"), fontFamily: "inherit", fontSize: 10,
+              fontWeight: showTier === t ? 700 : 400, cursor: "pointer",
+            }}>{t}</button>
+          ))}
+        </div>
       </div>
 
-      {/* Bracket table */}
-      <div style={{ maxHeight: 520, overflowY: "auto", borderRadius: 8, border: "1px solid #1e2a40" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-          <thead style={{ position: "sticky", top: 0, background: "#0d1321", zIndex: 1 }}>
-            <tr style={{ borderBottom: "1px solid #1e2a40" }}>
-              {["Region", "Seed", "Team", "Odds", "Tier", "Hist Avg $", "Hist ROI", "Notes"].map((h, i) => (
-                <th key={i} style={{
-                  padding: "8px 8px", textAlign: i >= 5 ? "right" : "left",
-                  color: "#4a6a8a", fontWeight: 500, fontSize: 9, letterSpacing: 1,
-                  textTransform: "uppercase", whiteSpace: "nowrap",
-                }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredBracket.map((team, i) => {
-              const tier = getTier(team.odds);
-              const histAvg = HIST_AVG_PRICE[team.s] || 0;
-              const histRoi = HIST_ROI[team.s] || 0;
-              const isRegionStart = i === 0 || filteredBracket[i-1]?.r !== team.r;
-              return (
-                <tr key={i} style={{
-                  borderBottom: "1px solid #0d1321",
-                  borderTop: isRegionStart ? "2px solid #1e2a40" : "none",
-                  background: team.s <= 2 ? "#1A2A3E" : team.s <= 4 ? "#151D2E" : "transparent",
+      {/* Bracket - card list for mobile */}
+      <div style={{ maxHeight: 480, overflowY: "auto", borderRadius: 8 }}>
+        {filteredBracket.map((team, i) => {
+          const tier = getTier(team.odds);
+          const histAvg = HIST_AVG_PRICE[team.s] || 0;
+          const histRoi = HIST_ROI[team.s] || 0;
+          const isRegionStart = i === 0 || filteredBracket[i-1]?.r !== team.r;
+          return (
+            <div key={i}>
+              {isRegionStart && (
+                <div style={{
+                  padding: "8px 10px 4px", fontSize: 10, fontWeight: 700, letterSpacing: 2,
+                  color: "#4a9eff", textTransform: "uppercase",
+                  borderTop: i > 0 ? "2px solid #1e2a40" : "none",
+                  marginTop: i > 0 ? 8 : 0,
                 }}>
-                  <td style={{ padding: "6px 8px", color: "#5a6a8a", fontWeight: 600 }}>{team.r}</td>
-                  <td style={{ padding: "6px 8px" }}>
-                    <span style={{
-                      display: "inline-block", width: 26, height: 26, lineHeight: "26px",
-                      textAlign: "center", borderRadius: 5, fontSize: 10,
-                      background: team.s <= 2 ? "#4a9eff15" : team.s <= 4 ? "#7c5cfc10" : "#1a1f2e",
-                      color: team.s <= 2 ? "#4a9eff" : team.s <= 4 ? "#7c5cfc" : "#6a7a9a",
-                    }}>{team.s}</span>
-                  </td>
-                  <td style={{ padding: "6px 8px", fontWeight: 600 }}>{team.t}</td>
-                  <td style={{ padding: "6px 8px", color: "#7a8aaa", fontSize: 10 }}>{team.odds}</td>
-                  <td style={{ padding: "6px 8px" }}>
-                    <span style={{
-                      fontSize: 9, padding: "2px 6px", borderRadius: 3,
-                      background: `${tierColors[tier]}22`, color: tierColors[tier],
-                      fontWeight: 600,
-                    }}>{tier}</span>
-                  </td>
-                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#7a8aaa" }}>{fmtDollar(histAvg)}</td>
-                  <td style={{
-                    padding: "6px 8px", textAlign: "right", fontWeight: 600,
+                  {({S:"South Region (1st)", MW:"Midwest Region (2nd)", W:"West Region (3rd)", E:"East Region (Last)"})[team.r]}
+                </div>
+              )}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "8px 10px",
+                background: team.s <= 2 ? "#1A2A3E" : team.s <= 4 ? "#151D2E" : "transparent",
+                borderBottom: "1px solid #111827",
+                borderRadius: 4,
+                gap: 8,
+              }}>
+                {/* Left: seed badge + team */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: 28, height: 28, borderRadius: 6, fontSize: 11, fontWeight: 700, flexShrink: 0,
+                    background: team.s <= 2 ? "#4a9eff22" : team.s <= 4 ? "#7c5cfc15" : "#1a1f2e",
+                    color: team.s <= 2 ? "#4a9eff" : team.s <= 4 ? "#7c5cfc" : "#6a7a9a",
+                  }}>{team.s}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.t}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+                      <span style={{
+                        fontSize: 8, padding: "1px 5px", borderRadius: 3,
+                        background: `${tierColors[tier]}22`, color: tierColors[tier],
+                        fontWeight: 600, letterSpacing: 0.5,
+                      }}>{tier}</span>
+                      {team.note && <span style={{ fontSize: 9, color: "#5a6a8a" }}>{team.note}</span>}
+                    </div>
+                  </div>
+                </div>
+                {/* Right: price + ROI */}
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: 11, color: "#7a8aaa", fontWeight: 500 }}>{fmtDollar(histAvg)}</div>
+                  <div style={{
+                    fontSize: 10, fontWeight: 700,
                     color: histRoi >= 0 ? "#2ecc71" : "#e63946",
-                  }}>{fmtPct(histRoi)}</td>
-                  <td style={{ padding: "6px 8px", color: "#5a6a8a", fontSize: 10 }}>{team.note}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  }}>{fmtPct(histRoi)} ROI</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 6, textAlign: "center" }}>
+        Showing {filteredBracket.length} of 64 teams · Prices = historical avg for seed · ROI = 3yr avg for seed
       </div>
 
-      {/* Target picks */}
+      {/* Target picks - stacked on mobile */}
       <div style={{ marginTop: 24 }}>
-        <SubTitle>Recommended Targets by Tier</SubTitle>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <SubTitle>Recommended Targets</SubTitle>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 10 }}>
           <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #e6394633" }}>
             <div style={{ fontSize: 10, color: "#e63946", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Big Dogs ($1,500+)</div>
             {[
@@ -1329,7 +1344,7 @@ function AuctionPrep() {
               { t: "UConn", s: "2E", why: "2x champ coach, +1700", target: "$1,400-1,700" },
             ].map((pick, i) => (
               <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: 600 }}>{pick.t} <span style={{ color: "#4a6a8a", fontSize: 9 }}>({pick.s})</span></span>
                   <span style={{ color: "#2ecc71", fontWeight: 600, fontSize: 10 }}>{pick.target}</span>
                 </div>
@@ -1343,11 +1358,11 @@ function AuctionPrep() {
               { t: "Illinois", s: "3S", why: "Young, explosive O, +1900", target: "$900-1,100" },
               { t: "Vanderbilt", s: "5S", why: "Expert sleeper pick, +5000", target: "$400-550" },
               { t: "BYU", s: "6W", why: "Dybantsa = top-5 NBA pick, +5000", target: "$350-450" },
-              { t: "Saint Louis", s: "9MW", why: "A10 champ, elite metrics, +10000", target: "$150-200" },
-              { t: "VCU", s: "11S", why: "16 of last 17 W, chameleon, +10000", target: "$180-250" },
+              { t: "Saint Louis", s: "9MW", why: "A10 champ, elite metrics", target: "$150-200" },
+              { t: "VCU", s: "11S", why: "16 of last 17 W, chameleon", target: "$180-250" },
             ].map((pick, i) => (
               <div key={i} style={{ padding: "5px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: 600 }}>{pick.t} <span style={{ color: "#4a6a8a", fontSize: 9 }}>({pick.s})</span></span>
                   <span style={{ color: "#2ecc71", fontWeight: 600, fontSize: 10 }}>{pick.target}</span>
                 </div>
@@ -1356,32 +1371,31 @@ function AuctionPrep() {
             ))}
           </div>
         </div>
-        <div style={{ marginTop: 10, background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #2ecc7133" }}>
-          <div style={{ fontSize: 10, color: "#2ecc71", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Lottery Tickets ($40-150) — Historically 15s/16s = +25% ROI</div>
-          <div style={{ fontSize: 11, color: "#8a9aba", lineHeight: 1.8 }}>
+        <div style={{ marginTop: 10, background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #2ecc7133" }}>
+          <div style={{ fontSize: 10, color: "#2ecc71", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>Lottery Tickets ($40-150) — 15s/16s = +25% ROI</div>
+          <div style={{ fontSize: 10, color: "#8a9aba", lineHeight: 1.7 }}>
             16-seed package (~$50) · Idaho +23.5 vs Houston · Furman +20.5 vs UConn · 
-            South Florida (11E, CBS sleeper) · McNeese (12S, back from '25) · 
-            Saint Louis (9MW) if cheap · Texas/NC State (11W) First Four winner momentum
+            South Florida (11E) · McNeese (12S) · Texas (11W, FF winner)
           </div>
         </div>
       </div>
 
       {/* Fade list */}
-      <div style={{ marginTop: 16, background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #e6394633" }}>
+      <div style={{ marginTop: 14, background: "#111827", borderRadius: 8, padding: 12, border: "1px solid #e6394633" }}>
         <div style={{ fontSize: 10, color: "#e63946", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
-          Teams to Fade / Let Others Overpay
+          Fade List
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {[
-            { t: "Louisville (6E)", why: "3-6 vs Top 25, can't beat good teams" },
-            { t: "Georgia (8MW)", why: "315th in pts allowed" },
-            { t: "Tennessee (6MW)", why: "Lost 4 of last 6, worst seed since '14" },
-            { t: "Florida (1S)", why: "Defending champ tax = massive overpay" },
-            { t: "Duke (1E)", why: "Last off board, Foster injury concern" },
+            { t: "Louisville (6E)", why: "3-6 vs Top 25" },
+            { t: "Georgia (8MW)", why: "315th pts allowed" },
+            { t: "Tennessee (6MW)", why: "Lost 4 of last 6" },
+            { t: "Florida (1S)", why: "Champ tax = overpay" },
+            { t: "Duke (1E)", why: "Last off board, injury" },
           ].map((fade, i) => (
-            <div key={i} style={{ fontSize: 10, color: "#7a8aaa" }}>
+            <div key={i} style={{ fontSize: 10 }}>
               <span style={{ color: "#e63946", fontWeight: 600 }}>{fade.t}</span>
-              <div style={{ color: "#4a5a7a", fontSize: 9, marginTop: 2 }}>{fade.why}</div>
+              <div style={{ color: "#4a5a7a", fontSize: 9 }}>{fade.why}</div>
             </div>
           ))}
         </div>
