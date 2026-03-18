@@ -348,6 +348,13 @@ const BRACKET_2026 = [
 
 const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:250,7:290,6:420,5:550,4:680,3:950,2:1550,1:2100};
 const HIST_ROI = {16:0.17,15:0.32,14:-0.81,13:-0.77,12:-0.59,11:0.19,10:-0.48,9:0.30,8:-0.39,7:-0.30,6:0.09,5:0.18,4:-0.08,3:0.02,2:-0.15,1:0.20};
+// Seed pricing stats from 2023-2025 Hogan data: [min, max, avg, median]
+const SEED_PRICES = {
+  1:[1200,3350,2064,1810],2:[1200,2150,1570,1490],3:[680,1400,1001,1025],4:[480,1020,712,665],
+  5:[240,1000,558,545],6:[220,740,405,390],7:[150,400,273,255],8:[160,400,245,210],
+  9:[140,320,207,185],10:[140,340,233,225],11:[140,360,215,200],12:[140,270,213,215],
+  13:[60,220,109,95],14:[40,80,62,60],15:[70,80,73,70],16:[45,60,52,50],
+};
 // Round-by-round probabilities: [R32, S16, E8, F4, F2, Champ] as decimals — T-Rank model
 const TORIK_ROUNDS = {
   "S-16":[.009,0,0,0,0,0],"S-15":[.037,.005,0,0,0,0],"S-14":[.036,.006,0,0,0,0],"S-13":[.081,.008,0,0,0,0],
@@ -1673,6 +1680,58 @@ function RegionBracket({ region }) {
           <Conn pairs={1} />
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: 95, minWidth: 95, flexShrink: 0 }}>
             <Match />
+          </div>
+        </div>
+        {/* Seed Pricing Reference — fills empty bracket space */}
+        <div style={{ padding: "10px 8px 4px", borderTop: "1px solid #1e2a40" }}>
+          <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: 1, color: "#4a6a8a", textTransform: "uppercase", marginBottom: 6, textAlign: "center" }}>
+            Hogan Seed Prices '23-'25
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px 6px" }}>
+            {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16].map(s => {
+              const [min, max, avg, med] = SEED_PRICES[s];
+              const barMax = 3350;
+              return (
+                <div key={s} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{
+                    width: 16, fontSize: 8, fontWeight: 700, textAlign: "right", flexShrink: 0,
+                    color: s <= 2 ? "#4a9eff" : s <= 4 ? "#7c5cfc" : "#5a6a8a",
+                  }}>{s}</span>
+                  <div style={{ flex: 1, position: "relative", height: 14 }}>
+                    {/* Range bar (min to max) */}
+                    <div style={{
+                      position: "absolute", top: 6, height: 2, borderRadius: 1,
+                      left: `${(min / barMax) * 100}%`,
+                      width: `${((max - min) / barMax) * 100}%`,
+                      background: "#1e2a40",
+                    }} />
+                    {/* Avg marker */}
+                    <div style={{
+                      position: "absolute", top: 3, width: 1, height: 8,
+                      left: `${(avg / barMax) * 100}%`,
+                      background: "#4a9eff",
+                    }} />
+                    {/* Median marker */}
+                    <div style={{
+                      position: "absolute", top: 4, width: 3, height: 6, borderRadius: 1,
+                      left: `${(med / barMax) * 100}%`,
+                      background: "#2ecc7199",
+                    }} />
+                    {/* Labels */}
+                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 6, color: "#3a4a6a" }}>${min}</span>
+                      <span style={{ fontSize: 6, color: "#5a7a9a", fontWeight: 600 }}>${avg}</span>
+                      <span style={{ fontSize: 6, color: "#3a4a6a" }}>${max}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 4, fontSize: 6, color: "#3a4a6a" }}>
+            <span><span style={{ display: "inline-block", width: 6, height: 2, background: "#1e2a40", borderRadius: 1, verticalAlign: "middle", marginRight: 2 }} />range</span>
+            <span><span style={{ display: "inline-block", width: 1, height: 6, background: "#4a9eff", verticalAlign: "middle", marginRight: 2 }} />avg</span>
+            <span><span style={{ display: "inline-block", width: 3, height: 4, background: "#2ecc7199", borderRadius: 1, verticalAlign: "middle", marginRight: 2 }} />median</span>
           </div>
         </div>
       </div>
