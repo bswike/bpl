@@ -1649,7 +1649,7 @@ function FinalFourBracket() {
 
 function AuctionPrep() {
   const [regionFilter, setRegionFilter] = useState("All");
-  const [showTier, setShowTier] = useState("All");
+  const [seedFilter, setSeedFilter] = useState("All");
   const [viewMode, setViewMode] = useState("bracket");
   const [bracketRegion, setBracketRegion] = useState("E");
 
@@ -1667,13 +1667,24 @@ function AuctionPrep() {
   const filteredBracket = useMemo(() => {
     let data = BRACKET_2026;
     if (regionFilter !== "All") data = data.filter(t => t.r === regionFilter);
-    if (showTier !== "All") data = data.filter(t => getTier(t.odds) === showTier);
+    if (seedFilter !== "All") {
+      const seeds = seedFilter.split(",").map(Number);
+      data = data.filter(t => seeds.includes(t.s));
+    }
     return data;
-  }, [regionFilter, showTier]);
+  }, [regionFilter, seedFilter]);
 
   const regions = ["All", "S", "MW", "W", "E"];
   const regionLabels = { All: "All", S: "South", MW: "Midwest", W: "West", E: "East" };
-  const tiers = ["All", "Elite", "Contender", "Mid", "Long Shot", "Lottery"];
+  const seedGroups = [
+    { label: "All", value: "All" },
+    { label: "1-2", value: "1,2" },
+    { label: "3-4", value: "3,4" },
+    { label: "5-6", value: "5,6" },
+    { label: "7-8", value: "7,8" },
+    { label: "9-11", value: "9,10,11" },
+    { label: "12-16", value: "12,13,14,15,16" },
+  ];
 
   return (
     <div>
@@ -1712,13 +1723,13 @@ function AuctionPrep() {
           ))}
         </div>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {tiers.map(t => (
-            <button key={t} onClick={() => setShowTier(t)} style={{
-              padding: "6px 10px", background: showTier === t ? `${tierColors[t] || "#4a9eff"}` : "transparent",
-              border: `1px solid ${showTier === t ? (tierColors[t] || "#4a9eff") : "#1e2a40"}`, borderRadius: 4,
-              color: showTier === t ? "#0a0e17" : (tierColors[t] || "#5a6a8a"), fontFamily: "inherit", fontSize: 10,
-              fontWeight: showTier === t ? 700 : 400, cursor: "pointer",
-            }}>{t}</button>
+          {seedGroups.map(sg => (
+            <button key={sg.value} onClick={() => setSeedFilter(sg.value)} style={{
+              padding: "6px 10px", background: seedFilter === sg.value ? "#4a9eff" : "transparent",
+              border: `1px solid ${seedFilter === sg.value ? "#4a9eff" : "#1e2a40"}`, borderRadius: 4,
+              color: seedFilter === sg.value ? "#0a0e17" : "#5a6a8a", fontFamily: "inherit", fontSize: 10,
+              fontWeight: seedFilter === sg.value ? 700 : 400, cursor: "pointer",
+            }}>{sg.label}</button>
           ))}
         </div>
       </div>
