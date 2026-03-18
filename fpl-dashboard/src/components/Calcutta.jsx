@@ -274,7 +274,81 @@ const fmtDollar = (n) => `$${Math.round(n).toLocaleString()}`;
 // MAIN APP
 // ═══════════════════════════════════════════
 
-const TABS = ["Leaderboard", "Seed ROI", "Strategy", "Teams"];
+const BRACKET_2026 = [
+  // South
+  {r:"S",s:16,t:"PV A&M/Lehigh",odds:"+20000",note:"First Four"},
+  {r:"S",s:15,t:"Idaho +23.5",odds:"+20000",note:"Paired w/ Furman"},
+  {r:"S",s:14,t:"Penn",odds:"+20000",note:""},
+  {r:"S",s:13,t:"Troy",odds:"+20000",note:""},
+  {r:"S",s:12,t:"McNeese",odds:"+20000",note:"Back from '25"},
+  {r:"S",s:11,t:"VCU",odds:"+10000",note:"16 of last 17 W"},
+  {r:"S",s:10,t:"Texas A&M",odds:"+20000",note:""},
+  {r:"S",s:9,t:"Iowa",odds:"+10000",note:""},
+  {r:"S",s:8,t:"Clemson",odds:"+10000",note:""},
+  {r:"S",s:7,t:"Saint Mary's",odds:"+10000",note:""},
+  {r:"S",s:6,t:"North Carolina",odds:"+6000",note:""},
+  {r:"S",s:5,t:"Vanderbilt",odds:"+5000",note:"Expert sleeper"},
+  {r:"S",s:4,t:"Nebraska",odds:"+5000",note:""},
+  {r:"S",s:3,t:"Illinois",odds:"+1900",note:"Young, explosive O"},
+  {r:"S",s:2,t:"Houston",odds:"+1000",note:"Lost title game '25"},
+  {r:"S",s:1,t:"Florida",odds:"+700",note:"Defending champ"},
+  // Midwest
+  {r:"MW",s:16,t:"Howard/UMBC",odds:"+20000",note:"First Four"},
+  {r:"MW",s:15,t:"TN State +24.5",odds:"+20000",note:"Paired w/ Queens"},
+  {r:"MW",s:14,t:"Wright State",odds:"+20000",note:""},
+  {r:"MW",s:13,t:"Hofstra",odds:"+20000",note:""},
+  {r:"MW",s:12,t:"Akron",odds:"+20000",note:""},
+  {r:"MW",s:11,t:"SMU/Miami OH",odds:"+20000",note:"First Four"},
+  {r:"MW",s:10,t:"Santa Clara",odds:"+20000",note:""},
+  {r:"MW",s:9,t:"Saint Louis",odds:"+10000",note:"A10 champ"},
+  {r:"MW",s:8,t:"Georgia",odds:"+10000",note:"315th pts allowed"},
+  {r:"MW",s:7,t:"Kentucky",odds:"+5000",note:""},
+  {r:"MW",s:6,t:"Tennessee",odds:"+4000",note:"Lost 4 of last 6"},
+  {r:"MW",s:5,t:"Texas Tech",odds:"+4000",note:""},
+  {r:"MW",s:4,t:"Alabama",odds:"+4000",note:"Cinderella candidate"},
+  {r:"MW",s:3,t:"Virginia",odds:"+3000",note:""},
+  {r:"MW",s:2,t:"Iowa State",odds:"+1800",note:"KenPom #4 defense"},
+  {r:"MW",s:1,t:"Michigan",odds:"+350",note:"31-3, #1 KenPom"},
+  // West
+  {r:"W",s:16,t:"LIU +31.5",odds:"+20000",note:""},
+  {r:"W",s:15,t:"Queens +25.5",odds:"+20000",note:"Paired w/ TN St"},
+  {r:"W",s:14,t:"Kennesaw State",odds:"+20000",note:""},
+  {r:"W",s:13,t:"Hawaii",odds:"+20000",note:"Big West champ"},
+  {r:"W",s:12,t:"High Point",odds:"+20000",note:""},
+  {r:"W",s:11,t:"Texas/NC State",odds:"+10000",note:"Texas won FF"},
+  {r:"W",s:10,t:"Missouri",odds:"+20000",note:""},
+  {r:"W",s:9,t:"Utah State",odds:"+10000",note:"MWC champ"},
+  {r:"W",s:8,t:"Villanova",odds:"+10000",note:"Back in tourney"},
+  {r:"W",s:7,t:"Miami FL",odds:"+10000",note:""},
+  {r:"W",s:6,t:"BYU",odds:"+5000",note:"Dybantsa top-5 pick"},
+  {r:"W",s:5,t:"Wisconsin",odds:"+5000",note:""},
+  {r:"W",s:4,t:"Arkansas",odds:"+3000",note:"Calipari, SEC champ"},
+  {r:"W",s:3,t:"Gonzaga",odds:"+2500",note:""},
+  {r:"W",s:2,t:"Purdue",odds:"+3500",note:"B10 champ, contrarian"},
+  {r:"W",s:1,t:"Arizona",odds:"+400",note:"32-2, healthiest 1"},
+  // East
+  {r:"E",s:16,t:"Siena +28.5",odds:"+20000",note:""},
+  {r:"E",s:15,t:"Furman +20.5",odds:"+20000",note:"Paired w/ Idaho"},
+  {r:"E",s:14,t:"N Dakota State",odds:"+20000",note:""},
+  {r:"E",s:13,t:"Cal Baptist",odds:"+20000",note:""},
+  {r:"E",s:12,t:"Northern Iowa",odds:"+20000",note:""},
+  {r:"E",s:11,t:"South Florida",odds:"+10000",note:"CBS sleeper"},
+  {r:"E",s:10,t:"UCF",odds:"+20000",note:""},
+  {r:"E",s:9,t:"TCU",odds:"+10000",note:""},
+  {r:"E",s:8,t:"Ohio State",odds:"+10000",note:""},
+  {r:"E",s:7,t:"UCLA",odds:"+5000",note:""},
+  {r:"E",s:6,t:"Louisville",odds:"+5000",note:"3-6 vs Top 25"},
+  {r:"E",s:5,t:"St. John's",odds:"+5000",note:"BE champ, underseeded"},
+  {r:"E",s:4,t:"Kansas",odds:"+4000",note:"Peterson = #1 pick?"},
+  {r:"E",s:3,t:"Michigan State",odds:"+4000",note:""},
+  {r:"E",s:2,t:"UConn",odds:"+1700",note:"2x champ Hurley"},
+  {r:"E",s:1,t:"Duke",odds:"+300",note:"32-2, #1 overall, Boozer"},
+];
+
+const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:250,7:290,6:420,5:550,4:680,3:950,2:1550,1:2100};
+const HIST_ROI = {16:0.17,15:0.32,14:-0.81,13:-0.77,12:-0.59,11:0.19,10:-0.48,9:0.30,8:-0.39,7:-0.30,6:0.09,5:0.18,4:-0.08,3:0.02,2:-0.15,1:0.20};
+
+const TABS = ["Leaderboard", "Seed ROI", "Strategy", "Teams", "2026 Prep"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("Leaderboard");
@@ -380,6 +454,7 @@ export default function App() {
       {activeTab === "Seed ROI" && <SeedROI year={selectedYear} />}
       {activeTab === "Strategy" && <Strategy year={selectedYear} />}
       {activeTab === "Teams" && <TeamExplorer year={selectedYear} />}
+      {activeTab === "2026 Prep" && <AuctionPrep />}
     </div>
   );
 }
@@ -603,10 +678,10 @@ function SeedROI({ year }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: "1px solid #1e2a40" }}>
-              {["Seed", "Teams", "Avg Price", "Total Net", "ROI", "Hit Rate", ""].map((h,i) => (
+              {["Seed", "Avg Price", "Total Net", "ROI", "Hit Rate", ""].map((h,i) => (
                 <th key={i} style={{
                   padding: "8px 10px",
-                  textAlign: i >= 2 ? "right" : "left",
+                  textAlign: i >= 1 ? "right" : "left",
                   color: "#4a6a8a",
                   fontWeight: 500,
                   fontSize: 10,
@@ -636,7 +711,6 @@ function SeedROI({ year }) {
                       fontSize: 11,
                     }}>{d.seed}</span>
                   </td>
-                  <td style={{ padding: "8px 10px", color: "#7a8aaa" }}>{d.count}</td>
                   <td style={{ padding: "8px 10px", textAlign: "right", color: "#7a8aaa" }}>{fmtDollar(d.totalSpent / d.count)}</td>
                   <td style={{
                     padding: "8px 10px", textAlign: "right", fontWeight: 700,
@@ -1083,7 +1157,221 @@ function TeamExplorer({ year }) {
 }
 
 // ═══════════════════════════════════════════
-// SHARED COMPONENTS
+// 2026 AUCTION PREP
+// ═══════════════════════════════════════════
+
+function AuctionPrep() {
+  const [regionFilter, setRegionFilter] = useState("All");
+  const [showTier, setShowTier] = useState("All");
+
+  const getTier = (odds) => {
+    const num = parseInt(odds.replace("+", ""));
+    if (num <= 700) return "Elite";
+    if (num <= 2000) return "Contender";
+    if (num <= 5000) return "Mid";
+    if (num <= 10000) return "Long Shot";
+    return "Lottery";
+  };
+
+  const tierColors = { Elite: "#e63946", Contender: "#e9c46a", Mid: "#4a9eff", "Long Shot": "#7c5cfc", Lottery: "#3a4a6a" };
+
+  const filteredBracket = useMemo(() => {
+    let data = BRACKET_2026;
+    if (regionFilter !== "All") data = data.filter(t => t.r === regionFilter);
+    if (showTier !== "All") data = data.filter(t => getTier(t.odds) === showTier);
+    return data;
+  }, [regionFilter, showTier]);
+
+  const regions = ["All", "S", "MW", "W", "E"];
+  const regionNames = { All: "All Regions", S: "South (1st)", MW: "Midwest (2nd)", W: "West (3rd)", E: "East (Last)" };
+  const tiers = ["All", "Elite", "Contender", "Mid", "Long Shot", "Lottery"];
+
+  return (
+    <div>
+      <SectionTitle>2026 Auction Prep</SectionTitle>
+      <div style={{
+        background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #1e2a40", marginBottom: 16,
+      }}>
+        <div style={{ fontSize: 10, color: "#e9c46a", letterSpacing: 1, marginBottom: 6, textTransform: "uppercase", fontWeight: 600 }}>
+          Rules Recap
+        </div>
+        <div style={{ fontSize: 11, color: "#8a9aba", lineHeight: 1.6 }}>
+          $3K soft cap · 9 syndicates · Order: South → MW → West → East · 
+          16s packaged (DK spreads) · 15s paired · 1s/2s NOT randomized · 
+          Last 4 off board: Florida → Michigan → Arizona → Duke · 
+          Steal round: under $3K cap only · 10% juice on steals
+        </div>
+      </div>
+
+      {/* Strategy cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10, marginBottom: 20 }}>
+        {[
+          { label: "Sweet Spots", seeds: "1, 5, 9, 15-16", roi: "+20% avg ROI", color: "#2ecc71" },
+          { label: "Money Pits", seeds: "8, 10, 12-14", roi: "-50% avg ROI", color: "#e63946" },
+          { label: "Value Zone", seeds: "3, 6, 11", roi: "+5-19% ROI", color: "#4a9eff" },
+          { label: "High Variance", seeds: "2, 4, 7", roi: "-8 to -30% ROI", color: "#e9c46a" },
+        ].map(card => (
+          <div key={card.label} style={{
+            background: "#111827", borderRadius: 8, padding: 12,
+            border: `1px solid ${card.color}33`,
+          }}>
+            <div style={{ fontSize: 10, color: card.color, letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>{card.label}</div>
+            <div style={{ fontSize: 14, color: "#e8e6e3", fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", marginTop: 4 }}>{card.seeds}</div>
+            <div style={{ fontSize: 11, color: card.color, marginTop: 2 }}>{card.roi}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+        <span style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1 }}>REGION:</span>
+        {regions.map(r => (
+          <button key={r} onClick={() => setRegionFilter(r)} style={{
+            padding: "4px 10px", background: regionFilter === r ? "#4a9eff22" : "transparent",
+            border: `1px solid ${regionFilter === r ? "#4a9eff" : "#1e2a40"}`, borderRadius: 4,
+            color: regionFilter === r ? "#4a9eff" : "#5a6a8a", fontFamily: "inherit", fontSize: 10, cursor: "pointer",
+          }}>{regionNames[r]}</button>
+        ))}
+        <span style={{ fontSize: 10, color: "#4a6a8a", letterSpacing: 1, marginLeft: 12 }}>TIER:</span>
+        {tiers.map(t => (
+          <button key={t} onClick={() => setShowTier(t)} style={{
+            padding: "4px 10px", background: showTier === t ? "#4a9eff22" : "transparent",
+            border: `1px solid ${showTier === t ? "#4a9eff" : "#1e2a40"}`, borderRadius: 4,
+            color: showTier === t ? (tierColors[t] || "#4a9eff") : "#5a6a8a", fontFamily: "inherit", fontSize: 10, cursor: "pointer",
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {/* Bracket table */}
+      <div style={{ maxHeight: 520, overflowY: "auto", borderRadius: 8, border: "1px solid #1e2a40" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+          <thead style={{ position: "sticky", top: 0, background: "#0d1321", zIndex: 1 }}>
+            <tr style={{ borderBottom: "1px solid #1e2a40" }}>
+              {["Region", "Seed", "Team", "Odds", "Tier", "Hist Avg $", "Hist ROI", "Notes"].map((h, i) => (
+                <th key={i} style={{
+                  padding: "8px 8px", textAlign: i >= 5 ? "right" : "left",
+                  color: "#4a6a8a", fontWeight: 500, fontSize: 9, letterSpacing: 1,
+                  textTransform: "uppercase", whiteSpace: "nowrap",
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredBracket.map((team, i) => {
+              const tier = getTier(team.odds);
+              const histAvg = HIST_AVG_PRICE[team.s] || 0;
+              const histRoi = HIST_ROI[team.s] || 0;
+              const isRegionStart = i === 0 || filteredBracket[i-1]?.r !== team.r;
+              return (
+                <tr key={i} style={{
+                  borderBottom: "1px solid #0d1321",
+                  borderTop: isRegionStart ? "2px solid #1e2a40" : "none",
+                  background: team.s <= 2 ? "#1A2A3E" : team.s <= 4 ? "#151D2E" : "transparent",
+                }}>
+                  <td style={{ padding: "6px 8px", color: "#5a6a8a", fontWeight: 600 }}>{team.r}</td>
+                  <td style={{ padding: "6px 8px" }}>
+                    <span style={{
+                      display: "inline-block", width: 26, height: 26, lineHeight: "26px",
+                      textAlign: "center", borderRadius: 5, fontSize: 10,
+                      background: team.s <= 2 ? "#4a9eff15" : team.s <= 4 ? "#7c5cfc10" : "#1a1f2e",
+                      color: team.s <= 2 ? "#4a9eff" : team.s <= 4 ? "#7c5cfc" : "#6a7a9a",
+                    }}>{team.s}</span>
+                  </td>
+                  <td style={{ padding: "6px 8px", fontWeight: 600 }}>{team.t}</td>
+                  <td style={{ padding: "6px 8px", color: "#7a8aaa", fontSize: 10 }}>{team.odds}</td>
+                  <td style={{ padding: "6px 8px" }}>
+                    <span style={{
+                      fontSize: 9, padding: "2px 6px", borderRadius: 3,
+                      background: `${tierColors[tier]}22`, color: tierColors[tier],
+                      fontWeight: 600,
+                    }}>{tier}</span>
+                  </td>
+                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#7a8aaa" }}>{fmtDollar(histAvg)}</td>
+                  <td style={{
+                    padding: "6px 8px", textAlign: "right", fontWeight: 600,
+                    color: histRoi >= 0 ? "#2ecc71" : "#e63946",
+                  }}>{fmtPct(histRoi)}</td>
+                  <td style={{ padding: "6px 8px", color: "#5a6a8a", fontSize: 10 }}>{team.note}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Target picks */}
+      <div style={{ marginTop: 24 }}>
+        <SubTitle>Recommended Targets by Tier</SubTitle>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #e6394633" }}>
+            <div style={{ fontSize: 10, color: "#e63946", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Big Dogs ($1,500+)</div>
+            {[
+              { t: "Houston", s: "2S", why: "Lost title game, elite D, +1000", target: "$1,800-2,100" },
+              { t: "Iowa State", s: "2MW", why: "KenPom #4 defense, +1800", target: "$1,400-1,600" },
+              { t: "UConn", s: "2E", why: "2x champ coach, +1700", target: "$1,400-1,700" },
+            ].map((pick, i) => (
+              <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontWeight: 600 }}>{pick.t} <span style={{ color: "#4a6a8a", fontSize: 9 }}>({pick.s})</span></span>
+                  <span style={{ color: "#2ecc71", fontWeight: 600, fontSize: 10 }}>{pick.target}</span>
+                </div>
+                <div style={{ color: "#5a6a8a", fontSize: 9, marginTop: 2 }}>{pick.why}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #4a9eff33" }}>
+            <div style={{ fontSize: 10, color: "#4a9eff", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Value Picks ($200-800)</div>
+            {[
+              { t: "Illinois", s: "3S", why: "Young, explosive O, +1900", target: "$900-1,100" },
+              { t: "Vanderbilt", s: "5S", why: "Expert sleeper pick, +5000", target: "$400-550" },
+              { t: "BYU", s: "6W", why: "Dybantsa = top-5 NBA pick, +5000", target: "$350-450" },
+              { t: "Saint Louis", s: "9MW", why: "A10 champ, elite metrics, +10000", target: "$150-200" },
+              { t: "VCU", s: "11S", why: "16 of last 17 W, chameleon, +10000", target: "$180-250" },
+            ].map((pick, i) => (
+              <div key={i} style={{ padding: "5px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontWeight: 600 }}>{pick.t} <span style={{ color: "#4a6a8a", fontSize: 9 }}>({pick.s})</span></span>
+                  <span style={{ color: "#2ecc71", fontWeight: 600, fontSize: 10 }}>{pick.target}</span>
+                </div>
+                <div style={{ color: "#5a6a8a", fontSize: 9, marginTop: 2 }}>{pick.why}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginTop: 10, background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #2ecc7133" }}>
+          <div style={{ fontSize: 10, color: "#2ecc71", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Lottery Tickets ($40-150) — Historically 15s/16s = +25% ROI</div>
+          <div style={{ fontSize: 11, color: "#8a9aba", lineHeight: 1.8 }}>
+            16-seed package (~$50) · Idaho +23.5 vs Houston · Furman +20.5 vs UConn · 
+            South Florida (11E, CBS sleeper) · McNeese (12S, back from '25) · 
+            Saint Louis (9MW) if cheap · Texas/NC State (11W) First Four winner momentum
+          </div>
+        </div>
+      </div>
+
+      {/* Fade list */}
+      <div style={{ marginTop: 16, background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #e6394633" }}>
+        <div style={{ fontSize: 10, color: "#e63946", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
+          Teams to Fade / Let Others Overpay
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
+          {[
+            { t: "Louisville (6E)", why: "3-6 vs Top 25, can't beat good teams" },
+            { t: "Georgia (8MW)", why: "315th in pts allowed" },
+            { t: "Tennessee (6MW)", why: "Lost 4 of last 6, worst seed since '14" },
+            { t: "Florida (1S)", why: "Defending champ tax = massive overpay" },
+            { t: "Duke (1E)", why: "Last off board, Foster injury concern" },
+          ].map((fade, i) => (
+            <div key={i} style={{ fontSize: 10, color: "#7a8aaa" }}>
+              <span style={{ color: "#e63946", fontWeight: 600 }}>{fade.t}</span>
+              <div style={{ color: "#4a5a7a", fontSize: 9, marginTop: 2 }}>{fade.why}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════
 
 function SectionTitle({ children }) {
