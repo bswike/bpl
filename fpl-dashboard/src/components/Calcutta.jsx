@@ -1333,7 +1333,7 @@ function RegionBracket({ region }) {
     W: { name: "WEST", color: "#2ecc71" },
     E: { name: "EAST", color: "#4a9eff" },
   };
-  const meta = regionMeta[region];
+  const meta = regionMeta[region] || regionMeta.E;
 
   const Slot = ({ team, border }) => {
     if (!team) return (
@@ -1382,13 +1382,30 @@ function RegionBracket({ region }) {
       <div style={{ textAlign: 'center', marginBottom: 8, padding: '6px 0', borderBottom: `2px solid ${meta.color}44` }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: meta.color }}>{meta.name} REGION</span>
       </div>
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 4 }}>
-        <div style={{ display: 'flex', marginBottom: 4, minWidth: 480 }}>
+      <div
+        style={{
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          touchAction: "pan-x pan-y",
+          paddingBottom: 8,
+          paddingTop: 4,
+          border: "1px solid #1e2a40",
+          borderRadius: 8,
+          background: "#080c12",
+          marginLeft: -4,
+          marginRight: -4,
+        }}
+        aria-label="Regional bracket — scroll horizontally to see all rounds"
+      >
+        <div style={{ fontSize: 8, color: "#7c5cfc", textAlign: "center", padding: "4px 8px 6px", fontWeight: 600 }}>
+          ← Swipe / scroll sideways for full bracket →
+        </div>
+        <div style={{ display: 'flex', marginBottom: 4, minWidth: 480, paddingLeft: 8, paddingRight: 8 }}>
           {roundCols.map((c, i) => (
             <div key={i} style={{ width: c.w, minWidth: c.w, flexShrink: 0, textAlign: 'center', fontSize: 7, color: '#3a4a6a', letterSpacing: 1, fontWeight: 600 }}>{c.label}</div>
           ))}
         </div>
-        <div style={{ display: 'flex', height: TOTAL_H, minWidth: 480 }}>
+        <div style={{ display: 'flex', height: TOTAL_H, minWidth: 480, paddingLeft: 8, paddingRight: 8, paddingBottom: 8 }}>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: 130, minWidth: 130, flexShrink: 0 }}>
             {r64.map(([t, b], i) => <Match key={i} top={t} bot={b} />)}
           </div>
@@ -1434,7 +1451,21 @@ function FinalFourBracket() {
       <div style={{ textAlign: 'center', marginBottom: 8, padding: '6px 0', borderBottom: '2px solid #7c5cfc44' }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: '#7c5cfc' }}>FINAL FOUR</span>
       </div>
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <div
+        style={{
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          touchAction: "pan-x pan-y",
+          border: "1px solid #1e2a40",
+          borderRadius: 8,
+          background: "#080c12",
+          padding: "8px 8px 12px",
+        }}
+        aria-label="Final Four bracket"
+      >
+        <div style={{ fontSize: 8, color: "#7c5cfc", textAlign: "center", marginBottom: 6, fontWeight: 600 }}>
+          ← Scroll if needed →
+        </div>
         <div style={{ display: 'flex', marginBottom: 4, minWidth: 380 }}>
           {[{ w: 150, l: 'SEMIFINAL' }, { w: 16, l: '' }, { w: 130, l: 'CHAMPIONSHIP' }, { w: 16, l: '' }, { w: 70, l: '' }].map((c, i) => (
             <div key={i} style={{ width: c.w, minWidth: c.w, flexShrink: 0, textAlign: 'center', fontSize: 7, color: '#3a4a6a', letterSpacing: 1, fontWeight: 600 }}>{c.l}</div>
@@ -1484,7 +1515,7 @@ function FinalFourBracket() {
 function AuctionPrep() {
   const [regionFilter, setRegionFilter] = useState("All");
   const [showTier, setShowTier] = useState("All");
-  const [viewMode, setViewMode] = useState("list");
+  const [viewMode, setViewMode] = useState("bracket");
   const [bracketRegion, setBracketRegion] = useState("E");
 
   const getTier = (odds) => {
@@ -1547,16 +1578,22 @@ function AuctionPrep() {
         ))}
       </div>
 
-      {/* View Toggle */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 14, justifyContent: 'center' }}>
-        {["list", "bracket"].map(m => (
-          <button key={m} onClick={() => setViewMode(m)} style={{
-            padding: '8px 20px', background: viewMode === m ? '#4a9eff' : 'transparent',
-            border: `1px solid ${viewMode === m ? '#4a9eff' : '#1e2a40'}`, borderRadius: 6,
-            color: viewMode === m ? '#0a0e17' : '#5a6a8a', fontFamily: 'inherit', fontSize: 12,
-            fontWeight: viewMode === m ? 700 : 400, cursor: 'pointer', letterSpacing: 1,
-          }}>{m === "list" ? "📋 List" : "🏆 Bracket"}</button>
-        ))}
+      {/* View Toggle — bracket is wide; scroll/swipe horizontally on small screens */}
+      <div style={{ marginBottom: 10, textAlign: "center" }}>
+        <div style={{ fontSize: 9, color: "#5a6a8a", letterSpacing: 0.5, marginBottom: 8, lineHeight: 1.4 }}>
+          <strong style={{ color: "#e9c46a" }}>Regional bracket:</strong> tap <strong style={{ color: "#4a9eff" }}>Bracket</strong> below, then East / South / West / Midwest / Final Four.
+          On phone, <strong style={{ color: "#c8d6e5" }}>swipe left</strong> on the bracket to see all rounds.
+        </div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+          {["bracket", "list"].map(m => (
+            <button key={m} type="button" onClick={() => setViewMode(m)} style={{
+              padding: "10px 22px", background: viewMode === m ? "#4a9eff" : "transparent",
+              border: `1px solid ${viewMode === m ? "#4a9eff" : "#1e2a40"}`, borderRadius: 6,
+              color: viewMode === m ? "#0a0e17" : "#5a6a8a", fontFamily: "inherit", fontSize: 13,
+              fontWeight: viewMode === m ? 700 : 500, cursor: "pointer", letterSpacing: 0.5,
+            }}>{m === "list" ? "📋 List (filter)" : "🏆 Bracket"}</button>
+          ))}
+        </div>
       </div>
 
       {viewMode === "list" ? (
