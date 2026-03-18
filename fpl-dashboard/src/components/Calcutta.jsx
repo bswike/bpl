@@ -1813,7 +1813,7 @@ function AuctionPrep() {
               border: `1px solid ${viewMode === m ? "#4a9eff" : "#1e2a40"}`, borderRadius: 6,
               color: viewMode === m ? "#0a0e17" : "#5a6a8a", fontFamily: "inherit", fontSize: 13,
               fontWeight: viewMode === m ? 700 : 500, cursor: "pointer", letterSpacing: 0.5,
-            }}>{m === "list" ? "📋 List (filter)" : "🏆 Bracket"}</button>
+            }}>{m === "list" ? "📋 List (nerd shit)" : "🏆 Bracket"}</button>
           ))}
         </div>
       </div>
