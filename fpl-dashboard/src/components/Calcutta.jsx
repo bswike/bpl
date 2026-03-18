@@ -276,74 +276,74 @@ const fmtDollar = (n) => `$${Math.round(n).toLocaleString()}`;
 // ═══════════════════════════════════════════
 
 const BRACKET_2026 = [
-  // South - s16 = Sweet 16 odds (implied probability from BetMGM/DK)
-  {r:"S",s:16,t:"PV A&M/Lehigh",odds:"+20000",s16:"<1%",note:"First Four"},
-  {r:"S",s:15,t:"Idaho +23.5",odds:"+20000",s16:"2%",note:"Paired w/ Furman"},
-  {r:"S",s:14,t:"Penn",odds:"+20000",s16:"2%",note:""},
-  {r:"S",s:13,t:"Troy",odds:"+20000",s16:"5%",note:""},
-  {r:"S",s:12,t:"McNeese",odds:"+20000",s16:"13%",note:"Back from '25"},
-  {r:"S",s:11,t:"VCU",odds:"+10000",s16:"25%",note:"16 of last 17 W, UNC hurt"},
-  {r:"S",s:10,t:"Texas A&M",odds:"+20000",s16:"18%",note:""},
-  {r:"S",s:9,t:"Iowa",odds:"+10000",s16:"30%",note:"Underseeded per KenPom"},
-  {r:"S",s:8,t:"Clemson",odds:"+10000",s16:"22%",note:""},
-  {r:"S",s:7,t:"Saint Mary's",odds:"+10000",s16:"28%",note:""},
-  {r:"S",s:6,t:"North Carolina",odds:"+6000",s16:"25%",note:"Wilson out (broken thumb)"},
-  {r:"S",s:5,t:"Vanderbilt",odds:"+5000",s16:"55%",note:"Expert sleeper, beat UF by 17"},
-  {r:"S",s:4,t:"Nebraska",odds:"+5000",s16:"52%",note:"Cheapest 4-seed"},
-  {r:"S",s:3,t:"Illinois",odds:"+1900",s16:"68%",note:"Young, explosive O"},
-  {r:"S",s:2,t:"Houston",odds:"+1000",s16:"82%",note:"Lost title game '25, elite D"},
-  {r:"S",s:1,t:"Florida",odds:"+700",s16:"88%",note:"Defending champ"},
+  // South — s16 = BetMGM/DK implied prob, tr = T-Rank model S16%
+  {r:"S",s:16,t:"PV A&M/Lehigh",odds:"+20000",s16:"<1%",tr:"<1%",note:"First Four"},
+  {r:"S",s:15,t:"Idaho +23.5",odds:"+20000",s16:"2%",tr:"<1%",note:"Paired w/ Furman"},
+  {r:"S",s:14,t:"Penn",odds:"+20000",s16:"2%",tr:"1%",note:""},
+  {r:"S",s:13,t:"Troy",odds:"+20000",s16:"5%",tr:"1%",note:""},
+  {r:"S",s:12,t:"McNeese",odds:"+20000",s16:"13%",tr:"4%",note:"Back from '25"},
+  {r:"S",s:11,t:"VCU",odds:"+10000",s16:"25%",tr:"6%",note:"16 of last 17 W, UNC hurt"},
+  {r:"S",s:10,t:"Texas A&M",odds:"+20000",s16:"18%",tr:"8%",note:""},
+  {r:"S",s:9,t:"Iowa",odds:"+10000",s16:"30%",tr:"12%",note:"Underseeded per KenPom"},
+  {r:"S",s:8,t:"Clemson",odds:"+10000",s16:"22%",tr:"9%",note:""},
+  {r:"S",s:7,t:"Saint Mary's",odds:"+10000",s16:"28%",tr:"15%",note:""},
+  {r:"S",s:6,t:"North Carolina",odds:"+6000",s16:"25%",tr:"17%",note:"Wilson out (broken thumb)"},
+  {r:"S",s:5,t:"Vanderbilt",odds:"+5000",s16:"55%",tr:"51%",note:"Expert sleeper, beat UF by 17"},
+  {r:"S",s:4,t:"Nebraska",odds:"+5000",s16:"52%",tr:"45%",note:"Cheapest 4-seed"},
+  {r:"S",s:3,t:"Illinois",odds:"+1900",s16:"68%",tr:"77%",note:"Young, explosive O"},
+  {r:"S",s:2,t:"Houston",odds:"+1000",s16:"82%",tr:"76%",note:"Lost title game '25, elite D"},
+  {r:"S",s:1,t:"Florida",odds:"+700",s16:"88%",tr:"79%",note:"Defending champ"},
   // Midwest
-  {r:"MW",s:16,t:"Howard",odds:"+20000",s16:"<1%",note:"Won First Four"},
-  {r:"MW",s:15,t:"TN State +24.5",odds:"+20000",s16:"2%",note:"Paired w/ Queens"},
-  {r:"MW",s:14,t:"Wright State",odds:"+20000",s16:"2%",note:""},
-  {r:"MW",s:13,t:"Hofstra",odds:"+20000",s16:"5%",note:""},
-  {r:"MW",s:12,t:"Akron",odds:"+20000",s16:"10%",note:""},
-  {r:"MW",s:11,t:"SMU/Miami OH",odds:"+20000",s16:"15%",note:"First Four Wed"},
-  {r:"MW",s:10,t:"Santa Clara",odds:"+20000",s16:"20%",note:""},
-  {r:"MW",s:9,t:"Saint Louis",odds:"+10000",s16:"32%",note:"A10 champ, top-15 O & D"},
-  {r:"MW",s:8,t:"Georgia",odds:"+10000",s16:"18%",note:"315th pts allowed"},
-  {r:"MW",s:7,t:"Kentucky",odds:"+5000",s16:"30%",note:""},
-  {r:"MW",s:6,t:"Tennessee",odds:"+4000",s16:"38%",note:"Lost 4 of last 6"},
-  {r:"MW",s:5,t:"Texas Tech",odds:"+4000",s16:"52%",note:""},
-  {r:"MW",s:4,t:"Alabama",odds:"+4000",s16:"55%",note:"Cinderella candidate"},
-  {r:"MW",s:3,t:"Virginia",odds:"+3000",s16:"60%",note:""},
-  {r:"MW",s:2,t:"Iowa State",odds:"+1800",s16:"78%",note:"KenPom #4 defense"},
-  {r:"MW",s:1,t:"Michigan",odds:"+350",s16:"92%",note:"31-3, #1 KenPom"},
+  {r:"MW",s:16,t:"Howard",odds:"+20000",s16:"<1%",tr:"<1%",note:"Won First Four"},
+  {r:"MW",s:15,t:"TN State +24.5",odds:"+20000",s16:"2%",tr:"<1%",note:"Paired w/ Queens"},
+  {r:"MW",s:14,t:"Wright State",odds:"+20000",s16:"2%",tr:"1%",note:""},
+  {r:"MW",s:13,t:"Hofstra",odds:"+20000",s16:"5%",tr:"3%",note:""},
+  {r:"MW",s:12,t:"Akron",odds:"+20000",s16:"10%",tr:"4%",note:""},
+  {r:"MW",s:11,t:"SMU/Miami OH",odds:"+20000",s16:"15%",tr:"5%",note:"First Four Wed"},
+  {r:"MW",s:10,t:"Santa Clara",odds:"+20000",s16:"20%",tr:"13%",note:""},
+  {r:"MW",s:9,t:"Saint Louis",odds:"+10000",s16:"32%",tr:"5%",note:"A10 champ, top-15 O & D"},
+  {r:"MW",s:8,t:"Georgia",odds:"+10000",s16:"18%",tr:"8%",note:"315th pts allowed"},
+  {r:"MW",s:7,t:"Kentucky",odds:"+5000",s16:"30%",tr:"11%",note:""},
+  {r:"MW",s:6,t:"Tennessee",odds:"+4000",s16:"38%",tr:"40%",note:"Lost 4 of last 6"},
+  {r:"MW",s:5,t:"Texas Tech",odds:"+4000",s16:"52%",tr:"49%",note:""},
+  {r:"MW",s:4,t:"Alabama",odds:"+4000",s16:"55%",tr:"44%",note:"Cinderella candidate"},
+  {r:"MW",s:3,t:"Virginia",odds:"+3000",s16:"60%",tr:"52%",note:""},
+  {r:"MW",s:2,t:"Iowa State",odds:"+1800",s16:"78%",tr:"76%",note:"KenPom #4 defense"},
+  {r:"MW",s:1,t:"Michigan",odds:"+350",s16:"92%",tr:"87%",note:"31-3, #1 KenPom"},
   // West
-  {r:"W",s:16,t:"LIU +31.5",odds:"+20000",s16:"<1%",note:""},
-  {r:"W",s:15,t:"Queens +25.5",odds:"+20000",s16:"2%",note:"Paired w/ TN St"},
-  {r:"W",s:14,t:"Kennesaw State",odds:"+20000",s16:"2%",note:""},
-  {r:"W",s:13,t:"Hawaii",odds:"+20000",s16:"8%",note:"Unique no-help D"},
-  {r:"W",s:12,t:"High Point",odds:"+20000",s16:"10%",note:"Uptempo, 90 PPG"},
-  {r:"W",s:11,t:"Texas",odds:"+10000",s16:"18%",note:"Won First Four"},
-  {r:"W",s:10,t:"Missouri",odds:"+20000",s16:"22%",note:""},
-  {r:"W",s:9,t:"Utah State",odds:"+10000",s16:"25%",note:"MWC champ"},
-  {r:"W",s:8,t:"Villanova",odds:"+10000",s16:"28%",note:"Back in tourney"},
-  {r:"W",s:7,t:"Miami FL",odds:"+10000",s16:"28%",note:""},
-  {r:"W",s:6,t:"BYU",odds:"+5000",s16:"40%",note:"Dybantsa top-5 pick"},
-  {r:"W",s:5,t:"Wisconsin",odds:"+5000",s16:"50%",note:"Shoots 3s now"},
-  {r:"W",s:4,t:"Arkansas",odds:"+3000",s16:"55%",note:"Calipari curse as high seed"},
-  {r:"W",s:3,t:"Gonzaga",odds:"+2500",s16:"65%",note:"Top-3 seed first time since '23"},
-  {r:"W",s:2,t:"Purdue",odds:"+3500",s16:"75%",note:"B10 champ, broke assist record"},
-  {r:"W",s:1,t:"Arizona",odds:"+400",s16:"92%",note:"32-2, healthiest 1 seed"},
+  {r:"W",s:16,t:"LIU +31.5",odds:"+20000",s16:"<1%",tr:"<1%",note:""},
+  {r:"W",s:15,t:"Queens +25.5",odds:"+20000",s16:"2%",tr:"<1%",note:"Paired w/ TN St"},
+  {r:"W",s:14,t:"Kennesaw State",odds:"+20000",s16:"2%",tr:"1%",note:""},
+  {r:"W",s:13,t:"Hawaii",odds:"+20000",s16:"8%",tr:"2%",note:"Unique no-help D"},
+  {r:"W",s:12,t:"High Point",odds:"+20000",s16:"10%",tr:"3%",note:"Uptempo, 90 PPG"},
+  {r:"W",s:11,t:"Texas",odds:"+10000",s16:"18%",tr:"13%",note:"Won First Four"},
+  {r:"W",s:10,t:"Missouri",odds:"+20000",s16:"22%",tr:"9%",note:""},
+  {r:"W",s:9,t:"Utah State",odds:"+10000",s16:"25%",tr:"10%",note:"MWC champ"},
+  {r:"W",s:8,t:"Villanova",odds:"+10000",s16:"28%",tr:"7%",note:"Back in tourney"},
+  {r:"W",s:7,t:"Miami FL",odds:"+10000",s16:"28%",tr:"14%",note:""},
+  {r:"W",s:6,t:"BYU",odds:"+5000",s16:"40%",tr:"20%",note:"Dybantsa top-5 pick"},
+  {r:"W",s:5,t:"Wisconsin",odds:"+5000",s16:"50%",tr:"44%",note:"Shoots 3s now"},
+  {r:"W",s:4,t:"Arkansas",odds:"+3000",s16:"55%",tr:"51%",note:"Calipari curse as high seed"},
+  {r:"W",s:3,t:"Gonzaga",odds:"+2500",s16:"65%",tr:"67%",note:"Top-3 seed first time since '23"},
+  {r:"W",s:2,t:"Purdue",odds:"+3500",s16:"75%",tr:"77%",note:"B10 champ, broke assist record"},
+  {r:"W",s:1,t:"Arizona",odds:"+400",s16:"92%",tr:"84%",note:"32-2, healthiest 1 seed"},
   // East
-  {r:"E",s:16,t:"Siena +28.5",odds:"+20000",s16:"<1%",note:""},
-  {r:"E",s:15,t:"Furman +20.5",odds:"+20000",s16:"2%",note:"Paired w/ Idaho"},
-  {r:"E",s:14,t:"N Dakota State",odds:"+20000",s16:"2%",note:""},
-  {r:"E",s:13,t:"Cal Baptist",odds:"+20000",s16:"5%",note:""},
-  {r:"E",s:12,t:"Northern Iowa",odds:"+20000",s16:"12%",note:""},
-  {r:"E",s:11,t:"South Florida",odds:"+10000",s16:"20%",note:"CBS sleeper"},
-  {r:"E",s:10,t:"UCF",odds:"+20000",s16:"18%",note:""},
-  {r:"E",s:9,t:"TCU",odds:"+10000",s16:"22%",note:""},
-  {r:"E",s:8,t:"Ohio State",odds:"+10000",s16:"25%",note:""},
-  {r:"E",s:7,t:"UCLA",odds:"+5000",s16:"35%",note:""},
-  {r:"E",s:6,t:"Louisville",odds:"+5000",s16:"32%",note:"3-6 vs Top 25, Brown out"},
-  {r:"E",s:5,t:"St. John's",odds:"+5000",s16:"55%",note:"BE champ, underseeded per Nate Silver"},
-  {r:"E",s:4,t:"Kansas",odds:"+4000",s16:"58%",note:"Peterson = potential #1 pick"},
-  {r:"E",s:3,t:"Michigan State",odds:"+4000",s16:"55%",note:""},
-  {r:"E",s:2,t:"UConn",odds:"+1700",s16:"78%",note:"2x champ Hurley, Karaban back"},
-  {r:"E",s:1,t:"Duke",odds:"+300",s16:"90%",note:"32-2, #1 overall, Foster ?"},
+  {r:"E",s:16,t:"Siena +28.5",odds:"+20000",s16:"<1%",tr:"<1%",note:""},
+  {r:"E",s:15,t:"Furman +20.5",odds:"+20000",s16:"2%",tr:"<1%",note:"Paired w/ Idaho"},
+  {r:"E",s:14,t:"N Dakota State",odds:"+20000",s16:"2%",tr:"1%",note:""},
+  {r:"E",s:13,t:"Cal Baptist",odds:"+20000",s16:"5%",tr:"2%",note:""},
+  {r:"E",s:12,t:"Northern Iowa",odds:"+20000",s16:"12%",tr:"5%",note:""},
+  {r:"E",s:11,t:"South Florida",odds:"+10000",s16:"20%",tr:"7%",note:"CBS sleeper"},
+  {r:"E",s:10,t:"UCF",odds:"+20000",s16:"18%",tr:"6%",note:""},
+  {r:"E",s:9,t:"TCU",odds:"+10000",s16:"22%",tr:"3%",note:""},
+  {r:"E",s:8,t:"Ohio State",odds:"+10000",s16:"25%",tr:"13%",note:""},
+  {r:"E",s:7,t:"UCLA",odds:"+5000",s16:"35%",tr:"26%",note:""},
+  {r:"E",s:6,t:"Louisville",odds:"+5000",s16:"32%",tr:"37%",note:"3-6 vs Top 25, Brown out"},
+  {r:"E",s:5,t:"St. John's",odds:"+5000",s16:"55%",tr:"50%",note:"BE champ, underseeded per Nate Silver"},
+  {r:"E",s:4,t:"Kansas",odds:"+4000",s16:"58%",tr:"43%",note:"Peterson = potential #1 pick"},
+  {r:"E",s:3,t:"Michigan State",odds:"+4000",s16:"55%",tr:"54%",note:""},
+  {r:"E",s:2,t:"UConn",odds:"+1700",s16:"78%",tr:"68%",note:"2x champ Hurley, Karaban back"},
+  {r:"E",s:1,t:"Duke",odds:"+300",s16:"90%",tr:"84%",note:"32-2, #1 overall, Foster ?"},
 ];
 
 const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:250,7:290,6:420,5:550,4:680,3:950,2:1550,1:2100};
@@ -1504,11 +1504,13 @@ function RegionBracket({ region }) {
       <div style={{ height: SLOT_H, display: 'flex', alignItems: 'center', padding: '0 6px', background: '#0a0e15', borderBottom: border ? '1px solid #151d2e' : 'none', fontSize: 9, color: '#1e2a40' }}>—</div>
     );
     const n = parseInt(team.s16) || 0;
+    const tr = parseInt(team.tr) || 0;
     return (
       <div style={{ height: SLOT_H, display: 'flex', alignItems: 'center', padding: '0 4px', background: team.s <= 2 ? '#14203a' : '#0d1321', borderBottom: border ? '1px solid #1e2a40' : 'none', gap: 2 }}>
         <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: 'center', flexShrink: 0, color: team.s <= 2 ? '#4a9eff' : team.s <= 4 ? '#7c5cfc' : '#5a6a8a' }}>{team.s}</span>
         <span style={{ flex: 1, fontSize: 8, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#c8d6e5' }}>{team.t}</span>
         <span style={{ fontSize: 7, fontWeight: 700, flexShrink: 0, color: n >= 50 ? '#2ecc71' : n >= 25 ? '#e9c46a' : '#3a4a6a' }}>{team.s16}</span>
+        <span style={{ fontSize: 6, flexShrink: 0, color: tr >= 50 ? '#7c5cfc' : '#3a4a6a', marginLeft: 1 }}>{team.tr}</span>
       </div>
     );
   };
@@ -1809,13 +1811,24 @@ function AuctionPrep() {
                     </div>
                   </div>
                 </div>
-                {/* Right: S16 odds + avg price */}
+                {/* Right: S16 odds (both sources) + avg price */}
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{
-                    fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
-                    color: parseInt(team.s16) >= 50 ? "#2ecc71" : parseInt(team.s16) >= 25 ? "#e9c46a" : "#5a6a8a",
-                  }}>{team.s16}</div>
-                  <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 1 }}>S16 odds</div>
+                  <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "baseline" }}>
+                    <div>
+                      <div style={{
+                        fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+                        color: parseInt(team.s16) >= 50 ? "#2ecc71" : parseInt(team.s16) >= 25 ? "#e9c46a" : "#5a6a8a",
+                      }}>{team.s16}</div>
+                      <div style={{ fontSize: 7, color: "#3a4a6a" }}>BetMGM</div>
+                    </div>
+                    <div>
+                      <div style={{
+                        fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+                        color: parseInt(team.tr) >= 50 ? "#7c5cfc" : parseInt(team.tr) >= 25 ? "#9a7cfc" : "#4a5a7a",
+                      }}>{team.tr}</div>
+                      <div style={{ fontSize: 7, color: "#3a4a6a" }}>T-Rank</div>
+                    </div>
+                  </div>
                   <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 3 }}>{fmtDollar(histAvg)} avg</div>
                 </div>
               </div>
@@ -1824,7 +1837,7 @@ function AuctionPrep() {
         })}
       </div>
       <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 6, textAlign: "center" }}>
-        Showing {filteredBracket.length} of 64 teams · Prices = historical avg for seed · ROI = 3yr avg for seed
+        Showing {filteredBracket.length} of 64 teams · S16%: BetMGM/DK + T-Rank · Prices = historical avg for seed
       </div>
       </>
       ) : (
@@ -1853,7 +1866,7 @@ function AuctionPrep() {
         <RegionBracket region={bracketRegion} />
 
         <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 6, textAlign: "center" }}>
-          S16% = Sweet 16 implied probability (BetMGM/DK) · Tap region tabs to navigate
+          S16%: <span style={{ color: "#5a6a8a" }}>BetMGM/DK</span> · <span style={{ color: "#7c5cfc" }}>T-Rank</span> · Tap region tabs to navigate
         </div>
       </>
       )}
