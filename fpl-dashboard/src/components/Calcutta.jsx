@@ -1893,6 +1893,7 @@ function AuctionPrep() {
               { t: "Texas Tech", s: "5MW", s16: "52%", avg: "$550", roi: "+18%", why: "5s dodge 1-seeds until E8, face 4/12 in R2. Strong Big 12 résumé" },
               { t: "St. John's", s: "5E", s16: "55%", avg: "$550", roi: "+18%", why: "BE champ, underseeded per Nate Silver. 5-seed sweet spot" },
               { t: "Illinois", s: "3S", s16: "68%", avg: "$950", roi: "+2%", why: "3-seeds are breakeven but high-floor at 68% S16. Young, explosive O" },
+              { t: "UCLA", s: "7E", s16: "35%", avg: "$290", roi: "-30%", why: "7-seeds are high variance but 35% S16 is strong for the price point" },
               { t: "Iowa", s: "9S", s16: "30%", avg: "$200", roi: "+30%", why: "9-seeds: +30% ROI at $200 avg. Underseeded per KenPom" },
               { t: "Saint Louis", s: "9MW", s16: "32%", avg: "$200", roi: "+30%", why: "A10 champ, top-15 O & D. 9s are historically underpriced" },
             ].map((pick, i) => (
