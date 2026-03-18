@@ -1679,57 +1679,46 @@ function RegionBracket({ region }) {
             <Match />
           </div>
         </div>
-        {/* Seed Pricing Reference — fills empty bracket space */}
-        <div style={{ padding: "10px 8px 4px", borderTop: "1px solid #1e2a40" }}>
+        {/* Seed Pricing Reference */}
+        <div style={{ padding: "10px 8px 6px", borderTop: "1px solid #1e2a40" }}>
           <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: 1, color: "#4a6a8a", textTransform: "uppercase", marginBottom: 6, textAlign: "center" }}>
             Hogan Seed Prices '23-'25
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "4px 6px" }}>
-            {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16].map(s => {
-              const [min, max, avg, med] = SEED_PRICES[s];
-              const barMax = 3350;
-              return (
-                <div key={s} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{
-                    width: 16, fontSize: 8, fontWeight: 700, textAlign: "right", flexShrink: 0,
-                    color: s <= 2 ? "#4a9eff" : s <= 4 ? "#7c5cfc" : "#5a6a8a",
-                  }}>{s}</span>
-                  <div style={{ flex: 1, position: "relative", height: 14 }}>
-                    {/* Range bar (min to max) */}
-                    <div style={{
-                      position: "absolute", top: 6, height: 2, borderRadius: 1,
-                      left: `${(min / barMax) * 100}%`,
-                      width: `${((max - min) / barMax) * 100}%`,
-                      background: "#1e2a40",
-                    }} />
-                    {/* Avg marker */}
-                    <div style={{
-                      position: "absolute", top: 3, width: 1, height: 8,
-                      left: `${(avg / barMax) * 100}%`,
-                      background: "#4a9eff",
-                    }} />
-                    {/* Median marker */}
-                    <div style={{
-                      position: "absolute", top: 4, width: 3, height: 6, borderRadius: 1,
-                      left: `${(med / barMax) * 100}%`,
-                      background: "#2ecc7199",
-                    }} />
-                    {/* Labels */}
-                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 6, color: "#3a4a6a" }}>${min}</span>
-                      <span style={{ fontSize: 6, color: "#5a7a9a", fontWeight: 600 }}>${avg}</span>
-                      <span style={{ fontSize: 6, color: "#3a4a6a" }}>${max}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 4, fontSize: 6, color: "#3a4a6a" }}>
-            <span><span style={{ display: "inline-block", width: 6, height: 2, background: "#1e2a40", borderRadius: 1, verticalAlign: "middle", marginRight: 2 }} />range</span>
-            <span><span style={{ display: "inline-block", width: 1, height: 6, background: "#4a9eff", verticalAlign: "middle", marginRight: 2 }} />avg</span>
-            <span><span style={{ display: "inline-block", width: 3, height: 4, background: "#2ecc7199", borderRadius: 1, verticalAlign: "middle", marginRight: 2 }} />median</span>
-          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8 }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid #1e2a40" }}>
+                {["Seed","Low","High","Avg","Med"].map(h => (
+                  <th key={h} style={{ padding: "2px 3px", fontWeight: 600, color: "#4a6a8a", textAlign: h === "Seed" ? "center" : "right", fontSize: 7 }}>{h}</th>
+                ))}
+                {["Seed","Low","High","Avg","Med"].map(h => (
+                  <th key={h+"b"} style={{ padding: "2px 3px", fontWeight: 600, color: "#4a6a8a", textAlign: h === "Seed" ? "center" : "right", fontSize: 7, borderLeft: h === "Seed" ? "1px solid #1e2a40" : "none" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[0,1,2,3,4,5,6,7].map(i => {
+                const sL = i + 1;
+                const sR = i + 9;
+                const [minL,maxL,avgL,medL] = SEED_PRICES[sL];
+                const [minR,maxR,avgR,medR] = SEED_PRICES[sR];
+                const sc = (s) => s <= 2 ? "#4a9eff" : s <= 4 ? "#7c5cfc" : "#5a6a8a";
+                return (
+                  <tr key={i} style={{ borderBottom: "1px solid #0d1321" }}>
+                    <td style={{ padding: "2px 3px", textAlign: "center", fontWeight: 700, color: sc(sL) }}>{sL}</td>
+                    <td style={{ padding: "2px 3px", textAlign: "right", color: "#3a4a6a" }}>${minL}</td>
+                    <td style={{ padding: "2px 3px", textAlign: "right", color: "#3a4a6a" }}>${maxL.toLocaleString()}</td>
+                    <td style={{ padding: "2px 3px", textAlign: "right", color: "#7c9aaa", fontWeight: 600 }}>${avgL.toLocaleString()}</td>
+                    <td style={{ padding: "2px 3px", textAlign: "right", color: "#5a7a8a" }}>${medL.toLocaleString()}</td>
+                    <td style={{ padding: "2px 3px", textAlign: "center", fontWeight: 700, color: sc(sR), borderLeft: "1px solid #1e2a40" }}>{sR}</td>
+                    <td style={{ padding: "2px 3px", textAlign: "right", color: "#3a4a6a" }}>${minR}</td>
+                    <td style={{ padding: "2px 3px", textAlign: "right", color: "#3a4a6a" }}>${maxR}</td>
+                    <td style={{ padding: "2px 3px", textAlign: "right", color: "#7c9aaa", fontWeight: 600 }}>${avgR}</td>
+                    <td style={{ padding: "2px 3px", textAlign: "right", color: "#5a7a8a" }}>${medR}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
