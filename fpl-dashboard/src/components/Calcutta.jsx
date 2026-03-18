@@ -348,6 +348,28 @@ const BRACKET_2026 = [
 const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:250,7:290,6:420,5:550,4:680,3:950,2:1550,1:2100};
 const HIST_ROI = {16:0.17,15:0.32,14:-0.81,13:-0.77,12:-0.59,11:0.19,10:-0.48,9:0.30,8:-0.39,7:-0.30,6:0.09,5:0.18,4:-0.08,3:0.02,2:-0.15,1:0.20};
 
+// Calculate MEDIAN ROI per seed (more robust than average)
+const calculateMedianROI = () => {
+  const roiBySeed = {};
+  // Group ROI by seed
+  ALL_TEAMS.forEach(t => {
+    if (!roiBySeed[t.seed]) roiBySeed[t.seed] = [];
+    const roi = t.p > 0 ? t.n / t.p : 0;
+    roiBySeed[t.seed].push(roi);
+  });
+  // Calculate median for each seed
+  const medians = {};
+  Object.keys(roiBySeed).forEach(seed => {
+    const sorted = roiBySeed[seed].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    medians[seed] = sorted.length % 2 !== 0 
+      ? sorted[mid] 
+      : (sorted[mid - 1] + sorted[mid]) / 2;
+  });
+  return medians;
+};
+const HIST_MEDIAN_ROI = calculateMedianROI();
+
 const TABS = ["2026 Prep", "Leaderboard", "Seed ROI", "Strategy", "Teams"];
 
 export default function App() {
@@ -639,15 +661,32 @@ function SeedROI({ year }) {
     const filtered = ALL_TEAMS.filter(t => years.includes(t.year));
 
     const seedMap = {};
+    const roiLists = {}; // Track individual ROIs for median calculation
     filtered.forEach(t => {
       const s = t.seed;
-      if (!seedMap[s]) seedMap[s] = { seed: s, count: 0, totalSpent: 0, totalWon: 0, totalNet: 0, winners: 0 };
+      if (!seedMap[s]) {
+        seedMap[s] = { seed: s, count: 0, totalSpent: 0, totalWon: 0, totalNet: 0, winners: 0 };
+        roiLists[s] = [];
+      }
       seedMap[s].count++;
       seedMap[s].totalSpent += t.p;
       seedMap[s].totalWon += t.w;
       seedMap[s].totalNet += t.n;
       if (t.n > 0) seedMap[s].winners++;
+      // Track individual ROI for median
+      const indivRoi = t.p > 0 ? t.n / t.p : 0;
+      roiLists[s].push(indivRoi);
     });
+    
+    // Calculate median for each seed
+    Object.keys(seedMap).forEach(s => {
+      const sorted = roiLists[s].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      seedMap[s].medianRoi = sorted.length % 2 !== 0 
+        ? sorted[mid] 
+        : (sorted[mid - 1] + sorted[mid]) / 2;
+    });
+    
     return Object.values(seedMap).sort((a, b) => a.seed - b.seed);
   }, [year]);
 
@@ -680,14 +719,14 @@ function SeedROI({ year }) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr style={{ borderBottom: "1px solid #1e2a40" }}>
-              {["Seed", "Avg Price", "Total Net", "ROI", "Hit Rate", ""].map((h,i) => (
+              {["Seed", "Avg $", "Net", "Avg ROI", "Med ROI", "Hit %", ""].map((h,i) => (
                 <th key={i} style={{
-                  padding: "8px 10px",
+                  padding: "8px 8px",
                   textAlign: i >= 1 ? "right" : "left",
                   color: "#4a6a8a",
                   fontWeight: 500,
-                  fontSize: 10,
-                  letterSpacing: 1,
+                  fontSize: 9,
+                  letterSpacing: 0.5,
                   textTransform: "uppercase",
                   whiteSpace: "nowrap",
                 }}>{h}</th>
@@ -713,16 +752,20 @@ function SeedROI({ year }) {
                       fontSize: 11,
                     }}>{d.seed}</span>
                   </td>
-                  <td style={{ padding: "8px 10px", textAlign: "right", color: "#7a8aaa" }}>{fmtDollar(d.totalSpent / d.count)}</td>
+                  <td style={{ padding: "8px 8px", textAlign: "right", color: "#7a8aaa", fontSize: 11 }}>{fmtDollar(d.totalSpent / d.count)}</td>
                   <td style={{
-                    padding: "8px 10px", textAlign: "right", fontWeight: 700,
+                    padding: "8px 8px", textAlign: "right", fontWeight: 600, fontSize: 11,
                     color: isPos ? "#2ecc71" : "#e63946",
                   }}>{fmt(d.totalNet)}</td>
                   <td style={{
-                    padding: "8px 10px", textAlign: "right",
+                    padding: "8px 8px", textAlign: "right", fontSize: 11,
                     color: roi >= 0 ? "#2ecc71" : "#e63946",
                   }}>{fmtPct(roi)}</td>
-                  <td style={{ padding: "8px 10px", textAlign: "right", color: "#7a8aaa" }}>
+                  <td style={{
+                    padding: "8px 8px", textAlign: "right", fontWeight: 700, fontSize: 11,
+                    color: d.medianRoi >= 0 ? "#2ecc71" : "#e63946",
+                  }}>{fmtPct(d.medianRoi)}</td>
+                  <td style={{ padding: "8px 8px", textAlign: "right", color: "#7a8aaa", fontSize: 11 }}>
                     {d.count ? `${Math.round(d.winners / d.count * 100)}%` : "—"}
                   </td>
                   <td style={{ padding: "8px 10px", width: "18%" }}>
@@ -1274,6 +1317,7 @@ function AuctionPrep() {
           const tier = getTier(team.odds);
           const histAvg = HIST_AVG_PRICE[team.s] || 0;
           const histRoi = HIST_ROI[team.s] || 0;
+          const medianRoi = HIST_MEDIAN_ROI[team.s] || 0;
           const isRegionStart = i === 0 || filteredBracket[i-1]?.r !== team.r;
           return (
             <div key={i}>
@@ -1315,14 +1359,26 @@ function AuctionPrep() {
                     </div>
                   </div>
                 </div>
-                {/* Right: S16 odds + price */}
+                {/* Right: S16 odds + median ROI */}
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <div style={{
                     fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
                     color: parseInt(team.s16) >= 50 ? "#2ecc71" : parseInt(team.s16) >= 25 ? "#e9c46a" : "#5a6a8a",
                   }}>{team.s16}</div>
                   <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 1 }}>S16 odds</div>
-                  <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 2 }}>{fmtDollar(histAvg)} avg</div>
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 3 }}>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ 
+                        fontSize: 11, fontWeight: 600, 
+                        color: medianRoi >= 0 ? "#2ecc71" : "#e63946" 
+                      }}>{fmtPct(medianRoi)}</div>
+                      <div style={{ fontSize: 8, color: "#3a4a6a" }}>median</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 10, color: "#5a6a8a" }}>{fmtDollar(histAvg)}</div>
+                      <div style={{ fontSize: 8, color: "#3a4a6a" }}>avg $</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
