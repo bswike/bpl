@@ -275,74 +275,74 @@ const fmtDollar = (n) => `$${Math.round(n).toLocaleString()}`;
 // ═══════════════════════════════════════════
 
 const BRACKET_2026 = [
-  // South
-  {r:"S",s:16,t:"PV A&M/Lehigh",odds:"+20000",note:"First Four"},
-  {r:"S",s:15,t:"Idaho +23.5",odds:"+20000",note:"Paired w/ Furman"},
-  {r:"S",s:14,t:"Penn",odds:"+20000",note:""},
-  {r:"S",s:13,t:"Troy",odds:"+20000",note:""},
-  {r:"S",s:12,t:"McNeese",odds:"+20000",note:"Back from '25"},
-  {r:"S",s:11,t:"VCU",odds:"+10000",note:"16 of last 17 W"},
-  {r:"S",s:10,t:"Texas A&M",odds:"+20000",note:""},
-  {r:"S",s:9,t:"Iowa",odds:"+10000",note:""},
-  {r:"S",s:8,t:"Clemson",odds:"+10000",note:""},
-  {r:"S",s:7,t:"Saint Mary's",odds:"+10000",note:""},
-  {r:"S",s:6,t:"North Carolina",odds:"+6000",note:""},
-  {r:"S",s:5,t:"Vanderbilt",odds:"+5000",note:"Expert sleeper"},
-  {r:"S",s:4,t:"Nebraska",odds:"+5000",note:""},
-  {r:"S",s:3,t:"Illinois",odds:"+1900",note:"Young, explosive O"},
-  {r:"S",s:2,t:"Houston",odds:"+1000",note:"Lost title game '25"},
-  {r:"S",s:1,t:"Florida",odds:"+700",note:"Defending champ"},
+  // South - s16 = Sweet 16 odds (implied probability from BetMGM/DK)
+  {r:"S",s:16,t:"PV A&M/Lehigh",odds:"+20000",s16:"<1%",note:"First Four"},
+  {r:"S",s:15,t:"Idaho +23.5",odds:"+20000",s16:"2%",note:"Paired w/ Furman"},
+  {r:"S",s:14,t:"Penn",odds:"+20000",s16:"2%",note:""},
+  {r:"S",s:13,t:"Troy",odds:"+20000",s16:"5%",note:""},
+  {r:"S",s:12,t:"McNeese",odds:"+20000",s16:"13%",note:"Back from '25"},
+  {r:"S",s:11,t:"VCU",odds:"+10000",s16:"25%",note:"16 of last 17 W, UNC hurt"},
+  {r:"S",s:10,t:"Texas A&M",odds:"+20000",s16:"18%",note:""},
+  {r:"S",s:9,t:"Iowa",odds:"+10000",s16:"30%",note:"Underseeded per KenPom"},
+  {r:"S",s:8,t:"Clemson",odds:"+10000",s16:"22%",note:""},
+  {r:"S",s:7,t:"Saint Mary's",odds:"+10000",s16:"28%",note:""},
+  {r:"S",s:6,t:"North Carolina",odds:"+6000",s16:"25%",note:"Wilson out (broken thumb)"},
+  {r:"S",s:5,t:"Vanderbilt",odds:"+5000",s16:"55%",note:"Expert sleeper, beat UF by 17"},
+  {r:"S",s:4,t:"Nebraska",odds:"+5000",s16:"52%",note:"Cheapest 4-seed"},
+  {r:"S",s:3,t:"Illinois",odds:"+1900",s16:"68%",note:"Young, explosive O"},
+  {r:"S",s:2,t:"Houston",odds:"+1000",s16:"82%",note:"Lost title game '25, elite D"},
+  {r:"S",s:1,t:"Florida",odds:"+700",s16:"88%",note:"Defending champ"},
   // Midwest
-  {r:"MW",s:16,t:"Howard/UMBC",odds:"+20000",note:"First Four"},
-  {r:"MW",s:15,t:"TN State +24.5",odds:"+20000",note:"Paired w/ Queens"},
-  {r:"MW",s:14,t:"Wright State",odds:"+20000",note:""},
-  {r:"MW",s:13,t:"Hofstra",odds:"+20000",note:""},
-  {r:"MW",s:12,t:"Akron",odds:"+20000",note:""},
-  {r:"MW",s:11,t:"SMU/Miami OH",odds:"+20000",note:"First Four"},
-  {r:"MW",s:10,t:"Santa Clara",odds:"+20000",note:""},
-  {r:"MW",s:9,t:"Saint Louis",odds:"+10000",note:"A10 champ"},
-  {r:"MW",s:8,t:"Georgia",odds:"+10000",note:"315th pts allowed"},
-  {r:"MW",s:7,t:"Kentucky",odds:"+5000",note:""},
-  {r:"MW",s:6,t:"Tennessee",odds:"+4000",note:"Lost 4 of last 6"},
-  {r:"MW",s:5,t:"Texas Tech",odds:"+4000",note:""},
-  {r:"MW",s:4,t:"Alabama",odds:"+4000",note:"Cinderella candidate"},
-  {r:"MW",s:3,t:"Virginia",odds:"+3000",note:""},
-  {r:"MW",s:2,t:"Iowa State",odds:"+1800",note:"KenPom #4 defense"},
-  {r:"MW",s:1,t:"Michigan",odds:"+350",note:"31-3, #1 KenPom"},
+  {r:"MW",s:16,t:"Howard",odds:"+20000",s16:"<1%",note:"Won First Four"},
+  {r:"MW",s:15,t:"TN State +24.5",odds:"+20000",s16:"2%",note:"Paired w/ Queens"},
+  {r:"MW",s:14,t:"Wright State",odds:"+20000",s16:"2%",note:""},
+  {r:"MW",s:13,t:"Hofstra",odds:"+20000",s16:"5%",note:""},
+  {r:"MW",s:12,t:"Akron",odds:"+20000",s16:"10%",note:""},
+  {r:"MW",s:11,t:"SMU/Miami OH",odds:"+20000",s16:"15%",note:"First Four Wed"},
+  {r:"MW",s:10,t:"Santa Clara",odds:"+20000",s16:"20%",note:""},
+  {r:"MW",s:9,t:"Saint Louis",odds:"+10000",s16:"32%",note:"A10 champ, top-15 O & D"},
+  {r:"MW",s:8,t:"Georgia",odds:"+10000",s16:"18%",note:"315th pts allowed"},
+  {r:"MW",s:7,t:"Kentucky",odds:"+5000",s16:"30%",note:""},
+  {r:"MW",s:6,t:"Tennessee",odds:"+4000",s16:"38%",note:"Lost 4 of last 6"},
+  {r:"MW",s:5,t:"Texas Tech",odds:"+4000",s16:"52%",note:""},
+  {r:"MW",s:4,t:"Alabama",odds:"+4000",s16:"55%",note:"Cinderella candidate"},
+  {r:"MW",s:3,t:"Virginia",odds:"+3000",s16:"60%",note:""},
+  {r:"MW",s:2,t:"Iowa State",odds:"+1800",s16:"78%",note:"KenPom #4 defense"},
+  {r:"MW",s:1,t:"Michigan",odds:"+350",s16:"92%",note:"31-3, #1 KenPom"},
   // West
-  {r:"W",s:16,t:"LIU +31.5",odds:"+20000",note:""},
-  {r:"W",s:15,t:"Queens +25.5",odds:"+20000",note:"Paired w/ TN St"},
-  {r:"W",s:14,t:"Kennesaw State",odds:"+20000",note:""},
-  {r:"W",s:13,t:"Hawaii",odds:"+20000",note:"Big West champ"},
-  {r:"W",s:12,t:"High Point",odds:"+20000",note:""},
-  {r:"W",s:11,t:"Texas/NC State",odds:"+10000",note:"Texas won FF"},
-  {r:"W",s:10,t:"Missouri",odds:"+20000",note:""},
-  {r:"W",s:9,t:"Utah State",odds:"+10000",note:"MWC champ"},
-  {r:"W",s:8,t:"Villanova",odds:"+10000",note:"Back in tourney"},
-  {r:"W",s:7,t:"Miami FL",odds:"+10000",note:""},
-  {r:"W",s:6,t:"BYU",odds:"+5000",note:"Dybantsa top-5 pick"},
-  {r:"W",s:5,t:"Wisconsin",odds:"+5000",note:""},
-  {r:"W",s:4,t:"Arkansas",odds:"+3000",note:"Calipari, SEC champ"},
-  {r:"W",s:3,t:"Gonzaga",odds:"+2500",note:""},
-  {r:"W",s:2,t:"Purdue",odds:"+3500",note:"B10 champ, contrarian"},
-  {r:"W",s:1,t:"Arizona",odds:"+400",note:"32-2, healthiest 1"},
+  {r:"W",s:16,t:"LIU +31.5",odds:"+20000",s16:"<1%",note:""},
+  {r:"W",s:15,t:"Queens +25.5",odds:"+20000",s16:"2%",note:"Paired w/ TN St"},
+  {r:"W",s:14,t:"Kennesaw State",odds:"+20000",s16:"2%",note:""},
+  {r:"W",s:13,t:"Hawaii",odds:"+20000",s16:"8%",note:"Unique no-help D"},
+  {r:"W",s:12,t:"High Point",odds:"+20000",s16:"10%",note:"Uptempo, 90 PPG"},
+  {r:"W",s:11,t:"Texas",odds:"+10000",s16:"18%",note:"Won First Four"},
+  {r:"W",s:10,t:"Missouri",odds:"+20000",s16:"22%",note:""},
+  {r:"W",s:9,t:"Utah State",odds:"+10000",s16:"25%",note:"MWC champ"},
+  {r:"W",s:8,t:"Villanova",odds:"+10000",s16:"28%",note:"Back in tourney"},
+  {r:"W",s:7,t:"Miami FL",odds:"+10000",s16:"28%",note:""},
+  {r:"W",s:6,t:"BYU",odds:"+5000",s16:"40%",note:"Dybantsa top-5 pick"},
+  {r:"W",s:5,t:"Wisconsin",odds:"+5000",s16:"50%",note:"Shoots 3s now"},
+  {r:"W",s:4,t:"Arkansas",odds:"+3000",s16:"55%",note:"Calipari curse as high seed"},
+  {r:"W",s:3,t:"Gonzaga",odds:"+2500",s16:"65%",note:"Top-3 seed first time since '23"},
+  {r:"W",s:2,t:"Purdue",odds:"+3500",s16:"75%",note:"B10 champ, broke assist record"},
+  {r:"W",s:1,t:"Arizona",odds:"+400",s16:"92%",note:"32-2, healthiest 1 seed"},
   // East
-  {r:"E",s:16,t:"Siena +28.5",odds:"+20000",note:""},
-  {r:"E",s:15,t:"Furman +20.5",odds:"+20000",note:"Paired w/ Idaho"},
-  {r:"E",s:14,t:"N Dakota State",odds:"+20000",note:""},
-  {r:"E",s:13,t:"Cal Baptist",odds:"+20000",note:""},
-  {r:"E",s:12,t:"Northern Iowa",odds:"+20000",note:""},
-  {r:"E",s:11,t:"South Florida",odds:"+10000",note:"CBS sleeper"},
-  {r:"E",s:10,t:"UCF",odds:"+20000",note:""},
-  {r:"E",s:9,t:"TCU",odds:"+10000",note:""},
-  {r:"E",s:8,t:"Ohio State",odds:"+10000",note:""},
-  {r:"E",s:7,t:"UCLA",odds:"+5000",note:""},
-  {r:"E",s:6,t:"Louisville",odds:"+5000",note:"3-6 vs Top 25"},
-  {r:"E",s:5,t:"St. John's",odds:"+5000",note:"BE champ, underseeded"},
-  {r:"E",s:4,t:"Kansas",odds:"+4000",note:"Peterson = #1 pick?"},
-  {r:"E",s:3,t:"Michigan State",odds:"+4000",note:""},
-  {r:"E",s:2,t:"UConn",odds:"+1700",note:"2x champ Hurley"},
-  {r:"E",s:1,t:"Duke",odds:"+300",note:"32-2, #1 overall, Boozer"},
+  {r:"E",s:16,t:"Siena +28.5",odds:"+20000",s16:"<1%",note:""},
+  {r:"E",s:15,t:"Furman +20.5",odds:"+20000",s16:"2%",note:"Paired w/ Idaho"},
+  {r:"E",s:14,t:"N Dakota State",odds:"+20000",s16:"2%",note:""},
+  {r:"E",s:13,t:"Cal Baptist",odds:"+20000",s16:"5%",note:""},
+  {r:"E",s:12,t:"Northern Iowa",odds:"+20000",s16:"12%",note:""},
+  {r:"E",s:11,t:"South Florida",odds:"+10000",s16:"20%",note:"CBS sleeper"},
+  {r:"E",s:10,t:"UCF",odds:"+20000",s16:"18%",note:""},
+  {r:"E",s:9,t:"TCU",odds:"+10000",s16:"22%",note:""},
+  {r:"E",s:8,t:"Ohio State",odds:"+10000",s16:"25%",note:""},
+  {r:"E",s:7,t:"UCLA",odds:"+5000",s16:"35%",note:""},
+  {r:"E",s:6,t:"Louisville",odds:"+5000",s16:"32%",note:"3-6 vs Top 25, Brown out"},
+  {r:"E",s:5,t:"St. John's",odds:"+5000",s16:"55%",note:"BE champ, underseeded per Nate Silver"},
+  {r:"E",s:4,t:"Kansas",odds:"+4000",s16:"58%",note:"Peterson = potential #1 pick"},
+  {r:"E",s:3,t:"Michigan State",odds:"+4000",s16:"55%",note:""},
+  {r:"E",s:2,t:"UConn",odds:"+1700",s16:"78%",note:"2x champ Hurley, Karaban back"},
+  {r:"E",s:1,t:"Duke",odds:"+300",s16:"90%",note:"32-2, #1 overall, Foster ?"},
 ];
 
 const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:250,7:290,6:420,5:550,4:680,3:950,2:1550,1:2100};
@@ -1315,13 +1315,14 @@ function AuctionPrep() {
                     </div>
                   </div>
                 </div>
-                {/* Right: price + ROI */}
+                {/* Right: S16 odds + price */}
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 11, color: "#7a8aaa", fontWeight: 500 }}>{fmtDollar(histAvg)}</div>
                   <div style={{
-                    fontSize: 10, fontWeight: 700,
-                    color: histRoi >= 0 ? "#2ecc71" : "#e63946",
-                  }}>{fmtPct(histRoi)} ROI</div>
+                    fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
+                    color: parseInt(team.s16) >= 50 ? "#2ecc71" : parseInt(team.s16) >= 25 ? "#e9c46a" : "#5a6a8a",
+                  }}>{team.s16}</div>
+                  <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 1 }}>S16 odds</div>
+                  <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 2 }}>{fmtDollar(histAvg)} avg</div>
                 </div>
               </div>
             </div>
@@ -1400,13 +1401,132 @@ function AuctionPrep() {
           ))}
         </div>
       </div>
+
+      {/* ══════ HOGAN CALCUTTA INTELLIGENCE ══════ */}
+      <div style={{ marginTop: 28 }}>
+        <SectionTitle>Hogan Calcutta Intelligence (3-Year Analysis)</SectionTitle>
+
+        {/* THE KEY INSIGHT */}
+        <div style={{
+          background: "linear-gradient(135deg, #111827, #1a2a3e)", borderRadius: 10, padding: 16,
+          border: "1px solid #4a9eff44", marginBottom: 16,
+        }}>
+          <div style={{ fontSize: 11, color: "#4a9eff", letterSpacing: 2, textTransform: "uppercase", fontWeight: 700, marginBottom: 10 }}>
+            The #1 Rule: Sweet 16 Teams = 89% of All Money
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+            {[
+              { yr: "2023", pct: "89%", s16roi: "110%" },
+              { yr: "2024", pct: "87%", s16roi: "52%" },
+              { yr: "2025", pct: "90%", s16roi: "51%" },
+            ].map(d => (
+              <div key={d.yr} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 9, color: "#4a6a8a" }}>{d.yr}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#2ecc71", fontFamily: "'Space Grotesk', sans-serif" }}>{d.pct}</div>
+                <div style={{ fontSize: 9, color: "#5a6a8a" }}>of pot → S16 teams</div>
+                <div style={{ fontSize: 11, color: "#2ecc71", fontWeight: 600, marginTop: 4 }}>{d.s16roi} ROI</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, color: "#8a9aba", lineHeight: 1.6 }}>
+            Teams that don't make the Sweet 16 collectively lose money every single year. Your entire strategy should maximize S16 ownership.
+          </div>
+        </div>
+
+        {/* S16 tier breakdown */}
+        <SubTitle>Which S16 Teams Make the Most Money?</SubTitle>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+          {[
+            { label: "Cheap S16 ($50-500)", roi: "449%", color: "#7c5cfc", ex: "FAU '23, NC State '24, Princeton '23, Oakland '24, Arkansas '25" },
+            { label: "Mid S16 ($500-1500)", roi: "85%", color: "#4a9eff", ex: "SDSU '23, Clemson '24, Alabama '24, BYU '25" },
+            { label: "Expensive S16 ($1500+)", roi: "10%", color: "#e9c46a", ex: "Champs barely profit. Houston '24 at $2650 = -$1586" },
+          ].map(d => (
+            <div key={d.label} style={{ background: "#111827", borderRadius: 8, padding: 12, border: `1px solid ${d.color}33` }}>
+              <div style={{ fontSize: 9, color: d.color, letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>{d.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: d.color, fontFamily: "'Space Grotesk', sans-serif", marginTop: 4 }}>{d.roi}</div>
+              <div style={{ fontSize: 9, color: "#5a6a8a" }}>3yr avg ROI</div>
+              <div style={{ fontSize: 8, color: "#4a5a7a", marginTop: 4 }}>{d.ex}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Winning formula */}
+        <SubTitle>What Winners Did</SubTitle>
+        <div style={{ maxHeight: 260, overflowY: "auto", borderRadius: 8 }}>
+          {[
+            { yr:"2023", name:"Bacon", spent:"$3,650", roi:"+145%", s16:3, key:"UConn $1,020 + SDSU $620 + Tennessee $780", insight:"Two mid-priced S16 teams + cheap Cinderella champ" },
+            { yr:"2024", name:"Curran", spent:"$3,360", roi:"+127%", s16:3, key:"Purdue $2,800 + NC State $200 + Oakland $60", insight:"One big dog + two dirt-cheap Cinderellas" },
+            { yr:"2024", name:"Hudachek", spent:"$5,530", roi:"+70%", s16:2, key:"UConn $3,350 + Alabama $680", insight:"All-in on champ + cheap 4-seed that ran" },
+            { yr:"2025", name:"Crumbling", spent:"$4,450", roi:"+37%", s16:3, key:"Florida $2,800 + Purdue $550 + Kentucky $700", insight:"Champ anchor + two value 3-4 seeds" },
+            { yr:"2025", name:"Bacon", spent:"$4,540", roi:"+34%", s16:2, key:"Houston $1,900 + Tennessee $1,350", insight:"Two strong 2-seeds, both made S16+" },
+          ].map((w, i) => (
+            <div key={i} style={{ padding: "8px 10px", borderBottom: "1px solid #111827", background: i === 0 ? "#111d2e" : "transparent", borderRadius: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontWeight: 700, fontSize: 12 }}>{w.name} <span style={{ color: "#3a4a6a", fontSize: 9 }}>{w.yr} · {w.spent}</span></span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={{ fontSize: 10, color: "#4a9eff" }}>{w.s16} S16</span>
+                  <span style={{ color: "#2ecc71", fontWeight: 700 }}>{w.roi}</span>
+                </div>
+              </div>
+              <div style={{ fontSize: 10, color: "#8a9aba", marginTop: 2 }}>{w.key}</div>
+              <div style={{ fontSize: 9, color: "#e9c46a", marginTop: 1 }}>{w.insight}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Strategy principles */}
+        <div style={{ marginTop: 16 }}>
+          <SubTitle>Calcutta Strategy (Applied to Hogan Rules)</SubTitle>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
+            {[
+              { title: "Portfolio > Single Pick", body: "Winners averaged 2.4 S16 teams. Every year at least one expensive 1-2 seed flames out (Alabama '23, Houston '24, St. John's '25). Diversify." },
+              { title: "South Region = Cheapest", body: "First region auctioned is 15-20% cheaper than the last. South teams are your best value. Houston/Illinois/Vanderbilt going early = opportunity." },
+              { title: "Stay Under $3K for Steal Round", body: "Budget $2,800-2,900 in Round 1. The steal round lets you poach overpaid teams. 10% juice still profitable if team was bought 20%+ over fair value." },
+              { title: "Buy S16 Probability, Not Names", body: "Vanderbilt (55% S16) will go cheaper than UNC (25% S16, star OUT). Iowa (30%, underseeded) cheaper than a 7-seed with same odds. This is the edge." },
+              { title: "9s and 11s Are Cinderella Gold", body: "Made S16 in 8 of last 9 tourneys at Hogan prices of $150-250. One S16 run pays for 5+ failed tickets. FAU ($220→+$2,588), NC State ($200→+$2,994)." },
+              { title: "Don't Cannibalize Your Bracket", body: "Don't buy the 1-seed AND 4-5 seed in the same region half — one kills the other in the S16. Pick a side." },
+              { title: "Duke Goes Last = Wild Card", body: "Last 1-seed is often 10-15% cheaper due to budget exhaustion. If the room is tapped, Duke could be a steal. If not, let someone else overpay for the Foster injury risk." },
+            ].map((p, i) => (
+              <div key={i} style={{ background: "#111827", borderRadius: 6, padding: "8px 10px", border: "1px solid #1e2a40" }}>
+                <div style={{ fontSize: 10, color: "#e9c46a", fontWeight: 700 }}>{p.title}</div>
+                <div style={{ fontSize: 9, color: "#7a8aaa", lineHeight: 1.5, marginTop: 2 }}>{p.body}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Model portfolio */}
+        <div style={{ marginTop: 16, background: "linear-gradient(135deg, #111827, #1a1f2e)", borderRadius: 10, padding: 14, border: "1px solid #2ecc7144" }}>
+          <div style={{ fontSize: 11, color: "#2ecc71", letterSpacing: 2, textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>
+            Model Portfolio (~$2,900)
+          </div>
+          {[
+            { t: "Houston (2S)", price: "$1,800", s16: "82%", role: "Anchor" },
+            { t: "Vanderbilt (5S)", price: "$450", s16: "55%", role: "Value" },
+            { t: "Saint Louis (9MW)", price: "$170", s16: "32%", role: "Cheap" },
+            { t: "VCU (11S)", price: "$200", s16: "25%", role: "Cinderella" },
+            { t: "Iowa (9S)", price: "$160", s16: "30%", role: "Underseeded" },
+            { t: "15-seed pair", price: "$70", s16: "ATS", role: "Lottery" },
+          ].map((p, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", borderBottom: "1px solid #1a2a3e", fontSize: 11 }}>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span style={{ fontSize: 8, padding: "1px 4px", borderRadius: 3, background: "#2ecc7122", color: "#2ecc71", fontWeight: 600 }}>{p.role}</span>
+                <span style={{ fontWeight: 500 }}>{p.t}</span>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <span style={{ color: "#4a9eff", fontSize: 10 }}>{p.s16}</span>
+                <span style={{ fontWeight: 600, minWidth: 45, textAlign: "right" }}>{p.price}</span>
+              </div>
+            </div>
+          ))}
+          <div style={{ fontSize: 9, color: "#5a6a8a", marginTop: 6 }}>
+            ~$2,850 total · 5 S16 shots · Steal round eligible · Need 2+ S16 = profit
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
-
-// ═══════════════════════════════════════════
-
-function SectionTitle({ children }) {
   return (
     <h2 style={{
       fontFamily: "'Space Grotesk', sans-serif",
