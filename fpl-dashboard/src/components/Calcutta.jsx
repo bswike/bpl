@@ -1319,12 +1319,173 @@ function TeamExplorer({ year }) {
 }
 
 // ═══════════════════════════════════════════
+// BRACKET VIEW COMPONENTS
+// ═══════════════════════════════════════════
+
+function RegionBracket({ region }) {
+  const ORDER = [[1,16],[8,9],[5,12],[4,13],[6,11],[3,14],[7,10],[2,15]];
+  const getTeam = (s) => BRACKET_2026.find(t => t.r === region && t.s === s);
+  const SLOT_H = 24;
+  const TOTAL_H = 500;
+  const regionMeta = {
+    S: { name: "SOUTH", color: "#e63946" },
+    MW: { name: "MIDWEST", color: "#e9c46a" },
+    W: { name: "WEST", color: "#2ecc71" },
+    E: { name: "EAST", color: "#4a9eff" },
+  };
+  const meta = regionMeta[region];
+
+  const Slot = ({ team, border }) => {
+    if (!team) return (
+      <div style={{ height: SLOT_H, display: 'flex', alignItems: 'center', padding: '0 6px', background: '#0a0e15', borderBottom: border ? '1px solid #151d2e' : 'none', fontSize: 9, color: '#1e2a40' }}>—</div>
+    );
+    const n = parseInt(team.s16) || 0;
+    return (
+      <div style={{ height: SLOT_H, display: 'flex', alignItems: 'center', padding: '0 4px', background: team.s <= 2 ? '#14203a' : '#0d1321', borderBottom: border ? '1px solid #1e2a40' : 'none', gap: 2 }}>
+        <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: 'center', flexShrink: 0, color: team.s <= 2 ? '#4a9eff' : team.s <= 4 ? '#7c5cfc' : '#5a6a8a' }}>{team.s}</span>
+        <span style={{ flex: 1, fontSize: 8, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#c8d6e5' }}>{team.t}</span>
+        <span style={{ fontSize: 7, fontWeight: 700, flexShrink: 0, color: n >= 50 ? '#2ecc71' : n >= 25 ? '#e9c46a' : '#3a4a6a' }}>{team.s16}</span>
+      </div>
+    );
+  };
+
+  const Match = ({ top, bot }) => (
+    <div style={{ border: '1px solid #1e2a40', borderRadius: 3, overflow: 'hidden' }}>
+      <Slot team={top} border />
+      <Slot team={bot} />
+    </div>
+  );
+
+  const Conn = ({ pairs }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: 16, flexShrink: 0 }}>
+      {Array.from({ length: pairs }).map((_, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+          <div style={{ width: '100%', height: '50%', borderRight: '2px solid #1e2a40', borderTop: '2px solid #1e2a40', borderBottom: '2px solid #1e2a40', borderTopRightRadius: 3, borderBottomRightRadius: 3 }} />
+        </div>
+      ))}
+    </div>
+  );
+
+  const r64 = ORDER.map(([a, b]) => [getTeam(a), getTeam(b)]);
+  const roundCols = [
+    { w: 130, label: 'FIRST ROUND' },
+    { w: 16, label: '' },
+    { w: 95, label: 'SECOND ROUND' },
+    { w: 16, label: '' },
+    { w: 95, label: 'SWEET 16' },
+    { w: 16, label: '' },
+    { w: 95, label: 'ELITE 8' },
+  ];
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ textAlign: 'center', marginBottom: 8, padding: '6px 0', borderBottom: `2px solid ${meta.color}44` }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: meta.color }}>{meta.name} REGION</span>
+      </div>
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 4 }}>
+        <div style={{ display: 'flex', marginBottom: 4, minWidth: 480 }}>
+          {roundCols.map((c, i) => (
+            <div key={i} style={{ width: c.w, minWidth: c.w, flexShrink: 0, textAlign: 'center', fontSize: 7, color: '#3a4a6a', letterSpacing: 1, fontWeight: 600 }}>{c.label}</div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', height: TOTAL_H, minWidth: 480 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: 130, minWidth: 130, flexShrink: 0 }}>
+            {r64.map(([t, b], i) => <Match key={i} top={t} bot={b} />)}
+          </div>
+          <Conn pairs={4} />
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: 95, minWidth: 95, flexShrink: 0 }}>
+            {[0,1,2,3].map(i => <Match key={i} />)}
+          </div>
+          <Conn pairs={2} />
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: 95, minWidth: 95, flexShrink: 0 }}>
+            {[0,1].map(i => <Match key={i} />)}
+          </div>
+          <Conn pairs={1} />
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: 95, minWidth: 95, flexShrink: 0 }}>
+            <Match />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FinalFourBracket() {
+  const regions = [
+    { label: "East Winner", color: "#4a9eff" },
+    { label: "South Winner", color: "#e63946" },
+    { label: "West Winner", color: "#2ecc71" },
+    { label: "Midwest Winner", color: "#e9c46a" },
+  ];
+
+  const RegSlot = ({ r, border }) => (
+    <div style={{ height: 28, display: 'flex', alignItems: 'center', padding: '0 8px', background: '#0d1321', borderBottom: border ? '1px solid #1e2a40' : 'none', gap: 6 }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.color, flexShrink: 0 }} />
+      <span style={{ fontSize: 10, fontWeight: 600, color: '#c8d6e5' }}>{r.label}</span>
+    </div>
+  );
+
+  const Empty = ({ border }) => (
+    <div style={{ height: 28, display: 'flex', alignItems: 'center', padding: '0 8px', background: '#0a0e15', borderBottom: border ? '1px solid #151d2e' : 'none', fontSize: 9, color: '#1e2a40' }}>—</div>
+  );
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ textAlign: 'center', marginBottom: 8, padding: '6px 0', borderBottom: '2px solid #7c5cfc44' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: '#7c5cfc' }}>FINAL FOUR</span>
+      </div>
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ display: 'flex', marginBottom: 4, minWidth: 380 }}>
+          {[{ w: 150, l: 'SEMIFINAL' }, { w: 16, l: '' }, { w: 130, l: 'CHAMPIONSHIP' }, { w: 16, l: '' }, { w: 70, l: '' }].map((c, i) => (
+            <div key={i} style={{ width: c.w, minWidth: c.w, flexShrink: 0, textAlign: 'center', fontSize: 7, color: '#3a4a6a', letterSpacing: 1, fontWeight: 600 }}>{c.l}</div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', height: 200, minWidth: 380 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: 150, minWidth: 150, flexShrink: 0 }}>
+            <div style={{ border: '1px solid #1e2a40', borderRadius: 3, overflow: 'hidden' }}>
+              <RegSlot r={regions[0]} border />
+              <RegSlot r={regions[1]} />
+            </div>
+            <div style={{ border: '1px solid #1e2a40', borderRadius: 3, overflow: 'hidden' }}>
+              <RegSlot r={regions[2]} border />
+              <RegSlot r={regions[3]} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-around', width: 16, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+              <div style={{ width: '100%', height: '50%', borderRight: '2px solid #1e2a40', borderTop: '2px solid #1e2a40', borderBottom: '2px solid #1e2a40', borderTopRightRadius: 3, borderBottomRightRadius: 3 }} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', width: 130, minWidth: 130, flexShrink: 0 }}>
+            <div style={{ border: '1px solid #1e2a40', borderRadius: 3, overflow: 'hidden' }}>
+              <Empty border />
+              <Empty />
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', width: 16, flexShrink: 0, justifyContent: 'center' }}>
+            <div style={{ width: '100%', height: 2, background: '#1e2a40' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', width: 70, minWidth: 70, flexShrink: 0 }}>
+            <div style={{ border: '2px solid #7c5cfc44', borderRadius: 6, padding: '10px 8px', textAlign: 'center', background: '#111827' }}>
+              <div style={{ fontSize: 8, color: '#7c5cfc', letterSpacing: 1, fontWeight: 600 }}>CHAMP</div>
+              <div style={{ fontSize: 16, marginTop: 2 }}>🏆</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
 // 2026 AUCTION PREP
 // ═══════════════════════════════════════════
 
 function AuctionPrep() {
   const [regionFilter, setRegionFilter] = useState("All");
   const [showTier, setShowTier] = useState("All");
+  const [viewMode, setViewMode] = useState("list");
+  const [bracketRegion, setBracketRegion] = useState("E");
 
   const getTier = (odds) => {
     const num = parseInt(odds.replace("+", ""));
@@ -1386,6 +1547,20 @@ function AuctionPrep() {
         ))}
       </div>
 
+      {/* View Toggle */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 14, justifyContent: 'center' }}>
+        {["list", "bracket"].map(m => (
+          <button key={m} onClick={() => setViewMode(m)} style={{
+            padding: '8px 20px', background: viewMode === m ? '#4a9eff' : 'transparent',
+            border: `1px solid ${viewMode === m ? '#4a9eff' : '#1e2a40'}`, borderRadius: 6,
+            color: viewMode === m ? '#0a0e17' : '#5a6a8a', fontFamily: 'inherit', fontSize: 12,
+            fontWeight: viewMode === m ? 700 : 400, cursor: 'pointer', letterSpacing: 1,
+          }}>{m === "list" ? "📋 List" : "🏆 Bracket"}</button>
+        ))}
+      </div>
+
+      {viewMode === "list" ? (
+      <>
       {/* Filters - stacked for mobile */}
       <div style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 6 }}>
@@ -1473,6 +1648,42 @@ function AuctionPrep() {
       <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 6, textAlign: "center" }}>
         Showing {filteredBracket.length} of 64 teams · Prices = historical avg for seed · ROI = 3yr avg for seed
       </div>
+      </>
+      ) : (
+      <>
+        {/* Region tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {[
+            { key: "E", label: "East", color: "#4a9eff" },
+            { key: "S", label: "South", color: "#e63946" },
+            { key: "W", label: "West", color: "#2ecc71" },
+            { key: "MW", label: "Midwest", color: "#e9c46a" },
+            { key: "FF", label: "Final Four", color: "#7c5cfc" },
+          ].map(r => (
+            <button key={r.key} onClick={() => setBracketRegion(r.key)} style={{
+              padding: '6px 14px',
+              background: bracketRegion === r.key ? r.color : 'transparent',
+              border: `1px solid ${bracketRegion === r.key ? r.color : '#1e2a40'}`,
+              borderRadius: 4,
+              color: bracketRegion === r.key ? '#0a0e17' : r.color,
+              fontFamily: 'inherit', fontSize: 11,
+              fontWeight: bracketRegion === r.key ? 700 : 400,
+              cursor: 'pointer',
+            }}>{r.label}</button>
+          ))}
+        </div>
+
+        {bracketRegion === "FF" ? (
+          <FinalFourBracket />
+        ) : (
+          <RegionBracket region={bracketRegion} />
+        )}
+
+        <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 6, textAlign: "center" }}>
+          S16% = Sweet 16 implied probability (BetMGM/DK) · Tap region tabs to navigate
+        </div>
+      </>
+      )}
 
       {/* Target picks - stacked on mobile */}
       <div style={{ marginTop: 24 }}>
