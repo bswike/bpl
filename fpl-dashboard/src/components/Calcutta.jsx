@@ -1892,6 +1892,7 @@ function AuctionPrep() {
               { t: "Vanderbilt", s: "5S", s16: "55%", avg: "$550", roi: "+18%", why: "5-seeds: 42% S16 rate, best value in bracket at only $550 avg" },
               { t: "Texas Tech", s: "5MW", s16: "52%", avg: "$550", roi: "+18%", why: "5s dodge 1-seeds until E8, face 4/12 in R2. Strong Big 12 résumé" },
               { t: "St. John's", s: "5E", s16: "55%", avg: "$550", roi: "+18%", why: "BE champ, underseeded per Nate Silver. 5-seed sweet spot" },
+              { t: "Illinois", s: "3S", s16: "68%", avg: "$950", roi: "+2%", why: "3-seeds are breakeven but high-floor at 68% S16. Young, explosive O" },
               { t: "Iowa", s: "9S", s16: "30%", avg: "$200", roi: "+30%", why: "9-seeds: +30% ROI at $200 avg. Underseeded per KenPom" },
               { t: "Saint Louis", s: "9MW", s16: "32%", avg: "$200", roi: "+30%", why: "A10 champ, top-15 O & D. 9s are historically underpriced" },
             ].map((pick, i) => (
@@ -1913,7 +1914,6 @@ function AuctionPrep() {
               { t: "VCU", s: "11S", s16: "25%", avg: "$220", roi: "+19%", why: "11-seeds: 25% S16 rate, +19% ROI. 16 of last 17 W, coin-flip vs 6-seed" },
               { t: "South Florida", s: "11E", s16: "20%", avg: "$220", roi: "+19%", why: "CBS sleeper pick. 11 vs 6 matchups are near coin flips historically" },
               { t: "BYU", s: "6W", s16: "40%", avg: "$420", roi: "+9%", why: "6-seeds: +9% ROI. Dybantsa = top-5 NBA pick, legit S16 contender" },
-              { t: "Illinois", s: "3S", s16: "68%", avg: "$950", roi: "+2%", why: "3-seeds are breakeven but high-floor. Young, explosive offense" },
               { t: "Idaho", s: "15S", s16: "2%", avg: "$72", roi: "+32%", why: "15-seeds: +32% ROI at $72 avg. +23.5 spread = ATS lottery ticket" },
               { t: "16-seed pkg", s: "16", s16: "ATS", avg: "$48", roi: "+17%", why: "16s at ~$48 = cheapest lottery. 42% covered the spread over 3yrs" },
             ].map((pick, i) => (
