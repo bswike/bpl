@@ -431,7 +431,7 @@ function getTeamValue(team) {
 
 
 const MAIN_TABS = ["2026 Prep", "Teams", "Seed ROI"];
-const EXTRA_TABS = ["Leaderboard", "Strategy"];
+const EXTRA_TABS = ["Leaderboard", "Strategy", "Spending"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("2026 Prep");
@@ -536,7 +536,7 @@ export default function App() {
       </div>
 
       {/* Year filter - only show for historical tabs */}
-      {activeTab !== "2026 Prep" && (
+      {activeTab !== "2026 Prep" && activeTab !== "Spending" && (
       <div style={{
         display: "flex",
         justifyContent: "center",
@@ -568,6 +568,7 @@ export default function App() {
       {activeTab === "Seed ROI" && <SeedROI year={selectedYear} />}
       {activeTab === "Strategy" && <Strategy year={selectedYear} />}
       {activeTab === "Teams" && <TeamExplorer year={selectedYear} />}
+      {activeTab === "Spending" && <SpendingAnalysis />}
     </div>
   );
 }
@@ -2145,6 +2146,397 @@ function AuctionPrep() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// SPENDING ANALYSIS
+// ═══════════════════════════════════════════
+
+function SpendingAnalysis() {
+  const [spendView, setSpendView] = useState("overview");
+
+  const yearData = [2023, 2024, 2025].map(year => {
+    const syndicates = year === 2023 ? SYNDICATES_2023 : year === 2024 ? SYNDICATES_2024 : SYNDICATES_2025;
+    const teams = year === 2023 ? TEAMS_2023 : year === 2024 ? TEAMS_2024 : TEAMS_2025;
+    const pot = syndicates.reduce((a, s) => a + s.spent, 0);
+    const numSyn = syndicates.length;
+    const avgSpend = Math.round(pot / numSyn);
+
+    const bySeed = {};
+    for (let s = 1; s <= 16; s++) bySeed[s] = { total: 0, count: 0, prices: [] };
+    for (const t of teams) {
+      bySeed[t.seed].total += t.p;
+      bySeed[t.seed].count++;
+      bySeed[t.seed].prices.push(t.p);
+    }
+    for (let s = 1; s <= 16; s++) {
+      bySeed[s].avg = bySeed[s].count > 0 ? Math.round(bySeed[s].total / bySeed[s].count) : 0;
+      bySeed[s].pctOfPot = (bySeed[s].total / pot * 100);
+      bySeed[s].max = Math.max(...(bySeed[s].prices.length ? bySeed[s].prices : [0]));
+      bySeed[s].min = Math.min(...(bySeed[s].prices.length ? bySeed[s].prices : [0]));
+    }
+
+    const tiers = { "1-2": { seeds: [1,2], total: 0 }, "3-4": { seeds: [3,4], total: 0 }, "5-8": { seeds: [5,6,7,8], total: 0 }, "9-12": { seeds: [9,10,11,12], total: 0 }, "13-16": { seeds: [13,14,15,16], total: 0 } };
+    for (const [, tier] of Object.entries(tiers)) {
+      tier.total = tier.seeds.reduce((a, s) => a + bySeed[s].total, 0);
+      tier.pct = (tier.total / pot * 100);
+    }
+
+    const synProfiles = {};
+    for (const syn of syndicates) {
+      const synTeams = teams.filter(t => t.s === syn.name);
+      const topSpend = synTeams.filter(t => t.seed <= 2).reduce((a, t) => a + t.p, 0);
+      const eliteSpend = synTeams.filter(t => t.seed >= 3 && t.seed <= 4).reduce((a, t) => a + t.p, 0);
+      const midSpend = synTeams.filter(t => t.seed >= 5 && t.seed <= 8).reduce((a, t) => a + t.p, 0);
+      const lowSpend = synTeams.filter(t => t.seed >= 9 && t.seed <= 12).reduce((a, t) => a + t.p, 0);
+      const bottomSpend = synTeams.filter(t => t.seed >= 13).reduce((a, t) => a + t.p, 0);
+      const maxTeam = synTeams.length ? Math.max(...synTeams.map(t => t.p)) : 0;
+      synProfiles[syn.name] = { spent: syn.spent, won: syn.totalWon, net: syn.net, count: synTeams.length, topPct: syn.spent ? (topSpend / syn.spent * 100) : 0, elitePct: syn.spent ? (eliteSpend / syn.spent * 100) : 0, midPct: syn.spent ? (midSpend / syn.spent * 100) : 0, lowPct: syn.spent ? (lowSpend / syn.spent * 100) : 0, bottomPct: syn.spent ? (bottomSpend / syn.spent * 100) : 0, maxTeam, concentration: syn.spent ? (maxTeam / syn.spent * 100) : 0 };
+    }
+
+    return { year, pot, numSyn, avgSpend, bySeed, tiers, synProfiles, syndicates };
+  });
+
+  const tierColors = { "1-2": "#e63946", "3-4": "#f4a261", "5-8": "#2a9d8f", "9-12": "#457b9d", "13-16": "#6a4c93" };
+  const tierLabels = { "1-2": "Top Seeds (1-2)", "3-4": "Elite (3-4)", "5-8": "Mid (5-8)", "9-12": "Low-Mid (9-12)", "13-16": "Bottom (13-16)" };
+
+  const views = [
+    { key: "overview", label: "Overview" },
+    { key: "seeds", label: "By Seed" },
+    { key: "syndicates", label: "By Syndicate" },
+    { key: "takeaways", label: "Takeaways" },
+  ];
+
+  const cardBg = "#0f1829";
+  const cardBorder = "#1e2a40";
+
+  return (
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: 20 }}>
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700, margin: "0 0 4px 0", color: "#e8e6e3" }}>Spending Analysis</h2>
+        <div style={{ fontSize: 11, color: "#5a6a8a" }}>Where the money goes — 2023 vs 2024 vs 2025</div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
+        {views.map(v => (
+          <button key={v.key} onClick={() => setSpendView(v.key)} style={{
+            padding: "6px 16px", background: spendView === v.key ? "#4a9eff22" : "transparent",
+            border: `1px solid ${spendView === v.key ? "#4a9eff" : "#1e2a40"}`, borderRadius: 5,
+            color: spendView === v.key ? "#4a9eff" : "#5a6a8a", fontSize: 11, fontWeight: spendView === v.key ? 700 : 400,
+            fontFamily: "inherit", cursor: "pointer", letterSpacing: 0.5,
+          }}>{v.label}</button>
+        ))}
+      </div>
+
+      {spendView === "overview" && (
+        <div>
+          {/* Pot comparison */}
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e6e3", marginBottom: 12 }}>Total Pot by Year</div>
+            {yearData.map(yd => {
+              const maxPot = Math.max(...yearData.map(y => y.pot));
+              return (
+                <div key={yd.year} style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
+                    <span style={{ color: "#8a9aba" }}>{yd.year} <span style={{ color: "#5a6a8a" }}>({yd.numSyn} syndicates)</span></span>
+                    <span style={{ color: "#e8e6e3", fontWeight: 600 }}>${yd.pot.toLocaleString()} <span style={{ color: "#5a6a8a", fontWeight: 400 }}>(avg ${yd.avgSpend}/syn)</span></span>
+                  </div>
+                  <div style={{ background: "#1a2235", borderRadius: 3, height: 22, overflow: "hidden" }}>
+                    <div style={{ width: `${(yd.pot / maxPot) * 100}%`, height: "100%", borderRadius: 3, background: yd.year === 2024 ? "linear-gradient(90deg, #e63946, #f4a261)" : "linear-gradient(90deg, #4a9eff, #7c5cfc)", transition: "width 0.5s" }} />
+                  </div>
+                </div>
+              );
+            })}
+            <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 8, lineHeight: 1.5 }}>
+              2024 pot was <span style={{ color: "#e63946", fontWeight: 600 }}>+$6,290 (+21.5%)</span> vs 2023 — driven by Tomek joining as 9th syndicate and a bidding war at the top.
+              2025 came back down <span style={{ color: "#4a9eff", fontWeight: 600 }}>-$4,280 (-12.1%)</span> when Smith left.
+            </div>
+          </div>
+
+          {/* Tier allocation stacked bars */}
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e6e3", marginBottom: 4 }}>Spending by Tier — % of Pot</div>
+            <div style={{ fontSize: 10, color: "#5a6a8a", marginBottom: 14 }}>Where each dollar went</div>
+            {yearData.map(yd => (
+              <div key={yd.year} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: "#8a9aba", marginBottom: 4, fontWeight: 500 }}>{yd.year}</div>
+                <div style={{ display: "flex", height: 28, borderRadius: 4, overflow: "hidden", background: "#1a2235" }}>
+                  {Object.entries(yd.tiers).map(([key, tier]) => (
+                    <div key={key} style={{
+                      width: `${tier.pct}%`, background: tierColors[key], display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 9, fontWeight: 600, color: "#fff", minWidth: tier.pct > 5 ? 0 : 0,
+                      transition: "width 0.5s",
+                    }}>
+                      {tier.pct >= 8 ? `${tier.pct.toFixed(0)}%` : ""}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 8 }}>
+              {Object.entries(tierLabels).map(([key, label]) => (
+                <div key={key} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#8a9aba" }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 2, background: tierColors[key] }} />
+                  {label}
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 10, lineHeight: 1.5 }}>
+              Top seeds (1-2) ate <span style={{ color: "#e63946", fontWeight: 600 }}>49.7%</span> of the 2024 pot vs <span style={{ color: "#4a9eff" }}>39.2%</span> in 2023.
+              Mid-tier (5-8) got squeezed from <span style={{ color: "#4a9eff" }}>22.5%</span> to just <span style={{ color: "#e63946" }}>15.0%</span>.
+            </div>
+          </div>
+
+          {/* Year-over-year deltas */}
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e6e3", marginBottom: 4 }}>2023 → 2024: Where the Extra $6,290 Went</div>
+            <div style={{ fontSize: 10, color: "#5a6a8a", marginBottom: 14 }}>Change in total spending per seed line</div>
+            {(() => {
+              const d23 = yearData[0].bySeed;
+              const d24 = yearData[1].bySeed;
+              const deltas = [];
+              for (let s = 1; s <= 16; s++) deltas.push({ seed: s, delta: d24[s].total - d23[s].total });
+              deltas.sort((a, b) => b.delta - a.delta);
+              const maxAbs = Math.max(...deltas.map(d => Math.abs(d.delta)));
+              return deltas.map(d => (
+                <div key={d.seed} style={{ display: "flex", alignItems: "center", marginBottom: 3, fontSize: 11 }}>
+                  <span style={{ width: 50, color: "#8a9aba", fontWeight: 500 }}>Seed {d.seed}</span>
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", height: 16 }}>
+                    {d.delta >= 0 ? (
+                      <div style={{ marginLeft: "50%", width: `${(d.delta / maxAbs) * 50}%`, height: 12, background: "#2ecc71", borderRadius: "0 3px 3px 0", minWidth: d.delta > 0 ? 2 : 0 }} />
+                    ) : (
+                      <>
+                        <div style={{ marginLeft: `${50 + (d.delta / maxAbs) * 50}%`, width: `${(-d.delta / maxAbs) * 50}%`, height: 12, background: "#e63946", borderRadius: "3px 0 0 3px", minWidth: 2 }} />
+                      </>
+                    )}
+                  </div>
+                  <span style={{ width: 65, textAlign: "right", color: d.delta >= 0 ? "#2ecc71" : "#e63946", fontWeight: 600, fontSize: 10 }}>
+                    {d.delta >= 0 ? "+" : ""}{d.delta < 0 ? "−" : ""}${Math.abs(d.delta).toLocaleString()}
+                  </span>
+                </div>
+              ));
+            })()}
+            <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 10, lineHeight: 1.5 }}>
+              <span style={{ color: "#e63946", fontWeight: 600 }}>70% of the increase</span> went to 1-seeds alone ($4,430). Top 3 seeds absorbed $7,280 — more than the total pot increase.
+              Mid-tier 5 and 6 seeds actually got <span style={{ color: "#2ecc71" }}>cheaper</span> as budgets were exhausted on the top.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {spendView === "seeds" && (
+        <div>
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e6e3", marginBottom: 12 }}>Average Price per Team by Seed</div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #1e2a40" }}>
+                    <th style={{ padding: "6px 8px", textAlign: "left", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Seed</th>
+                    {yearData.map(yd => (
+                      <th key={yd.year} style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>{yd.year}</th>
+                    ))}
+                    <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Δ 23→24</th>
+                    <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>% of Pot</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16].map(seed => {
+                    const d23 = yearData[0].bySeed[seed];
+                    const d24 = yearData[1].bySeed[seed];
+                    const d25 = yearData[2].bySeed[seed];
+                    const delta = d24.avg - d23.avg;
+                    const avgPctOfPot = ((d23.pctOfPot + d24.pctOfPot + d25.pctOfPot) / 3);
+                    const isTop = seed <= 2;
+                    return (
+                      <tr key={seed} style={{ borderBottom: "1px solid #0d1321", background: isTop ? "#14203a" : "transparent" }}>
+                        <td style={{ padding: "5px 8px", color: isTop ? "#e9c46a" : "#8a9aba", fontWeight: 600 }}>{seed}</td>
+                        <td style={{ padding: "5px 8px", textAlign: "right", color: "#8a9aba" }}>${d23.avg.toLocaleString()}</td>
+                        <td style={{ padding: "5px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${d24.avg.toLocaleString()}</td>
+                        <td style={{ padding: "5px 8px", textAlign: "right", color: "#8a9aba" }}>${d25.avg.toLocaleString()}</td>
+                        <td style={{ padding: "5px 8px", textAlign: "right", color: delta >= 0 ? "#2ecc71" : "#e63946", fontWeight: 600 }}>
+                          {delta >= 0 ? "+" : ""}{delta < 0 ? "−" : ""}${Math.abs(delta).toLocaleString()}
+                        </td>
+                        <td style={{ padding: "5px 8px", textAlign: "right", color: "#5a6a8a" }}>{avgPctOfPot.toFixed(1)}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Price ranges by seed */}
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e6e3", marginBottom: 4 }}>Price Range by Seed (All Years)</div>
+            <div style={{ fontSize: 10, color: "#5a6a8a", marginBottom: 14 }}>Min to max price paid, with average marked</div>
+            {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16].map(seed => {
+              const allPrices = ALL_TEAMS.filter(t => t.seed === seed).map(t => t.p);
+              const min = Math.min(...allPrices);
+              const max = Math.max(...allPrices);
+              const avg = Math.round(allPrices.reduce((a, b) => a + b, 0) / allPrices.length);
+              const globalMax = 3350;
+              return (
+                <div key={seed} style={{ display: "flex", alignItems: "center", marginBottom: 4, fontSize: 10 }}>
+                  <span style={{ width: 35, color: seed <= 2 ? "#e9c46a" : "#8a9aba", fontWeight: 600 }}>{seed}</span>
+                  <div style={{ flex: 1, position: "relative", height: 14, background: "#1a2235", borderRadius: 3 }}>
+                    <div style={{
+                      position: "absolute", left: `${(min / globalMax) * 100}%`, width: `${((max - min) / globalMax) * 100}%`,
+                      height: "100%", background: seed <= 2 ? "#e6394644" : seed <= 4 ? "#f4a26144" : "#4a9eff33", borderRadius: 3,
+                    }} />
+                    <div style={{
+                      position: "absolute", left: `${(avg / globalMax) * 100}%`, top: 0, width: 2, height: "100%",
+                      background: seed <= 2 ? "#e63946" : seed <= 4 ? "#f4a261" : "#4a9eff",
+                    }} />
+                  </div>
+                  <span style={{ width: 90, textAlign: "right", color: "#5a6a8a", fontSize: 9 }}>${min}–${max.toLocaleString()} (avg ${avg})</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {spendView === "syndicates" && (
+        <div>
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e6e3", marginBottom: 4 }}>Syndicate Strategy Profiles</div>
+            <div style={{ fontSize: 10, color: "#5a6a8a", marginBottom: 14 }}>How each syndicate allocates their budget across seed tiers (3-year avg)</div>
+            {(() => {
+              const allNames = [...new Set([...Object.keys(yearData[0].synProfiles), ...Object.keys(yearData[1].synProfiles), ...Object.keys(yearData[2].synProfiles)])];
+              return allNames.sort().map(name => {
+                const profiles = yearData.filter(yd => yd.synProfiles[name]).map(yd => yd.synProfiles[name]);
+                const avgTop = profiles.reduce((a, p) => a + p.topPct, 0) / profiles.length;
+                const avgElite = profiles.reduce((a, p) => a + p.elitePct, 0) / profiles.length;
+                const avgMid = profiles.reduce((a, p) => a + p.midPct, 0) / profiles.length;
+                const avgLow = profiles.reduce((a, p) => a + p.lowPct, 0) / profiles.length;
+                const avgBottom = profiles.reduce((a, p) => a + p.bottomPct, 0) / profiles.length;
+                const avgConcentration = profiles.reduce((a, p) => a + p.concentration, 0) / profiles.length;
+                const totalSpent = profiles.reduce((a, p) => a + p.spent, 0);
+                const totalWon = profiles.reduce((a, p) => a + p.won, 0);
+                const totalNet = profiles.reduce((a, p) => a + p.net, 0);
+                const yearsActive = profiles.length;
+                const col = SYNDICATE_COLORS[name] || "#4a9eff";
+                const strategy = avgTop > 55 ? "Top-Heavy" : avgTop > 35 ? "Balanced" : avgTop > 15 ? "Spread" : "Bottom-Up";
+
+                return (
+                  <div key={name} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid #0d1321" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: 2, background: col }} />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "#e8e6e3" }}>{name}</span>
+                        <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 3, background: strategy === "Top-Heavy" ? "#e6394633" : strategy === "Balanced" ? "#e9c46a33" : strategy === "Spread" ? "#2a9d8f33" : "#6a4c9333", color: strategy === "Top-Heavy" ? "#e63946" : strategy === "Balanced" ? "#e9c46a" : strategy === "Spread" ? "#2a9d8f" : "#6a4c93" }}>{strategy}</span>
+                      </div>
+                      <div style={{ fontSize: 10, color: totalNet >= 0 ? "#2ecc71" : "#e63946", fontWeight: 600 }}>
+                        {totalNet >= 0 ? "+" : ""}${totalNet.toLocaleString()} ({yearsActive}yr)
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", height: 18, borderRadius: 3, overflow: "hidden", marginBottom: 4 }}>
+                      {[{pct: avgTop, color: tierColors["1-2"]}, {pct: avgElite, color: tierColors["3-4"]}, {pct: avgMid, color: tierColors["5-8"]}, {pct: avgLow, color: tierColors["9-12"]}, {pct: avgBottom, color: tierColors["13-16"]}].map((seg, i) => (
+                        <div key={i} style={{ width: `${seg.pct}%`, background: seg.color, minWidth: seg.pct > 0 ? 1 : 0 }} />
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", gap: 12, fontSize: 9, color: "#5a6a8a" }}>
+                      <span>Top: {avgTop.toFixed(0)}%</span>
+                      <span>Elite: {avgElite.toFixed(0)}%</span>
+                      <span>Mid: {avgMid.toFixed(0)}%</span>
+                      <span>Low: {avgLow.toFixed(0)}%</span>
+                      <span>Bottom: {avgBottom.toFixed(0)}%</span>
+                      <span style={{ color: "#8a9aba" }}>Max bet: {avgConcentration.toFixed(0)}% of budget</span>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+
+          {/* Year-by-year syndicate comparison */}
+          <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e6e3", marginBottom: 4 }}>Spending Swings by Syndicate</div>
+            <div style={{ fontSize: 10, color: "#5a6a8a", marginBottom: 14 }}>Year-over-year budget changes</div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid #1e2a40" }}>
+                    <th style={{ padding: "5px 6px", textAlign: "left", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Syndicate</th>
+                    <th style={{ padding: "5px 6px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>2023</th>
+                    <th style={{ padding: "5px 6px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>2024</th>
+                    <th style={{ padding: "5px 6px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>2025</th>
+                    <th style={{ padding: "5px 6px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Max Swing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const allNames = [...new Set([...Object.keys(yearData[0].synProfiles), ...Object.keys(yearData[1].synProfiles), ...Object.keys(yearData[2].synProfiles)])];
+                    return allNames.sort().map(name => {
+                      const vals = yearData.map(yd => yd.synProfiles[name]?.spent || null);
+                      const active = vals.filter(v => v !== null);
+                      const maxSwing = active.length > 1 ? Math.max(...active) - Math.min(...active) : 0;
+                      return (
+                        <tr key={name} style={{ borderBottom: "1px solid #0d1321" }}>
+                          <td style={{ padding: "5px 6px", color: SYNDICATE_COLORS[name] || "#8a9aba", fontWeight: 600 }}>{name}</td>
+                          {vals.map((v, i) => (
+                            <td key={i} style={{ padding: "5px 6px", textAlign: "right", color: v === null ? "#3a4a6a" : "#8a9aba" }}>
+                              {v === null ? "—" : `$${v.toLocaleString()}`}
+                            </td>
+                          ))}
+                          <td style={{ padding: "5px 6px", textAlign: "right", color: maxSwing > 2000 ? "#e63946" : maxSwing > 1000 ? "#e9c46a" : "#5a6a8a", fontWeight: 600 }}>
+                            ${maxSwing.toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {spendView === "takeaways" && (
+        <div>
+          {[
+            { title: "The 9th Syndicate Effect", color: "#e63946", content: [
+              "Adding Tomek as a 9th syndicate in 2024 inflated the pot by $6,290 (+21.5%). But it wasn't distributed evenly — 70% of the increase ($4,430) went to 1-seeds alone.",
+              "More bidders creates a bidding war at the top. 1-seeds went from avg $1,480 → $2,588 (+75%). Meanwhile mid-tier seeds 5-6 actually got CHEAPER as budgets were exhausted.",
+              "When Smith left in 2025, spending instantly normalized. Per-syndicate avg barely changed ($3,943 → $3,901), confirming it was purely a headcount effect.",
+            ]},
+            { title: "Top-Heavy Arms Race", color: "#f4a261", content: [
+              "In 2024, the top 3 seed lines absorbed $7,280 more than 2023 — exceeding the entire $6,290 pot increase. The rest of the bracket actually deflated.",
+              "Top seeds (1-2) consumed 49.7% of the 2024 pot vs 39.2% in 2023. That's half the money on 8 of 64 teams.",
+              "The highest single team price nearly doubled: $1,720 (Alabama '23) → $3,350 (UConn '24). Three 1-seeds each sold above $1,550 in 2024.",
+            ]},
+            { title: "The Value Zone Got Cheaper", color: "#2ecc71", content: [
+              "Seeds 5-6 dropped from avg $480/$410 to $495/$325 in the 9-syndicate year. When everyone chases the top, the middle gets discounted.",
+              "Seeds 5-8 went from 22.5% to 15.0% of the pot in 2024 — a 33% reduction in relative allocation despite being where most tournament runs start.",
+              "This is where the value lives. In a competitive auction, let others overpay for 1-seeds and target the 5-8 range where prices are softest.",
+            ]},
+            { title: "Syndicate Strategy Matters", color: "#4a9eff", content: [
+              "Top-heavy strategies (Hudachek '24: 61% on 1-2 seeds, Curran '24: 83%) can hit big but are high variance — one bad 1-seed ruins your year.",
+              "Spread strategies (Tomek: 0% on top seeds in '24, Hogan: 0% in '24) are safer but cap upside. Hogan spent only $1,800 in 2024 — lowest ever.",
+              "The consistent winners (Curran: +$5,742 career) blend both: they'll buy a 1-2 seed but also grab value in the 5-9 range. Don't go all-in either way.",
+            ]},
+            { title: "2026 Auction Implications", color: "#7c5cfc", content: [
+              "If 8 syndicates return, expect a ~$31K pot. If a 9th joins, expect $35K+ with massive 1-seed inflation.",
+              "Watch the first 1-seed that sells — it sets the ceiling. In 2024, once UConn went for $3,350, every other 1-seed was $1,550+.",
+              "Your edge: know the EV of each team before the auction. When the bidding war pushes 1-seeds past their fair value, let them go and scoop up the deflated mid-tier.",
+            ]},
+          ].map(section => (
+            <div key={section.title} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16, marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: section.color, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 3, height: 16, borderRadius: 2, background: section.color }} />
+                {section.title}
+              </div>
+              {section.content.map((p, i) => (
+                <div key={i} style={{ fontSize: 11, color: "#8a9aba", lineHeight: 1.6, marginBottom: 8 }}>{p}</div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
