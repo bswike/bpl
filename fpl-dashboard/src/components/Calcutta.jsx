@@ -1769,14 +1769,14 @@ function AuctionPrep() {
 
   const getTier = (odds) => {
     const num = parseInt(odds.replace("+", ""));
-    if (num <= 700) return "Elite";
+    if (num <= 700) return "Big Dog";
     if (num <= 2000) return "Contender";
     if (num <= 5000) return "Mid";
     if (num <= 10000) return "Long Shot";
     return "Lottery";
   };
 
-  const tierColors = { Elite: "#e63946", Contender: "#e9c46a", Mid: "#4a9eff", "Long Shot": "#7c5cfc", Lottery: "#3a4a6a" };
+  const tierColors = { "Big Dog": "#e63946", Contender: "#e9c46a", Mid: "#4a9eff", "Long Shot": "#7c5cfc", Lottery: "#3a4a6a" };
 
   const filteredBracket = useMemo(() => {
     let data = BRACKET_2026;
