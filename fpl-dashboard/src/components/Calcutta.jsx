@@ -1575,11 +1575,18 @@ function RegionBracket({ region }) {
       <div style={{ height: SLOT_H, display: 'flex', alignItems: 'center', padding: '0 6px', background: '#0a0e15', borderBottom: border ? '1px solid #151d2e' : 'none', fontSize: 9, color: '#1e2a40' }}>—</div>
     );
     const n = parseInt(team.s16) || 0;
+    const val = getTeamValue(team);
+    const histAvg = HIST_AVG_PRICE[team.s] || 0;
     return (
       <div style={{ height: SLOT_H, display: 'flex', alignItems: 'center', padding: '0 4px', background: team.s <= 2 ? '#14203a' : '#0d1321', borderBottom: border ? '1px solid #1e2a40' : 'none', gap: 2 }}>
         <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: 'center', flexShrink: 0, color: team.s <= 2 ? '#4a9eff' : team.s <= 4 ? '#7c5cfc' : '#5a6a8a' }}>{team.s}</span>
         <span style={{ flex: 1, fontSize: 8, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#c8d6e5' }}>{team.t}</span>
         <span style={{ fontSize: 6, flexShrink: 0, display: 'flex', gap: 1, alignItems: 'center' }}>
+          <span style={{ color: val.color, fontWeight: 700 }}>${val.fairValue}</span>
+          <span style={{ color: '#1e2a40' }}>/</span>
+          <span style={{ color: '#3a4a6a' }}>${histAvg}</span>
+        </span>
+        <span style={{ fontSize: 6, flexShrink: 0, display: 'flex', gap: 1, alignItems: 'center', marginLeft: 1 }}>
           <span style={{ color: n >= 50 ? '#2ecc71' : n >= 25 ? '#e9c46a' : '#3a4a6a', fontWeight: 700 }}>{team.s16.replace('%','')}</span>
           <span style={{ color: '#1e2a40' }}>/</span>
           <span style={{ color: parseInt(team.tr) >= 50 ? '#7c5cfc' : '#3a4a6a' }}>{team.tr.replace('%','')}</span>
@@ -1641,13 +1648,10 @@ function RegionBracket({ region }) {
         <div style={{ fontSize: 8, textAlign: "center", padding: "4px 8px 2px", fontWeight: 600, color: "#7c5cfc" }}>
           ← Swipe / scroll sideways for full bracket →
         </div>
-        <div style={{ fontSize: 7, textAlign: "center", padding: "0 8px 6px", display: "flex", justifyContent: "center", gap: 8 }}>
-          <span>S16%:</span>
-          <span style={{ color: "#2ecc71" }}>DK Implied</span>
-          <span style={{ color: "#3a4a6a" }}>/</span>
-          <span style={{ color: "#7c5cfc" }}>Torik</span>
-          <span style={{ color: "#3a4a6a" }}>/</span>
-          <span style={{ color: "#e9c46a" }}>EvanMiya</span>
+        <div style={{ fontSize: 7, textAlign: "center", padding: "0 8px 6px", display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+          <span>EV<span style={{ color: "#3a4a6a" }}>/</span>avg cost</span>
+          <span style={{ color: "#3a4a6a" }}>│</span>
+          <span>S16%: <span style={{ color: "#2ecc71" }}>DK</span><span style={{ color: "#3a4a6a" }}>/</span><span style={{ color: "#7c5cfc" }}>Torik</span><span style={{ color: "#3a4a6a" }}>/</span><span style={{ color: "#e9c46a" }}>EvMiya</span></span>
         </div>
         <div style={{ display: 'flex', marginBottom: 4, minWidth: 480, paddingLeft: 8, paddingRight: 8 }}>
           {roundCols.map((c, i) => (
