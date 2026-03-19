@@ -2368,6 +2368,47 @@ function Live2026() {
   const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
   const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
 
+  const hScrollRef = useRef(null);
+  const vScrollRefLeft = useRef(null);
+  const vScrollRefRight = useRef(null);
+
+  const getVisibleRegion = useCallback(() => {
+    const hEl = hScrollRef.current;
+    if (!hEl) return bracketMobileRegion;
+    const isRight = (hEl.scrollLeft + hEl.clientWidth / 2) > (hEl.children[0]?.offsetWidth || 0);
+    const vRef = isRight ? vScrollRefRight.current : vScrollRefLeft.current;
+    const isBottom = vRef && (vRef.scrollTop + vRef.clientHeight / 2) > (vRef.children[0]?.offsetHeight || 0);
+    if (isRight) return isBottom ? "MW" : "W";
+    return isBottom ? "S" : "E";
+  }, [bracketMobileRegion]);
+
+  const handleHScroll = useCallback(() => {
+    const r = getVisibleRegion();
+    if (r !== bracketMobileRegion) setBracketMobileRegion(r);
+  }, [getVisibleRegion, bracketMobileRegion]);
+
+  const handleVScrollLeft = useCallback(() => {
+    const r = getVisibleRegion();
+    if (r !== bracketMobileRegion) setBracketMobileRegion(r);
+  }, [getVisibleRegion, bracketMobileRegion]);
+
+  const handleVScrollRight = useCallback(() => {
+    const r = getVisibleRegion();
+    if (r !== bracketMobileRegion) setBracketMobileRegion(r);
+  }, [getVisibleRegion, bracketMobileRegion]);
+
+  const scrollToRegion = useCallback((r) => {
+    const isRight = r === "W" || r === "MW";
+    const isBottom = r === "S" || r === "MW";
+    if (hScrollRef.current) {
+      hScrollRef.current.scrollTo({ left: isRight ? hScrollRef.current.scrollWidth : 0, behavior: "smooth" });
+    }
+    const vRef = isRight ? vScrollRefRight.current : vScrollRefLeft.current;
+    if (vRef) {
+      vRef.scrollTo({ top: isBottom ? vRef.scrollHeight : 0, behavior: "smooth" });
+    }
+  }, []);
+
   const pot = POT_2026;
   const payoutLabels = ["R32", "S16", "E8", "F4", "F2", "Ch"];
   const payoutCum = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14];
@@ -2844,47 +2885,6 @@ function Live2026() {
         const seedPairs = {1:16,16:1,2:15,15:2,3:14,14:3,4:13,13:4,5:12,12:5,6:11,11:6,7:10,10:7,8:9,9:8};
         const teamsBySD = {};
         liveTeams.forEach(t => { teamsBySD[t.sd] = t; });
-
-        const hScrollRef = useRef(null);
-        const vScrollRefLeft = useRef(null);
-        const vScrollRefRight = useRef(null);
-
-        const getVisibleRegion = useCallback(() => {
-          const hEl = hScrollRef.current;
-          if (!hEl) return bracketMobileRegion;
-          const isRight = (hEl.scrollLeft + hEl.clientWidth / 2) > (hEl.children[0]?.offsetWidth || 0);
-          const vRef = isRight ? vScrollRefRight.current : vScrollRefLeft.current;
-          const isBottom = vRef && (vRef.scrollTop + vRef.clientHeight / 2) > (vRef.children[0]?.offsetHeight || 0);
-          if (isRight) return isBottom ? "MW" : "W";
-          return isBottom ? "S" : "E";
-        }, [bracketMobileRegion]);
-
-        const handleHScroll = useCallback(() => {
-          const r = getVisibleRegion();
-          if (r !== bracketMobileRegion) setBracketMobileRegion(r);
-        }, [getVisibleRegion, bracketMobileRegion]);
-
-        const handleVScrollLeft = useCallback(() => {
-          const r = getVisibleRegion();
-          if (r !== bracketMobileRegion) setBracketMobileRegion(r);
-        }, [getVisibleRegion, bracketMobileRegion]);
-
-        const handleVScrollRight = useCallback(() => {
-          const r = getVisibleRegion();
-          if (r !== bracketMobileRegion) setBracketMobileRegion(r);
-        }, [getVisibleRegion, bracketMobileRegion]);
-
-        const scrollToRegion = useCallback((r) => {
-          const isRight = r === "W" || r === "MW";
-          const isBottom = r === "S" || r === "MW";
-          if (hScrollRef.current) {
-            hScrollRef.current.scrollTo({ left: isRight ? hScrollRef.current.scrollWidth : 0, behavior: "smooth" });
-          }
-          const vRef = isRight ? vScrollRefRight.current : vScrollRefLeft.current;
-          if (vRef) {
-            vRef.scrollTo({ top: isBottom ? vRef.scrollHeight : 0, behavior: "smooth" });
-          }
-        }, []);
 
         return (
           <div>
