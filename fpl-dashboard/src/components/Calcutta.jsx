@@ -332,14 +332,14 @@ const SYNDICATES_2026 = [
 ];
 
 const TEAMS_2026 = [
-  {s:"Tomek",sd:"S-16",t:"Lehigh/PVAMU",p:45,seed:16,spread:35,w:0,n:0,alive:true},
-  {s:"Tomek",sd:"MW-16",t:"Howard",p:45,seed:16,spread:30.5,w:0,n:0,alive:true},
-  {s:"Tomek",sd:"W-16",t:"Long Island",p:45,seed:16,spread:30.5,w:0,n:0,alive:true},
-  {s:"Tomek",sd:"E-16",t:"Siena",p:45,seed:16,spread:27.5,w:0,n:0,alive:true},
-  {s:"Tomek",sd:"S-15",t:"Idaho",p:90,seed:15,spread:23.5,w:0,n:0,alive:true},
-  {s:"Tomek",sd:"MW-15",t:"TN State",p:90,seed:15,spread:24.5,w:0,n:0,alive:true},
-  {s:"Coach",sd:"W-15",t:"Queens",p:60,seed:15,spread:25.5,w:0,n:0,alive:true},
-  {s:"Coach",sd:"E-15",t:"Furman",p:60,seed:15,spread:20.5,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"S-16",t:"Lehigh/PVAMU",p:45,seed:16,spread:35,w:0,n:0,alive:true,ats:null},
+  {s:"Tomek",sd:"MW-16",t:"Howard",p:45,seed:16,spread:30.5,w:0,n:0,alive:true,ats:null},
+  {s:"Tomek",sd:"W-16",t:"Long Island",p:45,seed:16,spread:30.5,w:0,n:0,alive:true,ats:null},
+  {s:"Tomek",sd:"E-16",t:"Siena",p:45,seed:16,spread:27.5,w:0,n:0,alive:true,ats:null},
+  {s:"Tomek",sd:"S-15",t:"Idaho",p:90,seed:15,spread:23.5,w:0,n:0,alive:true,ats:null},
+  {s:"Tomek",sd:"MW-15",t:"TN State",p:90,seed:15,spread:24.5,w:0,n:0,alive:true,ats:null},
+  {s:"Coach",sd:"W-15",t:"Queens",p:60,seed:15,spread:25.5,w:0,n:0,alive:true,ats:null},
+  {s:"Coach",sd:"E-15",t:"Furman",p:60,seed:15,spread:20.5,w:0,n:0,alive:true,ats:null},
   {s:"Hogan",sd:"S-14",t:"Penn",p:20,seed:14,w:0,n:0,alive:true},
   {s:"Smith",sd:"MW-14",t:"Wright State",p:40,seed:14,w:0,n:0,alive:true},
   {s:"Hogan",sd:"W-14",t:"Kennesaw St",p:40,seed:14,w:0,n:0,alive:true},
@@ -388,14 +388,14 @@ const TEAMS_2026 = [
   {s:"Bacon",sd:"MW-3",t:"Virginia",p:1100,seed:3,w:0,n:0,alive:true},
   {s:"Hogan",sd:"W-3",t:"Gonzaga",p:1000,seed:3,w:0,n:0,alive:true},
   {s:"Crumbling",sd:"E-3",t:"Michigan State",p:1550,seed:3,w:0,n:0,alive:true},
-  {s:"Smith",sd:"S-2",t:"Houston",p:2200,seed:2,w:0,n:0,alive:true},
-  {s:"Coach",sd:"MW-2",t:"Iowa State",p:2050,seed:2,w:0,n:0,alive:true},
-  {s:"Tomek",sd:"W-2",t:"Purdue",p:2000,seed:2,w:0,n:0,alive:true},
-  {s:"Hudachek",sd:"E-2",t:"UConn",p:1650,seed:2,w:0,n:0,alive:true},
-  {s:"Curran",sd:"S-1",t:"Florida",p:2700,seed:1,w:0,n:0,alive:true},
-  {s:"Hogan",sd:"MW-1",t:"Michigan",p:3000,seed:1,w:0,n:0,alive:true},
-  {s:"Hudachek",sd:"W-1",t:"Arizona",p:3200,seed:1,w:0,n:0,alive:true},
-  {s:"Bacon",sd:"E-1",t:"Duke",p:2950,seed:1,w:0,n:0,alive:true},
+  {s:"Smith",sd:"S-2",t:"Houston",p:2200,seed:2,w:0,n:0,alive:true,ats:null},
+  {s:"Coach",sd:"MW-2",t:"Iowa State",p:2050,seed:2,w:0,n:0,alive:true,ats:null},
+  {s:"Tomek",sd:"W-2",t:"Purdue",p:2000,seed:2,w:0,n:0,alive:true,ats:null},
+  {s:"Hudachek",sd:"E-2",t:"UConn",p:1650,seed:2,w:0,n:0,alive:true,ats:null},
+  {s:"Curran",sd:"S-1",t:"Florida",p:2700,seed:1,w:0,n:0,alive:true,ats:null},
+  {s:"Hogan",sd:"MW-1",t:"Michigan",p:3000,seed:1,w:0,n:0,alive:true,ats:null},
+  {s:"Hudachek",sd:"W-1",t:"Arizona",p:3200,seed:1,w:0,n:0,alive:true,ats:null},
+  {s:"Bacon",sd:"E-1",t:"Duke",p:2950,seed:1,w:0,n:0,alive:true,ats:null},
 ];
 
 const R64_GAMES = {
@@ -2419,11 +2419,19 @@ function Live2026() {
         const cumPayouts = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14].map(pct => Math.round(pct * pot));
         const roundLabels = ["R32", "S16", "E8", "F4", "F2", "Champ"];
 
+        const isATS = seed => seed <= 2 || seed >= 15;
+        const getR32Paid = t => {
+          if (isATS(t.seed)) return t.ats === true;
+          return t.w > 0;
+        };
+
         const board = SYNDICATES_2026.map(syn => {
           const teams = synData[syn.name].teams;
           const teamsAlive = teams.filter(t => t.alive).length;
           const roundWins = [0,1,2,3,4,5].map(ri =>
-            teams.filter(t => t.w > ri).length
+            ri === 0
+              ? teams.filter(t => getR32Paid(t)).length
+              : teams.filter(t => t.w > ri).length
           );
           const roundEarnings = roundWins.map((wins, ri) => wins * incrPayouts[ri]);
           const totalEarned = roundEarnings.reduce((a, b) => a + b, 0);
@@ -2497,7 +2505,11 @@ function Live2026() {
                         </td>
                       </tr>
                       {teams.map(t => {
-                      const teamEarned = [0,1,2,3,4,5].reduce((sum, ri) => sum + (t.w > ri ? incrPayouts[ri] : 0), 0);
+                      const r32Paid = getR32Paid(t);
+                      const teamEarned = [0,1,2,3,4,5].reduce((sum, ri) => {
+                        if (ri === 0) return sum + (r32Paid ? incrPayouts[0] : 0);
+                        return sum + (t.w > ri ? incrPayouts[ri] : 0);
+                      }, 0);
                       const teamNet = teamEarned - t.p;
                       const beIdx = cumPayouts.findIndex(cp => cp >= t.p);
                       return (
@@ -2512,10 +2524,10 @@ function Live2026() {
                           <td style={{ padding: "4px 4px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: t.alive ? "#2ecc71" : "#3a4a6a", fontSize: 9 }}>{t.alive ? "✓" : "✗"}</td>
                           {[0,1,2,3,4,5].map(ri => {
-                            const won = t.w > ri;
+                            const paid = ri === 0 ? r32Paid : t.w > ri;
                             const isBE = ri === beIdx;
-                            const beReached = isBE && t.w > ri;
-                            return <td key={ri} style={{ padding: "4px 4px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10, position: "relative" }}>{won ? `$${incrPayouts[ri]}` : "—"}{isBE && <span style={{ position: "absolute", bottom: 0, left: 2, right: 2, height: 3, backgroundImage: beReached ? "repeating-conic-gradient(#fff 0% 25%, transparent 0% 50%)" : "repeating-conic-gradient(#888 0% 25%, transparent 0% 50%)", backgroundSize: "3px 3px", opacity: beReached ? 1 : 0.7 }} />}</td>;
+                            const beReached = isBE && (ri === 0 ? r32Paid : t.w > ri);
+                            return <td key={ri} style={{ padding: "4px 4px", textAlign: "right", color: paid ? "#e8e6e3" : "#1e2a40", fontSize: 10, position: "relative" }}>{paid ? `$${incrPayouts[ri]}` : "—"}{isBE && <span style={{ position: "absolute", bottom: 0, left: 2, right: 2, height: 3, backgroundImage: beReached ? "repeating-conic-gradient(#fff 0% 25%, transparent 0% 50%)" : "repeating-conic-gradient(#888 0% 25%, transparent 0% 50%)", backgroundSize: "3px 3px", opacity: beReached ? 1 : 0.7 }} />}</td>;
                           })}
                           <td style={{ padding: "4px 4px", textAlign: "right", color: teamEarned > 0 ? "#e8e6e3" : "#1e2a40", fontSize: 10, fontWeight: 600 }}>{teamEarned > 0 ? `$${teamEarned.toLocaleString()}` : "—"}</td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: "#8a9aba", fontSize: 10 }}>${t.p.toLocaleString()}</td>
