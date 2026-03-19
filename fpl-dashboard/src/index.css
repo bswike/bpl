@@ -42,3 +42,12 @@ html, body {
 .snap-scroll-hide::-webkit-scrollbar {
   display: none;
 }
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.live-dot {
+  animation: live-pulse 1.5s ease-in-out infinite;
+}

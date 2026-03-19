@@ -2593,17 +2593,33 @@ function Live2026() {
 
         const todayAbbr = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()];
 
+        const isGameLive = (timeStr) => {
+          if (!timeStr || !timeStr.startsWith(todayAbbr)) return false;
+          const timePart = timeStr.split(" ")[1];
+          if (!timePart) return false;
+          const isPM = timePart.endsWith("p");
+          const [h, m] = timePart.replace(/[ap]/, "").split(":").map(Number);
+          const gameMins = (isPM && h !== 12 ? h + 12 : (!isPM && h === 12 ? 0 : h)) * 60 + (m || 0);
+          const now = new Date();
+          const nowMins = now.getHours() * 60 + now.getMinutes();
+          return nowMins >= gameMins && nowMins - gameMins <= 150;
+        };
+
         const BMatch = ({ top, bot, rtl }) => {
           const region = top ? top.sd.split("-")[0] : (bot ? bot.sd.split("-")[0] : "");
           const seeds = [top, bot].filter(Boolean).map(t => t.seed).sort((a, b) => a - b);
           const gameKey = seeds.length === 2 ? `${region}-${seeds[0]}v${seeds[1]}` : "";
           const game = R64_GAMES[gameKey];
           const isToday = game && game.time.startsWith(todayAbbr);
+          const isLive = game && isGameLive(game.time);
           return (
             <div>
               {game && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4px 1px", fontSize: 6.5, color: isToday ? "#e8e6e3" : "#3a4a6a", fontWeight: isToday ? 600 : 400 }}>
-                  <span>{isToday ? "TODAY " + game.time.split(" ")[1] : game.time}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4px 1px", fontSize: 6.5, color: isToday ? "#e8e6e3" : "#3a4a6a", fontWeight: isToday ? 600 : 400 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                    {isLive && <span className="live-dot" style={{ width: 4, height: 4, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />}
+                    {isToday ? "TODAY " + game.time.split(" ")[1] : game.time}
+                  </span>
                   <span>{game.spread}</span>
                 </div>
               )}
@@ -2865,6 +2881,7 @@ function Live2026() {
                           const seeds = [t.seed, oppSeed].sort((a, b) => a - b);
                           const game = R64_GAMES[`${rgn}-${seeds[0]}v${seeds[1]}`];
                           const isToday = game && game.time.startsWith(todayAbbr);
+                          const isLive = game && isGameLive(game.time);
                           return (
                             <tr key={t.sd} style={{ borderBottom: "1px solid #111827", opacity: t.alive ? 1 : 0.4 }}>
                               <td style={{ padding: "5px 4px", color: "#e8e6e3", whiteSpace: "nowrap" }}>
@@ -2881,6 +2898,7 @@ function Live2026() {
                                 return t.seed < oppSeed ? `-${pts}` : `+${pts}`;
                               })()}</td>
                               <td style={{ padding: "5px 4px", textAlign: "right", color: isToday ? "#e8e6e3" : "#5a6a8a", fontWeight: isToday ? 600 : 400, fontSize: 9, whiteSpace: "nowrap" }}>
+                                {isLive && <span className="live-dot" style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%", background: "#22c55e", marginRight: 4, verticalAlign: "middle" }} />}
                                 {isToday && game ? "TODAY " + game.time.split(" ")[1] : game ? game.time : "—"}
                               </td>
                               <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
