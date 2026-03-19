@@ -2806,44 +2806,22 @@ function Live2026() {
           </div>
         );
 
-        const LiveRegionBracket = ({ region, rtl, scrollRef, isActive = true }) => {
+        const LiveRegionBracket = ({ region, rtl, scrollRef }) => {
           const localRef = useRef(null);
           const bracketScrollRef = scrollRef || localRef;
           const tm = {};
           liveTeams.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
 
-          useEffect(() => {
-            const el = bracketScrollRef.current;
-            if (!el) return;
-            if (!rtl) { el.scrollLeft = 0; return; }
-            if (isActive) {
-              let ticks = 0;
-              const forceSnap = setInterval(() => {
-                if (el.scrollWidth > el.clientWidth) el.scrollLeft = el.scrollWidth;
-                ticks++;
-                if (ticks > 10) clearInterval(forceSnap);
-              }, 40);
-              return () => clearInterval(forceSnap);
-            }
-          }, [isActive, rtl, bracketScrollRef]);
-
           const MW = 150;
           const roundPay = [0.005, 0.025, 0.03, 0.03, 0.03, 0.02].map(pct => "$" + Math.round(pct * pot).toLocaleString());
-          const ltrHeaders = [
+          const headers = [
             { name: "FIRST ROUND", pay: roundPay[0] }, null,
             { name: "SECOND ROUND", pay: roundPay[1] }, null,
             { name: "SWEET 16", pay: roundPay[2] }, null,
             { name: "ELITE 8", pay: roundPay[3] },
           ];
-          const rtlHeaders = [
-            { name: "ELITE 8", pay: roundPay[3] }, null,
-            { name: "SWEET 16", pay: roundPay[2] }, null,
-            { name: "SECOND ROUND", pay: roundPay[1] }, null,
-            { name: "FIRST ROUND", pay: roundPay[0] },
-          ];
-          const headers = rtl ? rtlHeaders : ltrHeaders;
-          const colWidths = rtl ? [MW, 16, MW, 16, MW, 16, MW] : [MW, 16, MW, 16, MW, 16, MW];
+          const colWidths = [MW, 16, MW, 16, MW, 16, MW];
 
           const getWinner = (t, b) => {
             if (!t || !b) return null;
@@ -2854,23 +2832,17 @@ function Live2026() {
 
           const r32 = [];
           for (let i = 0; i < r64.length; i += 2) {
-            const w1 = getWinner(r64[i][0], r64[i][1]);
-            const w2 = getWinner(r64[i + 1][0], r64[i + 1][1]);
-            r32.push([w1, w2]);
+            r32.push([getWinner(r64[i][0], r64[i][1]), getWinner(r64[i + 1][0], r64[i + 1][1])]);
           }
 
           const s16 = [];
           for (let i = 0; i < r32.length; i += 2) {
-            const w1 = getWinner(r32[i][0], r32[i][1]);
-            const w2 = getWinner(r32[i + 1][0], r32[i + 1][1]);
-            s16.push([w1, w2]);
+            s16.push([getWinner(r32[i][0], r32[i][1]), getWinner(r32[i + 1][0], r32[i + 1][1])]);
           }
 
           const e8 = [];
           for (let i = 0; i < s16.length; i += 2) {
-            const w1 = getWinner(s16[i][0], s16[i][1]);
-            const w2 = getWinner(s16[i + 1][0], s16[i + 1][1]);
-            e8.push([w1, w2]);
+            e8.push([getWinner(s16[i][0], s16[i][1]), getWinner(s16[i + 1][0], s16[i + 1][1])]);
           }
 
           const r64Col = (
@@ -2879,29 +2851,20 @@ function Live2026() {
             </div>
           );
 
-          const bracketContent = rtl ? (
+          const bracketContent = (
             <>
-              <RoundCol matches={e8} w={MW} rtl={rtl} />
-              <BConn pairs={1} rtl />
-              <RoundCol matches={s16} w={MW} rtl={rtl} />
-              <BConn pairs={2} rtl />
+              {r64Col}
+              <BConn pairs={4} rtl={rtl} />
               <RoundCol matches={r32} w={MW} rtl={rtl} />
-              <BConn pairs={4} rtl />
-              {r64Col}
-            </>
-          ) : (
-            <>
-              {r64Col}
-              <BConn pairs={4} />
-              <RoundCol matches={r32} w={MW} />
-              <BConn pairs={2} />
-              <RoundCol matches={s16} w={MW} />
-              <BConn pairs={1} />
-              <RoundCol matches={e8} w={MW} />
+              <BConn pairs={2} rtl={rtl} />
+              <RoundCol matches={s16} w={MW} rtl={rtl} />
+              <BConn pairs={1} rtl={rtl} />
+              <RoundCol matches={e8} w={MW} rtl={rtl} />
             </>
           );
 
           const totalW = MW*4 + 16*3;
+          const flexDir = rtl ? "row-reverse" : "row";
 
           return (
             <div>
@@ -2918,7 +2881,7 @@ function Live2026() {
                   paddingBottom: 4, paddingTop: 2,
                 }}
               >
-                <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
+                <div style={{ display: "flex", flexDirection: flexDir, marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
                   {colWidths.map((w, i) => (
                     <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
                       {headers[i] && (
@@ -2930,7 +2893,7 @@ function Live2026() {
                     </div>
                   ))}
                 </div>
-                <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
+                <div style={{ display: "flex", flexDirection: flexDir, height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
                   {bracketContent}
                 </div>
               </div>
@@ -2969,18 +2932,18 @@ function Live2026() {
                 >
                   <div ref={vScrollRefLeft} onScroll={handleBracketScroll} style={vColStyle}>
                     <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="E" rtl={false} isActive={bracketMobileRegion === "E"} />
+                      <LiveRegionBracket region="E" rtl={false} />
                     </div>
                     <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="S" rtl={false} isActive={bracketMobileRegion === "S"} />
+                      <LiveRegionBracket region="S" rtl={false} />
                     </div>
                   </div>
                   <div ref={vScrollRefRight} onScroll={handleBracketScroll} style={vColStyle}>
                     <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="W" rtl={true} isActive={bracketMobileRegion === "W"} />
+                      <LiveRegionBracket region="W" rtl={true} />
                     </div>
                     <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="MW" rtl={true} isActive={bracketMobileRegion === "MW"} />
+                      <LiveRegionBracket region="MW" rtl={true} />
                     </div>
                   </div>
                 </div>
@@ -2989,7 +2952,7 @@ function Live2026() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {regionOrder.map(r => (
                   <div key={r}>
-                    <LiveRegionBracket region={r} rtl={rtlRegions.has(r)} isActive={true} />
+                    <LiveRegionBracket region={r} rtl={rtlRegions.has(r)} />
                   </div>
                 ))}
               </div>
