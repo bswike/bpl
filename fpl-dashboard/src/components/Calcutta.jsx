@@ -2394,7 +2394,15 @@ function Live2026() {
       if (lastHCol.current && lastHCol.current !== col) {
         const from = col === "right" ? vScrollRefLeft.current : vScrollRefRight.current;
         const to = col === "right" ? vScrollRefRight.current : vScrollRefLeft.current;
-        if (from && to) to.scrollTop = from.scrollTop;
+        if (from && to) {
+          to.scrollTop = from.scrollTop;
+          requestAnimationFrame(() => {
+            const innerBrackets = to.querySelectorAll(".inner-bracket-scroll");
+            innerBrackets.forEach(el => {
+              el.scrollLeft = col === "right" ? el.scrollWidth : 0;
+            });
+          });
+        }
       }
       lastHCol.current = col;
     }
@@ -2811,25 +2819,13 @@ function Live2026() {
           liveTeams.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
 
-          const hasUserScrolled = useRef(false);
           useEffect(() => {
             const el = bracketScrollRef.current;
             if (!el) return;
             if (!rtl) { el.scrollLeft = 0; return; }
-            const scrollRight = () => { el.scrollLeft = el.scrollWidth; };
-            scrollRight();
-            hasUserScrolled.current = false;
-            el.addEventListener("scroll", () => { hasUserScrolled.current = true; }, { once: true });
-            const obs = new IntersectionObserver(([entry]) => {
-              if (entry.isIntersecting) {
-                hasUserScrolled.current = false;
-                scrollRight();
-                requestAnimationFrame(scrollRight);
-                el.addEventListener("scroll", () => { hasUserScrolled.current = true; }, { once: true });
-              }
-            }, { threshold: 0.01 });
-            obs.observe(el);
-            return () => obs.disconnect();
+            const snapRight = () => { el.scrollLeft = el.scrollWidth; };
+            requestAnimationFrame(snapRight);
+            setTimeout(snapRight, 50);
           }, [region, rtl]);
 
           const MW = 150;
@@ -2915,6 +2911,7 @@ function Live2026() {
               <div
                 ref={bracketScrollRef}
                 data-rtl={rtl ? "1" : undefined}
+                className="inner-bracket-scroll"
                 style={{
                   overflowX: "auto", WebkitOverflowScrolling: "touch",
                   overscrollBehavior: "contain",
