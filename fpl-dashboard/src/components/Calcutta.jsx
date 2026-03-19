@@ -2361,6 +2361,7 @@ function Live2026() {
   const [nerdMode, setNerdMode] = useState(false);
   const [expandedSyn, setExpandedSyn] = useState(null);
   const [teamSort, setTeamSort] = useState({ key: "seed", dir: "asc" });
+  const [popupSyn, setPopupSyn] = useState(null);
   const regions = ["S", "MW", "W", "E"];
   const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
   const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
@@ -2584,7 +2585,7 @@ function Live2026() {
             }}>
               <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: "center", flexShrink: 0, color: "#5a6a8a" }}>{team.seed}</span>
               <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: rtl ? "right" : "left" }}>{team.t}</span>
-              <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2 }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
+              <span onClick={e => { e.stopPropagation(); setPopupSyn(team.s); }} style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2, cursor: "pointer" }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
               <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 500, color: "#5a6a8a" }}>${team.p.toLocaleString()}</span>
             </div>
           );
@@ -2780,6 +2781,10 @@ function Live2026() {
 
         const regionOrder = ["E", "W", "S", "MW"];
         const rtlRegions = new Set(["W", "MW"]);
+        const seedPairs = {1:16,16:1,2:15,15:2,3:14,14:3,4:13,13:4,5:12,12:5,6:11,11:6,7:10,10:7,8:9,9:8};
+        const teamsBySD = {};
+        TEAMS_2026.forEach(t => { teamsBySD[t.sd] = t; });
+
         return (
           <div>
             {isMobile ? (
@@ -2807,6 +2812,65 @@ function Live2026() {
                 ))}
               </div>
             )}
+
+            {popupSyn && (() => {
+              const synTeams = TEAMS_2026.filter(t => t.s === popupSyn).sort((a, b) => a.seed - b.seed);
+              const sc = SYNDICATE_COLORS[popupSyn] || "#5a6a8a";
+              return (
+                <div onClick={() => setPopupSyn(null)} style={{
+                  position: "fixed", inset: 0, zIndex: 9999,
+                  background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+                  display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+                }}>
+                  <div onClick={e => e.stopPropagation()} style={{
+                    background: "#0d1321", border: `1px solid ${sc}44`,
+                    borderRadius: 10, padding: "16px 14px", maxWidth: 380, width: "100%",
+                    maxHeight: "80vh", overflowY: "auto",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: sc }}>{popupSyn}</span>
+                      <span style={{ fontSize: 10, color: "#5a6a8a" }}>{synTeams.length} teams · ${synTeams.reduce((s, t) => s + t.p, 0).toLocaleString()} spent</span>
+                    </div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                      <thead>
+                        <tr style={{ borderBottom: "1px solid #1e2a40" }}>
+                          <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>Team</th>
+                          <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>vs</th>
+                          <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>Spread</th>
+                          <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>Time</th>
+                          <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {synTeams.map(t => {
+                          const rgn = t.sd.split("-")[0];
+                          const oppSeed = seedPairs[t.seed];
+                          const opp = teamsBySD[`${rgn}-${oppSeed}`];
+                          const seeds = [t.seed, oppSeed].sort((a, b) => a - b);
+                          const game = R64_GAMES[`${rgn}-${seeds[0]}v${seeds[1]}`];
+                          const isToday = game && game.time.startsWith(todayAbbr);
+                          return (
+                            <tr key={t.sd} style={{ borderBottom: "1px solid #111827", opacity: t.alive ? 1 : 0.4 }}>
+                              <td style={{ padding: "5px 4px", color: "#e8e6e3", whiteSpace: "nowrap" }}>
+                                <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{t.seed}{rgn}</span>{t.t}
+                              </td>
+                              <td style={{ padding: "5px 4px", color: "#8a9aba", whiteSpace: "nowrap" }}>
+                                <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{oppSeed}</span>{opp ? opp.t : "—"}
+                              </td>
+                              <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontSize: 9 }}>{game ? game.spread : "—"}</td>
+                              <td style={{ padding: "5px 4px", textAlign: "right", color: isToday ? "#e8e6e3" : "#5a6a8a", fontWeight: isToday ? 600 : 400, fontSize: 9, whiteSpace: "nowrap" }}>
+                                {isToday && game ? "TODAY " + game.time.split(" ")[1] : game ? game.time : "—"}
+                              </td>
+                              <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         );
       })()}
