@@ -2396,9 +2396,11 @@ function Live2026() {
         const to = col === "right" ? vScrollRefRight.current : vScrollRefLeft.current;
         if (from && to) to.scrollTop = from.scrollTop;
         if (col === "right" && vScrollRefRight.current) {
-          vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => {
-            el.scrollLeft = el.scrollWidth;
-          });
+          const snapRTL = () => vScrollRefRight.current && vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => { el.scrollLeft = el.scrollWidth; });
+          snapRTL();
+          setTimeout(snapRTL, 50);
+          setTimeout(snapRTL, 150);
+          setTimeout(snapRTL, 350);
         }
       }
       lastHCol.current = col;
@@ -2421,11 +2423,10 @@ function Live2026() {
     if (typeof window === "undefined" || window.innerWidth >= 820) return;
     const isRight = bracketMobileRegion === "W" || bracketMobileRegion === "MW";
     if (!isRight || !vScrollRefRight.current) return;
-    requestAnimationFrame(() => {
-      vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => {
-        el.scrollLeft = el.scrollWidth;
-      });
-    });
+    const snapRTL = () => vScrollRefRight.current && vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => { el.scrollLeft = el.scrollWidth; });
+    requestAnimationFrame(snapRTL);
+    setTimeout(snapRTL, 100);
+    setTimeout(snapRTL, 300);
   }, [bracketMobileRegion]);
 
   const pot = POT_2026;
@@ -3052,8 +3053,8 @@ function Live2026() {
                           const isToday = game && game.time.startsWith(todayAbbr);
                           const isLive = game && isGameLive(game.time);
                           return (
-                            <tr key={t.sd} style={{ borderBottom: "1px solid #111827", opacity: t.alive ? 1 : 0.4 }}>
-                              <td style={{ padding: "5px 4px", color: "#e8e6e3", whiteSpace: "nowrap", textDecoration: t.alive ? "none" : "line-through" }}>
+                            <tr key={t.sd} style={{ borderBottom: "1px solid #111827", opacity: t.alive ? 1 : 0.4, background: t.gameStatus === "post" && t.alive ? "#22c55e12" : "transparent" }}>
+                              <td style={{ padding: "5px 4px", color: t.gameStatus === "post" && t.alive ? "#22c55e" : "#e8e6e3", whiteSpace: "nowrap", textDecoration: t.alive ? "none" : "line-through", fontWeight: t.gameStatus === "post" && t.alive ? 600 : 400 }}>
                                 <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{t.seed}{rgn}</span>{t.t}
                               </td>
                               <td style={{ padding: "5px 4px", color: "#8a9aba", whiteSpace: "nowrap" }}>
