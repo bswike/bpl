@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { TrendingUp, BarChart3, Trophy, Table2, Award } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import './App.css';
 import { DataProvider, useData } from './context/DataContext';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -68,12 +69,63 @@ const Navigation = ({ currentPage, setCurrentPage }) => {
   );
 };
 
-// Inner app component that uses the data context
+function CalcuttaSplash({ onDismiss }) {
+  const navigate = useNavigate();
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: 20,
+    }}>
+      <div style={{
+        background: "linear-gradient(135deg, #0d1321 0%, #1a2744 100%)",
+        border: "1px solid #1e2a40", borderRadius: 16,
+        padding: "36px 28px", maxWidth: 380, width: "100%",
+        textAlign: "center", boxShadow: "0 24px 48px rgba(0,0,0,0.5)",
+      }}>
+        <div style={{ fontSize: 42, marginBottom: 8 }}>🏀</div>
+        <h2 style={{
+          color: "#e8e6e3", fontSize: 22, fontWeight: 700,
+          margin: "0 0 6px", letterSpacing: "-0.02em",
+        }}>It's March.</h2>
+        <p style={{ color: "#8a9aba", fontSize: 14, margin: "0 0 28px" }}>
+          Looking for the Hogan Calcutta?
+        </p>
+        <button
+          onClick={() => navigate("/calcutta")}
+          style={{
+            display: "block", width: "100%", padding: "14px 0",
+            background: "linear-gradient(135deg, #f97316 0%, #ea580c 100%)",
+            color: "#fff", fontWeight: 700, fontSize: 16,
+            border: "none", borderRadius: 10, cursor: "pointer",
+            marginBottom: 12, letterSpacing: "0.02em",
+          }}
+        >
+          Take me to Calcutta →
+        </button>
+        <button
+          onClick={onDismiss}
+          style={{
+            display: "block", width: "100%", padding: "12px 0",
+            background: "transparent", color: "#5a6a8a",
+            fontWeight: 500, fontSize: 13, border: "1px solid #1e2a40",
+            borderRadius: 10, cursor: "pointer",
+          }}
+        >
+          Proceed to Soccer
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
   const { gwStatus, isInitialLoading } = useData();
   const [currentPage, setCurrentPage] = useState(null);
   const [hasSetInitialPage, setHasSetInitialPage] = useState(false);
   const [componentLoaded, setComponentLoaded] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   // Set initial page immediately - default to Weekly, will update once gwStatus loads
   useEffect(() => {
@@ -120,6 +172,7 @@ function AppContent() {
 
   return (
     <Suspense fallback={<LoadingSpinner fullScreen size="lg" />}>
+      {showSplash && <CalcuttaSplash onDismiss={() => setShowSplash(false)} />}
       <div className="min-h-screen bg-slate-900 text-gray-100 pb-20">
         <main className="w-full px-3 py-4 md:px-6 md:py-6">
           <div className="max-w-7xl mx-auto">
