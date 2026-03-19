@@ -2382,9 +2382,22 @@ function Live2026() {
     return isBottom ? "S" : "E";
   }, [bracketMobileRegion]);
 
+  const lastHCol = useRef(null);
+
   const handleBracketScroll = useCallback(() => {
     const r = getVisibleRegion();
     if (r !== bracketMobileRegion) setBracketMobileRegion(r);
+    const hEl = hScrollRef.current;
+    if (hEl) {
+      const isRight = (hEl.scrollLeft + hEl.clientWidth / 2) > hEl.clientWidth;
+      const col = isRight ? "right" : "left";
+      if (lastHCol.current && lastHCol.current !== col) {
+        const from = col === "right" ? vScrollRefLeft.current : vScrollRefRight.current;
+        const to = col === "right" ? vScrollRefRight.current : vScrollRefLeft.current;
+        if (from && to) to.scrollTop = from.scrollTop;
+      }
+      lastHCol.current = col;
+    }
   }, [getVisibleRegion, bracketMobileRegion]);
 
   const _cb1 = useCallback(() => {}, []);
