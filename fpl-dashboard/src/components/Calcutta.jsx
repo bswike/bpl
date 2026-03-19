@@ -332,7 +332,7 @@ const SYNDICATES_2026 = [
 ];
 
 const TEAMS_2026 = [
-  {s:"Tomek",sd:"S-16",t:"Lehigh/PVAMU",p:45,seed:16,spread:35.5,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"S-16",t:"Lehigh/PVAMU",p:45,seed:16,spread:35,w:0,n:0,alive:true},
   {s:"Tomek",sd:"MW-16",t:"Howard",p:45,seed:16,spread:30.5,w:0,n:0,alive:true},
   {s:"Tomek",sd:"W-16",t:"Long Island",p:45,seed:16,spread:30.5,w:0,n:0,alive:true},
   {s:"Tomek",sd:"E-16",t:"Siena",p:45,seed:16,spread:27.5,w:0,n:0,alive:true},
@@ -399,37 +399,37 @@ const TEAMS_2026 = [
 ];
 
 const R64_GAMES = {
-  "S-1v16":  { time: "Fri 9:25p", spread: "FL -23.5" },
-  "S-8v9":   { time: "Fri 6:50p", spread: "Clem -1" },
-  "S-5v12":  { time: "Thu 3:15p", spread: "Van -5.5" },
-  "S-4v13":  { time: "Thu 12:40p", spread: "NEB -10" },
-  "S-6v11":  { time: "Thu 6:50p", spread: "UNC -5" },
-  "S-3v14":  { time: "Thu 9:25p", spread: "ILL -16.5" },
+  "S-1v16":  { time: "Fri 9:25p", spread: "FL -35" },
+  "S-8v9":   { time: "Fri 6:50p", spread: "IOWA -2.5" },
+  "S-5v12":  { time: "Thu 3:15p", spread: "VAN -11.5" },
+  "S-4v13":  { time: "Thu 12:40p", spread: "NEB -13.5" },
+  "S-6v11":  { time: "Thu 6:50p", spread: "UNC -2.5" },
+  "S-3v14":  { time: "Thu 9:25p", spread: "ILL -21.5" },
   "S-7v10":  { time: "Thu 7:35p", spread: "SMC -2.5" },
   "S-2v15":  { time: "Thu 10:10p", spread: "HOU -23.5" },
-  "MW-1v16": { time: "Thu 7:10p", spread: "MICH -24" },
+  "MW-1v16": { time: "Thu 7:10p", spread: "MICH -30.5" },
   "MW-8v9":  { time: "Thu 9:45p", spread: "UGA -1.5" },
   "MW-5v12": { time: "Fri 12:40p", spread: "TTU -8.5" },
-  "MW-4v13": { time: "Fri 3:15p", spread: "BAMA -13.5" },
-  "MW-6v11": { time: "Fri 4:25p", spread: "TENN -12.5" },
-  "MW-3v14": { time: "Fri 1:50p", spread: "UVA -15" },
-  "MW-7v10": { time: "Fri 12:15p", spread: "UK -4.5" },
+  "MW-4v13": { time: "Fri 3:15p", spread: "BAMA -12.5" },
+  "MW-6v11": { time: "Fri 4:25p", spread: "TENN -10.5" },
+  "MW-3v14": { time: "Fri 1:50p", spread: "UVA -17.5" },
+  "MW-7v10": { time: "Fri 12:15p", spread: "UK -3.5" },
   "MW-2v15": { time: "Fri 2:50p", spread: "ISU -24.5" },
-  "W-1v16":  { time: "Fri 1:35p", spread: "ARIZ -25.5" },
-  "W-8v9":   { time: "Fri 4:10p", spread: "NOVA -1.5" },
-  "W-5v12":  { time: "Thu 1:50p", spread: "WIS -6" },
-  "W-4v13":  { time: "Thu 4:25p", spread: "ARK -11" },
-  "W-6v11":  { time: "Thu 7:25p", spread: "BYU -5" },
-  "W-3v14":  { time: "Thu 10:00p", spread: "GONZ -17" },
-  "W-7v10":  { time: "Fri 10:10p", spread: "MIA -3" },
+  "W-1v16":  { time: "Fri 1:35p", spread: "ARIZ -30.5" },
+  "W-8v9":   { time: "Fri 4:10p", spread: "USU -1.5" },
+  "W-5v12":  { time: "Thu 1:50p", spread: "WIS -11.5" },
+  "W-4v13":  { time: "Thu 4:25p", spread: "ARK -15.5" },
+  "W-6v11":  { time: "Thu 7:25p", spread: "BYU -2.5" },
+  "W-3v14":  { time: "Thu 10:00p", spread: "GONZ -18.5" },
+  "W-7v10":  { time: "Fri 10:10p", spread: "MIA -1.5" },
   "W-2v15":  { time: "Fri 7:35p", spread: "PUR -25.5" },
-  "E-1v16":  { time: "Thu 2:50p", spread: "DUKE -22" },
+  "E-1v16":  { time: "Thu 2:50p", spread: "DUKE -27.5" },
   "E-8v9":   { time: "Thu 12:15p", spread: "OSU -2.5" },
-  "E-5v12":  { time: "Fri 7:10p", spread: "SJU -6.5" },
-  "E-4v13":  { time: "Fri 9:45p", spread: "KU -12" },
-  "E-6v11":  { time: "Thu 1:30p", spread: "LOU -4.5" },
-  "E-3v14":  { time: "Thu 4:05p", spread: "MSU -17" },
-  "E-7v10":  { time: "Fri 7:25p", spread: "UCLA -5" },
+  "E-5v12":  { time: "Fri 7:10p", spread: "SJU -9.5" },
+  "E-4v13":  { time: "Fri 9:45p", spread: "KU -13.5" },
+  "E-6v11":  { time: "Thu 1:30p", spread: "LOU -6.5" },
+  "E-3v14":  { time: "Thu 4:05p", spread: "MSU -16.5" },
+  "E-7v10":  { time: "Fri 7:25p", spread: "UCLA -5.5" },
   "E-2v15":  { time: "Fri 10:00p", spread: "UCONN -20.5" },
 };
 
@@ -2745,16 +2745,14 @@ function Live2026() {
             {!nerdMode ? (() => {
               const cumPayouts = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14].map(pct => Math.round(pct * POT_2026));
               const rl = ["R32","S16","E8","F4","F2","Ch"];
+              const seedPairs = {1:16,16:1,2:15,15:2,3:14,14:3,4:13,13:4,5:12,12:5,6:11,11:6,7:10,10:7,8:9,9:8};
+              const teamsBySD = {};
+              TEAMS_2026.forEach(t => { teamsBySD[t.sd] = t; });
+              const r32Pay = cumPayouts[0];
+              const thS = { padding: "4px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 9, borderBottom: "1px solid #1e2a40" };
+              const thL = { ...thS, textAlign: "left" };
               return (
-              <div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14, padding: "8px 12px", background: "#0d1321", borderRadius: 6, border: "1px solid #1e2a40" }}>
-                  <span style={{ fontSize: 10, color: "#8a9aba", fontWeight: 600 }}>Payouts per round:</span>
-                  {rl.map((r, i) => (
-                    <span key={r} style={{ fontSize: 10, color: "#c8d6e5" }}>
-                      <span style={{ color: "#5a6a8a" }}>{r}</span> ${cumPayouts[i].toLocaleString()}
-                    </span>
-                  ))}
-                </div>
+              <div style={{ overflowX: "auto" }}>
                 {synCards.map(syn => {
                   const synColor = SYNDICATE_COLORS[syn.name] || "#5a6a8a";
                   const sorted = syn.teamEVs.slice().sort((a, b) => b.p - a.p);
@@ -2766,25 +2764,40 @@ function Live2026() {
                         <span style={{ fontSize: 11, color: "#8a9aba" }}>{sorted.length} teams</span>
                         <span style={{ fontSize: 11, color: "#8a9aba", marginLeft: "auto" }}>${totalPrice.toLocaleString()} spent</span>
                       </div>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
                         <thead>
-                          <tr style={{ borderBottom: "1px solid #1e2a40" }}>
-                            <th style={{ padding: "5px 10px", textAlign: "left", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Team</th>
-                            <th style={{ padding: "5px 10px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Seed</th>
-                            <th style={{ padding: "5px 10px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Price</th>
-                            <th style={{ padding: "5px 10px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Breakeven</th>
+                          <tr>
+                            <th style={thL}>Team</th>
+                            <th style={thS}>Price</th>
+                            <th style={thL}>R1 Opponent</th>
+                            <th style={thS}>Spread</th>
+                            <th style={thS}>R1 Payout</th>
+                            <th style={thS}>B/E</th>
                           </tr>
                         </thead>
                         <tbody>
                           {sorted.map((t, ti) => {
+                            const rgn = t.sd.split("-")[0];
+                            const oppSeed = seedPairs[t.seed];
+                            const oppSD = `${rgn}-${oppSeed}`;
+                            const opp = teamsBySD[oppSD];
+                            const seeds = [t.seed, oppSeed].sort((a, b) => a - b);
+                            const gameKey = `${rgn}-${seeds[0]}v${seeds[1]}`;
+                            const game = R64_GAMES[gameKey];
                             const beIdx = cumPayouts.findIndex(cp => cp >= t.p);
                             const beLabel = beIdx >= 0 ? rl[beIdx] : "—";
                             return (
                               <tr key={t.sd} style={{ borderBottom: "1px solid #111827", background: ti % 2 === 0 ? "transparent" : "#0a0e1766" }}>
-                                <td style={{ padding: "5px 10px", color: "#e8e6e3" }}>{t.t}</td>
-                                <td style={{ padding: "5px 10px", textAlign: "right", color: "#8a9aba" }}>{t.seed}</td>
-                                <td style={{ padding: "5px 10px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
-                                <td style={{ padding: "5px 10px", textAlign: "right", color: "#8a9aba", fontWeight: 500 }}>{beLabel}</td>
+                                <td style={{ padding: "4px 8px", color: "#e8e6e3", whiteSpace: "nowrap" }}>
+                                  <span style={{ color: "#5a6a8a", fontSize: 9, marginRight: 4 }}>{t.seed}</span>{t.t}
+                                </td>
+                                <td style={{ padding: "4px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
+                                <td style={{ padding: "4px 8px", color: "#8a9aba", whiteSpace: "nowrap" }}>
+                                  <span style={{ color: "#3a4a6a", fontSize: 9, marginRight: 4 }}>{oppSeed}</span>{opp ? opp.t : "—"}
+                                </td>
+                                <td style={{ padding: "4px 8px", textAlign: "right", color: "#8a9aba", fontSize: 9 }}>{game ? game.spread : "—"}</td>
+                                <td style={{ padding: "4px 8px", textAlign: "right", color: "#8a9aba" }}>${r32Pay}</td>
+                                <td style={{ padding: "4px 8px", textAlign: "right", color: "#8a9aba", fontWeight: 500 }}>{beLabel}</td>
                               </tr>
                             );
                           })}
