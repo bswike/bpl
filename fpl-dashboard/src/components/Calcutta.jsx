@@ -3035,11 +3035,11 @@ function Live2026() {
                           const isToday = game && game.time.startsWith(todayAbbr);
                           const isLive = game && isGameLive(game.time);
                           return (
-                            <tr key={t.sd} style={{ borderBottom: "1px solid #111827", opacity: t.alive ? 1 : 0.4, background: t.gameStatus === "post" && t.alive ? "#22c55e12" : "transparent" }}>
-                              <td style={{ padding: "5px 4px", color: t.gameStatus === "post" && t.alive ? "#22c55e" : "#e8e6e3", whiteSpace: "nowrap", textDecoration: t.alive ? "none" : "line-through", fontWeight: t.gameStatus === "post" && t.alive ? 600 : 400 }}>
-                                <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{t.seed}{rgn}</span>{t.t}
+                            <tr key={t.sd} style={{ borderBottom: "1px solid #111827", opacity: t.alive ? 1 : 0.4, background: t.gameStatus === "post" && t.alive ? "#22c55e12" : isToday && t.gameStatus !== "post" ? "#4a9eff08" : "transparent" }}>
+                              <td style={{ padding: "5px 4px", color: t.gameStatus === "post" && t.alive ? "#22c55e" : isToday && t.gameStatus !== "post" ? "#fff" : "#e8e6e3", whiteSpace: "nowrap", textDecoration: t.alive ? "none" : "line-through", fontWeight: t.gameStatus === "post" && t.alive ? 600 : isToday && t.gameStatus !== "post" ? 600 : 400 }}>
+                                <span style={{ color: isToday && t.gameStatus !== "post" ? "#8a9aba" : "#3a4a6a", fontSize: 8, marginRight: 3 }}>{t.seed}{rgn}</span>{t.t}
                               </td>
-                              <td style={{ padding: "5px 4px", color: "#8a9aba", whiteSpace: "nowrap" }}>
+                              <td style={{ padding: "5px 4px", color: isToday && t.gameStatus !== "post" ? "#ccc" : "#8a9aba", whiteSpace: "nowrap" }}>
                                 {opp && <span style={{ display: "block", fontSize: 6, color: SYNDICATE_COLORS[opp.s] || "#3a4a6a", lineHeight: 1.1 }}>{opp.s}</span>}
                                 <span><span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{oppSeed}</span>{opp ? opp.t : "—"}</span>
                               </td>
