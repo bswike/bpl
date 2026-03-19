@@ -2507,13 +2507,15 @@ function Live2026() {
                             <span style={{ color: "#3a4a6a", fontSize: 9, marginRight: 3 }}>{t.seed}</span>
                             {t.t}
                             {!t.alive && <span style={{ color: "#e63946", fontSize: 8, marginLeft: 4 }}>✗</span>}
+                            {t.spread && <span style={{ fontSize: 8, color: "#3a4a6a", marginLeft: 5 }}>+{t.spread}</span>}
                           </td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: t.alive ? "#2ecc71" : "#3a4a6a", fontSize: 9 }}>{t.alive ? "✓" : "✗"}</td>
                           {[0,1,2,3,4,5].map(ri => {
                             const won = t.w > ri;
                             const isBE = ri === beIdx;
-                            return <td key={ri} style={{ padding: "4px 4px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10, position: "relative" }}>{won ? `$${incrPayouts[ri]}` : "—"}{isBE && <span style={{ position: "absolute", bottom: 0, left: 2, right: 2, height: 3, backgroundImage: "repeating-conic-gradient(#888 0% 25%, transparent 0% 50%)", backgroundSize: "3px 3px", opacity: 0.7 }} />}</td>;
+                            const beReached = isBE && t.w > ri;
+                            return <td key={ri} style={{ padding: "4px 4px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10, position: "relative" }}>{won ? `$${incrPayouts[ri]}` : "—"}{isBE && <span style={{ position: "absolute", bottom: 0, left: 2, right: 2, height: 3, backgroundImage: beReached ? "repeating-conic-gradient(#fff 0% 25%, transparent 0% 50%)" : "repeating-conic-gradient(#888 0% 25%, transparent 0% 50%)", backgroundSize: "3px 3px", opacity: beReached ? 1 : 0.7 }} />}</td>;
                           })}
                           <td style={{ padding: "4px 4px", textAlign: "right", color: teamEarned > 0 ? "#e8e6e3" : "#1e2a40", fontSize: 10, fontWeight: 600 }}>{teamEarned > 0 ? `$${teamEarned.toLocaleString()}` : "—"}</td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: "#8a9aba", fontSize: 10 }}>${t.p.toLocaleString()}</td>
