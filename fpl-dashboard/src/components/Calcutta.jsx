@@ -2462,19 +2462,41 @@ function Live2026() {
           </div>
         );
 
+        const neighborMap = { E: "W", W: "E", S: "MW", MW: "S" };
+
         const LiveRegionBracket = ({ region, rtl }) => {
           const bracketScrollRef = useRef(null);
+          const edgeTimer = useRef(null);
+          const autoScrolling = useRef(false);
           const tm = {};
           TEAMS_2026.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
+          const neighbor = neighborMap[region];
 
           useEffect(() => {
-            if (rtl && bracketScrollRef.current) {
-              bracketScrollRef.current.scrollLeft = bracketScrollRef.current.scrollWidth;
-            } else if (bracketScrollRef.current) {
-              bracketScrollRef.current.scrollLeft = 0;
+            if (bracketScrollRef.current) {
+              autoScrolling.current = true;
+              bracketScrollRef.current.scrollLeft = rtl ? bracketScrollRef.current.scrollWidth : 0;
+              setTimeout(() => { autoScrolling.current = false; }, 150);
             }
+            return () => { if (edgeTimer.current) clearTimeout(edgeTimer.current); };
           }, [region, rtl]);
+
+          const handleEdgeScroll = useCallback(() => {
+            if (!bracketScrollRef.current || !isMobile || autoScrolling.current) return;
+            const el = bracketScrollRef.current;
+            const atEnd = rtl ? el.scrollLeft <= 2 : el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+            if (atEnd) {
+              if (!edgeTimer.current) {
+                edgeTimer.current = setTimeout(() => {
+                  edgeTimer.current = null;
+                  setBracketMobileRegion(neighbor);
+                }, 350);
+              }
+            } else {
+              if (edgeTimer.current) { clearTimeout(edgeTimer.current); edgeTimer.current = null; }
+            }
+          }, [region, rtl, neighbor]);
 
           const ltrHeaders = ["FIRST ROUND", "", "SECOND ROUND", "", "SWEET 16", "", "ELITE 8"];
           const rtlHeaders = ["ELITE 8", "", "SWEET 16", "", "SECOND ROUND", "", "FIRST ROUND"];
@@ -2518,15 +2540,16 @@ function Live2026() {
               </div>
               <div
                 ref={bracketScrollRef}
+                onScroll={handleEdgeScroll}
                 style={{
                   overflowX: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
-                  paddingBottom: 8, paddingTop: 4,
+                  paddingBottom: 8, paddingTop: 4, position: "relative",
                 }}
               >
                 {isMobile && (
                   <div style={{ fontSize: 7, textAlign: "center", padding: "2px 8px 4px", color: "#4a5a7a" }}>
-                    {rtl ? "← scroll left for later rounds" : "scroll right for later rounds →"}
+                    {rtl ? "← scroll for later rounds · hold edge → " : "scroll for later rounds → · hold edge → "}{regionNames[neighbor]}
                   </div>
                 )}
                 <div style={{ display: "flex", marginBottom: 4, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
