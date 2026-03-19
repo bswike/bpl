@@ -2573,7 +2573,7 @@ function Live2026() {
             return sum + payout - loss;
           }, 0);
           return { ...syn, teamsAlive, totalTeams: teams.length, roundWins, roundEarnings, totalEarned, net, roi, settled };
-        }).sort((a, b) => b.net - a.net);
+        }).sort((a, b) => b.settled - a.settled);
 
         const thS = { padding: "6px 4px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 9, borderBottom: "2px solid #1e2a40", whiteSpace: "nowrap" };
         const thL = { ...thS, textAlign: "left" };
