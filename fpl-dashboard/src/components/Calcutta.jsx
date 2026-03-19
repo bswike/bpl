@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // ═══════════════════════════════════════════
 // HOGAN CALCUTTA DATA (2022-2025)
@@ -2356,9 +2356,10 @@ function AuctionPrep() {
 // ═══════════════════════════════════════════
 
 function Live2026() {
-  const [liveView, setLiveView] = useState("leaderboard");
+  const [liveView, setLiveView] = useState("bracket");
   const [bracketMobileRegion, setBracketMobileRegion] = useState("E");
   const [nerdMode, setNerdMode] = useState(false);
+  const [expandedSyn, setExpandedSyn] = useState(null);
   const regions = ["S", "MW", "W", "E"];
   const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
   const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
@@ -2391,8 +2392,8 @@ function Live2026() {
   const cardBorder = "#1e2a40";
 
   const views = [
-    { key: "leaderboard", label: "Leaderboard" },
     { key: "bracket", label: "Bracket" },
+    { key: "leaderboard", label: "Leaderboard" },
     { key: "syndicates", label: "Syndicates" },
     { key: "teams", label: "All Teams" },
   ];
@@ -2452,11 +2453,17 @@ function Live2026() {
                 {board.map((syn, i) => {
                   const synColor = SYNDICATE_COLORS[syn.name] || "#5a6a8a";
                   const netColor = syn.net > 0 ? "#2ecc71" : syn.net === 0 ? "#8a9aba" : "#e63946";
+                  const isOpen = expandedSyn === syn.name;
+                  const teams = synData[syn.name].teams.slice().sort((a, b) => b.p - a.p);
                   return (
-                    <tr key={syn.name} style={{ borderBottom: "1px solid #111827", background: i % 2 === 0 ? "transparent" : "#0a0e1766" }}>
+                    <React.Fragment key={syn.name}>
+                    <tr
+                      onClick={() => setExpandedSyn(isOpen ? null : syn.name)}
+                      style={{ borderBottom: isOpen ? "none" : "1px solid #111827", background: i % 2 === 0 ? "transparent" : "#0a0e1766", cursor: "pointer" }}
+                    >
                       <td style={{ padding: "6px 8px", color: "#5a6a8a", fontWeight: 700 }}>{i + 1}</td>
                       <td style={{ padding: "6px 8px", fontWeight: 600 }}>
-                        <span style={{ color: synColor }}>{syn.name}</span>
+                        <span style={{ color: synColor }}>{isOpen ? "▾" : "▸"} {syn.name}</span>
                       </td>
                       <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${syn.spent.toLocaleString()}</td>
                       <td style={{ padding: "6px 8px", textAlign: "right", color: "#8a9aba" }}>{syn.teamsAlive}/{syn.totalTeams}</td>
@@ -2473,6 +2480,30 @@ function Live2026() {
                         {(syn.roi * 100).toFixed(0)}%
                       </td>
                     </tr>
+                    {isOpen && teams.map(t => {
+                      const teamEarned = [0,1,2,3,4,5].reduce((sum, ri) => sum + (t.w > ri ? incrPayouts[ri] : 0), 0);
+                      const teamNet = teamEarned - t.p;
+                      return (
+                        <tr key={t.sd} style={{ background: "#080c14", borderBottom: "1px solid #0d1321" }}>
+                          <td style={{ padding: "4px 8px" }} />
+                          <td style={{ padding: "4px 8px", color: t.alive ? "#8a9aba" : "#3a4a6a", fontSize: 10, paddingLeft: 24 }}>
+                            <span style={{ color: "#3a4a6a", fontSize: 9, marginRight: 4 }}>{t.seed}</span>
+                            {t.t}
+                            {!t.alive && <span style={{ color: "#e63946", fontSize: 8, marginLeft: 4 }}>✗</span>}
+                          </td>
+                          <td style={{ padding: "4px 8px", textAlign: "right", color: "#8a9aba", fontSize: 10 }}>${t.p.toLocaleString()}</td>
+                          <td style={{ padding: "4px 8px", textAlign: "right", color: t.alive ? "#2ecc71" : "#3a4a6a", fontSize: 9 }}>{t.alive ? "✓" : "✗"}</td>
+                          {[0,1,2,3,4,5].map(ri => {
+                            const won = t.w > ri;
+                            return <td key={ri} style={{ padding: "4px 8px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10 }}>{won ? `$${incrPayouts[ri]}` : "—"}</td>;
+                          })}
+                          <td style={{ padding: "4px 8px", textAlign: "right", color: teamEarned > 0 ? "#e8e6e3" : "#1e2a40", fontSize: 10, fontWeight: 600 }}>{teamEarned > 0 ? `$${teamEarned.toLocaleString()}` : "—"}</td>
+                          <td style={{ padding: "4px 8px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
+                          <td style={{ padding: "4px 8px" }} />
+                        </tr>
+                      );
+                    })}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
