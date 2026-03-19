@@ -2412,6 +2412,7 @@ function Live2026() {
     }
   }, [liveView]);
 
+  const rtlTimerRef = useRef(null);
   useEffect(() => {
     if (typeof window === "undefined" || window.innerWidth >= 820) return;
     const hEl = hScrollRef.current;
@@ -2420,13 +2421,19 @@ function Live2026() {
       if (!vScrollRefRight.current) return;
       vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => { el.scrollLeft = el.scrollWidth; });
     };
-    const onScrollEnd = () => {
-      const isRight = (hEl.scrollLeft + hEl.clientWidth / 2) > hEl.clientWidth;
-      if (isRight) snapRTL();
+    const onScroll = () => {
+      if (rtlTimerRef.current) clearTimeout(rtlTimerRef.current);
+      rtlTimerRef.current = setTimeout(() => {
+        const isRight = (hEl.scrollLeft + hEl.clientWidth / 2) > hEl.clientWidth;
+        if (isRight) {
+          snapRTL();
+          requestAnimationFrame(snapRTL);
+        }
+      }, 120);
     };
-    hEl.addEventListener("scrollend", onScrollEnd);
+    hEl.addEventListener("scroll", onScroll, { passive: true });
     snapRTL();
-    return () => hEl.removeEventListener("scrollend", onScrollEnd);
+    return () => { hEl.removeEventListener("scroll", onScroll); if (rtlTimerRef.current) clearTimeout(rtlTimerRef.current); };
   }, [liveView, bracketMobileRegion]);
 
   const pot = POT_2026;
