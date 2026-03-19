@@ -398,6 +398,41 @@ const TEAMS_2026 = [
   {s:"Bacon",sd:"E-1",t:"Duke",p:2950,seed:1,w:0,n:0,alive:true},
 ];
 
+const R64_GAMES = {
+  "S-1v16":  { time: "Thu 12:15p", spread: "FL -23.5" },
+  "S-8v9":   { time: "Thu 2:45p", spread: "Clem -1" },
+  "S-5v12":  { time: "Thu 7:10p", spread: "Van -5.5" },
+  "S-4v13":  { time: "Thu 9:40p", spread: "NEB -10" },
+  "S-6v11":  { time: "Fri 12:15p", spread: "UNC -5" },
+  "S-3v14":  { time: "Fri 2:45p", spread: "ILL -16.5" },
+  "S-7v10":  { time: "Fri 7:10p", spread: "SMC -2.5" },
+  "S-2v15":  { time: "Fri 9:40p", spread: "HOU -23.5" },
+  "MW-1v16": { time: "Thu 12:40p", spread: "MICH -24" },
+  "MW-8v9":  { time: "Thu 3:10p", spread: "UGA -1.5" },
+  "MW-5v12": { time: "Thu 6:50p", spread: "TTU -8.5" },
+  "MW-4v13": { time: "Thu 9:20p", spread: "BAMA -13.5" },
+  "MW-6v11": { time: "Fri 12:40p", spread: "TENN -12.5" },
+  "MW-3v14": { time: "Fri 3:10p", spread: "UVA -15" },
+  "MW-7v10": { time: "Fri 6:50p", spread: "UK -4.5" },
+  "MW-2v15": { time: "Fri 9:20p", spread: "ISU -24.5" },
+  "W-1v16":  { time: "Thu 1:30p", spread: "ARIZ -25.5" },
+  "W-8v9":   { time: "Thu 4:00p", spread: "NOVA -1.5" },
+  "W-5v12":  { time: "Thu 7:25p", spread: "WIS -6" },
+  "W-4v13":  { time: "Thu 9:55p", spread: "ARK -11" },
+  "W-6v11":  { time: "Fri 1:30p", spread: "BYU -5" },
+  "W-3v14":  { time: "Fri 4:00p", spread: "GONZ -17" },
+  "W-7v10":  { time: "Fri 7:25p", spread: "MIA -3" },
+  "W-2v15":  { time: "Fri 9:55p", spread: "PUR -25.5" },
+  "E-1v16":  { time: "Thu 2:00p", spread: "DUKE -22" },
+  "E-8v9":   { time: "Thu 4:30p", spread: "OSU -2.5" },
+  "E-5v12":  { time: "Thu 7:00p", spread: "SJU -6.5" },
+  "E-4v13":  { time: "Thu 9:30p", spread: "KU -12" },
+  "E-6v11":  { time: "Fri 2:00p", spread: "LOU -4.5" },
+  "E-3v14":  { time: "Fri 4:30p", spread: "MSU -17" },
+  "E-7v10":  { time: "Fri 7:00p", spread: "UCLA -5" },
+  "E-2v15":  { time: "Fri 9:30p", spread: "UCONN -20.5" },
+};
+
 const POT_2026 = 37750;
 const PAYOUT_2026 = {
   R32: Math.round(POT_2026 * 0.005 * 100) / 100,
@@ -2465,12 +2500,26 @@ function Live2026() {
           );
         };
 
-        const BMatch = ({ top, bot, rtl }) => (
-          <div style={{ border: "1px solid #1e2a40", borderRadius: 3, overflow: "hidden" }}>
-            <BSlot team={top} border rtl={rtl} />
-            <BSlot team={bot} rtl={rtl} />
-          </div>
-        );
+        const BMatch = ({ top, bot, rtl }) => {
+          const region = top ? top.sd.split("-")[0] : (bot ? bot.sd.split("-")[0] : "");
+          const seeds = [top, bot].filter(Boolean).map(t => t.seed).sort((a, b) => a - b);
+          const gameKey = seeds.length === 2 ? `${region}-${seeds[0]}v${seeds[1]}` : "";
+          const game = R64_GAMES[gameKey];
+          return (
+            <div>
+              <div style={{ border: "1px solid #1e2a40", borderRadius: 3, overflow: "hidden" }}>
+                <BSlot team={top} border rtl={rtl} />
+                <BSlot team={bot} rtl={rtl} />
+              </div>
+              {game && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "1px 4px", fontSize: 6.5, color: "#3a4a6a" }}>
+                  <span>{game.time}</span>
+                  <span>{game.spread}</span>
+                </div>
+              )}
+            </div>
+          );
+        };
 
         const BConn = ({ pairs, rtl }) => (
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 16, flexShrink: 0 }}>
