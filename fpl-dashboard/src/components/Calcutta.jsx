@@ -2532,89 +2532,28 @@ function Live2026() {
 
         const regionOrder = ["E", "W", "S", "MW"];
         const rtlRegions = new Set(["W", "MW"]);
-        const leftCol = ["E", "S"];
-        const rightCol = ["W", "MW"];
-        const scrollRef = useRef(null);
-        const [activePage, setActivePage] = useState(0);
-
-        const handleScroll = useCallback(() => {
-          if (scrollRef.current) {
-            const page = Math.round(scrollRef.current.scrollLeft / scrollRef.current.offsetWidth);
-            setActivePage(page);
-          }
-        }, []);
-
-        const scrollToPage = (page) => {
-          if (scrollRef.current) {
-            scrollRef.current.scrollTo({ left: page * scrollRef.current.offsetWidth, behavior: "smooth" });
-          }
-        };
-
-        const mobilePages = [
-          { regions: leftCol, labels: ["East", "South"] },
-          { regions: rightCol, labels: ["West", "Midwest"] },
-        ];
-
         return (
           <div>
             {isMobile ? (
               <>
-                <div style={{ display: "flex", gap: 4, justifyContent: "center", marginBottom: 10 }}>
-                  {mobilePages.map((pg, pi) => (
-                    <button key={pi} onClick={() => scrollToPage(pi)} style={{
-                      padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontFamily: "inherit", fontSize: 11,
-                      background: activePage === pi ? "#4a9eff" : "transparent",
-                      border: `1px solid ${activePage === pi ? "#4a9eff" : "#1e2a40"}`,
-                      color: activePage === pi ? "#0a0e17" : "#5a6a8a",
-                      fontWeight: activePage === pi ? 700 : 400,
-                      display: "flex", gap: 6, alignItems: "center",
-                    }}>
-                      {pg.labels.map((lbl, li) => (
-                        <span key={li} style={{ display: "flex", alignItems: "center", gap: 3 }}>
-                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: regionColors[pg.regions[li]], display: "inline-block" }} />
-                          {lbl}
-                        </span>
-                      ))}
-                    </button>
+                <div style={{
+                  display: "flex", gap: 0, justifyContent: "center", marginBottom: 12,
+                  background: "#0a0e17", borderRadius: 6, border: "1px solid #1e2a40",
+                  overflow: "hidden", maxWidth: 360, margin: "0 auto 12px",
+                }}>
+                  {regionOrder.map((r, i) => (
+                    <button key={r} onClick={() => setBracketMobileRegion(r)} style={{
+                      flex: 1, padding: "8px 0", cursor: "pointer", fontFamily: "inherit", fontSize: 11,
+                      background: bracketMobileRegion === r ? regionColors[r] + "22" : "transparent",
+                      border: "none", borderRight: i < 3 ? "1px solid #1e2a40" : "none",
+                      borderBottom: bracketMobileRegion === r ? `2px solid ${regionColors[r]}` : "2px solid transparent",
+                      color: bracketMobileRegion === r ? regionColors[r] : "#4a5a7a",
+                      fontWeight: bracketMobileRegion === r ? 700 : 400,
+                      transition: "all 0.15s",
+                    }}>{regionNames[r]}</button>
                   ))}
                 </div>
-                <div style={{ fontSize: 8, textAlign: "center", color: "#3a4a6a", marginBottom: 6 }}>
-                  ← swipe between columns →
-                </div>
-                <div
-                  ref={scrollRef}
-                  onScroll={handleScroll}
-                  className="snap-scroll-hide"
-                  style={{
-                    display: "flex", overflowX: "auto", scrollSnapType: "x mandatory",
-                    WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none",
-                    gap: 0,
-                  }}
-                >
-                  {mobilePages.map((pg, pi) => (
-                    <div key={pi} style={{
-                      scrollSnapAlign: "start", minWidth: "100%", width: "100%", flexShrink: 0,
-                      paddingRight: pi === 0 ? 14 : 0, paddingLeft: pi === 1 ? 14 : 0,
-                      boxSizing: "border-box",
-                    }}>
-                      {pg.regions.map((r, ri) => (
-                        <div key={r} style={{ marginBottom: ri === 0 ? 14 : 0 }}>
-                          <LiveRegionBracket region={r} rtl={rtlRegions.has(r)} />
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-                {/* Dot indicators */}
-                <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
-                  {mobilePages.map((_, pi) => (
-                    <div key={pi} onClick={() => scrollToPage(pi)} style={{
-                      width: activePage === pi ? 16 : 6, height: 6, borderRadius: 3,
-                      background: activePage === pi ? "#4a9eff" : "#1e2a40",
-                      transition: "all 0.2s", cursor: "pointer",
-                    }} />
-                  ))}
-                </div>
+                <LiveRegionBracket region={bracketMobileRegion} rtl={rtlRegions.has(bracketMobileRegion)} />
               </>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -2690,23 +2629,6 @@ function Live2026() {
 
         return (
           <div>
-            {/* League-wide superlatives */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", justifyContent: "center" }}>
-              {[
-                { icon: "🏆", label: "Best Portfolio", value: bestPortfolio.name, sub: `${bestPortfolio.portfolioRatio.toFixed(2)}x EV/cost`, color: SYNDICATE_COLORS[bestPortfolio.name] },
-                { icon: "💰", label: "Biggest Spender", value: biggestSpender.name, sub: `$${biggestSpender.spent.toLocaleString()}`, color: SYNDICATE_COLORS[biggestSpender.name] },
-                { icon: "🎰", label: "Most Teams", value: mostTeams.name, sub: `${mostTeams.sd.totalTeams} teams`, color: SYNDICATE_COLORS[mostTeams.name] },
-                { icon: "🎯", label: "Most Concentrated", value: mostConcentrated.name, sub: `${Math.round(mostConcentrated.concentration * 100)}% on ${mostConcentrated.topTeam.t}`, color: SYNDICATE_COLORS[mostConcentrated.name] },
-                { icon: "👑", label: "Best Title Odds", value: bestChampEquity.name, sub: `${(bestChampEquity.champEquity * 100).toFixed(1)}% champ equity`, color: SYNDICATE_COLORS[bestChampEquity.name] },
-              ].map(s => (
-                <div key={s.label} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 6, padding: "6px 12px", textAlign: "center", minWidth: 110 }}>
-                  <div style={{ fontSize: 14, marginBottom: 2 }}>{s.icon}</div>
-                  <div style={{ fontSize: 7, color: "#5a6a8a", letterSpacing: 0.5, marginBottom: 2 }}>{s.label}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: s.color }}>{s.value}</div>
-                  <div style={{ fontSize: 8, color: "#5a6a8a" }}>{s.sub}</div>
-                </div>
-              ))}
-            </div>
 
             {/* Syndicate cards */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12 }}>
