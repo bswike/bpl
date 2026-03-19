@@ -2584,14 +2584,16 @@ function Live2026() {
 
         const thS = { padding: "6px 4px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 9, borderBottom: "2px solid #1e2a40", whiteSpace: "nowrap" };
         const thL = { ...thS, textAlign: "left" };
+        const stickyR = { position: "sticky", left: 0, zIndex: 2, background: "#0a0e15" };
+        const stickySyn = { position: "sticky", left: 18, zIndex: 2, background: "#0a0e15" };
 
         return (
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, minWidth: 520 }}>
               <thead>
                 <tr>
-                  <th style={{ ...thL, width: 18 }}>#</th>
-                  <th style={thL}>Syndicate</th>
+                  <th style={{ ...thL, width: 18, ...stickyR, background: "#0d1117" }}>#</th>
+                  <th style={{ ...thL, ...stickySyn, background: "#0d1117" }}>Syndicate</th>
                   <th style={thS}>Results</th>
                   <th style={thS}>Alive</th>
                   {roundLabels.map((r, ri) => <th key={r} style={thS}>{r}<br /><span style={{ fontWeight: 400, fontSize: 7, color: "#2a3a5a" }}>${incrPayouts[ri]}</span></th>)}
@@ -2620,8 +2622,8 @@ function Live2026() {
                       onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background = "#111827"; }}
                       onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = i % 2 === 0 ? "transparent" : "#0a0e1766"; }}
                     >
-                      <td style={{ padding: "6px 4px", color: "#5a6a8a", fontWeight: 700, fontSize: 10, width: 18 }}>{i + 1}</td>
-                      <td style={{ padding: "6px 4px", fontWeight: 600, whiteSpace: "nowrap" }}>
+                      <td style={{ padding: "6px 4px", color: "#5a6a8a", fontWeight: 700, fontSize: 10, width: 18, ...stickyR, background: isOpen ? "#0d1117" : i % 2 === 0 ? "#0a0e15" : "#0d1117" }}>{i + 1}</td>
+                      <td style={{ padding: "6px 4px", fontWeight: 600, whiteSpace: "nowrap", ...stickySyn, background: isOpen ? "#0d1117" : i % 2 === 0 ? "#0a0e15" : "#0d1117" }}>
                         <span style={{ color: synColor }}>{isOpen ? "▾" : "▸"} {syn.name}</span>
                         <span style={{ fontSize: 8, color: "#3a4a6a", marginLeft: 4 }}>{syn.totalTeams} teams</span>
                       </td>
@@ -2645,7 +2647,8 @@ function Live2026() {
                     </tr>
                     {isOpen && <>
                       <tr style={{ background: "#080c14" }}>
-                        <td colSpan={14} style={{ padding: "3px 4px 2px 20px", fontSize: 8, color: "#3a4a6a", fontStyle: "italic" }}>
+                        <td style={{ ...stickyR, background: "#080c14" }} />
+                        <td colSpan={13} style={{ padding: "3px 4px 2px 20px", fontSize: 8, color: "#3a4a6a", fontStyle: "italic", ...stickySyn, background: "#080c14" }}>
                           <span style={{ display: "inline-block", width: 8, height: 4, backgroundImage: "repeating-conic-gradient(#888 0% 25%, transparent 0% 50%)", backgroundSize: "4px 4px", marginRight: 4, verticalAlign: "middle" }} />
                           breakeven round
                         </td>
@@ -2664,8 +2667,8 @@ function Live2026() {
                       const beIdx = cumPayouts.findIndex(cp => cp >= t.p);
                       return (
                         <tr key={t.sd} style={{ background: "#080c14", borderBottom: "1px solid #0d1321" }}>
-                          <td style={{ padding: "4px 4px" }} />
-                          <td style={{ padding: "4px 4px", color: t.alive ? "#8a9aba" : "#3a4a6a", fontSize: 10, paddingLeft: 20 }}>
+                          <td style={{ padding: "4px 4px", ...stickyR, background: "#080c14" }} />
+                          <td style={{ padding: "4px 4px", color: t.alive ? "#8a9aba" : "#3a4a6a", fontSize: 10, paddingLeft: 20, ...stickySyn, background: "#080c14" }}>
                             <span style={{ color: "#3a4a6a", fontSize: 9, marginRight: 3 }}>{t.seed}</span>
                             {t.t}
                             {!t.alive && <span style={{ color: "#e63946", fontSize: 8, marginLeft: 4 }}>✗</span>}
@@ -2695,7 +2698,8 @@ function Live2026() {
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: "2px solid #1e2a40" }}>
-                  <td colSpan={2} style={{ padding: "6px 4px", color: "#5a6a8a", fontWeight: 700, fontSize: 10 }}>TOTAL</td>
+                  <td style={{ padding: "6px 4px", ...stickyR, background: "#0a0e15" }} />
+                  <td style={{ padding: "6px 4px", color: "#5a6a8a", fontWeight: 700, fontSize: 10, ...stickySyn, background: "#0a0e15" }}>TOTAL</td>
                   {(() => { const ts = board.reduce((s, b) => s + b.settled, 0); return <td style={{ padding: "6px 4px", textAlign: "right", color: ts > 0 ? "#2ecc71" : ts === 0 ? "#8a9aba" : "#e63946", fontWeight: 700 }}>{ts >= 0 ? "+" : ""}${ts.toLocaleString()}</td>; })()}
                   <td style={{ padding: "6px 4px", textAlign: "right", color: "#8a9aba" }}>{board.reduce((s, b) => s + b.teamsAlive, 0)}/64</td>
                   {[0,1,2,3,4,5].map(ri => {
