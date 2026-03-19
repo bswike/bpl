@@ -2493,7 +2493,7 @@ function Live2026() {
           );
         };
 
-        const regionOrder = ["S", "MW", "W", "E"];
+        const regionOrder = ["E", "W", "S", "MW"];
 
         return (
           <div>
@@ -2518,10 +2518,10 @@ function Live2026() {
                 <div style={{ display: "flex", height: 200, minWidth: 380 }}>
                   <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 150, minWidth: 150, flexShrink: 0 }}>
                     {[
+                      { label: "East", color: regionColors.E },
+                      { label: "West", color: regionColors.W },
                       { label: "South", color: regionColors.S },
                       { label: "Midwest", color: regionColors.MW },
-                      { label: "West", color: regionColors.W },
-                      { label: "East", color: regionColors.E },
                     ].reduce((acc, r, i) => {
                       if (i % 2 === 0) acc.push([r]);
                       else acc[acc.length - 1].push(r);
