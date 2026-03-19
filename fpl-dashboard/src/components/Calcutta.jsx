@@ -2673,10 +2673,9 @@ function Live2026() {
                       return (
                         <tr key={t.sd} style={{ background: "#080c14", borderBottom: "1px solid #0d1321" }}>
                           <td style={{ padding: "4px 4px", ...stickyR, background: "#080c14" }} />
-                          <td style={{ padding: "4px 4px", color: t.alive ? "#8a9aba" : "#3a4a6a", fontSize: 10, paddingLeft: 20, ...stickySyn, background: "#080c14" }}>
+                          <td style={{ padding: "4px 4px", color: t.alive ? "#8a9aba" : "#3a4a6a", fontSize: 10, paddingLeft: 20, ...stickySyn, background: "#080c14", textDecoration: t.alive ? "none" : "line-through" }}>
                             <span style={{ color: "#3a4a6a", fontSize: 9, marginRight: 3 }}>{t.seed}</span>
                             {t.t}
-                            {!t.alive && <span style={{ color: "#e63946", fontSize: 8, marginLeft: 4 }}>✗</span>}
                             {t.spread && <span style={{ fontSize: 8, color: "#3a4a6a", marginLeft: 5 }}>+{t.spread}</span>}
                           </td>
                           <td style={{ padding: "4px 4px", textAlign: "right", fontSize: 10, fontWeight: 600, color: teamSettled == null ? "#1e2a40" : teamSettled > 0 ? "#2ecc71" : teamSettled === 0 ? "#8a9aba" : "#e63946" }}>
@@ -2746,7 +2745,7 @@ function Live2026() {
               flexDirection: rtl ? "row-reverse" : "row",
             }}>
               <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: "center", flexShrink: 0, color: "#5a6a8a" }}>{team.seed}</span>
-              <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: rtl ? "right" : "left" }}>{team.t}</span>
+              <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: rtl ? "right" : "left", textDecoration: team.alive ? "none" : "line-through" }}>{team.t}</span>
               <span onClick={e => { e.stopPropagation(); setPopupSyn(team.s); }} style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2, cursor: "pointer" }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
               <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 500, color: "#5a6a8a" }}>${team.p.toLocaleString()}</span>
               {showScore && team.liveScore != null && (
@@ -3054,7 +3053,7 @@ function Live2026() {
                           const isLive = game && isGameLive(game.time);
                           return (
                             <tr key={t.sd} style={{ borderBottom: "1px solid #111827", opacity: t.alive ? 1 : 0.4 }}>
-                              <td style={{ padding: "5px 4px", color: "#e8e6e3", whiteSpace: "nowrap" }}>
+                              <td style={{ padding: "5px 4px", color: "#e8e6e3", whiteSpace: "nowrap", textDecoration: t.alive ? "none" : "line-through" }}>
                                 <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{t.seed}{rgn}</span>{t.t}
                               </td>
                               <td style={{ padding: "5px 4px", color: "#8a9aba", whiteSpace: "nowrap" }}>
@@ -3310,7 +3309,7 @@ function Live2026() {
                             <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0 }}>
                               <span style={{ color: "#3a4a6a", fontSize: 7, fontWeight: 600, width: 16, textAlign: "right", flexShrink: 0 }}>{t.sd.split("-")[0]}</span>
                               <span style={{ color: t.seed <= 2 ? "#4a9eff" : t.seed <= 4 ? "#7c5cfc" : "#5a6a8a", fontSize: 9, fontWeight: 700, width: 14, textAlign: "right", flexShrink: 0 }}>{t.seed}</span>
-                              <span style={{ color: isTop ? "#e8e6e3" : "#8a9aba", fontWeight: isTop ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              <span style={{ color: isTop ? "#e8e6e3" : "#8a9aba", fontWeight: isTop ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: t.alive ? "none" : "line-through" }}>
                                 {t.t}
                               </span>
                               {t.spread ? <span style={{ color: "#3a4a6a", fontSize: 7, flexShrink: 0 }}>+{t.spread}</span> : null}
@@ -3409,7 +3408,7 @@ function Live2026() {
                   return (
                     <tr key={t.sd} style={{ borderBottom: "1px solid #0d1321", opacity: t.alive ? 1 : 0.35 }}>
                       <td style={{ padding: "6px 8px", color: "#8a9aba", fontWeight: 600 }}>{t.seed}</td>
-                      <td style={{ padding: "6px 8px", color: "#e8e6e3", fontWeight: 500 }}>{t.t}</td>
+                      <td style={{ padding: "6px 8px", color: "#e8e6e3", fontWeight: 500, textDecoration: t.alive ? "none" : "line-through" }}>{t.t}</td>
                       <td style={{ padding: "6px 8px", color: "#8a9aba", fontSize: 10 }}>{regionNames[t.region]}</td>
                       <td style={{ padding: "6px 8px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
