@@ -2849,13 +2849,7 @@ function Live2026() {
           const isLeft = region === "E" || region === "S";
 
           return (
-            <div>
-              {!regionIsTop && isMobile && (
-                <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                  <div style={{ flex: 1 }}>{navBtn(neighbor, isLeft ? "→" : "←")}</div>
-                  <div style={{ flex: 1 }}>{navBtn(vNbr, "▲")}</div>
-                </div>
-              )}
+            <div style={isMobile ? { scrollSnapAlign: "start", flexShrink: 0 } : {}}>
               <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: regionColors[region] }}>{regionNames[region].toUpperCase()} REGION</span>
               </div>
@@ -2892,7 +2886,6 @@ function Live2026() {
               {isMobile && (
                 <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
                   <div style={{ flex: 1 }}>{navBtn(neighbor, isLeft ? "→" : "←")}</div>
-                  <div style={{ flex: 1 }}>{navBtn(vNbr, regionIsTop ? "▼" : "▲")}</div>
                 </div>
               )}
             </div>
@@ -2905,13 +2898,38 @@ function Live2026() {
         const teamsBySD = {};
         liveTeams.forEach(t => { teamsBySD[t.sd] = t; });
 
+        const vScrollRef = useRef(null);
+        const vPair = (bracketMobileRegion === "E" || bracketMobileRegion === "S") ? ["E", "S"] : ["W", "MW"];
+
+        const handleVScroll = useCallback(() => {
+          const el = vScrollRef.current;
+          if (!el) return;
+          const mid = el.scrollTop + el.clientHeight / 2;
+          const firstH = el.children[0]?.offsetHeight || 0;
+          const newRegion = mid > firstH ? vPair[1] : vPair[0];
+          if (newRegion !== bracketMobileRegion) setBracketMobileRegion(newRegion);
+        }, [bracketMobileRegion, vPair]);
+
+        const scrollToRegion = useCallback((r) => {
+          if (!vScrollRef.current) return;
+          const idx = vPair.indexOf(r);
+          if (idx >= 0 && vScrollRef.current.children[idx]) {
+            vScrollRef.current.children[idx].scrollIntoView({ block: "start", behavior: "smooth" });
+          }
+        }, [vPair]);
+
+        useEffect(() => {
+          if (!isMobile || !vScrollRef.current) return;
+          scrollToRegion(bracketMobileRegion);
+        }, [vPair[0]]);
+
         return (
           <div>
             {isMobile ? (
               <>
                 <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 8 }}>
                   {regionOrder.map(r => (
-                    <button key={r} onClick={() => setBracketMobileRegion(r)} style={{
+                    <button key={r} onClick={() => { setBracketMobileRegion(r); setTimeout(() => scrollToRegion(r), 50); }} style={{
                       padding: "2px 8px", cursor: "pointer", fontFamily: "inherit", fontSize: 9,
                       background: "transparent", border: "none",
                       borderBottom: bracketMobileRegion === r ? `1px solid ${regionColors[r]}` : "1px solid transparent",
@@ -2921,7 +2939,20 @@ function Live2026() {
                     }}>{regionNames[r]}</button>
                   ))}
                 </div>
-                <LiveRegionBracket region={bracketMobileRegion} rtl={rtlRegions.has(bracketMobileRegion)} />
+                <div
+                  ref={vScrollRef}
+                  onScroll={handleVScroll}
+                  style={{
+                    maxHeight: "75vh", overflowY: "auto",
+                    overscrollBehavior: "contain", WebkitOverflowScrolling: "touch",
+                    scrollSnapType: "y mandatory",
+                    borderRadius: 8,
+                  }}
+                >
+                  {vPair.map(r => (
+                    <LiveRegionBracket key={r} region={r} rtl={rtlRegions.has(r)} />
+                  ))}
+                </div>
               </>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
