@@ -2408,13 +2408,13 @@ function Live2026() {
       </div>
 
       {/* Sub-nav */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 12 }}>
         {views.map(v => (
           <button key={v.key} onClick={() => setLiveView(v.key)} style={{
-            padding: "6px 16px", background: liveView === v.key ? "#4a9eff22" : "transparent",
-            border: `1px solid ${liveView === v.key ? "#4a9eff" : "#1e2a40"}`, borderRadius: 5,
-            color: liveView === v.key ? "#4a9eff" : "#5a6a8a", fontSize: 11, fontWeight: liveView === v.key ? 700 : 400,
-            fontFamily: "inherit", cursor: "pointer",
+            padding: "3px 10px", background: "transparent",
+            border: "none", borderBottom: liveView === v.key ? "1px solid #4a9eff" : "1px solid transparent",
+            color: liveView === v.key ? "#4a9eff" : "#4a5a7a", fontSize: 10, fontWeight: liveView === v.key ? 600 : 400,
+            fontFamily: "inherit", cursor: "pointer", letterSpacing: 0.5,
           }}>{v.label}</button>
         ))}
       </div>
@@ -2624,20 +2624,15 @@ function Live2026() {
           <div>
             {isMobile ? (
               <>
-                <div style={{
-                  display: "flex", gap: 0, justifyContent: "center", marginBottom: 12,
-                  background: "#0a0e17", borderRadius: 6, border: "1px solid #1e2a40",
-                  overflow: "hidden", maxWidth: 360, margin: "0 auto 12px",
-                }}>
-                  {regionOrder.map((r, i) => (
+                <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 8 }}>
+                  {regionOrder.map(r => (
                     <button key={r} onClick={() => setBracketMobileRegion(r)} style={{
-                      flex: 1, padding: "8px 0", cursor: "pointer", fontFamily: "inherit", fontSize: 11,
-                      background: bracketMobileRegion === r ? regionColors[r] + "22" : "transparent",
-                      border: "none", borderRight: i < 3 ? "1px solid #1e2a40" : "none",
-                      borderBottom: bracketMobileRegion === r ? `2px solid ${regionColors[r]}` : "2px solid transparent",
-                      color: bracketMobileRegion === r ? regionColors[r] : "#4a5a7a",
+                      padding: "2px 8px", cursor: "pointer", fontFamily: "inherit", fontSize: 9,
+                      background: "transparent", border: "none",
+                      borderBottom: bracketMobileRegion === r ? `1px solid ${regionColors[r]}` : "1px solid transparent",
+                      color: bracketMobileRegion === r ? regionColors[r] : "#3a4a6a",
                       fontWeight: bracketMobileRegion === r ? 700 : 400,
-                      transition: "all 0.15s",
+                      letterSpacing: 0.5, transition: "all 0.15s",
                     }}>{regionNames[r]}</button>
                   ))}
                 </div>
