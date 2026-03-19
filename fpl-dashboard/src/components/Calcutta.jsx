@@ -2576,20 +2576,23 @@ function Live2026() {
           );
         };
 
+        const todayAbbr = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()];
+
         const BMatch = ({ top, bot, rtl }) => {
           const region = top ? top.sd.split("-")[0] : (bot ? bot.sd.split("-")[0] : "");
           const seeds = [top, bot].filter(Boolean).map(t => t.seed).sort((a, b) => a - b);
           const gameKey = seeds.length === 2 ? `${region}-${seeds[0]}v${seeds[1]}` : "";
           const game = R64_GAMES[gameKey];
+          const isToday = game && game.time.startsWith(todayAbbr);
           return (
             <div>
               {game && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4px 1px", fontSize: 6.5, color: "#3a4a6a" }}>
-                  <span>{game.time}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4px 1px", fontSize: 6.5, color: isToday ? "#e8e6e3" : "#3a4a6a", fontWeight: isToday ? 600 : 400 }}>
+                  <span>{isToday ? "TODAY " + game.time.split(" ")[1] : game.time}</span>
                   <span>{game.spread}</span>
                 </div>
               )}
-              <div style={{ border: "1px solid #1e2a40", borderRadius: 3, overflow: "hidden" }}>
+              <div style={{ border: `1px solid ${isToday ? "#4a9eff44" : "#1e2a40"}`, borderRadius: 3, overflow: "hidden", boxShadow: isToday ? "0 0 8px rgba(74,158,255,0.15)" : "none" }}>
                 <BSlot team={top} border rtl={rtl} />
                 <BSlot team={bot} rtl={rtl} />
               </div>
