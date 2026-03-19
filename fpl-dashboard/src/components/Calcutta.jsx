@@ -2422,22 +2422,18 @@ function Live2026() {
             <div style={{ height: SLOT_H, display: "flex", alignItems: "center", padding: "0 6px", background: "#0a0e15", borderBottom: border ? "1px solid #151d2e" : "none", fontSize: 9, color: "#1e2a40" }}>—</div>
           );
           const sc = SYNDICATE_COLORS[team.s] || "#5a6a8a";
-          const val = getTeamValueLive2026({ r: team.sd.split("-")[0], s: team.seed }, team.p);
-          const ratio = val.fairValue > 0 ? val.fairValue / team.p : 0;
-          const priceColor = ratio >= 1.0 ? "#2ecc71" : ratio >= 0.7 ? "#e9c46a" : "#5a6a8a";
-          const seedEl = <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: "center", flexShrink: 0, color: team.seed <= 2 ? "#4a9eff" : team.seed <= 4 ? "#7c5cfc" : "#5a6a8a" }}>{team.seed}</span>;
-          const nameEl = <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: rtl ? "right" : "left" }}>{team.t}</span>;
-          const ownerEl = <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2 }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>;
-          const priceEl = <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 700, color: priceColor, fontFamily: "'Space Grotesk', sans-serif" }}>${team.p.toLocaleString()}</span>;
           return (
             <div style={{
               height: SLOT_H, display: "flex", alignItems: "center", padding: "0 4px",
-              background: team.seed <= 2 ? "#14203a" : "#0d1321",
+              background: "#0d1321",
               borderBottom: border ? "1px solid #1e2a40" : "none",
               opacity: team.alive ? 1 : 0.35, gap: 3,
               flexDirection: rtl ? "row-reverse" : "row",
             }}>
-              {seedEl}{nameEl}{ownerEl}{priceEl}
+              <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: "center", flexShrink: 0, color: "#5a6a8a" }}>{team.seed}</span>
+              <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: rtl ? "right" : "left" }}>{team.t}</span>
+              <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2 }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
+              <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 500, color: "#5a6a8a" }}>${team.p.toLocaleString()}</span>
             </div>
           );
         };
