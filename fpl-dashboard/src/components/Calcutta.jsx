@@ -2470,7 +2470,6 @@ function Live2026() {
           const bracketScrollRef = useRef(null);
           const edgeTimer = useRef(null);
           const autoScrolling = useRef(false);
-          const vTouchRef = useRef(null);
           const tm = {};
           TEAMS_2026.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
@@ -2487,21 +2486,6 @@ function Live2026() {
             return () => { if (edgeTimer.current) clearTimeout(edgeTimer.current); };
           }, [region, rtl]);
 
-          const onVTouchStart = useCallback((e) => {
-            vTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
-          }, []);
-
-          const onVTouchEnd = useCallback((e) => {
-            if (!vTouchRef.current || !isMobile) return;
-            const dx = e.changedTouches[0].clientX - vTouchRef.current.x;
-            const dy = e.changedTouches[0].clientY - vTouchRef.current.y;
-            const dt = Date.now() - vTouchRef.current.t;
-            vTouchRef.current = null;
-            if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.5 && dt < 500) {
-              if (dy < 0 && regionIsTop) setBracketMobileRegion(vNbr);
-              else if (dy > 0 && !regionIsTop) setBracketMobileRegion(vNbr);
-            }
-          }, [regionIsTop, vNbr]);
 
           const handleEdgeScroll = useCallback(() => {
             if (!bracketScrollRef.current || !isMobile || autoScrolling.current) return;
@@ -2571,7 +2555,7 @@ function Live2026() {
           );
 
           return (
-            <div onTouchStart={onVTouchStart} onTouchEnd={onVTouchEnd}>
+            <div>
               {!regionIsTop && isMobile && <div style={{ marginBottom: 6 }}>{vNav}</div>}
               <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: regionColors[region] }}>{regionNames[region].toUpperCase()} REGION</span>
@@ -2587,7 +2571,7 @@ function Live2026() {
               >
                 {isMobile && (
                   <div style={{ fontSize: 7, textAlign: "center", padding: "2px 8px 4px", color: "#4a5a7a" }}>
-                    {rtl ? "← scroll for later rounds" : "scroll for later rounds →"} · swipe ↕ {regionNames[vNbr]}
+                    {rtl ? "← scroll for later rounds · hold edge → " : "scroll for later rounds → · hold edge → "}{regionNames[neighbor]}
                   </div>
                 )}
                 <div style={{ display: "flex", marginBottom: 4, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
