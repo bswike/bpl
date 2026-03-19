@@ -2460,11 +2460,19 @@ function Live2026() {
                     <React.Fragment key={syn.name}>
                     <tr
                       onClick={() => setExpandedSyn(isOpen ? null : syn.name)}
-                      style={{ borderBottom: isOpen ? "none" : "1px solid #111827", background: i % 2 === 0 ? "transparent" : "#0a0e1766", cursor: "pointer" }}
+                      style={{
+                        borderBottom: isOpen ? "none" : "1px solid #111827",
+                        background: isOpen ? synColor + "0d" : i % 2 === 0 ? "transparent" : "#0a0e1766",
+                        cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background = "#111827"; }}
+                      onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = i % 2 === 0 ? "transparent" : "#0a0e1766"; }}
                     >
                       <td style={{ padding: "6px 8px", color: "#5a6a8a", fontWeight: 700 }}>{i + 1}</td>
                       <td style={{ padding: "6px 8px", fontWeight: 600 }}>
                         <span style={{ color: synColor }}>{isOpen ? "▾" : "▸"} {syn.name}</span>
+                        <span style={{ fontSize: 8, color: "#3a4a6a", marginLeft: 6 }}>{syn.totalTeams} teams</span>
                       </td>
                       <td style={{ padding: "6px 8px", textAlign: "right", color: netColor, fontWeight: 700 }}>
                         {syn.net >= 0 ? "+" : ""}${syn.net.toLocaleString()}
@@ -2524,7 +2532,7 @@ function Live2026() {
               </tfoot>
             </table>
             <div style={{ textAlign: "center", marginTop: 12, fontSize: 9, color: "#2a3a5a" }}>
-              Updated as results come in · {board.reduce((s, b) => s + b.teamsAlive, 0)} teams alive
+              Tap a syndicate to see their teams · {board.reduce((s, b) => s + b.teamsAlive, 0)} teams alive
             </div>
           </div>
         );
