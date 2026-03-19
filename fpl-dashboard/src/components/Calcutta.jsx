@@ -2354,6 +2354,7 @@ function AuctionPrep() {
 function Live2026() {
   const [liveView, setLiveView] = useState("bracket");
   const [bracketMobileRegion, setBracketMobileRegion] = useState("E");
+  const [nerdMode, setNerdMode] = useState(false);
   const regions = ["S", "MW", "W", "E"];
   const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
   const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
@@ -2709,8 +2710,95 @@ function Live2026() {
 
         return (
           <div>
+            {/* Nerd Mode toggle */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+              <button
+                onClick={() => setNerdMode(!nerdMode)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 10,
+                  background: nerdMode ? "#7c5cfc22" : "#111827",
+                  border: `1px solid ${nerdMode ? "#7c5cfc" : "#1e2a40"}`,
+                  borderRadius: 5, color: nerdMode ? "#7c5cfc" : "#5a6a8a",
+                  fontWeight: 600, letterSpacing: 0.5, transition: "all 0.15s",
+                }}
+              >
+                <span style={{ fontSize: 12 }}>{nerdMode ? "🤓" : "📊"}</span>
+                Nerd Mode {nerdMode ? "ON" : "OFF"}
+              </button>
+            </div>
 
-            {/* Syndicate cards */}
+            {!nerdMode ? (
+              /* ── SPREADSHEET VIEW (default) ── */
+              <div style={{ overflowX: "auto" }}>
+                {synCards.map(syn => {
+                  const synColor = SYNDICATE_COLORS[syn.name] || "#5a6a8a";
+                  const sorted = syn.teamEVs.slice().sort((a, b) => b.p - a.p);
+                  const totalPrice = sorted.reduce((s, t) => s + t.p, 0);
+                  const totalEV = sorted.reduce((s, t) => s + t.ev, 0);
+                  const roundTotals = [0,1,2,3,4,5].map(ri => sorted.reduce((s, t) => s + (t.roundEV[ri] || 0), 0));
+                  return (
+                    <div key={syn.name} style={{ marginBottom: 16 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "6px 8px", background: synColor + "12", borderBottom: `2px solid ${synColor}66` }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: synColor }}>{syn.name}</span>
+                        <span style={{ fontSize: 10, color: "#8a9aba" }}>{sorted.length} teams</span>
+                        <span style={{ fontSize: 10, color: "#8a9aba" }}>·</span>
+                        <span style={{ fontSize: 10, color: "#e8e6e3", fontWeight: 600 }}>${totalPrice.toLocaleString()} spent</span>
+                        <span style={{ fontSize: 10, color: "#8a9aba" }}>·</span>
+                        <span style={{ fontSize: 10, color: totalEV >= totalPrice ? "#2ecc71" : "#e63946", fontWeight: 600 }}>EV ${totalEV.toLocaleString()}</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: (totalEV/totalPrice >= 1 ? "#2ecc71" : "#e63946") + "22", color: totalEV/totalPrice >= 1 ? "#2ecc71" : "#e63946" }}>
+                          {(totalEV/totalPrice).toFixed(2)}x
+                        </span>
+                      </div>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}>
+                        <thead>
+                          <tr style={{ background: "#0a0e17" }}>
+                            <th style={{ padding: "4px 6px", textAlign: "left", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Sd</th>
+                            <th style={{ padding: "4px 6px", textAlign: "left", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Rgn</th>
+                            <th style={{ padding: "4px 6px", textAlign: "left", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Team</th>
+                            <th style={{ padding: "4px 6px", textAlign: "right", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Price</th>
+                            {["R32","S16","E8","F4","F2","Ch"].map(r => (
+                              <th key={r} style={{ padding: "4px 6px", textAlign: "right", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>{r}</th>
+                            ))}
+                            <th style={{ padding: "4px 6px", textAlign: "right", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Tot EV</th>
+                            <th style={{ padding: "4px 6px", textAlign: "right", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Ratio</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sorted.map((t, ti) => {
+                            const rgn = t.sd.split("-")[0];
+                            const ratio = t.p > 0 ? t.ev / t.p : 0;
+                            return (
+                              <tr key={t.sd} style={{ background: ti % 2 === 0 ? "#0d1321" : "#0f1629", opacity: t.alive ? 1 : 0.35 }}>
+                                <td style={{ padding: "3px 6px", color: t.seed <= 2 ? "#4a9eff" : t.seed <= 4 ? "#7c5cfc" : "#8a9aba", fontWeight: 700 }}>{t.seed}</td>
+                                <td style={{ padding: "3px 6px", color: regionColors[rgn] || "#5a6a8a", fontWeight: 600, fontSize: 9 }}>{rgn}</td>
+                                <td style={{ padding: "3px 6px", color: "#c8d6e5", fontWeight: 500, whiteSpace: "nowrap" }}>{t.t}</td>
+                                <td style={{ padding: "3px 6px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
+                                {t.roundEV.map((rv, ri) => (
+                                  <td key={ri} style={{ padding: "3px 6px", textAlign: "right", color: rv > 0 ? "#8a9aba" : "#1e2a40", fontWeight: 400 }}>{rv > 0 ? `$${rv}` : "—"}</td>
+                                ))}
+                                <td style={{ padding: "3px 6px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${t.ev.toLocaleString()}</td>
+                                <td style={{ padding: "3px 6px", textAlign: "right", color: ratio >= 1.25 ? "#2ecc71" : ratio >= 0.9 ? "#e9c46a" : ratio >= 0.6 ? "#5a6a8a" : "#e63946", fontWeight: 700 }}>{ratio.toFixed(2)}x</td>
+                              </tr>
+                            );
+                          })}
+                          <tr style={{ background: "#0a0e17", borderTop: `2px solid ${synColor}44` }}>
+                            <td colSpan={3} style={{ padding: "4px 6px", color: synColor, fontWeight: 700, fontSize: 9 }}>TOTAL</td>
+                            <td style={{ padding: "4px 6px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${totalPrice.toLocaleString()}</td>
+                            {roundTotals.map((rt, ri) => (
+                              <td key={ri} style={{ padding: "4px 6px", textAlign: "right", color: rt > 0 ? "#8a9aba" : "#1e2a40", fontWeight: 600 }}>{rt > 0 ? `$${rt}` : "—"}</td>
+                            ))}
+                            <td style={{ padding: "4px 6px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${totalEV.toLocaleString()}</td>
+                            <td style={{ padding: "4px 6px", textAlign: "right", color: totalEV/totalPrice >= 1 ? "#2ecc71" : "#e63946", fontWeight: 700 }}>{(totalEV/totalPrice).toFixed(2)}x</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+            /* ── NERD MODE (cards) ── */
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12 }}>
               {synCards.map(syn => {
                 const synColor = SYNDICATE_COLORS[syn.name] || "#5a6a8a";
@@ -2804,6 +2892,7 @@ function Live2026() {
                 );
               })}
             </div>
+            )}
           </div>
         );
       })()}
