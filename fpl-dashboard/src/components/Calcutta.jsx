@@ -2331,6 +2331,7 @@ function AuctionPrep() {
 
 function Live2026() {
   const [liveView, setLiveView] = useState("bracket");
+  const [bracketMobileRegion, setBracketMobileRegion] = useState("E");
   const regions = ["S", "MW", "W", "E"];
   const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
   const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
@@ -2407,86 +2408,122 @@ function Live2026() {
         const bracketOrder = [[1,16],[8,9],[5,12],[4,13],[6,11],[3,14],[7,10],[2,15]];
         const SLOT_H = 24;
         const TOTAL_H = 500;
+        const isMobile = typeof window !== "undefined" && window.innerWidth < 820;
 
-        const BSlot = ({ team, border }) => {
+        const BSlot = ({ team, border, rtl }) => {
           if (!team) return (
             <div style={{ height: SLOT_H, display: "flex", alignItems: "center", padding: "0 6px", background: "#0a0e15", borderBottom: border ? "1px solid #151d2e" : "none", fontSize: 9, color: "#1e2a40" }}>—</div>
           );
           const sc = SYNDICATE_COLORS[team.s] || "#5a6a8a";
           const val = getTeamValue({ r: team.sd.split("-")[0], s: team.seed });
           const ratio = val.fairValue > 0 ? val.fairValue / team.p : 0;
+          const priceColor = ratio >= 1.0 ? "#2ecc71" : ratio >= 0.7 ? "#e9c46a" : "#5a6a8a";
+          const seedEl = <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: "center", flexShrink: 0, color: team.seed <= 2 ? "#4a9eff" : team.seed <= 4 ? "#7c5cfc" : "#5a6a8a" }}>{team.seed}</span>;
+          const nameEl = <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: rtl ? "right" : "left" }}>{team.t}</span>;
+          const ownerEl = <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2 }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>;
+          const priceEl = <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 700, color: priceColor, fontFamily: "'Space Grotesk', sans-serif" }}>${team.p.toLocaleString()}</span>;
           return (
             <div style={{
               height: SLOT_H, display: "flex", alignItems: "center", padding: "0 4px",
               background: team.seed <= 2 ? "#14203a" : "#0d1321",
               borderBottom: border ? "1px solid #1e2a40" : "none",
               opacity: team.alive ? 1 : 0.35, gap: 3,
+              flexDirection: rtl ? "row-reverse" : "row",
             }}>
-              <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: "center", flexShrink: 0, color: team.seed <= 2 ? "#4a9eff" : team.seed <= 4 ? "#7c5cfc" : "#5a6a8a" }}>{team.seed}</span>
-              <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5" }}>{team.t}</span>
-              <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2 }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
-              <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 700, color: ratio >= 1.0 ? "#2ecc71" : ratio >= 0.7 ? "#e9c46a" : "#5a6a8a", fontFamily: "'Space Grotesk', sans-serif" }}>${team.p.toLocaleString()}</span>
+              {seedEl}{nameEl}{ownerEl}{priceEl}
             </div>
           );
         };
 
-        const BMatch = ({ top, bot }) => (
+        const BMatch = ({ top, bot, rtl }) => (
           <div style={{ border: "1px solid #1e2a40", borderRadius: 3, overflow: "hidden" }}>
-            <BSlot team={top} border />
-            <BSlot team={bot} />
+            <BSlot team={top} border rtl={rtl} />
+            <BSlot team={bot} rtl={rtl} />
           </div>
         );
 
-        const BConn = ({ pairs }) => (
+        const BConn = ({ pairs, rtl }) => (
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 16, flexShrink: 0 }}>
             {Array.from({ length: pairs }).map((_, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", flex: 1 }}>
-                <div style={{ width: "100%", height: "50%", borderRight: "2px solid #1e2a40", borderTop: "2px solid #1e2a40", borderBottom: "2px solid #1e2a40", borderTopRightRadius: 3, borderBottomRightRadius: 3 }} />
+                {rtl ? (
+                  <div style={{ width: "100%", height: "50%", borderLeft: "2px solid #1e2a40", borderTop: "2px solid #1e2a40", borderBottom: "2px solid #1e2a40", borderTopLeftRadius: 3, borderBottomLeftRadius: 3 }} />
+                ) : (
+                  <div style={{ width: "100%", height: "50%", borderRight: "2px solid #1e2a40", borderTop: "2px solid #1e2a40", borderBottom: "2px solid #1e2a40", borderTopRightRadius: 3, borderBottomRightRadius: 3 }} />
+                )}
               </div>
             ))}
           </div>
         );
 
-        const LiveRegionBracket = ({ region }) => {
+        const RoundCol = ({ n, w, rtl }) => (
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: w, minWidth: w, flexShrink: 0 }}>
+            {Array.from({ length: n }).map((_, i) => <BMatch key={i} rtl={rtl} />)}
+          </div>
+        );
+
+        const LiveRegionBracket = ({ region, rtl }) => {
           const tm = {};
           TEAMS_2026.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
-          const roundCols = [
-            { w: 150, label: "FIRST ROUND" },
-            { w: 16, label: "" },
-            { w: 100, label: "SECOND ROUND" },
-            { w: 16, label: "" },
-            { w: 100, label: "SWEET 16" },
-            { w: 16, label: "" },
-            { w: 100, label: "ELITE 8" },
-          ];
+
+          const ltrHeaders = ["FIRST ROUND", "", "SECOND ROUND", "", "SWEET 16", "", "ELITE 8"];
+          const rtlHeaders = ["ELITE 8", "", "SWEET 16", "", "SECOND ROUND", "", "FIRST ROUND"];
+          const headers = rtl ? rtlHeaders : ltrHeaders;
+          const colWidths = rtl ? [100, 16, 100, 16, 100, 16, 150] : [150, 16, 100, 16, 100, 16, 100];
+
+          const r64Col = (
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 150, minWidth: 150, flexShrink: 0 }}>
+              {r64.map(([t, b], i) => <BMatch key={i} top={t} bot={b} rtl={rtl} />)}
+            </div>
+          );
+
+          const bracketContent = rtl ? (
+            <>
+              <RoundCol n={1} w={100} rtl={rtl} />
+              <BConn pairs={1} rtl />
+              <RoundCol n={2} w={100} rtl={rtl} />
+              <BConn pairs={2} rtl />
+              <RoundCol n={4} w={100} rtl={rtl} />
+              <BConn pairs={4} rtl />
+              {r64Col}
+            </>
+          ) : (
+            <>
+              {r64Col}
+              <BConn pairs={4} />
+              <RoundCol n={4} w={100} />
+              <BConn pairs={2} />
+              <RoundCol n={2} w={100} />
+              <BConn pairs={1} />
+              <RoundCol n={1} w={100} />
+            </>
+          );
+
+          const totalW = 150 + 100*3 + 16*3;
+
           return (
             <div>
               <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: regionColors[region] }}>{regionNames[region].toUpperCase()} REGION</span>
               </div>
-              <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12", paddingBottom: 8, paddingTop: 4 }}>
-                <div style={{ display: "flex", marginBottom: 4, minWidth: 514, paddingLeft: 8, paddingRight: 8 }}>
-                  {roundCols.map((c, i) => (
-                    <div key={i} style={{ width: c.w, minWidth: c.w, flexShrink: 0, textAlign: "center", fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{c.label}</div>
+              <div style={{
+                overflowX: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y",
+                border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
+                paddingBottom: 8, paddingTop: 4,
+              }}>
+                {isMobile && (
+                  <div style={{ fontSize: 7, textAlign: "center", padding: "2px 8px 4px", color: "#4a5a7a" }}>
+                    ← swipe to see full bracket →
+                  </div>
+                )}
+                <div style={{ display: "flex", marginBottom: 4, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
+                  {colWidths.map((w, i) => (
+                    <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center", fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{headers[i]}</div>
                   ))}
                 </div>
-                <div style={{ display: "flex", height: TOTAL_H, minWidth: 514, paddingLeft: 8, paddingRight: 8, paddingBottom: 8 }}>
-                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 150, minWidth: 150, flexShrink: 0 }}>
-                    {r64.map(([t, b], i) => <BMatch key={i} top={t} bot={b} />)}
-                  </div>
-                  <BConn pairs={4} />
-                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 100, minWidth: 100, flexShrink: 0 }}>
-                    {[0,1,2,3].map(i => <BMatch key={i} />)}
-                  </div>
-                  <BConn pairs={2} />
-                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 100, minWidth: 100, flexShrink: 0 }}>
-                    {[0,1].map(i => <BMatch key={i} />)}
-                  </div>
-                  <BConn pairs={1} />
-                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 100, minWidth: 100, flexShrink: 0 }}>
-                    <BMatch />
-                  </div>
+                <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 8 }}>
+                  {bracketContent}
                 </div>
               </div>
             </div>
@@ -2494,16 +2531,34 @@ function Live2026() {
         };
 
         const regionOrder = ["E", "W", "S", "MW"];
+        const rtlRegions = new Set(["W", "MW"]);
 
         return (
           <div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              {regionOrder.map(r => (
-                <div key={r}>
-                  <LiveRegionBracket region={r} />
+            {isMobile ? (
+              <>
+                <div style={{ display: "flex", gap: 4, justifyContent: "center", marginBottom: 12 }}>
+                  {regionOrder.map(r => (
+                    <button key={r} onClick={() => setBracketMobileRegion(r)} style={{
+                      padding: "6px 14px", borderRadius: 4, cursor: "pointer", fontFamily: "inherit", fontSize: 11,
+                      background: bracketMobileRegion === r ? regionColors[r] : "transparent",
+                      border: `1px solid ${bracketMobileRegion === r ? regionColors[r] : "#1e2a40"}`,
+                      color: bracketMobileRegion === r ? "#0a0e17" : regionColors[r],
+                      fontWeight: bracketMobileRegion === r ? 700 : 400,
+                    }}>{regionNames[r]}</button>
+                  ))}
                 </div>
-              ))}
-            </div>
+                <LiveRegionBracket region={bracketMobileRegion} rtl={rtlRegions.has(bracketMobileRegion)} />
+              </>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                {regionOrder.map(r => (
+                  <div key={r}>
+                    <LiveRegionBracket region={r} rtl={rtlRegions.has(r)} />
+                  </div>
+                ))}
+              </div>
+            )}
             {/* Final Four */}
             <div style={{ marginTop: 14 }}>
               <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: "2px solid #7c5cfc44" }}>
@@ -2518,15 +2573,9 @@ function Live2026() {
                 <div style={{ display: "flex", height: 200, minWidth: 380 }}>
                   <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 150, minWidth: 150, flexShrink: 0 }}>
                     {[
-                      { label: "East", color: regionColors.E },
-                      { label: "West", color: regionColors.W },
-                      { label: "South", color: regionColors.S },
-                      { label: "Midwest", color: regionColors.MW },
-                    ].reduce((acc, r, i) => {
-                      if (i % 2 === 0) acc.push([r]);
-                      else acc[acc.length - 1].push(r);
-                      return acc;
-                    }, []).map((pair, i) => (
+                      [{ label: "East", color: regionColors.E }, { label: "South", color: regionColors.S }],
+                      [{ label: "West", color: regionColors.W }, { label: "Midwest", color: regionColors.MW }],
+                    ].map((pair, i) => (
                       <div key={i} style={{ border: "1px solid #1e2a40", borderRadius: 3, overflow: "hidden" }}>
                         {pair.map((r, j) => (
                           <div key={j} style={{ height: 28, display: "flex", alignItems: "center", padding: "0 8px", background: "#0d1321", borderBottom: j === 0 ? "1px solid #1e2a40" : "none", gap: 6 }}>
