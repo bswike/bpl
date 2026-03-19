@@ -2890,7 +2890,8 @@ function Live2026() {
                                 <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{t.seed}{rgn}</span>{t.t}
                               </td>
                               <td style={{ padding: "5px 4px", color: "#8a9aba", whiteSpace: "nowrap" }}>
-                                <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{oppSeed}</span>{opp ? opp.t : "—"}
+                                {opp && <span style={{ display: "block", fontSize: 6, color: SYNDICATE_COLORS[opp.s] || "#3a4a6a", lineHeight: 1.1 }}>{opp.s}</span>}
+                                <span><span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{oppSeed}</span>{opp ? opp.t : "—"}</span>
                               </td>
                               <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontSize: 9, whiteSpace: "nowrap" }}>{(() => {
                                 if (!game) return "—";
