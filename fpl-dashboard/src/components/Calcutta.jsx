@@ -2565,58 +2565,180 @@ function Live2026() {
       })()}
 
       {/* ── SYNDICATES VIEW ── */}
-      {liveView === "syndicates" && (
-        <div>
-          {/* Syndicate summary cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10, marginBottom: 16 }}>
-            {SYNDICATES_2026.sort((a, b) => b.spent - a.spent).map(syn => {
-              const sd = synData[syn.name];
-              const synColor = SYNDICATE_COLORS[syn.name] || "#5a6a8a";
-              return (
-                <div key={syn.name} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 4, height: 20, borderRadius: 2, background: synColor }} />
-                      <span style={{ fontSize: 14, fontWeight: 700, color: synColor }}>{syn.name}</span>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#e8e6e3" }}>${syn.spent.toLocaleString()}</div>
-                      <div style={{ fontSize: 9, color: "#5a6a8a" }}>{sd.totalTeams} teams · {sd.alive} alive</div>
-                    </div>
-                  </div>
-                  {/* Tier bar */}
-                  <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 8, background: "#1a2235" }}>
-                    {Object.entries(sd.tiers).map(([tier, amt]) => (
-                      <div key={tier} style={{ width: `${(amt / syn.spent) * 100}%`, background: tierColors[tier], transition: "width 0.3s" }} />
-                    ))}
-                  </div>
-                  {/* Team list */}
-                  <div style={{ fontSize: 10 }}>
-                    {sd.teams.sort((a, b) => b.p - a.p).map(t => {
-                      const val = getTeamValue({ r: t.sd.split("-")[0], s: t.seed });
-                      return (
-                        <div key={t.sd} style={{
-                          display: "flex", justifyContent: "space-between", padding: "2px 0",
-                          borderBottom: "1px solid #0d1321", opacity: t.alive ? 1 : 0.4,
-                        }}>
-                          <span style={{ color: "#8a9aba" }}>
-                            <span style={{ color: "#5a6a8a", fontSize: 9 }}>{t.seed}</span> {t.t}
-                            {t.spread ? <span style={{ color: "#3a4a6a", fontSize: 8 }}> +{t.spread}</span> : null}
-                          </span>
-                          <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                            <span style={{ color: "#e8e6e3", fontWeight: 600 }}>${t.p}</span>
-                            <span style={{ fontSize: 8, color: val.color, fontWeight: 600 }}>EV ${val.fairValue}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+      {liveView === "syndicates" && (() => {
+        const histNameMap = { Stangs: "Mustangs" };
+        const histSyns = { 2022: SYNDICATES_2022, 2023: SYNDICATES_2023, 2024: SYNDICATES_2024, 2025: SYNDICATES_2025 };
+        const getHistorical = (name) => {
+          const hName = histNameMap[name] || name;
+          let totalSpent = 0, totalWon = 0, totalNet = 0, seasons = 0, wins = 0;
+          [2022, 2023, 2024, 2025].forEach(y => {
+            const found = histSyns[y].find(s => s.name === hName);
+            if (found) { totalSpent += found.spent; totalWon += found.totalWon; totalNet += found.net; seasons++; if (found.net > 0) wins++; }
+          });
+          return { totalSpent, totalWon, totalNet, seasons, wins, roi: totalSpent > 0 ? totalNet / totalSpent : 0 };
+        };
+
+        const synProfiles = {
+          Bacon: { strat: "Balanced Powerhouse", vibe: "Boom-or-bust king. Won it all in '23 (+$5.3K) then cratered in '24 (-$3.3K). Duke + Tennessee + Louisville is a nasty combo — three teams the models love. Texas and Iowa are cheap lottery tickets that could pop. If Duke goes deep, Bacon eats." },
+          Hogan: { strat: "All-In Anchor", vibe: "The namesake syndicate finally broke even in '25 after three losing years. Swinging for the fences with Michigan ($3K) — the #1 KenPom team. Loaded in the West with Gonzaga/Arkansas/Miami. 10 teams = volume play, but Michigan is the whole meal." },
+          Hudachek: { strat: "The Whale", vibe: "95% of his bankroll on two teams. Arizona ($3.2K) + UConn ($1.65K) = championship-or-bust. Won big in '24 with this same strategy. Only 3 teams total — fewest in the field. Saint Mary's is a $240 afterthought. If both 1/2 seeds flame out in the S16... pain." },
+          Tomek: { strat: "Moneyball Volume", vibe: "15 teams — most in the field by a mile. Owns ALL four 16-seed packages, two 15-seeds, and a spread of mid-tier value. Purdue ($2K) is the anchor, Vanderbilt ($1K) is the sleeper. Casting the widest net in the pool. ATS plays on 15s/16s are smart upside." },
+          Curran: { strat: "The GOAT Portfolio", vibe: "Best career record in Hogan history (+$6.8K, 3 winning years out of 4). Florida ($2.7K) gives him a legit title contender. UCLA, Wisconsin, and Kentucky are all models-love value plays. Ohio State and Missouri round out a beautifully diversified book." },
+          Stangs: { strat: "Mid-Tier Assassin", vibe: "No flashy 1-seed, but STACKED at the 3-5 range where the models say value lives. Illinois + Kansas + St. John's is the best mid-tier core in the auction. If any of those three makes an Elite 8 run, it's cash city. Saint Louis at $140 is the swing play." },
+          Crumbling: { strat: "Mr. Consistent", vibe: "The ONLY syndicate with 4 straight winning years. Quietly printing money while everyone chases 1-seeds. Michigan State ($1.55K) anchors a portfolio of pure 3-6 seed picks. Zero 1-seeds, zero 2-seeds — and somehow always wins. UNC at $320 is a sneaky value if Wilson comes back." },
+          Smith: { strat: "Houston or Bust", vibe: "81% of the bankroll on Houston ($2.2K). All-in on Kelvin Sampson's squad making a deep run. If Houston hits the Final Four, Smith cashes a monster check. TCU, Georgia, and Santa Clara are cheap filler to pray on. Career record is rough (-$6.3K) — needs Houston badly." },
+          Coach: { strat: "Iowa State Believer", vibe: "76% of spend on Iowa State ($2.05K) — the Big 12 tourney champ. Nebraska ($520) is a solid 4-seed value play. Smart ATS move scooping both Furman (+20.5) and Queens (+25.5) as 15-seeds. If Iowa State makes a run and a 15-seed covers, Coach eats cheap." },
+        };
+
+        const synCards = SYNDICATES_2026.map(syn => {
+          const sd = synData[syn.name];
+          const teamEVs = sd.teams.map(t => {
+            const val = getTeamValue({ r: t.sd.split("-")[0], s: t.seed });
+            const ratio = t.p > 0 ? val.fairValue / t.p : 0;
+            return { ...t, ev: val.fairValue, ratio, label: val.label, color: val.color, roundEV: val.roundEV };
+          });
+          const totalEV = teamEVs.reduce((a, t) => a + t.ev, 0);
+          const portfolioRatio = totalEV / syn.spent;
+          const bestValueTeam = teamEVs.reduce((best, t) => t.ratio > best.ratio ? t : best, teamEVs[0]);
+          const topTeam = teamEVs.reduce((best, t) => t.p > best.p ? t : best, teamEVs[0]);
+          const concentration = topTeam.p / syn.spent;
+          const regionsHit = [...new Set(sd.teams.map(t => t.sd.split("-")[0]))];
+          const buys = teamEVs.filter(t => t.label === "BUY").length;
+          const fairs = teamEVs.filter(t => t.label === "FAIR").length;
+          const avoids = teamEVs.filter(t => t.label === "AVOID").length;
+          const hist = getHistorical(syn.name);
+          const profile = synProfiles[syn.name] || { strat: "Unknown", vibe: "" };
+          const champEquity = sd.teams.reduce((sum, t) => {
+            const key = `${t.sd.split("-")[0]}-${t.seed}`;
+            const tr = TORIK_ROUNDS[key] || [0,0,0,0,0,0];
+            const em = EM_ROUNDS[key] || [0,0,0,0,0,0];
+            return sum + ((tr[5] + em[5]) / 2);
+          }, 0);
+          return { ...syn, sd, teamEVs, totalEV, portfolioRatio, bestValueTeam, topTeam, concentration, regionsHit, buys, fairs, avoids, hist, profile, champEquity };
+        }).sort((a, b) => b.portfolioRatio - a.portfolioRatio);
+
+        const bestPortfolio = synCards[0];
+        const biggestSpender = synCards.reduce((a, b) => b.spent > a.spent ? b : a);
+        const mostTeams = synCards.reduce((a, b) => b.sd.totalTeams > a.sd.totalTeams ? b : a);
+        const mostConcentrated = synCards.reduce((a, b) => b.concentration > a.concentration ? b : a);
+        const bestChampEquity = synCards.reduce((a, b) => b.champEquity > a.champEquity ? b : a);
+
+        return (
+          <div>
+            {/* League-wide superlatives */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", justifyContent: "center" }}>
+              {[
+                { icon: "🏆", label: "Best Portfolio", value: bestPortfolio.name, sub: `${bestPortfolio.portfolioRatio.toFixed(2)}x EV/cost`, color: SYNDICATE_COLORS[bestPortfolio.name] },
+                { icon: "💰", label: "Biggest Spender", value: biggestSpender.name, sub: `$${biggestSpender.spent.toLocaleString()}`, color: SYNDICATE_COLORS[biggestSpender.name] },
+                { icon: "🎰", label: "Most Teams", value: mostTeams.name, sub: `${mostTeams.sd.totalTeams} teams`, color: SYNDICATE_COLORS[mostTeams.name] },
+                { icon: "🎯", label: "Most Concentrated", value: mostConcentrated.name, sub: `${Math.round(mostConcentrated.concentration * 100)}% on ${mostConcentrated.topTeam.t}`, color: SYNDICATE_COLORS[mostConcentrated.name] },
+                { icon: "👑", label: "Best Title Odds", value: bestChampEquity.name, sub: `${(bestChampEquity.champEquity * 100).toFixed(1)}% champ equity`, color: SYNDICATE_COLORS[bestChampEquity.name] },
+              ].map(s => (
+                <div key={s.label} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 6, padding: "6px 12px", textAlign: "center", minWidth: 110 }}>
+                  <div style={{ fontSize: 14, marginBottom: 2 }}>{s.icon}</div>
+                  <div style={{ fontSize: 7, color: "#5a6a8a", letterSpacing: 0.5, marginBottom: 2 }}>{s.label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: s.color }}>{s.value}</div>
+                  <div style={{ fontSize: 8, color: "#5a6a8a" }}>{s.sub}</div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+
+            {/* Syndicate cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12 }}>
+              {synCards.map(syn => {
+                const synColor = SYNDICATE_COLORS[syn.name] || "#5a6a8a";
+                const ratioColor = syn.portfolioRatio >= 1.1 ? "#2ecc71" : syn.portfolioRatio >= 0.85 ? "#e9c46a" : "#e63946";
+                return (
+                  <div key={syn.name} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 14 }}>
+                    {/* Header */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                          <div style={{ width: 4, height: 22, borderRadius: 2, background: synColor }} />
+                          <span style={{ fontSize: 16, fontWeight: 700, color: synColor }}>{syn.name}</span>
+                          <span style={{ fontSize: 8, padding: "2px 6px", borderRadius: 3, background: "#111827", color: "#7a8aaa", fontWeight: 600, letterSpacing: 0.5 }}>{syn.profile.strat}</span>
+                        </div>
+                        <div style={{ fontSize: 9, color: "#5a6a8a", marginLeft: 12 }}>
+                          {syn.sd.totalTeams} teams · {syn.regionsHit.length} regions · {syn.buys} BUY · {syn.fairs} FAIR · {syn.avoids} AVOID
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: "#e8e6e3", fontFamily: "'Space Grotesk', sans-serif" }}>${syn.spent.toLocaleString()}</div>
+                        <div style={{ display: "flex", gap: 4, alignItems: "baseline", justifyContent: "flex-end" }}>
+                          <span style={{ fontSize: 10, color: ratioColor, fontWeight: 700 }}>EV ${syn.totalEV.toLocaleString()}</span>
+                          <span style={{ fontSize: 8, fontWeight: 700, padding: "1px 4px", borderRadius: 3, background: ratioColor + "22", color: ratioColor }}>{syn.portfolioRatio.toFixed(2)}x</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tier bar */}
+                    <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 8, background: "#1a2235" }}>
+                      {Object.entries(syn.sd.tiers).map(([tier, amt]) => (
+                        <div key={tier} style={{ width: `${(amt / syn.spent) * 100}%`, background: tierColors[tier], transition: "width 0.3s" }} />
+                      ))}
+                    </div>
+
+                    {/* Quick stats strip */}
+                    <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+                      {[
+                        { label: "Champ Equity", value: `${(syn.champEquity * 100).toFixed(1)}%`, color: syn.champEquity > 0.15 ? "#2ecc71" : syn.champEquity > 0.05 ? "#e9c46a" : "#5a6a8a" },
+                        { label: "Concentration", value: `${Math.round(syn.concentration * 100)}%`, color: syn.concentration > 0.6 ? "#e63946" : syn.concentration > 0.4 ? "#e9c46a" : "#2ecc71" },
+                        { label: "Best Value", value: `${syn.bestValueTeam.t.split(" ")[0]} ${syn.bestValueTeam.ratio.toFixed(1)}x`, color: syn.bestValueTeam.ratio >= 1.2 ? "#2ecc71" : "#e9c46a" },
+                        { label: `Career (${syn.hist.seasons}yr)`, value: syn.hist.seasons > 0 ? `${syn.hist.totalNet >= 0 ? "+" : ""}$${syn.hist.totalNet.toLocaleString()}` : "Rookie", color: syn.hist.totalNet >= 0 ? "#2ecc71" : "#e63946" },
+                      ].map(stat => (
+                        <div key={stat.label} style={{ flex: "1 1 70px", background: "#0a0e17", borderRadius: 4, padding: "4px 6px", textAlign: "center" }}>
+                          <div style={{ fontSize: 7, color: "#3a4a6a", letterSpacing: 0.3 }}>{stat.label}</div>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: stat.color, fontFamily: "'Space Grotesk', sans-serif" }}>{stat.value}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Team list */}
+                    <div style={{ fontSize: 10, marginBottom: 8 }}>
+                      {syn.teamEVs.sort((a, b) => b.p - a.p).map(t => {
+                        const isTop = t.p === syn.topTeam.p;
+                        return (
+                          <div key={t.sd} style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                            padding: "3px 0", borderBottom: "1px solid #0d1321",
+                            opacity: t.alive ? 1 : 0.35,
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0 }}>
+                              <span style={{ color: t.seed <= 2 ? "#4a9eff" : t.seed <= 4 ? "#7c5cfc" : "#5a6a8a", fontSize: 9, fontWeight: 700, width: 14, textAlign: "right", flexShrink: 0 }}>{t.seed}</span>
+                              <span style={{ color: isTop ? "#e8e6e3" : "#8a9aba", fontWeight: isTop ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {t.t}
+                              </span>
+                              {t.spread ? <span style={{ color: "#3a4a6a", fontSize: 7, flexShrink: 0 }}>+{t.spread}</span> : null}
+                            </div>
+                            <div style={{ display: "flex", gap: 6, alignItems: "baseline", flexShrink: 0 }}>
+                              <span style={{ color: "#e8e6e3", fontWeight: 600, fontSize: 10 }}>${t.p.toLocaleString()}</span>
+                              <span style={{ fontSize: 8, color: t.color, fontWeight: 600 }}>EV ${t.ev.toLocaleString()}</span>
+                              <span style={{ fontSize: 7, fontWeight: 700, padding: "1px 3px", borderRadius: 2, background: t.color + "22", color: t.color }}>{t.ratio.toFixed(1)}x</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Vibe blurb */}
+                    <div style={{ background: "#0a0e17", borderRadius: 6, padding: "8px 10px", borderLeft: `2px solid ${synColor}44` }}>
+                      <div style={{ fontSize: 9, color: "#8a9aba", lineHeight: 1.5 }}>{syn.profile.vibe}</div>
+                    </div>
+
+                    {/* Historical record footer */}
+                    {syn.hist.seasons > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, fontSize: 8, color: "#4a5a7a" }}>
+                        <span>Career: {syn.hist.wins}W-{syn.hist.seasons - syn.hist.wins}L ({syn.hist.seasons} seasons)</span>
+                        <span style={{ color: syn.hist.roi >= 0 ? "#2ecc71" : "#e63946", fontWeight: 600 }}>{(syn.hist.roi * 100).toFixed(0)}% career ROI</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── ALL TEAMS VIEW ── */}
       {liveView === "teams" && (
