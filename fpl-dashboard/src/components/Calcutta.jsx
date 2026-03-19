@@ -2362,6 +2362,8 @@ function Live2026() {
   const [expandedSyn, setExpandedSyn] = useState(null);
   const [teamSort, setTeamSort] = useState({ key: "seed", dir: "asc" });
   const [popupSyn, setPopupSyn] = useState(null);
+  const [espnGames, setEspnGames] = useState([]);
+  const [lastFetch, setLastFetch] = useState(null);
   const regions = ["S", "MW", "W", "E"];
   const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
   const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
@@ -2371,10 +2373,87 @@ function Live2026() {
   const payoutCum = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14];
   const payoutIncr = payoutCum.map((v, i) => i === 0 ? v : v - payoutCum[i - 1]);
 
+  // Poll ESPN scores
+  useEffect(() => {
+    let active = true;
+    const fetchScores = async () => {
+      try {
+        const resp = await fetch("/api/scores");
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (active && data.games) {
+          setEspnGames(data.games);
+          setLastFetch(data.fetched || new Date().toISOString());
+        }
+      } catch (_) {}
+    };
+    fetchScores();
+    const interval = setInterval(fetchScores, 30000);
+    return () => { active = false; clearInterval(interval); };
+  }, []);
+
+  // Merge ESPN data with TEAMS_2026
+  const liveTeams = useMemo(() => {
+    if (!espnGames.length) return TEAMS_2026;
+
+    const isATSSeed = s => s <= 2 || s >= 15;
+
+    const gamesByKey = {};
+    espnGames.forEach(g => {
+      if (!g.region || !g.homeSeed || !g.awaySeed) return;
+      const seeds = [g.homeSeed, g.awaySeed].sort((a, b) => a - b);
+      const key = `${g.region}-${seeds[0]}v${seeds[1]}-r${g.round}`;
+      gamesByKey[key] = g;
+    });
+
+    return TEAMS_2026.map(team => {
+      const rgn = team.sd.split("-")[0];
+      const oppSeed = { 1:16,16:1,2:15,15:2,3:14,14:3,4:13,13:4,5:12,12:5,6:11,11:6,7:10,10:7,8:9,9:8 }[team.seed];
+      if (oppSeed == null) return team;
+
+      const seeds = [team.seed, oppSeed].sort((a, b) => a - b);
+      const r64Key = `${rgn}-${seeds[0]}v${seeds[1]}-r1`;
+      const game = gamesByKey[r64Key];
+
+      if (!game) return team;
+
+      const isHome = game.homeSeed === team.seed;
+      const teamScore = isHome ? game.homeScore : game.awayScore;
+      const oppScore = isHome ? game.awayScore : game.homeScore;
+      const teamWon = isHome ? game.homeWinner : game.awayWinner;
+
+      const updates = {
+        liveScore: teamScore,
+        oppLiveScore: oppScore,
+        gameStatus: game.status,
+        gameClock: game.clock,
+        gamePeriod: game.period,
+        gameDetail: game.detail,
+      };
+
+      if (game.status === "post") {
+        const margin = teamScore - oppScore;
+
+        if (teamWon) {
+          updates.w = Math.max(team.w, 1);
+          updates.alive = true;
+        } else {
+          updates.alive = false;
+        }
+
+        if (isATSSeed(team.seed) && team.spread) {
+          updates.ats = Math.abs(margin) < team.spread;
+        }
+      }
+
+      return { ...team, ...updates };
+    });
+  }, [espnGames]);
+
   const synData = useMemo(() => {
     const agg = {};
     SYNDICATES_2026.forEach(syn => {
-      const teams = TEAMS_2026.filter(t => t.s === syn.name);
+      const teams = liveTeams.filter(t => t.s === syn.name);
       const tiers = { "1-2": 0, "3-4": 0, "5-8": 0, "9-12": 0, "13-16": 0 };
       teams.forEach(t => {
         if (t.seed <= 2) tiers["1-2"] += t.p;
@@ -2387,7 +2466,7 @@ function Live2026() {
       agg[syn.name] = { ...syn, teams, tiers, alive, totalTeams: teams.length };
     });
     return agg;
-  }, []);
+  }, [liveTeams]);
 
   const tierColors = { "1-2": "#e63946", "3-4": "#f4a261", "5-8": "#2a9d8f", "9-12": "#457b9d", "13-16": "#6a4c93" };
   const cardBg = "#0f1829";
@@ -2413,6 +2492,13 @@ function Live2026() {
           }}>{v.label}</button>
         ))}
       </div>
+
+      {lastFetch && espnGames.some(g => g.status === "in") && (
+        <div style={{ textAlign: "center", marginBottom: 8, fontSize: 8, color: "#2a3a5a" }}>
+          <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: "#22c55e", marginRight: 4, verticalAlign: "middle" }} />
+          Live · updates every 30s
+        </div>
+      )}
 
       {/* ── LEADERBOARD VIEW ── */}
       {liveView === "leaderboard" && (() => {
@@ -2570,7 +2656,7 @@ function Live2026() {
         const TOTAL_H = 500;
         const isMobile = typeof window !== "undefined" && window.innerWidth < 820;
 
-        const BSlot = ({ team, border, rtl }) => {
+        const BSlot = ({ team, border, rtl, showScore }) => {
           if (!team) return (
             <div style={{ height: SLOT_H, display: "flex", alignItems: "center", padding: "0 6px", background: "#0a0e15", borderBottom: border ? "1px solid #151d2e" : "none", fontSize: 9, color: "#1e2a40" }}>—</div>
           );
@@ -2585,8 +2671,14 @@ function Live2026() {
             }}>
               <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: "center", flexShrink: 0, color: "#5a6a8a" }}>{team.seed}</span>
               <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: rtl ? "right" : "left" }}>{team.t}</span>
-              <span onClick={e => { e.stopPropagation(); setPopupSyn(team.s); }} style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2, cursor: "pointer" }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
-              <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 500, color: "#5a6a8a" }}>${team.p.toLocaleString()}</span>
+              {showScore && team.liveScore != null ? (
+                <span style={{ fontSize: 9, flexShrink: 0, fontWeight: 700, color: team.gameStatus === "post" && !team.alive ? "#e63946" : "#e8e6e3", minWidth: 18, textAlign: "center" }}>{team.liveScore}</span>
+              ) : (
+                <>
+                  <span onClick={e => { e.stopPropagation(); setPopupSyn(team.s); }} style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2, cursor: "pointer" }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
+                  <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 500, color: "#5a6a8a" }}>${team.p.toLocaleString()}</span>
+                </>
+              )}
             </div>
           );
         };
@@ -2611,21 +2703,28 @@ function Live2026() {
           const gameKey = seeds.length === 2 ? `${region}-${seeds[0]}v${seeds[1]}` : "";
           const game = R64_GAMES[gameKey];
           const isToday = game && game.time.startsWith(todayAbbr);
-          const isLive = game && isGameLive(game.time);
+          const espnStatus = top?.gameStatus || bot?.gameStatus;
+          const isLive = espnStatus === "in";
+          const isFinal = espnStatus === "post";
+          const hasEspn = isLive || isFinal;
           return (
             <div>
               {game && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4px 1px", fontSize: 6.5, color: isToday ? "#e8e6e3" : "#3a4a6a", fontWeight: isToday ? 600 : 400 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4px 1px", fontSize: 6.5, color: isLive ? "#22c55e" : isFinal ? "#8a9aba" : isToday ? "#e8e6e3" : "#3a4a6a", fontWeight: isLive || isToday ? 600 : 400 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
                     {isLive && <span className="live-dot" style={{ width: 4, height: 4, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />}
-                    {isToday ? "TODAY " + game.time.split(" ")[1] : game.time}
+                    {isLive ? (top?.gameDetail || "LIVE") : isFinal ? "FINAL" : isToday ? "TODAY " + game.time.split(" ")[1] : game.time}
                   </span>
-                  <span>{game.spread}</span>
+                  {hasEspn ? (
+                    <span>{(top?.liveScore ?? "")}-{(bot?.liveScore ?? "")}</span>
+                  ) : (
+                    <span>{game.spread}</span>
+                  )}
                 </div>
               )}
-              <div style={{ border: `1px solid ${isToday ? "#4a9eff44" : "#1e2a40"}`, borderRadius: 3, overflow: "hidden", boxShadow: isToday ? "0 0 8px rgba(74,158,255,0.15)" : "none" }}>
-                <BSlot team={top} border rtl={rtl} />
-                <BSlot team={bot} rtl={rtl} />
+              <div style={{ border: `1px solid ${isLive ? "#22c55e44" : isToday ? "#4a9eff44" : "#1e2a40"}`, borderRadius: 3, overflow: "hidden", boxShadow: isLive ? "0 0 8px rgba(34,197,94,0.2)" : isToday ? "0 0 8px rgba(74,158,255,0.15)" : "none" }}>
+                <BSlot team={top} border rtl={rtl} showScore={hasEspn} />
+                <BSlot team={bot} rtl={rtl} showScore={hasEspn} />
               </div>
             </div>
           );
@@ -2660,7 +2759,7 @@ function Live2026() {
           const edgeTimer = useRef(null);
           const autoScrolling = useRef(false);
           const tm = {};
-          TEAMS_2026.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
+          liveTeams.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
           const neighbor = hNeighbor[region];
           const vNbr = vNeighbor[region];
@@ -2799,7 +2898,7 @@ function Live2026() {
         const rtlRegions = new Set(["W", "MW"]);
         const seedPairs = {1:16,16:1,2:15,15:2,3:14,14:3,4:13,13:4,5:12,12:5,6:11,11:6,7:10,10:7,8:9,9:8};
         const teamsBySD = {};
-        TEAMS_2026.forEach(t => { teamsBySD[t.sd] = t; });
+        liveTeams.forEach(t => { teamsBySD[t.sd] = t; });
 
         return (
           <div>
@@ -2839,7 +2938,7 @@ function Live2026() {
                 const hr24 = isPM && h !== 12 ? h + 12 : (!isPM && h === 12 ? 0 : h);
                 return (dayOrd[day] || 0) * 1440 + hr24 * 60 + m;
               };
-              const synTeams = TEAMS_2026.filter(t => t.s === popupSyn).sort((a, b) => {
+              const synTeams = liveTeams.filter(t => t.s === popupSyn).sort((a, b) => {
                 const rgnA = a.sd.split("-")[0], rgnB = b.sd.split("-")[0];
                 const sA = [a.seed, seedPairs[a.seed]].sort((x, y) => x - y);
                 const sB = [b.seed, seedPairs[b.seed]].sort((x, y) => x - y);
@@ -3003,7 +3102,7 @@ function Live2026() {
               const rl = ["R32","S16","E8","F4","F2","Ch"];
               const seedPairs = {1:16,16:1,2:15,15:2,3:14,14:3,4:13,13:4,5:12,12:5,6:11,11:6,7:10,10:7,8:9,9:8};
               const teamsBySD = {};
-              TEAMS_2026.forEach(t => { teamsBySD[t.sd] = t; });
+              liveTeams.forEach(t => { teamsBySD[t.sd] = t; });
               const r32Pay = cumPayouts[0];
               const thS = { padding: "4px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 9, borderBottom: "1px solid #1e2a40" };
               const thL = { ...thS, textAlign: "left" };
@@ -3171,7 +3270,7 @@ function Live2026() {
         };
         const arrow = (key) => teamSort.key === key ? (teamSort.dir === "desc" ? " ▼" : " ▲") : "";
 
-        const enriched = TEAMS_2026.map(t => {
+        const enriched = liveTeams.map(t => {
           const region = t.sd.split("-")[0];
           const val = getTeamValueLive2026({ r: region, s: t.seed }, t.p);
           return { ...t, region, ev: val.fairValue, ratio: val.fairValue / t.p, label: val.label, color: val.color };
