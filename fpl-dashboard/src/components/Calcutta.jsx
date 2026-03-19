@@ -2413,28 +2413,6 @@ function Live2026() {
   }, [liveView]);
 
   const rtlTimerRef = useRef(null);
-  useEffect(() => {
-    if (typeof window === "undefined" || window.innerWidth >= 820) return;
-    const hEl = hScrollRef.current;
-    if (!hEl) return;
-    const snapRTL = () => {
-      if (!vScrollRefRight.current) return;
-      vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => { el.scrollLeft = el.scrollWidth; });
-    };
-    const onScroll = () => {
-      if (rtlTimerRef.current) clearTimeout(rtlTimerRef.current);
-      rtlTimerRef.current = setTimeout(() => {
-        const isRight = (hEl.scrollLeft + hEl.clientWidth / 2) > hEl.clientWidth;
-        if (isRight) {
-          snapRTL();
-          requestAnimationFrame(snapRTL);
-        }
-      }, 120);
-    };
-    hEl.addEventListener("scroll", onScroll, { passive: true });
-    snapRTL();
-    return () => { hEl.removeEventListener("scroll", onScroll); if (rtlTimerRef.current) clearTimeout(rtlTimerRef.current); };
-  }, [liveView, bracketMobileRegion]);
 
   const pot = POT_2026;
   const payoutLabels = ["R32", "S16", "E8", "F4", "F2", "Ch"];
@@ -2834,8 +2812,8 @@ function Live2026() {
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
 
           useEffect(() => {
-            if (bracketScrollRef.current) {
-              bracketScrollRef.current.scrollLeft = rtl ? bracketScrollRef.current.scrollWidth : 0;
+            if (bracketScrollRef.current && !rtl) {
+              bracketScrollRef.current.scrollLeft = 0;
             }
           }, [region, rtl]);
 
@@ -2927,8 +2905,10 @@ function Live2026() {
                   overscrollBehavior: "contain",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
                   paddingBottom: 4, paddingTop: 2,
+                  direction: rtl ? "rtl" : "ltr",
                 }}
               >
+               <div style={{ direction: "ltr" }}>
                 <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
                   {colWidths.map((w, i) => (
                     <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
@@ -2944,6 +2924,7 @@ function Live2026() {
                 <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
                   {bracketContent}
                 </div>
+               </div>
               </div>
             </div>
           );
