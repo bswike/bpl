@@ -2991,12 +2991,14 @@ function Live2026() {
                                 return t.seed < oppSeed ? `-${pts}` : `+${pts}`;
                               })()}</td>
                               <td style={{ padding: "5px 4px", textAlign: "center", fontSize: 9, whiteSpace: "nowrap" }}>{(() => {
-                                if (t.gameStatus === "in") return (
-                                  <span style={{ color: "#22c55e", fontWeight: 700 }}>
-                                    <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: "#22c55e", marginRight: 3, verticalAlign: "middle" }} />
+                                if (t.gameStatus === "in") {
+                                  const liveColor = t.liveScore > t.oppLiveScore ? "#22c55e" : t.liveScore < t.oppLiveScore ? "#e63946" : "#e8e6e3";
+                                  return (
+                                  <span style={{ color: liveColor, fontWeight: 700 }}>
+                                    <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: liveColor, marginRight: 3, verticalAlign: "middle" }} />
                                     {t.liveScore}-{t.oppLiveScore}
                                   </span>
-                                );
+                                );}
                                 if (t.gameStatus === "post") return (
                                   <span style={{ color: t.alive || (t.ats === true) ? "#e8e6e3" : "#e63946", fontWeight: 600 }}>
                                     {t.liveScore}-{t.oppLiveScore}
