@@ -628,11 +628,11 @@ function getTeamValue(team) {
 }
 
 
-const MAIN_TABS = ["2026 Live", "2026 Prep", "Teams", "Seed ROI"];
-const EXTRA_TABS = ["Leaderboard", "Strategy", "Spending"];
+const HIST_TABS = ["2026 Prep", "Teams", "Seed ROI", "Leaderboard", "Strategy", "Spending"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("2026 Live");
+  const [histTab, setHistTab] = useState("2026 Prep");
   const [selectedYear, setSelectedYear] = useState("All");
 
   return (
@@ -674,20 +674,19 @@ export default function App() {
         }}>2022 — 2023 — 2024 — 2025 — 2026</div>
       </div>
 
-      {/* Main tabs */}
+      {/* Top-level tabs */}
       <div style={{
         display: "flex",
         justifyContent: "center",
         gap: 6,
-        marginBottom: 10,
-        flexWrap: "wrap",
+        marginBottom: 20,
       }}>
-        {MAIN_TABS.map(tab => (
+        {["2026 Live", "Historical"].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             style={{
-              padding: "10px 22px",
+              padding: "10px 28px",
               background: activeTab === tab
                 ? "linear-gradient(135deg, #4a9eff22, #7c5cfc22)"
                 : "transparent",
@@ -695,7 +694,7 @@ export default function App() {
               borderRadius: 6,
               color: activeTab === tab ? "#4a9eff" : "#8a9aba",
               fontFamily: "inherit",
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: activeTab === tab ? 700 : 500,
               cursor: "pointer",
               letterSpacing: 1,
@@ -705,69 +704,77 @@ export default function App() {
         ))}
       </div>
 
-      {/* Secondary tabs — smaller, muted */}
-      <div style={{
-        display: "flex",
-        justifyContent: "center",
-        gap: 12,
-        marginBottom: 20,
-      }}>
-        {EXTRA_TABS.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              padding: "4px 10px",
-              background: "transparent",
-              border: "none",
-              borderBottom: activeTab === tab ? "1px solid #4a9eff" : "1px solid transparent",
-              color: activeTab === tab ? "#4a9eff" : "#3a4a6a",
-              fontFamily: "inherit",
-              fontSize: 10,
-              fontWeight: activeTab === tab ? 600 : 400,
-              cursor: "pointer",
-              letterSpacing: 1,
-              transition: "all 0.2s",
-            }}
-          >{tab}</button>
-        ))}
-      </div>
-
-      {/* Year filter - only show for historical tabs */}
-      {activeTab !== "2026 Live" && activeTab !== "2026 Prep" && activeTab !== "Spending" && (
-      <div style={{
-        display: "flex",
-        justifyContent: "center",
-        gap: 4,
-        marginBottom: 24,
-      }}>
-        {["All", "2022", "2023", "2024", "2025"].map(y => (
-          <button
-            key={y}
-            onClick={() => setSelectedYear(y)}
-            style={{
-              padding: "5px 14px",
-              background: selectedYear === y ? "#4a9eff" : "transparent",
-              border: `1px solid ${selectedYear === y ? "#4a9eff" : "#1e2a40"}`,
-              borderRadius: 4,
-              color: selectedYear === y ? "#0a0e17" : "#5a6a8a",
-              fontFamily: "inherit",
-              fontSize: 11,
-              fontWeight: selectedYear === y ? 700 : 400,
-              cursor: "pointer",
-            }}
-          >{y}</button>
-        ))}
-      </div>
-      )}
-
       {activeTab === "2026 Live" && <Live2026 />}
-      {activeTab === "2026 Prep" && <AuctionPrep />}
-      {activeTab === "Leaderboard" && <Leaderboard year={selectedYear} />}
-      {activeTab === "Seed ROI" && <SeedROI year={selectedYear} />}
-      {activeTab === "Strategy" && <Strategy year={selectedYear} />}
-      {activeTab === "Teams" && <TeamExplorer year={selectedYear} />}
-      {activeTab === "Spending" && <SpendingAnalysis />}
+
+      {activeTab === "Historical" && (
+        <div>
+          {/* Historical sub-tabs */}
+          <div style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 4,
+            marginBottom: 12,
+            flexWrap: "wrap",
+          }}>
+            {HIST_TABS.map(tab => (
+              <button
+                key={tab}
+                onClick={() => setHistTab(tab)}
+                style={{
+                  padding: "7px 16px",
+                  background: histTab === tab
+                    ? "linear-gradient(135deg, #4a9eff15, #7c5cfc15)"
+                    : "transparent",
+                  border: `1px solid ${histTab === tab ? "#4a9eff88" : "#1e2a40"}`,
+                  borderRadius: 5,
+                  color: histTab === tab ? "#4a9eff" : "#5a6a8a",
+                  fontFamily: "inherit",
+                  fontSize: 11,
+                  fontWeight: histTab === tab ? 700 : 400,
+                  cursor: "pointer",
+                  letterSpacing: 0.5,
+                  transition: "all 0.2s",
+                }}
+              >{tab}</button>
+            ))}
+          </div>
+
+          {/* Year filter — hide for Prep and Spending */}
+          {histTab !== "2026 Prep" && histTab !== "Spending" && (
+            <div style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 4,
+              marginBottom: 24,
+            }}>
+              {["All", "2022", "2023", "2024", "2025"].map(y => (
+                <button
+                  key={y}
+                  onClick={() => setSelectedYear(y)}
+                  style={{
+                    padding: "5px 14px",
+                    background: selectedYear === y ? "#4a9eff" : "transparent",
+                    border: `1px solid ${selectedYear === y ? "#4a9eff" : "#1e2a40"}`,
+                    borderRadius: 4,
+                    color: selectedYear === y ? "#0a0e17" : "#5a6a8a",
+                    fontFamily: "inherit",
+                    fontSize: 11,
+                    fontWeight: selectedYear === y ? 700 : 400,
+                    cursor: "pointer",
+                  }}
+                >{y}</button>
+              ))}
+            </div>
+          )}
+
+          {histTab === "2026 Prep" && <AuctionPrep />}
+          {histTab === "Leaderboard" && <Leaderboard year={selectedYear} />}
+          {histTab === "Seed ROI" && <SeedROI year={selectedYear} />}
+          {histTab === "Strategy" && <Strategy year={selectedYear} />}
+          {histTab === "Teams" && <TeamExplorer year={selectedYear} />}
+          {histTab === "Spending" && <SpendingAnalysis />}
+        </div>
+      )}
     </div>
   );
 }
