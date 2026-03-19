@@ -558,7 +558,7 @@ export default function App() {
           color: "#5a6a8a",
           marginTop: 4,
           letterSpacing: 2,
-        }}>2023 — 2024 — 2025</div>
+        }}>2022 — 2023 — 2024 — 2025</div>
       </div>
 
       {/* Main tabs */}
@@ -785,7 +785,7 @@ function Leaderboard({ year }) {
                   <span style={{ fontSize: 11, fontWeight: 600 }}>{d.name}</span>
                 </div>
                 <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 48 }}>
-                  {[2023, 2024, 2025].map(y => {
+                  {[2022, 2023, 2024, 2025].map(y => {
                     const rec = d.records.find(r => r.year === y);
                     if (!rec) return (
                       <div key={y} style={{ flex: 1, textAlign: "center" }}>
@@ -832,7 +832,7 @@ function Leaderboard({ year }) {
 
 function SeedROI({ year }) {
   const data = useMemo(() => {
-    const years = year === "All" ? [2023, 2024, 2025] : [parseInt(year)];
+    const years = year === "All" ? [2022, 2023, 2024, 2025] : [parseInt(year)];
     const filtered = ALL_TEAMS.filter(t => years.includes(t.year));
 
     const seedMap = {};
@@ -857,7 +857,7 @@ function SeedROI({ year }) {
 
   // Price tier analysis
   const priceData = useMemo(() => {
-    const years = year === "All" ? [2023, 2024, 2025] : [parseInt(year)];
+    const years = year === "All" ? [2022, 2023, 2024, 2025] : [parseInt(year)];
     const filtered = ALL_TEAMS.filter(t => years.includes(t.year));
     const tiers = [
       { label: "Bargain ($0-100)", min: 0, max: 100 },
@@ -1037,7 +1037,7 @@ function Strategy({ year }) {
 
   // Best single picks ever
   const bestPicks = useMemo(() => {
-    const years = year === "All" ? [2023, 2024, 2025] : [parseInt(year)];
+    const years = year === "All" ? [2022, 2023, 2024, 2025] : [parseInt(year)];
     return ALL_TEAMS
       .filter(t => years.includes(t.year))
       .sort((a, b) => b.n - a.n)
@@ -1045,7 +1045,7 @@ function Strategy({ year }) {
   }, [year]);
 
   const worstPicks = useMemo(() => {
-    const years = year === "All" ? [2023, 2024, 2025] : [parseInt(year)];
+    const years = year === "All" ? [2022, 2023, 2024, 2025] : [parseInt(year)];
     return ALL_TEAMS
       .filter(t => years.includes(t.year))
       .sort((a, b) => a.n - b.n)
@@ -1527,7 +1527,7 @@ function TeamExplorer({ year }) {
   };
 
   const teams = useMemo(() => {
-    const years = year === "All" ? [2023, 2024, 2025] : [parseInt(year)];
+    const years = year === "All" ? [2022, 2023, 2024, 2025] : [parseInt(year)];
     let filtered = ALL_TEAMS.filter(t => years.includes(t.year));
     if (filterSyndicate !== "All") filtered = filtered.filter(t => t.s === filterSyndicate);
     const dir = sortDir === "desc" ? 1 : -1;
