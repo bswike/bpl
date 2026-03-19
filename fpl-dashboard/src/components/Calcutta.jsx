@@ -2873,7 +2873,13 @@ function Live2026() {
                               <td style={{ padding: "5px 4px", color: "#8a9aba", whiteSpace: "nowrap" }}>
                                 <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{oppSeed}</span>{opp ? opp.t : "—"}
                               </td>
-                              <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontSize: 9 }}>{game ? game.spread : "—"}</td>
+                              <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontSize: 9, whiteSpace: "nowrap" }}>{(() => {
+                                if (!game) return "—";
+                                const num = game.spread.match(/-?\d+\.?\d*/);
+                                if (!num) return game.spread;
+                                const pts = Math.abs(parseFloat(num[0]));
+                                return t.seed < oppSeed ? `-${pts}` : `+${pts}`;
+                              })()}</td>
                               <td style={{ padding: "5px 4px", textAlign: "right", color: isToday ? "#e8e6e3" : "#5a6a8a", fontWeight: isToday ? 600 : 400, fontSize: 9, whiteSpace: "nowrap" }}>
                                 {isToday && game ? "TODAY " + game.time.split(" ")[1] : game ? game.time : "—"}
                               </td>
