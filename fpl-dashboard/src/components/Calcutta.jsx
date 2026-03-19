@@ -2730,14 +2730,13 @@ function Live2026() {
               background: "#0d1321",
               borderBottom: border ? "1px solid #1e2a40" : "none",
               opacity: team.alive ? 1 : 0.35, gap: 3,
-              flexDirection: rtl ? "row-reverse" : "row",
             }}>
               <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: "center", flexShrink: 0, color: "#5a6a8a" }}>{team.seed}</span>
-              <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: rtl ? "right" : "left", textDecoration: team.alive ? "none" : "line-through" }}>{team.t}</span>
+              <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: "left", textDecoration: team.alive ? "none" : "line-through" }}>{team.t}</span>
               <span onClick={e => { e.stopPropagation(); setPopupSyn(team.s); }} style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2, cursor: "pointer" }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
               <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 500, color: "#5a6a8a" }}>${team.p.toLocaleString()}</span>
               {showScore && team.liveScore != null && (
-                <span style={{ fontSize: 9, flexShrink: 0, fontWeight: 700, color: team.gameStatus === "post" && !team.alive ? "#e63946" : "#e8e6e3", minWidth: 14, textAlign: rtl ? "left" : "right" }}>{team.liveScore}</span>
+                <span style={{ fontSize: 9, flexShrink: 0, fontWeight: 700, color: team.gameStatus === "post" && !team.alive ? "#e63946" : "#e8e6e3", minWidth: 14, textAlign: "right" }}>{team.liveScore}</span>
               )}
             </div>
           );
