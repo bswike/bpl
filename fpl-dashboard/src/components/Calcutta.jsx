@@ -2908,7 +2908,7 @@ function Live2026() {
                   direction: rtl ? "rtl" : "ltr",
                 }}
               >
-               <div style={{ direction: "ltr" }}>
+               <div style={{ direction: "ltr", display: "inline-block" }}>
                 <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
                   {colWidths.map((w, i) => (
                     <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
