@@ -423,10 +423,10 @@ const SYNDICATE_COLORS = {
   Curran: "#e9c46a",
   Hogan: "#f4a261",
   Hudachek: "#6a4c93",
-  Mustangs: "#1d3557",
-  Stangs: "#1d3557",
-  Smith: "#264653",
-  Tomek: "#d62828",
+  Mustangs: "#3a86c8",
+  Stangs: "#3a86c8",
+  Smith: "#50c878",
+  Tomek: "#ff6b35",
 };
 
 const fmt = (n) => {
@@ -2462,7 +2462,9 @@ function Live2026() {
           </div>
         );
 
-        const neighborMap = { E: "W", W: "E", S: "MW", MW: "S" };
+        const hNeighbor = { E: "W", W: "E", S: "MW", MW: "S" };
+        const vNeighbor = { E: "S", S: "E", W: "MW", MW: "W" };
+        const isTop = { E: true, W: true, S: false, MW: false };
 
         const LiveRegionBracket = ({ region, rtl }) => {
           const bracketScrollRef = useRef(null);
@@ -2471,7 +2473,9 @@ function Live2026() {
           const tm = {};
           TEAMS_2026.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
-          const neighbor = neighborMap[region];
+          const neighbor = hNeighbor[region];
+          const vNbr = vNeighbor[region];
+          const regionIsTop = isTop[region];
 
           useEffect(() => {
             if (bracketScrollRef.current) {
@@ -2533,8 +2537,25 @@ function Live2026() {
 
           const totalW = 150 + 100*3 + 16*3;
 
+          const vNav = isMobile && (
+            <div
+              onClick={() => setBracketMobileRegion(vNbr)}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                padding: "8px 0", cursor: "pointer", borderRadius: 6,
+                background: "#0a0e17", border: "1px solid #1e2a40",
+                transition: "background 0.15s",
+              }}
+            >
+              <span style={{ fontSize: 10, color: "#4a5a7a" }}>{regionIsTop ? "▼" : "▲"}</span>
+              <span style={{ fontSize: 10, color: regionColors[vNbr], fontWeight: 600 }}>{regionNames[vNbr]}</span>
+              <span style={{ fontSize: 8, color: "#3a4a6a" }}>Region</span>
+            </div>
+          );
+
           return (
             <div>
+              {!regionIsTop && isMobile && <div style={{ marginBottom: 6 }}>{vNav}</div>}
               <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: regionColors[region] }}>{regionNames[region].toUpperCase()} REGION</span>
               </div>
@@ -2544,7 +2565,7 @@ function Live2026() {
                 style={{
                   overflowX: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
-                  paddingBottom: 8, paddingTop: 4, position: "relative",
+                  paddingBottom: 8, paddingTop: 4,
                 }}
               >
                 {isMobile && (
@@ -2561,6 +2582,7 @@ function Live2026() {
                   {bracketContent}
                 </div>
               </div>
+              {regionIsTop && isMobile && <div style={{ marginTop: 6 }}>{vNav}</div>}
             </div>
           );
         };
@@ -2654,7 +2676,7 @@ function Live2026() {
             return sum + ((tr[5] + em[5]) / 2);
           }, 0);
           return { ...syn, sd, teamEVs, totalEV, portfolioRatio, bestValueTeam, topTeam, concentration, regionsHit, buys, fairs, avoids, hist, profile, champEquity };
-        }).sort((a, b) => b.portfolioRatio - a.portfolioRatio);
+        }).sort((a, b) => b.spent - a.spent);
 
         const bestPortfolio = synCards[0];
         const biggestSpender = synCards.reduce((a, b) => b.spent > a.spent ? b : a);
