@@ -2710,86 +2710,104 @@ function Live2026() {
 
         return (
           <div>
-            {/* Nerd Mode toggle */}
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
-              <button
+            {/* Nerd Mode toggle switch */}
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 10, color: nerdMode ? "#7c5cfc" : "#5a6a8a", fontWeight: 600, letterSpacing: 0.5 }}>Nerd Mode</span>
+              <div
                 onClick={() => setNerdMode(!nerdMode)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "5px 12px", cursor: "pointer", fontFamily: "inherit", fontSize: 10,
-                  background: nerdMode ? "#7c5cfc22" : "#111827",
-                  border: `1px solid ${nerdMode ? "#7c5cfc" : "#1e2a40"}`,
-                  borderRadius: 5, color: nerdMode ? "#7c5cfc" : "#5a6a8a",
-                  fontWeight: 600, letterSpacing: 0.5, transition: "all 0.15s",
+                  width: 36, height: 20, borderRadius: 10, cursor: "pointer",
+                  background: nerdMode ? "#7c5cfc" : "#1e2a40",
+                  position: "relative", transition: "background 0.2s",
                 }}
               >
-                <span style={{ fontSize: 12 }}>{nerdMode ? "🤓" : "📊"}</span>
-                Nerd Mode {nerdMode ? "ON" : "OFF"}
-              </button>
+                <div style={{
+                  width: 16, height: 16, borderRadius: 8,
+                  background: nerdMode ? "#fff" : "#4a5a7a",
+                  position: "absolute", top: 2,
+                  left: nerdMode ? 18 : 2,
+                  transition: "left 0.2s, background 0.2s",
+                }} />
+              </div>
             </div>
 
-            {!nerdMode ? (
-              /* ── SPREADSHEET VIEW (default) ── */
+            {!nerdMode ? (() => {
+              const cumPayouts = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14].map(pct => Math.round(pct * POT_2026));
+              const roundLabels = ["R32","S16","E8","F4","F2","Ch"];
+              const thS = { padding: "5px 8px", textAlign: "right", color: "#7a8aaa", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #2a3a50", whiteSpace: "nowrap" };
+              const thL = { ...thS, textAlign: "left" };
+              return (
               <div style={{ overflowX: "auto" }}>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12, padding: "8px 10px", background: "#0d1321", borderRadius: 6, border: "1px solid #1e2a40" }}>
+                  <span style={{ fontSize: 9, color: "#5a6a8a", fontWeight: 600 }}>ROUND PAYOUTS:</span>
+                  {roundLabels.map((r, i) => (
+                    <span key={r} style={{ fontSize: 10, color: "#c8d6e5" }}>
+                      <span style={{ color: "#5a6a8a", fontSize: 9 }}>{r}</span> ${cumPayouts[i].toLocaleString()}
+                    </span>
+                  ))}
+                  <span style={{ fontSize: 9, color: "#3a4a6a" }}>cumulative per team · pot ${POT_2026.toLocaleString()}</span>
+                </div>
                 {synCards.map(syn => {
                   const synColor = SYNDICATE_COLORS[syn.name] || "#5a6a8a";
                   const sorted = syn.teamEVs.slice().sort((a, b) => b.p - a.p);
                   const totalPrice = sorted.reduce((s, t) => s + t.p, 0);
-                  const totalEV = sorted.reduce((s, t) => s + t.ev, 0);
-                  const roundTotals = [0,1,2,3,4,5].map(ri => sorted.reduce((s, t) => s + (t.roundEV[ri] || 0), 0));
                   return (
-                    <div key={syn.name} style={{ marginBottom: 16 }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "6px 8px", background: synColor + "12", borderBottom: `2px solid ${synColor}66` }}>
+                    <div key={syn.name} style={{ marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "5px 8px", background: synColor + "12", borderBottom: `2px solid ${synColor}66` }}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: synColor }}>{syn.name}</span>
                         <span style={{ fontSize: 10, color: "#8a9aba" }}>{sorted.length} teams</span>
                         <span style={{ fontSize: 10, color: "#8a9aba" }}>·</span>
                         <span style={{ fontSize: 10, color: "#e8e6e3", fontWeight: 600 }}>${totalPrice.toLocaleString()} spent</span>
-                        <span style={{ fontSize: 10, color: "#8a9aba" }}>·</span>
-                        <span style={{ fontSize: 10, color: totalEV >= totalPrice ? "#2ecc71" : "#e63946", fontWeight: 600 }}>EV ${totalEV.toLocaleString()}</span>
-                        <span style={{ fontSize: 9, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: (totalEV/totalPrice >= 1 ? "#2ecc71" : "#e63946") + "22", color: totalEV/totalPrice >= 1 ? "#2ecc71" : "#e63946" }}>
-                          {(totalEV/totalPrice).toFixed(2)}x
-                        </span>
                       </div>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}>
                         <thead>
                           <tr style={{ background: "#0a0e17" }}>
-                            <th style={{ padding: "4px 6px", textAlign: "left", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Sd</th>
-                            <th style={{ padding: "4px 6px", textAlign: "left", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Rgn</th>
-                            <th style={{ padding: "4px 6px", textAlign: "left", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Team</th>
-                            <th style={{ padding: "4px 6px", textAlign: "right", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Price</th>
-                            {["R32","S16","E8","F4","F2","Ch"].map(r => (
-                              <th key={r} style={{ padding: "4px 6px", textAlign: "right", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>{r}</th>
-                            ))}
-                            <th style={{ padding: "4px 6px", textAlign: "right", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Tot EV</th>
-                            <th style={{ padding: "4px 6px", textAlign: "right", color: "#4a5a7a", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #1e2a40" }}>Ratio</th>
+                            <th style={thL}>Sd</th>
+                            <th style={thL}>Rgn</th>
+                            <th style={{ ...thL, minWidth: 80 }}>Team</th>
+                            <th style={thS}>Paid</th>
+                            {roundLabels.map(r => <th key={r} style={thS}>{r}</th>)}
+                            <th style={thS}>B/E</th>
                           </tr>
                         </thead>
                         <tbody>
                           {sorted.map((t, ti) => {
                             const rgn = t.sd.split("-")[0];
-                            const ratio = t.p > 0 ? t.ev / t.p : 0;
+                            const beIdx = cumPayouts.findIndex(cp => cp >= t.p);
+                            const beLabel = beIdx >= 0 ? roundLabels[beIdx] : "—";
                             return (
                               <tr key={t.sd} style={{ background: ti % 2 === 0 ? "#0d1321" : "#0f1629", opacity: t.alive ? 1 : 0.35 }}>
-                                <td style={{ padding: "3px 6px", color: t.seed <= 2 ? "#4a9eff" : t.seed <= 4 ? "#7c5cfc" : "#8a9aba", fontWeight: 700 }}>{t.seed}</td>
-                                <td style={{ padding: "3px 6px", color: regionColors[rgn] || "#5a6a8a", fontWeight: 600, fontSize: 9 }}>{rgn}</td>
-                                <td style={{ padding: "3px 6px", color: "#c8d6e5", fontWeight: 500, whiteSpace: "nowrap" }}>{t.t}</td>
-                                <td style={{ padding: "3px 6px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
-                                {t.roundEV.map((rv, ri) => (
-                                  <td key={ri} style={{ padding: "3px 6px", textAlign: "right", color: rv > 0 ? "#8a9aba" : "#1e2a40", fontWeight: 400 }}>{rv > 0 ? `$${rv}` : "—"}</td>
-                                ))}
-                                <td style={{ padding: "3px 6px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${t.ev.toLocaleString()}</td>
-                                <td style={{ padding: "3px 6px", textAlign: "right", color: ratio >= 1.25 ? "#2ecc71" : ratio >= 0.9 ? "#e9c46a" : ratio >= 0.6 ? "#5a6a8a" : "#e63946", fontWeight: 700 }}>{ratio.toFixed(2)}x</td>
+                                <td style={{ padding: "3px 8px", color: t.seed <= 2 ? "#4a9eff" : t.seed <= 4 ? "#7c5cfc" : "#8a9aba", fontWeight: 700 }}>{t.seed}</td>
+                                <td style={{ padding: "3px 8px", color: regionColors[rgn] || "#5a6a8a", fontWeight: 600, fontSize: 9 }}>{rgn}</td>
+                                <td style={{ padding: "3px 8px", color: "#c8d6e5", fontWeight: 500, whiteSpace: "nowrap" }}>{t.t}</td>
+                                <td style={{ padding: "3px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${t.p.toLocaleString()}</td>
+                                {cumPayouts.map((cp, ri) => {
+                                  const profit = cp - t.p;
+                                  const isGreen = cp >= t.p;
+                                  return (
+                                    <td key={ri} style={{ padding: "3px 8px", textAlign: "right", color: isGreen ? "#2ecc71" : "#8a9aba", fontWeight: isGreen ? 600 : 400 }}>
+                                      {isGreen ? "+" : ""}{profit >= 0 ? "$" : "-$"}{Math.abs(profit).toLocaleString()}
+                                    </td>
+                                  );
+                                })}
+                                <td style={{ padding: "3px 8px", textAlign: "right", fontWeight: 700, fontSize: 9, color: beIdx === 0 ? "#2ecc71" : beIdx <= 2 ? "#e9c46a" : "#e63946" }}>{beLabel}</td>
                               </tr>
                             );
                           })}
                           <tr style={{ background: "#0a0e17", borderTop: `2px solid ${synColor}44` }}>
-                            <td colSpan={3} style={{ padding: "4px 6px", color: synColor, fontWeight: 700, fontSize: 9 }}>TOTAL</td>
-                            <td style={{ padding: "4px 6px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${totalPrice.toLocaleString()}</td>
-                            {roundTotals.map((rt, ri) => (
-                              <td key={ri} style={{ padding: "4px 6px", textAlign: "right", color: rt > 0 ? "#8a9aba" : "#1e2a40", fontWeight: 600 }}>{rt > 0 ? `$${rt}` : "—"}</td>
-                            ))}
-                            <td style={{ padding: "4px 6px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${totalEV.toLocaleString()}</td>
-                            <td style={{ padding: "4px 6px", textAlign: "right", color: totalEV/totalPrice >= 1 ? "#2ecc71" : "#e63946", fontWeight: 700 }}>{(totalEV/totalPrice).toFixed(2)}x</td>
+                            <td colSpan={3} style={{ padding: "4px 8px", color: synColor, fontWeight: 700, fontSize: 9 }}>TOTAL</td>
+                            <td style={{ padding: "4px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${totalPrice.toLocaleString()}</td>
+                            {cumPayouts.map((cp, ri) => {
+                              const teamCount = sorted.filter(t => t.alive).length;
+                              const totalPayout = cp * teamCount;
+                              const totalProfit = totalPayout - totalPrice;
+                              return (
+                                <td key={ri} style={{ padding: "4px 8px", textAlign: "right", color: totalProfit >= 0 ? "#2ecc71" : "#8a9aba", fontWeight: 600, fontSize: 9 }}>
+                                  {totalProfit >= 0 ? "+" : ""}{totalProfit >= 0 ? "$" : "-$"}{Math.abs(totalProfit).toLocaleString()}
+                                </td>
+                              );
+                            })}
+                            <td style={{ padding: "4px 8px" }} />
                           </tr>
                         </tbody>
                       </table>
@@ -2797,7 +2815,8 @@ function Live2026() {
                   );
                 })}
               </div>
-            ) : (
+              );
+            })() : (
             /* ── NERD MODE (cards) ── */
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12 }}>
               {synCards.map(syn => {
