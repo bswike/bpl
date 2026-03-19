@@ -2845,21 +2845,43 @@ function Live2026() {
             e8.push([getWinner(s16[i][0], s16[i][1]), getWinner(s16[i + 1][0], s16[i + 1][1])]);
           }
 
-          const bracketContent = (
+          const r64Col = (
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: MW, minWidth: MW, flexShrink: 0 }}>
+              {r64.map(([t, b], i) => <BMatch key={i} top={t} bot={b} rtl={rtl} isR64 />)}
+            </div>
+          );
+
+          const bracketContent = rtl ? (
             <>
-              <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: MW, minWidth: MW, flexShrink: 0 }}>
-                {r64.map(([t, b], i) => <BMatch key={i} top={t} bot={b} rtl={rtl} isR64 />)}
-              </div>
-              <BConn pairs={4} rtl={rtl} />
-              <RoundCol matches={r32} w={MW} rtl={rtl} />
-              <BConn pairs={2} rtl={rtl} />
-              <RoundCol matches={s16} w={MW} rtl={rtl} />
-              <BConn pairs={1} rtl={rtl} />
               <RoundCol matches={e8} w={MW} rtl={rtl} />
+              <BConn pairs={1} rtl />
+              <RoundCol matches={s16} w={MW} rtl={rtl} />
+              <BConn pairs={2} rtl />
+              <RoundCol matches={r32} w={MW} rtl={rtl} />
+              <BConn pairs={4} rtl />
+              {r64Col}
+            </>
+          ) : (
+            <>
+              {r64Col}
+              <BConn pairs={4} />
+              <RoundCol matches={r32} w={MW} />
+              <BConn pairs={2} />
+              <RoundCol matches={s16} w={MW} />
+              <BConn pairs={1} />
+              <RoundCol matches={e8} w={MW} />
             </>
           );
 
           const totalW = MW * 4 + 16 * 3;
+
+          const rtlHeaders = [
+            { name: "ELITE 8", pay: roundPay[3] }, null,
+            { name: "SWEET 16", pay: roundPay[2] }, null,
+            { name: "SECOND ROUND", pay: roundPay[1] }, null,
+            { name: "FIRST ROUND", pay: roundPay[0] },
+          ];
+          const displayHeaders = rtl ? rtlHeaders : headers;
 
           return (
             <div>
@@ -2874,25 +2896,22 @@ function Live2026() {
                   overscrollBehavior: "contain",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
                   paddingBottom: 4, paddingTop: 2,
-                  transform: rtl ? "scaleX(-1)" : "none",
                 }}
               >
-                <div style={{ transform: rtl ? "scaleX(-1)" : "none", width: "fit-content" }}>
-                  <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
-                    {colWidths.map((w, i) => (
-                      <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
-                        {headers[i] && (
-                          <>
-                            <div style={{ fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{headers[i].name}</div>
-                            <div style={{ fontSize: 7, color: "#4a9eff", fontWeight: 500 }}>{headers[i].pay}</div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
-                    {bracketContent}
-                  </div>
+                <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
+                  {colWidths.map((w, i) => (
+                    <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
+                      {displayHeaders[i] && (
+                        <>
+                          <div style={{ fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{displayHeaders[i].name}</div>
+                          <div style={{ fontSize: 7, color: "#4a9eff", fontWeight: 500 }}>{displayHeaders[i].pay}</div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
+                  {bracketContent}
                 </div>
               </div>
             </div>
