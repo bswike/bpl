@@ -2806,7 +2806,7 @@ function Live2026() {
           </div>
         );
 
-        const LiveRegionBracket = ({ region, rtl, scrollRef }) => {
+        const LiveRegionBracket = ({ region, rtl, scrollRef, isActive = true }) => {
           const localRef = useRef(null);
           const bracketScrollRef = scrollRef || localRef;
           const tm = {};
@@ -2815,32 +2815,18 @@ function Live2026() {
 
           useEffect(() => {
             const el = bracketScrollRef.current;
-            if (!el || !rtl) return;
-            let isVisible = false;
-            let snapTimer;
-            const forceRight = () => {
-              if (el.scrollWidth > el.clientWidth) el.scrollLeft = el.scrollWidth;
-            };
-            const obs = new IntersectionObserver(([entry]) => {
-              if (entry.isIntersecting && !isVisible) {
-                isVisible = true;
-                forceRight();
-                let ticks = 0;
-                snapTimer = setInterval(() => {
-                  forceRight();
-                  ticks++;
-                  if (ticks > 12) clearInterval(snapTimer);
-                }, 50);
-              } else if (!entry.isIntersecting) {
-                isVisible = false;
-                clearInterval(snapTimer);
-              }
-            }, { threshold: 0.05 });
-            obs.observe(el);
-            forceRight();
-            setTimeout(forceRight, 100);
-            return () => { obs.disconnect(); clearInterval(snapTimer); };
-          }, [rtl, bracketScrollRef]);
+            if (!el) return;
+            if (!rtl) { el.scrollLeft = 0; return; }
+            if (isActive) {
+              let ticks = 0;
+              const forceSnap = setInterval(() => {
+                if (el.scrollWidth > el.clientWidth) el.scrollLeft = el.scrollWidth;
+                ticks++;
+                if (ticks > 10) clearInterval(forceSnap);
+              }, 40);
+              return () => clearInterval(forceSnap);
+            }
+          }, [isActive, rtl, bracketScrollRef]);
 
           const MW = 150;
           const roundPay = [0.005, 0.025, 0.03, 0.03, 0.03, 0.02].map(pct => "$" + Math.round(pct * pot).toLocaleString());
@@ -2983,18 +2969,18 @@ function Live2026() {
                 >
                   <div ref={vScrollRefLeft} onScroll={handleBracketScroll} style={vColStyle}>
                     <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="E" rtl={false} />
+                      <LiveRegionBracket region="E" rtl={false} isActive={bracketMobileRegion === "E"} />
                     </div>
                     <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="S" rtl={false} />
+                      <LiveRegionBracket region="S" rtl={false} isActive={bracketMobileRegion === "S"} />
                     </div>
                   </div>
                   <div ref={vScrollRefRight} onScroll={handleBracketScroll} style={vColStyle}>
                     <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="W" rtl={true} />
+                      <LiveRegionBracket region="W" rtl={true} isActive={bracketMobileRegion === "W"} />
                     </div>
                     <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="MW" rtl={true} />
+                      <LiveRegionBracket region="MW" rtl={true} isActive={bracketMobileRegion === "MW"} />
                     </div>
                   </div>
                 </div>
@@ -3003,7 +2989,7 @@ function Live2026() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {regionOrder.map(r => (
                   <div key={r}>
-                    <LiveRegionBracket region={r} rtl={rtlRegions.has(r)} />
+                    <LiveRegionBracket region={r} rtl={rtlRegions.has(r)} isActive={true} />
                   </div>
                 ))}
               </div>
