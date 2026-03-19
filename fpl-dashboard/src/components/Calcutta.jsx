@@ -2432,15 +2432,15 @@ function Live2026() {
           return { ...syn, teamsAlive, totalTeams: teams.length, roundWins, roundEarnings, totalEarned, net, roi };
         }).sort((a, b) => b.net - a.net);
 
-        const thS = { padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 9, borderBottom: "2px solid #1e2a40", whiteSpace: "nowrap" };
+        const thS = { padding: "6px 4px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 9, borderBottom: "2px solid #1e2a40", whiteSpace: "nowrap" };
         const thL = { ...thS, textAlign: "left" };
 
         return (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, minWidth: 520 }}>
               <thead>
                 <tr>
-                  <th style={thL}>#</th>
+                  <th style={{ ...thL, width: 18 }}>#</th>
                   <th style={thL}>Syndicate</th>
                   <th style={thS}>Net</th>
                   <th style={thS}>Alive</th>
@@ -2469,23 +2469,23 @@ function Live2026() {
                       onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background = "#111827"; }}
                       onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = i % 2 === 0 ? "transparent" : "#0a0e1766"; }}
                     >
-                      <td style={{ padding: "6px 8px", color: "#5a6a8a", fontWeight: 700 }}>{i + 1}</td>
-                      <td style={{ padding: "6px 8px", fontWeight: 600 }}>
+                      <td style={{ padding: "6px 4px", color: "#5a6a8a", fontWeight: 700, fontSize: 10, width: 18 }}>{i + 1}</td>
+                      <td style={{ padding: "6px 4px", fontWeight: 600, whiteSpace: "nowrap" }}>
                         <span style={{ color: synColor }}>{isOpen ? "▾" : "▸"} {syn.name}</span>
-                        <span style={{ fontSize: 8, color: "#3a4a6a", marginLeft: 6 }}>{syn.totalTeams} teams</span>
+                        <span style={{ fontSize: 8, color: "#3a4a6a", marginLeft: 4 }}>{syn.totalTeams} teams</span>
                       </td>
-                      <td style={{ padding: "6px 8px", textAlign: "right", color: netColor, fontWeight: 700 }}>
+                      <td style={{ padding: "6px 4px", textAlign: "right", color: netColor, fontWeight: 700 }}>
                         {syn.net >= 0 ? "+" : ""}${syn.net.toLocaleString()}
                       </td>
-                      <td style={{ padding: "6px 8px", textAlign: "right", color: "#8a9aba" }}>{syn.teamsAlive}/{syn.totalTeams}</td>
+                      <td style={{ padding: "6px 4px", textAlign: "right", color: "#8a9aba" }}>{syn.teamsAlive}/{syn.totalTeams}</td>
                       {syn.roundEarnings.map((re, ri) => (
-                        <td key={ri} style={{ padding: "6px 8px", textAlign: "right", color: re > 0 ? "#e8e6e3" : "#1e2a40" }}>{re > 0 ? `$${re.toLocaleString()}` : "—"}</td>
+                        <td key={ri} style={{ padding: "6px 4px", textAlign: "right", color: re > 0 ? "#e8e6e3" : "#1e2a40" }}>{re > 0 ? `$${re.toLocaleString()}` : "—"}</td>
                       ))}
-                      <td style={{ padding: "6px 8px", textAlign: "right", color: syn.totalEarned > 0 ? "#e8e6e3" : "#1e2a40", fontWeight: 700 }}>
+                      <td style={{ padding: "6px 4px", textAlign: "right", color: syn.totalEarned > 0 ? "#e8e6e3" : "#1e2a40", fontWeight: 700 }}>
                         {syn.totalEarned > 0 ? `$${syn.totalEarned.toLocaleString()}` : "—"}
                       </td>
-                      <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${syn.spent.toLocaleString()}</td>
-                      <td style={{ padding: "6px 8px", textAlign: "right", color: netColor, fontWeight: 600 }}>
+                      <td style={{ padding: "6px 4px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${syn.spent.toLocaleString()}</td>
+                      <td style={{ padding: "6px 4px", textAlign: "right", color: netColor, fontWeight: 600 }}>
                         {(syn.roi * 100).toFixed(0)}%
                       </td>
                     </tr>
@@ -2494,21 +2494,21 @@ function Live2026() {
                       const teamNet = teamEarned - t.p;
                       return (
                         <tr key={t.sd} style={{ background: "#080c14", borderBottom: "1px solid #0d1321" }}>
-                          <td style={{ padding: "4px 8px" }} />
-                          <td style={{ padding: "4px 8px", color: t.alive ? "#8a9aba" : "#3a4a6a", fontSize: 10, paddingLeft: 24 }}>
-                            <span style={{ color: "#3a4a6a", fontSize: 9, marginRight: 4 }}>{t.seed}</span>
+                          <td style={{ padding: "4px 4px" }} />
+                          <td style={{ padding: "4px 4px", color: t.alive ? "#8a9aba" : "#3a4a6a", fontSize: 10, paddingLeft: 20 }}>
+                            <span style={{ color: "#3a4a6a", fontSize: 9, marginRight: 3 }}>{t.seed}</span>
                             {t.t}
                             {!t.alive && <span style={{ color: "#e63946", fontSize: 8, marginLeft: 4 }}>✗</span>}
                           </td>
-                          <td style={{ padding: "4px 8px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
-                          <td style={{ padding: "4px 8px", textAlign: "right", color: t.alive ? "#2ecc71" : "#3a4a6a", fontSize: 9 }}>{t.alive ? "✓" : "✗"}</td>
+                          <td style={{ padding: "4px 4px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
+                          <td style={{ padding: "4px 4px", textAlign: "right", color: t.alive ? "#2ecc71" : "#3a4a6a", fontSize: 9 }}>{t.alive ? "✓" : "✗"}</td>
                           {[0,1,2,3,4,5].map(ri => {
                             const won = t.w > ri;
-                            return <td key={ri} style={{ padding: "4px 8px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10 }}>{won ? `$${incrPayouts[ri]}` : "—"}</td>;
+                            return <td key={ri} style={{ padding: "4px 4px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10 }}>{won ? `$${incrPayouts[ri]}` : "—"}</td>;
                           })}
-                          <td style={{ padding: "4px 8px", textAlign: "right", color: teamEarned > 0 ? "#e8e6e3" : "#1e2a40", fontSize: 10, fontWeight: 600 }}>{teamEarned > 0 ? `$${teamEarned.toLocaleString()}` : "—"}</td>
-                          <td style={{ padding: "4px 8px", textAlign: "right", color: "#8a9aba", fontSize: 10 }}>${t.p.toLocaleString()}</td>
-                          <td style={{ padding: "4px 8px" }} />
+                          <td style={{ padding: "4px 4px", textAlign: "right", color: teamEarned > 0 ? "#e8e6e3" : "#1e2a40", fontSize: 10, fontWeight: 600 }}>{teamEarned > 0 ? `$${teamEarned.toLocaleString()}` : "—"}</td>
+                          <td style={{ padding: "4px 4px", textAlign: "right", color: "#8a9aba", fontSize: 10 }}>${t.p.toLocaleString()}</td>
+                          <td style={{ padding: "4px 4px" }} />
                         </tr>
                       );
                     })}
@@ -2518,16 +2518,16 @@ function Live2026() {
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: "2px solid #1e2a40" }}>
-                  <td colSpan={2} style={{ padding: "6px 8px", color: "#5a6a8a", fontWeight: 700, fontSize: 10 }}>TOTAL</td>
-                  <td style={{ padding: "6px 8px" }} />
-                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#8a9aba" }}>{board.reduce((s, b) => s + b.teamsAlive, 0)}/64</td>
+                  <td colSpan={2} style={{ padding: "6px 4px", color: "#5a6a8a", fontWeight: 700, fontSize: 10 }}>TOTAL</td>
+                  <td style={{ padding: "6px 4px" }} />
+                  <td style={{ padding: "6px 4px", textAlign: "right", color: "#8a9aba" }}>{board.reduce((s, b) => s + b.teamsAlive, 0)}/64</td>
                   {[0,1,2,3,4,5].map(ri => {
                     const total = board.reduce((s, b) => s + b.roundEarnings[ri], 0);
-                    return <td key={ri} style={{ padding: "6px 8px", textAlign: "right", color: total > 0 ? "#e8e6e3" : "#1e2a40", fontWeight: 600 }}>{total > 0 ? `$${total.toLocaleString()}` : "—"}</td>;
+                    return <td key={ri} style={{ padding: "6px 4px", textAlign: "right", color: total > 0 ? "#e8e6e3" : "#1e2a40", fontWeight: 600 }}>{total > 0 ? `$${total.toLocaleString()}` : "—"}</td>;
                   })}
-                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.totalEarned, 0).toLocaleString()}</td>
-                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.spent, 0).toLocaleString()}</td>
-                  <td style={{ padding: "6px 8px" }} />
+                  <td style={{ padding: "6px 4px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.totalEarned, 0).toLocaleString()}</td>
+                  <td style={{ padding: "6px 4px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.spent, 0).toLocaleString()}</td>
+                  <td style={{ padding: "6px 4px" }} />
                 </tr>
               </tfoot>
             </table>
