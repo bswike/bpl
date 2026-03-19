@@ -2707,12 +2707,12 @@ function Live2026() {
           return (
             <div>
               {game && (
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4px 1px", fontSize: 6.5, color: isLive ? "#22c55e" : isFinal ? "#8a9aba" : isToday ? "#e8e6e3" : "#3a4a6a", fontWeight: isLive || isToday ? 600 : 400 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4px 1px", fontSize: 6.5, fontWeight: isLive || isToday ? 600 : 400 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 3, color: isLive ? "#22c55e" : isFinal ? "#8a9aba" : isToday ? "#e8e6e3" : "#3a4a6a" }}>
                     {isLive && <span className="live-dot" style={{ width: 4, height: 4, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />}
                     {isLive ? (top?.gameDetail || "LIVE") : isFinal ? "FINAL" : isToday ? "TODAY " + game.time.split(" ")[1] : game.time}
                   </span>
-                  <span>{game.spread}</span>
+                  <span style={{ color: isToday ? "#e8e6e3" : "#3a4a6a" }}>{game.spread}</span>
                 </div>
               )}
               <div style={{ border: `1px solid ${isLive ? "#22c55e44" : isToday ? "#4a9eff44" : "#1e2a40"}`, borderRadius: 3, overflow: "hidden", boxShadow: isLive ? "0 0 8px rgba(34,197,94,0.2)" : isToday ? "0 0 8px rgba(74,158,255,0.15)" : "none" }}>
