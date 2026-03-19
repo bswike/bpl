@@ -2398,15 +2398,6 @@ function Live2026() {
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-      {/* Compact payout line */}
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap", fontSize: 9, color: "#4a5a7a" }}>
-        <span style={{ color: "#5a6a8a", fontWeight: 600 }}>Pot ${pot.toLocaleString()}</span>
-        <span style={{ color: "#1e2a40" }}>|</span>
-        {payoutLabels.map((label, i) => (
-          <span key={label}><span style={{ color: "#3a4a6a" }}>{label}</span> <span style={{ color: "#8a9aba" }}>${Math.round(pot * payoutCum[i]).toLocaleString()}</span></span>
-        ))}
-      </div>
-
       {/* Sub-nav */}
       <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 12 }}>
         {views.map(v => (
@@ -2533,8 +2524,19 @@ function Live2026() {
             }
           }, [region, rtl, neighbor]);
 
-          const ltrHeaders = ["FIRST ROUND", "", "SECOND ROUND", "", "SWEET 16", "", "ELITE 8"];
-          const rtlHeaders = ["ELITE 8", "", "SWEET 16", "", "SECOND ROUND", "", "FIRST ROUND"];
+          const cumPay = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14].map(pct => "$" + Math.round(pct * pot).toLocaleString());
+          const ltrHeaders = [
+            { name: "FIRST ROUND", pay: cumPay[0] }, null,
+            { name: "SECOND ROUND", pay: cumPay[1] }, null,
+            { name: "SWEET 16", pay: cumPay[2] }, null,
+            { name: "ELITE 8", pay: cumPay[3] },
+          ];
+          const rtlHeaders = [
+            { name: "ELITE 8", pay: cumPay[3] }, null,
+            { name: "SWEET 16", pay: cumPay[2] }, null,
+            { name: "SECOND ROUND", pay: cumPay[1] }, null,
+            { name: "FIRST ROUND", pay: cumPay[0] },
+          ];
           const headers = rtl ? rtlHeaders : ltrHeaders;
           const colWidths = rtl ? [100, 16, 100, 16, 100, 16, 150] : [150, 16, 100, 16, 100, 16, 100];
 
@@ -2606,7 +2608,14 @@ function Live2026() {
                 )}
                 <div style={{ display: "flex", marginBottom: 4, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
                   {colWidths.map((w, i) => (
-                    <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center", fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{headers[i]}</div>
+                    <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
+                      {headers[i] && (
+                        <>
+                          <div style={{ fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{headers[i].name}</div>
+                          <div style={{ fontSize: 7, color: "#4a9eff", fontWeight: 500 }}>{headers[i].pay}</div>
+                        </>
+                      )}
+                    </div>
                   ))}
                 </div>
                 <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 8 }}>
