@@ -663,11 +663,12 @@ function getTeamValue(team) {
 }
 
 
-const HIST_TABS = ["2026 Prep", "Teams", "Seed ROI", "Leaderboard", "Strategy", "Spending"];
+const HIST_TABS_MAIN = ["Leaderboard", "Teams", "Seed ROI", "Spending"];
+const HIST_TABS_EXTRA = ["2026 Prep", "Strategy"];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("2026 Live");
-  const [histTab, setHistTab] = useState("2026 Prep");
+  const [histTab, setHistTab] = useState("Leaderboard");
   const [selectedYear, setSelectedYear] = useState("All");
 
   return (
@@ -709,68 +710,52 @@ export default function App() {
         }}>2022 — 2023 — 2024 — 2025 — 2026</div>
       </div>
 
-      {/* Top-level tabs */}
-      <div style={{
-        display: "flex",
-        justifyContent: "center",
-        gap: 6,
-        marginBottom: 20,
-      }}>
-        {["2026 Live", "Historical"].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              padding: "10px 28px",
-              background: activeTab === tab
-                ? "linear-gradient(135deg, #4a9eff22, #7c5cfc22)"
-                : "transparent",
-              border: `1px solid ${activeTab === tab ? "#4a9eff" : "#1e2a40"}`,
-              borderRadius: 6,
-              color: activeTab === tab ? "#4a9eff" : "#8a9aba",
-              fontFamily: "inherit",
-              fontSize: 14,
-              fontWeight: activeTab === tab ? 700 : 500,
-              cursor: "pointer",
-              letterSpacing: 1,
-              transition: "all 0.2s",
-            }}
-          >{tab}</button>
-        ))}
+      {/* Top-level nav */}
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "baseline", gap: 16, marginBottom: 20 }}>
+        {activeTab === "Historical" ? (
+          <button onClick={() => setActiveTab("2026 Live")} style={{
+            padding: "10px 32px", fontFamily: "inherit", fontSize: 14, fontWeight: 700,
+            background: "linear-gradient(135deg, #4a9eff22, #7c5cfc22)",
+            border: "1px solid #4a9eff", borderRadius: 6, color: "#4a9eff",
+            cursor: "pointer", letterSpacing: 1,
+          }}>← Back to 2026 Live</button>
+        ) : (
+          <button onClick={() => setActiveTab("Historical")} style={{
+            padding: 0, fontFamily: "inherit", fontSize: 10, fontWeight: 400,
+            background: "transparent", border: "none", color: "#3a4a6a",
+            cursor: "pointer", letterSpacing: 0.5,
+            borderBottom: "1px dashed #2a3a5a",
+          }}>Historical Data →</button>
+        )}
       </div>
 
       {activeTab === "2026 Live" && <Live2026 />}
 
       {activeTab === "Historical" && (
         <div>
-          {/* Historical sub-tabs */}
-          <div style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 4,
-            marginBottom: 12,
-            flexWrap: "wrap",
-          }}>
-            {HIST_TABS.map(tab => (
-              <button
-                key={tab}
-                onClick={() => setHistTab(tab)}
-                style={{
-                  padding: "7px 16px",
-                  background: histTab === tab
-                    ? "linear-gradient(135deg, #4a9eff15, #7c5cfc15)"
-                    : "transparent",
-                  border: `1px solid ${histTab === tab ? "#4a9eff88" : "#1e2a40"}`,
-                  borderRadius: 5,
-                  color: histTab === tab ? "#4a9eff" : "#5a6a8a",
-                  fontFamily: "inherit",
-                  fontSize: 11,
-                  fontWeight: histTab === tab ? 700 : 400,
-                  cursor: "pointer",
-                  letterSpacing: 0.5,
-                  transition: "all 0.2s",
-                }}
-              >{tab}</button>
+          {/* Historical sub-tabs — main */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 6, flexWrap: "wrap" }}>
+            {HIST_TABS_MAIN.map(tab => (
+              <button key={tab} onClick={() => setHistTab(tab)} style={{
+                padding: "7px 16px",
+                background: histTab === tab ? "linear-gradient(135deg, #4a9eff15, #7c5cfc15)" : "transparent",
+                border: `1px solid ${histTab === tab ? "#4a9eff88" : "#1e2a40"}`,
+                borderRadius: 5, color: histTab === tab ? "#4a9eff" : "#5a6a8a",
+                fontFamily: "inherit", fontSize: 11, fontWeight: histTab === tab ? 700 : 400,
+                cursor: "pointer", letterSpacing: 0.5, transition: "all 0.2s",
+              }}>{tab}</button>
+            ))}
+          </div>
+          {/* Historical sub-tabs — extra (minimized) */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 14 }}>
+            {HIST_TABS_EXTRA.map(tab => (
+              <button key={tab} onClick={() => setHistTab(tab)} style={{
+                padding: "2px 8px", background: "transparent", border: "none",
+                borderBottom: histTab === tab ? "1px solid #4a9eff" : "1px solid transparent",
+                color: histTab === tab ? "#4a9eff" : "#2a3a5a",
+                fontFamily: "inherit", fontSize: 9, fontWeight: histTab === tab ? 600 : 400,
+                cursor: "pointer", letterSpacing: 0.5,
+              }}>{tab}</button>
             ))}
           </div>
 
