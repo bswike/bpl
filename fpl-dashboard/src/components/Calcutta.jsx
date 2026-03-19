@@ -2675,18 +2675,18 @@ function Live2026() {
             }
           }, [region, rtl, neighbor]);
 
-          const cumPay = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14].map(pct => "$" + Math.round(pct * pot).toLocaleString());
+          const roundPay = [0.005, 0.025, 0.03, 0.03, 0.03, 0.02].map(pct => "$" + Math.round(pct * pot).toLocaleString());
           const ltrHeaders = [
-            { name: "FIRST ROUND", pay: cumPay[0] }, null,
-            { name: "SECOND ROUND", pay: cumPay[1] }, null,
-            { name: "SWEET 16", pay: cumPay[2] }, null,
-            { name: "ELITE 8", pay: cumPay[3] },
+            { name: "FIRST ROUND", pay: roundPay[0] }, null,
+            { name: "SECOND ROUND", pay: roundPay[1] }, null,
+            { name: "SWEET 16", pay: roundPay[2] }, null,
+            { name: "ELITE 8", pay: roundPay[3] },
           ];
           const rtlHeaders = [
-            { name: "ELITE 8", pay: cumPay[3] }, null,
-            { name: "SWEET 16", pay: cumPay[2] }, null,
-            { name: "SECOND ROUND", pay: cumPay[1] }, null,
-            { name: "FIRST ROUND", pay: cumPay[0] },
+            { name: "ELITE 8", pay: roundPay[3] }, null,
+            { name: "SWEET 16", pay: roundPay[2] }, null,
+            { name: "SECOND ROUND", pay: roundPay[1] }, null,
+            { name: "FIRST ROUND", pay: roundPay[0] },
           ];
           const headers = rtl ? rtlHeaders : ltrHeaders;
           const colWidths = rtl ? [100, 16, 100, 16, 100, 16, 150] : [150, 16, 100, 16, 100, 16, 100];
