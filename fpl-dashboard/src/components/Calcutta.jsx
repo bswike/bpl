@@ -2492,7 +2492,7 @@ function Live2026() {
                     {isOpen && <>
                       <tr style={{ background: "#080c14" }}>
                         <td colSpan={13} style={{ padding: "3px 4px 2px 20px", fontSize: 8, color: "#3a4a6a", fontStyle: "italic" }}>
-                          <span style={{ display: "inline-block", width: 8, height: 2, background: "#f97316", borderRadius: 1, marginRight: 4, verticalAlign: "middle" }} />
+                          <span style={{ display: "inline-block", width: 8, height: 4, backgroundImage: "repeating-conic-gradient(#888 0% 25%, transparent 0% 50%)", backgroundSize: "4px 4px", marginRight: 4, verticalAlign: "middle" }} />
                           breakeven round
                         </td>
                       </tr>
@@ -2513,7 +2513,7 @@ function Live2026() {
                           {[0,1,2,3,4,5].map(ri => {
                             const won = t.w > ri;
                             const isBE = ri === beIdx;
-                            return <td key={ri} style={{ padding: "4px 4px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10, borderBottom: isBE ? "2px solid #f97316" : "none" }}>{won ? `$${incrPayouts[ri]}` : "—"}</td>;
+                            return <td key={ri} style={{ padding: "4px 4px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10, position: "relative" }}>{won ? `$${incrPayouts[ri]}` : "—"}{isBE && <span style={{ position: "absolute", bottom: 0, left: 2, right: 2, height: 3, backgroundImage: "repeating-conic-gradient(#888 0% 25%, transparent 0% 50%)", backgroundSize: "3px 3px", opacity: 0.7 }} />}</td>;
                           })}
                           <td style={{ padding: "4px 4px", textAlign: "right", color: teamEarned > 0 ? "#e8e6e3" : "#1e2a40", fontSize: 10, fontWeight: 600 }}>{teamEarned > 0 ? `$${teamEarned.toLocaleString()}` : "—"}</td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: "#8a9aba", fontSize: 10 }}>${t.p.toLocaleString()}</td>
