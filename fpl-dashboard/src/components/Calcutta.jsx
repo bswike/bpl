@@ -2368,38 +2368,45 @@ function Live2026() {
   const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
   const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
 
-  const gridScrollRef = useRef(null);
-  const _bracketRef2 = useRef(null);
+  const bracketScrollElRef = useRef(null);
+  const touchStateRef = useRef({ x: 0, y: 0, atLeft: false, atRight: false });
   const _bracketRef3 = useRef(null);
 
-  const getVisibleRegion = useCallback(() => {
-    const el = gridScrollRef.current;
-    if (!el) return bracketMobileRegion;
-    const isRight = (el.scrollLeft + el.clientWidth / 2) > el.clientWidth;
-    const isBottom = (el.scrollTop + el.clientHeight / 2) > el.clientHeight;
-    if (isRight) return isBottom ? "MW" : "W";
-    return isBottom ? "S" : "E";
-  }, [bracketMobileRegion]);
+  const bracketNavMap = { E: { right: "W", down: "S" }, W: { left: "E", down: "MW" }, S: { right: "MW", up: "E" }, MW: { left: "S", up: "W" } };
 
-  const handleGridScroll = useCallback(() => {
-    const r = getVisibleRegion();
-    if (r !== bracketMobileRegion) setBracketMobileRegion(r);
-  }, [getVisibleRegion, bracketMobileRegion]);
+  const onBracketTouchStart = useCallback((e) => {
+    const el = bracketScrollElRef.current;
+    touchStateRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      atLeft: el ? el.scrollLeft <= 2 : true,
+      atRight: el ? el.scrollLeft + el.clientWidth >= el.scrollWidth - 2 : true,
+    };
+  }, []);
+
+  const onBracketTouchEnd = useCallback((e) => {
+    const dx = e.changedTouches[0].clientX - touchStateRef.current.x;
+    const dy = e.changedTouches[0].clientY - touchStateRef.current.y;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    if (absDx < 40 && absDy < 40) return;
+    if (absDy > absDx * 1.2) {
+      const dir = dy < 0 ? "down" : "up";
+      const target = bracketNavMap[bracketMobileRegion]?.[dir];
+      if (target) setBracketMobileRegion(target);
+    } else if (absDx > absDy * 1.2) {
+      const dir = dx < 0 ? "right" : "left";
+      const canSwitch = (dir === "right" && touchStateRef.current.atRight) || (dir === "left" && touchStateRef.current.atLeft);
+      if (canSwitch) {
+        const target = bracketNavMap[bracketMobileRegion]?.[dir];
+        if (target) setBracketMobileRegion(target);
+      }
+    }
+  }, [bracketMobileRegion]);
 
   const _unusedCb1 = useCallback(() => {}, []);
   const _unusedCb2 = useCallback(() => {}, []);
-
-  const scrollToRegion = useCallback((r) => {
-    const el = gridScrollRef.current;
-    if (!el) return;
-    const isRight = r === "W" || r === "MW";
-    const isBottom = r === "S" || r === "MW";
-    el.scrollTo({
-      left: isRight ? el.scrollWidth / 2 : 0,
-      top: isBottom ? el.scrollHeight / 2 : 0,
-      behavior: "smooth",
-    });
-  }, []);
+  const _unusedCb3 = useCallback(() => {}, []);
 
   useEffect(() => {
     const isMob = typeof window !== "undefined" && window.innerWidth < 820;
@@ -2777,8 +2784,9 @@ function Live2026() {
           </div>
         );
 
-        const LiveRegionBracket = ({ region, rtl }) => {
-          const bracketScrollRef = useRef(null);
+        const LiveRegionBracket = ({ region, rtl, scrollRef }) => {
+          const localRef = useRef(null);
+          const bracketScrollRef = scrollRef || localRef;
           const tm = {};
           liveTeams.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
@@ -2878,33 +2886,21 @@ function Live2026() {
           <div>
             {isMobile ? (
               <div
-                ref={gridScrollRef}
-                onScroll={handleGridScroll}
+                onTouchStart={onBracketTouchStart}
+                onTouchEnd={onBracketTouchEnd}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "100% 100%",
-                  gridTemplateRows: "calc(100dvh - 100px) calc(100dvh - 100px)",
                   width: "100%",
                   height: "calc(100dvh - 100px)",
-                  overflow: "auto",
-                  scrollSnapType: "both mandatory",
-                  overscrollBehavior: "contain",
-                  WebkitOverflowScrolling: "touch",
-                  borderRadius: 8,
+                  overflow: "hidden",
+                  touchAction: "pan-x",
                 }}
               >
-                <div style={{ scrollSnapAlign: "start" }}>
-                  <LiveRegionBracket region="E" rtl={false} />
-                </div>
-                <div style={{ scrollSnapAlign: "start" }}>
-                  <LiveRegionBracket region="W" rtl={true} />
-                </div>
-                <div style={{ scrollSnapAlign: "start" }}>
-                  <LiveRegionBracket region="S" rtl={false} />
-                </div>
-                <div style={{ scrollSnapAlign: "start" }}>
-                  <LiveRegionBracket region="MW" rtl={true} />
-                </div>
+                <LiveRegionBracket
+                  key={bracketMobileRegion}
+                  region={bracketMobileRegion}
+                  rtl={rtlRegions.has(bracketMobileRegion)}
+                  scrollRef={bracketScrollElRef}
+                />
               </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
