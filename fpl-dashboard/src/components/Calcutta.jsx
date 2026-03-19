@@ -2772,9 +2772,9 @@ function Live2026() {
           </div>
         );
 
-        const RoundCol = ({ n, w, rtl }) => (
+        const RoundCol = ({ matches, w, rtl }) => (
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: w, minWidth: w, flexShrink: 0 }}>
-            {Array.from({ length: n }).map((_, i) => <BMatch key={i} rtl={rtl} />)}
+            {matches.map(([t, b], i) => <BMatch key={i} top={t} bot={b} rtl={rtl} />)}
           </div>
         );
 
@@ -2807,6 +2807,34 @@ function Live2026() {
           const headers = rtl ? rtlHeaders : ltrHeaders;
           const colWidths = rtl ? [100, 16, 100, 16, 100, 16, 150] : [150, 16, 100, 16, 100, 16, 100];
 
+          const getWinner = (t, b) => {
+            if (!t || !b) return null;
+            if (t.gameStatus === "post" && t.alive) return t;
+            if (b.gameStatus === "post" && b.alive) return b;
+            return null;
+          };
+
+          const r32 = [];
+          for (let i = 0; i < r64.length; i += 2) {
+            const w1 = getWinner(r64[i][0], r64[i][1]);
+            const w2 = getWinner(r64[i + 1][0], r64[i + 1][1]);
+            r32.push([w1, w2]);
+          }
+
+          const s16 = [];
+          for (let i = 0; i < r32.length; i += 2) {
+            const w1 = getWinner(r32[i][0], r32[i][1]);
+            const w2 = getWinner(r32[i + 1][0], r32[i + 1][1]);
+            s16.push([w1, w2]);
+          }
+
+          const e8 = [];
+          for (let i = 0; i < s16.length; i += 2) {
+            const w1 = getWinner(s16[i][0], s16[i][1]);
+            const w2 = getWinner(s16[i + 1][0], s16[i + 1][1]);
+            e8.push([w1, w2]);
+          }
+
           const r64Col = (
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 150, minWidth: 150, flexShrink: 0 }}>
               {r64.map(([t, b], i) => <BMatch key={i} top={t} bot={b} rtl={rtl} />)}
@@ -2815,11 +2843,11 @@ function Live2026() {
 
           const bracketContent = rtl ? (
             <>
-              <RoundCol n={1} w={100} rtl={rtl} />
+              <RoundCol matches={e8} w={100} rtl={rtl} />
               <BConn pairs={1} rtl />
-              <RoundCol n={2} w={100} rtl={rtl} />
+              <RoundCol matches={s16} w={100} rtl={rtl} />
               <BConn pairs={2} rtl />
-              <RoundCol n={4} w={100} rtl={rtl} />
+              <RoundCol matches={r32} w={100} rtl={rtl} />
               <BConn pairs={4} rtl />
               {r64Col}
             </>
@@ -2827,11 +2855,11 @@ function Live2026() {
             <>
               {r64Col}
               <BConn pairs={4} />
-              <RoundCol n={4} w={100} />
+              <RoundCol matches={r32} w={100} />
               <BConn pairs={2} />
-              <RoundCol n={2} w={100} />
+              <RoundCol matches={s16} w={100} />
               <BConn pairs={1} />
-              <RoundCol n={1} w={100} />
+              <RoundCol matches={e8} w={100} />
             </>
           );
 
