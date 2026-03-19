@@ -2961,7 +2961,7 @@ function Live2026() {
                           <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>Team</th>
                           <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>vs</th>
                           <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>Spread</th>
-                          <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>Time</th>
+                          <th style={{ padding: "4px 4px", textAlign: "center", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>Score</th>
                           <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 8 }}>Price</th>
                         </tr>
                       </thead>
@@ -2990,10 +2990,20 @@ function Live2026() {
                                 const pts = Math.abs(parseFloat(num[0]));
                                 return t.seed < oppSeed ? `-${pts}` : `+${pts}`;
                               })()}</td>
-                              <td style={{ padding: "5px 4px", textAlign: "right", color: isToday ? "#e8e6e3" : "#5a6a8a", fontWeight: isToday ? 600 : 400, fontSize: 9, whiteSpace: "nowrap" }}>
-                                {isLive && <span className="live-dot" style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%", background: "#22c55e", marginRight: 4, verticalAlign: "middle" }} />}
-                                {isToday && game ? "TODAY " + game.time.split(" ")[1] : game ? game.time : "—"}
-                              </td>
+                              <td style={{ padding: "5px 4px", textAlign: "center", fontSize: 9, whiteSpace: "nowrap" }}>{(() => {
+                                if (t.gameStatus === "in") return (
+                                  <span style={{ color: "#22c55e", fontWeight: 700 }}>
+                                    <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: "#22c55e", marginRight: 3, verticalAlign: "middle" }} />
+                                    {t.liveScore}-{t.oppLiveScore}
+                                  </span>
+                                );
+                                if (t.gameStatus === "post") return (
+                                  <span style={{ color: t.alive || (t.ats === true) ? "#e8e6e3" : "#e63946", fontWeight: 600 }}>
+                                    {t.liveScore}-{t.oppLiveScore}
+                                  </span>
+                                );
+                                return <span style={{ color: "#3a4a6a" }}>{game ? game.time : "—"}</span>;
+                              })()}</td>
                               <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
                             </tr>
                           );
