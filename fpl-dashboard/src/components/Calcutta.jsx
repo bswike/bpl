@@ -318,6 +318,96 @@ const TEAMS_2025 = [
   {s:"Tomek",sd:"2E",t:"Alabama",p:1350,w:1716,n:366,seed:2},
 ];
 
+// 2026 AUCTION RESULTS — 9 syndicates, $37,750 pot
+const SYNDICATES_2026 = [
+  { name: "Bacon", spent: 5910, teams: 8 },
+  { name: "Hogan", spent: 5720, teams: 10 },
+  { name: "Hudachek", spent: 5090, teams: 3 },
+  { name: "Tomek", spent: 4660, teams: 15 },
+  { name: "Curran", spent: 4460, teams: 6 },
+  { name: "Stangs", spent: 3610, teams: 8 },
+  { name: "Crumbling", spent: 2890, teams: 5 },
+  { name: "Smith", spent: 2720, teams: 5 },
+  { name: "Coach", spent: 2690, teams: 4 },
+];
+
+const TEAMS_2026 = [
+  {s:"Tomek",sd:"S-16",t:"Lehigh/PVAMU",p:45,seed:16,spread:35.5,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"MW-16",t:"Howard",p:45,seed:16,spread:30.5,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"W-16",t:"Long Island",p:45,seed:16,spread:30.5,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"E-16",t:"Siena",p:45,seed:16,spread:27.5,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"S-15",t:"Idaho",p:90,seed:15,spread:23.5,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"MW-15",t:"TN State",p:90,seed:15,spread:24.5,w:0,n:0,alive:true},
+  {s:"Coach",sd:"W-15",t:"Queens",p:60,seed:15,spread:25.5,w:0,n:0,alive:true},
+  {s:"Coach",sd:"E-15",t:"Furman",p:60,seed:15,spread:20.5,w:0,n:0,alive:true},
+  {s:"Hogan",sd:"S-14",t:"Penn",p:20,seed:14,w:0,n:0,alive:true},
+  {s:"Smith",sd:"MW-14",t:"Wright State",p:40,seed:14,w:0,n:0,alive:true},
+  {s:"Hogan",sd:"W-14",t:"Kennesaw St",p:40,seed:14,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"E-14",t:"ND State",p:20,seed:14,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"S-13",t:"Troy",p:80,seed:13,w:0,n:0,alive:true},
+  {s:"Hogan",sd:"MW-13",t:"Hofstra",p:80,seed:13,w:0,n:0,alive:true},
+  {s:"Stangs",sd:"W-13",t:"Hawaii",p:40,seed:13,w:0,n:0,alive:true},
+  {s:"Stangs",sd:"E-13",t:"Cal Baptist",p:60,seed:13,w:0,n:0,alive:true},
+  {s:"Crumbling",sd:"S-12",t:"McNeese",p:80,seed:12,w:0,n:0,alive:true},
+  {s:"Hogan",sd:"MW-12",t:"Akron",p:120,seed:12,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"W-12",t:"High Point",p:140,seed:12,w:0,n:0,alive:true},
+  {s:"Stangs",sd:"E-12",t:"Northern Iowa",p:100,seed:12,w:0,n:0,alive:true},
+  {s:"Bacon",sd:"S-11",t:"VCU",p:160,seed:11,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"MW-11",t:"SMU",p:120,seed:11,w:0,n:0,alive:true},
+  {s:"Bacon",sd:"W-11",t:"Texas",p:260,seed:11,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"E-11",t:"South Florida",p:200,seed:11,w:0,n:0,alive:true},
+  {s:"Stangs",sd:"S-10",t:"Texas A&M",p:120,seed:10,w:0,n:0,alive:true},
+  {s:"Smith",sd:"MW-10",t:"Santa Clara",p:180,seed:10,w:0,n:0,alive:true},
+  {s:"Curran",sd:"W-10",t:"Missouri",p:180,seed:10,w:0,n:0,alive:true},
+  {s:"Hogan",sd:"E-10",t:"UCF",p:160,seed:10,w:0,n:0,alive:true},
+  {s:"Bacon",sd:"S-9",t:"Iowa",p:200,seed:9,w:0,n:0,alive:true},
+  {s:"Stangs",sd:"MW-9",t:"Saint Louis",p:140,seed:9,w:0,n:0,alive:true},
+  {s:"Bacon",sd:"W-9",t:"Utah State",p:160,seed:9,w:0,n:0,alive:true},
+  {s:"Smith",sd:"E-9",t:"TCU",p:160,seed:9,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"S-8",t:"Clemson",p:140,seed:8,w:0,n:0,alive:true},
+  {s:"Smith",sd:"MW-8",t:"Georgia",p:140,seed:8,w:0,n:0,alive:true},
+  {s:"Hogan",sd:"W-8",t:"Villanova",p:200,seed:8,w:0,n:0,alive:true},
+  {s:"Curran",sd:"E-8",t:"Ohio State",p:240,seed:8,w:0,n:0,alive:true},
+  {s:"Hudachek",sd:"S-7",t:"Saint Mary's",p:240,seed:7,w:0,n:0,alive:true},
+  {s:"Curran",sd:"MW-7",t:"Kentucky",p:320,seed:7,w:0,n:0,alive:true},
+  {s:"Hogan",sd:"W-7",t:"Miami FL",p:300,seed:7,w:0,n:0,alive:true},
+  {s:"Curran",sd:"E-7",t:"UCLA",p:520,seed:7,w:0,n:0,alive:true},
+  {s:"Crumbling",sd:"S-6",t:"North Carolina",p:320,seed:6,w:0,n:0,alive:true},
+  {s:"Bacon",sd:"MW-6",t:"Tennessee",p:660,seed:6,w:0,n:0,alive:true},
+  {s:"Crumbling",sd:"W-6",t:"BYU",p:480,seed:6,w:0,n:0,alive:true},
+  {s:"Bacon",sd:"E-6",t:"Louisville",p:420,seed:6,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"S-5",t:"Vanderbilt",p:1000,seed:5,w:0,n:0,alive:true},
+  {s:"Crumbling",sd:"MW-5",t:"Texas Tech",p:460,seed:5,w:0,n:0,alive:true},
+  {s:"Curran",sd:"W-5",t:"Wisconsin",p:500,seed:5,w:0,n:0,alive:true},
+  {s:"Stangs",sd:"E-5",t:"St. John's",p:900,seed:5,w:0,n:0,alive:true},
+  {s:"Coach",sd:"S-4",t:"Nebraska",p:520,seed:4,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"MW-4",t:"Alabama",p:600,seed:4,w:0,n:0,alive:true},
+  {s:"Hogan",sd:"W-4",t:"Arkansas",p:800,seed:4,w:0,n:0,alive:true},
+  {s:"Stangs",sd:"E-4",t:"Kansas",p:950,seed:4,w:0,n:0,alive:true},
+  {s:"Stangs",sd:"S-3",t:"Illinois",p:1300,seed:3,w:0,n:0,alive:true},
+  {s:"Bacon",sd:"MW-3",t:"Virginia",p:1100,seed:3,w:0,n:0,alive:true},
+  {s:"Hogan",sd:"W-3",t:"Gonzaga",p:1000,seed:3,w:0,n:0,alive:true},
+  {s:"Crumbling",sd:"E-3",t:"Michigan State",p:1550,seed:3,w:0,n:0,alive:true},
+  {s:"Smith",sd:"S-2",t:"Houston",p:2200,seed:2,w:0,n:0,alive:true},
+  {s:"Coach",sd:"MW-2",t:"Iowa State",p:2050,seed:2,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"W-2",t:"Purdue",p:2000,seed:2,w:0,n:0,alive:true},
+  {s:"Hudachek",sd:"E-2",t:"UConn",p:1650,seed:2,w:0,n:0,alive:true},
+  {s:"Curran",sd:"S-1",t:"Florida",p:2700,seed:1,w:0,n:0,alive:true},
+  {s:"Hogan",sd:"MW-1",t:"Michigan",p:3000,seed:1,w:0,n:0,alive:true},
+  {s:"Hudachek",sd:"W-1",t:"Arizona",p:3200,seed:1,w:0,n:0,alive:true},
+  {s:"Bacon",sd:"E-1",t:"Duke",p:2950,seed:1,w:0,n:0,alive:true},
+];
+
+const POT_2026 = 37750;
+const PAYOUT_2026 = {
+  R32: Math.round(POT_2026 * 0.005 * 100) / 100,
+  S16: Math.round(POT_2026 * 0.03 * 100) / 100,
+  E8: Math.round(POT_2026 * 0.06 * 100) / 100,
+  F4: Math.round(POT_2026 * 0.09 * 100) / 100,
+  F2: Math.round(POT_2026 * 0.12 * 100) / 100,
+  Ch: Math.round(POT_2026 * 0.14 * 100) / 100,
+};
+
 const ALL_TEAMS = [
   ...TEAMS_2022.map(t => ({...t, year: 2022})),
   ...TEAMS_2023.map(t => ({...t, year: 2023})),
@@ -334,6 +424,7 @@ const SYNDICATE_COLORS = {
   Hogan: "#f4a261",
   Hudachek: "#6a4c93",
   Mustangs: "#1d3557",
+  Stangs: "#1d3557",
   Smith: "#264653",
   Tomek: "#d62828",
 };
@@ -515,11 +606,11 @@ function getTeamValue(team) {
 }
 
 
-const MAIN_TABS = ["2026 Prep", "Teams", "Seed ROI"];
+const MAIN_TABS = ["2026 Live", "2026 Prep", "Teams", "Seed ROI"];
 const EXTRA_TABS = ["Leaderboard", "Strategy", "Spending"];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("2026 Prep");
+  const [activeTab, setActiveTab] = useState("2026 Live");
   const [selectedYear, setSelectedYear] = useState("All");
 
   return (
@@ -558,7 +649,7 @@ export default function App() {
           color: "#5a6a8a",
           marginTop: 4,
           letterSpacing: 2,
-        }}>2022 — 2023 — 2024 — 2025</div>
+        }}>2022 — 2023 — 2024 — 2025 — 2026</div>
       </div>
 
       {/* Main tabs */}
@@ -621,7 +712,7 @@ export default function App() {
       </div>
 
       {/* Year filter - only show for historical tabs */}
-      {activeTab !== "2026 Prep" && activeTab !== "Spending" && (
+      {activeTab !== "2026 Live" && activeTab !== "2026 Prep" && activeTab !== "Spending" && (
       <div style={{
         display: "flex",
         justifyContent: "center",
@@ -648,6 +739,7 @@ export default function App() {
       </div>
       )}
 
+      {activeTab === "2026 Live" && <Live2026 />}
       {activeTab === "2026 Prep" && <AuctionPrep />}
       {activeTab === "Leaderboard" && <Leaderboard year={selectedYear} />}
       {activeTab === "Seed ROI" && <SeedROI year={selectedYear} />}
@@ -2229,6 +2321,237 @@ function AuctionPrep() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// 2026 LIVE
+// ═══════════════════════════════════════════
+
+function Live2026() {
+  const [liveView, setLiveView] = useState("bracket");
+  const regions = ["S", "MW", "W", "E"];
+  const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
+  const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
+
+  const pot = POT_2026;
+  const payoutLabels = ["R32", "S16", "E8", "F4", "F2", "Ch"];
+  const payoutCum = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14];
+  const payoutIncr = payoutCum.map((v, i) => i === 0 ? v : v - payoutCum[i - 1]);
+
+  const synData = useMemo(() => {
+    const agg = {};
+    SYNDICATES_2026.forEach(syn => {
+      const teams = TEAMS_2026.filter(t => t.s === syn.name);
+      const tiers = { "1-2": 0, "3-4": 0, "5-8": 0, "9-12": 0, "13-16": 0 };
+      teams.forEach(t => {
+        if (t.seed <= 2) tiers["1-2"] += t.p;
+        else if (t.seed <= 4) tiers["3-4"] += t.p;
+        else if (t.seed <= 8) tiers["5-8"] += t.p;
+        else if (t.seed <= 12) tiers["9-12"] += t.p;
+        else tiers["13-16"] += t.p;
+      });
+      const alive = teams.filter(t => t.alive).length;
+      agg[syn.name] = { ...syn, teams, tiers, alive, totalTeams: teams.length };
+    });
+    return agg;
+  }, []);
+
+  const tierColors = { "1-2": "#e63946", "3-4": "#f4a261", "5-8": "#2a9d8f", "9-12": "#457b9d", "13-16": "#6a4c93" };
+  const cardBg = "#0f1829";
+  const cardBorder = "#1e2a40";
+
+  const views = [
+    { key: "bracket", label: "Bracket" },
+    { key: "syndicates", label: "Syndicates" },
+    { key: "teams", label: "All Teams" },
+  ];
+
+  return (
+    <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: 16 }}>
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700, margin: "0 0 4px 0", color: "#e8e6e3" }}>
+          2026 Hogan Calcutta — LIVE
+        </h2>
+        <div style={{ fontSize: 11, color: "#5a6a8a" }}>
+          9 syndicates · <span style={{ color: "#2ecc71", fontWeight: 600 }}>${pot.toLocaleString()}</span> pot · ${Math.round(pot / 9).toLocaleString()}/syn avg
+        </div>
+      </div>
+
+      {/* Payout strip */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        {payoutLabels.map((label, i) => (
+          <div key={label} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 6, padding: "6px 12px", textAlign: "center", minWidth: 70 }}>
+            <div style={{ fontSize: 9, color: "#5a6a8a", marginBottom: 2 }}>{label}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#e8e6e3" }}>${Math.round(pot * payoutCum[i]).toLocaleString()}</div>
+            <div style={{ fontSize: 8, color: "#4a9eff" }}>+${Math.round(pot * payoutIncr[i]).toLocaleString()}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Sub-nav */}
+      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
+        {views.map(v => (
+          <button key={v.key} onClick={() => setLiveView(v.key)} style={{
+            padding: "6px 16px", background: liveView === v.key ? "#4a9eff22" : "transparent",
+            border: `1px solid ${liveView === v.key ? "#4a9eff" : "#1e2a40"}`, borderRadius: 5,
+            color: liveView === v.key ? "#4a9eff" : "#5a6a8a", fontSize: 11, fontWeight: liveView === v.key ? 700 : 400,
+            fontFamily: "inherit", cursor: "pointer",
+          }}>{v.label}</button>
+        ))}
+      </div>
+
+      {/* ── BRACKET VIEW ── */}
+      {liveView === "bracket" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {regions.map(r => {
+            const teams = TEAMS_2026.filter(t => t.sd.startsWith(r + "-")).sort((a, b) => a.seed - b.seed);
+            return (
+              <div key={r} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 10, overflow: "hidden" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: regionColors[r], marginBottom: 8, textAlign: "center", letterSpacing: 1 }}>
+                  {regionNames[r].toUpperCase()}
+                </div>
+                {teams.map(team => {
+                  const synColor = SYNDICATE_COLORS[team.s] || "#5a6a8a";
+                  const val = getTeamValue({ r, s: team.seed });
+                  const ratio = val.fairValue / team.p;
+                  return (
+                    <div key={team.sd} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "3px 6px", marginBottom: 1, borderRadius: 3,
+                      background: team.alive ? "transparent" : "#1a0a0a",
+                      opacity: team.alive ? 1 : 0.4,
+                      borderLeft: `3px solid ${synColor}`,
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+                        <span style={{ fontSize: 9, color: "#5a6a8a", width: 16, textAlign: "right", flexShrink: 0 }}>{team.seed}</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: "#e8e6e3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{team.t}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        <span style={{ fontSize: 9, color: "#5a6a8a" }}>${team.p}</span>
+                        <span style={{ fontSize: 8, fontWeight: 600, padding: "1px 4px", borderRadius: 3,
+                          background: synColor + "22", color: synColor,
+                        }}>{team.s.slice(0, 4)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── SYNDICATES VIEW ── */}
+      {liveView === "syndicates" && (
+        <div>
+          {/* Syndicate summary cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10, marginBottom: 16 }}>
+            {SYNDICATES_2026.sort((a, b) => b.spent - a.spent).map(syn => {
+              const sd = synData[syn.name];
+              const synColor = SYNDICATE_COLORS[syn.name] || "#5a6a8a";
+              return (
+                <div key={syn.name} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 4, height: 20, borderRadius: 2, background: synColor }} />
+                      <span style={{ fontSize: 14, fontWeight: 700, color: synColor }}>{syn.name}</span>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#e8e6e3" }}>${syn.spent.toLocaleString()}</div>
+                      <div style={{ fontSize: 9, color: "#5a6a8a" }}>{sd.totalTeams} teams · {sd.alive} alive</div>
+                    </div>
+                  </div>
+                  {/* Tier bar */}
+                  <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 8, background: "#1a2235" }}>
+                    {Object.entries(sd.tiers).map(([tier, amt]) => (
+                      <div key={tier} style={{ width: `${(amt / syn.spent) * 100}%`, background: tierColors[tier], transition: "width 0.3s" }} />
+                    ))}
+                  </div>
+                  {/* Team list */}
+                  <div style={{ fontSize: 10 }}>
+                    {sd.teams.sort((a, b) => b.p - a.p).map(t => {
+                      const val = getTeamValue({ r: t.sd.split("-")[0], s: t.seed });
+                      return (
+                        <div key={t.sd} style={{
+                          display: "flex", justifyContent: "space-between", padding: "2px 0",
+                          borderBottom: "1px solid #0d1321", opacity: t.alive ? 1 : 0.4,
+                        }}>
+                          <span style={{ color: "#8a9aba" }}>
+                            <span style={{ color: "#5a6a8a", fontSize: 9 }}>{t.seed}</span> {t.t}
+                            {t.spread ? <span style={{ color: "#3a4a6a", fontSize: 8 }}> +{t.spread}</span> : null}
+                          </span>
+                          <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                            <span style={{ color: "#e8e6e3", fontWeight: 600 }}>${t.p}</span>
+                            <span style={{ fontSize: 8, color: val.color, fontWeight: 600 }}>EV ${val.fairValue}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── ALL TEAMS VIEW ── */}
+      {liveView === "teams" && (
+        <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 12, overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #1e2a40" }}>
+                <th style={{ padding: "6px 8px", textAlign: "left", color: "#5a6a8a", fontWeight: 500 }}>Seed</th>
+                <th style={{ padding: "6px 8px", textAlign: "left", color: "#5a6a8a", fontWeight: 500 }}>Team</th>
+                <th style={{ padding: "6px 8px", textAlign: "left", color: "#5a6a8a", fontWeight: 500 }}>Region</th>
+                <th style={{ padding: "6px 8px", textAlign: "left", color: "#5a6a8a", fontWeight: 500 }}>Owner</th>
+                <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500 }}>Price</th>
+                <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500 }}>EV</th>
+                <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500 }}>Ratio</th>
+                <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500 }}>Verdict</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TEAMS_2026.slice().sort((a, b) => {
+                const va = getTeamValue({ r: a.sd.split("-")[0], s: a.seed });
+                const vb = getTeamValue({ r: b.sd.split("-")[0], s: b.seed });
+                return (vb.fairValue / b.p) - (va.fairValue / a.p);
+              }).map(t => {
+                const region = t.sd.split("-")[0];
+                const val = getTeamValue({ r: region, s: t.seed });
+                const ratio = val.fairValue / t.p;
+                const synColor = SYNDICATE_COLORS[t.s] || "#5a6a8a";
+                return (
+                  <tr key={t.sd} style={{ borderBottom: "1px solid #0d1321", opacity: t.alive ? 1 : 0.35 }}>
+                    <td style={{ padding: "5px 8px", color: t.seed <= 2 ? "#e9c46a" : t.seed <= 4 ? "#f4a261" : "#8a9aba", fontWeight: 600 }}>{t.seed}</td>
+                    <td style={{ padding: "5px 8px", color: "#e8e6e3", fontWeight: 500 }}>
+                      {t.t}
+                      {t.spread ? <span style={{ color: "#3a4a6a", fontSize: 9, marginLeft: 4 }}>+{t.spread}</span> : null}
+                    </td>
+                    <td style={{ padding: "5px 8px", color: regionColors[region] || "#5a6a8a", fontWeight: 600, fontSize: 10 }}>{regionNames[region]}</td>
+                    <td style={{ padding: "5px 8px", color: synColor, fontWeight: 600 }}>{t.s}</td>
+                    <td style={{ padding: "5px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
+                    <td style={{ padding: "5px 8px", textAlign: "right", color: val.color }}>${val.fairValue.toLocaleString()}</td>
+                    <td style={{ padding: "5px 8px", textAlign: "right", color: ratio >= 1.0 ? "#2ecc71" : ratio >= 0.7 ? "#e9c46a" : "#e63946", fontWeight: 600 }}>
+                      {ratio.toFixed(2)}x
+                    </td>
+                    <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: val.color + "22", color: val.color }}>
+                        {val.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 8, textAlign: "center" }}>
+            EV = model-based expected value · Ratio = EV / Price · Sorted by best value
+          </div>
+        </div>
+      )}
     </div>
   );
 }
