@@ -2368,25 +2368,24 @@ function Live2026() {
   const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
   const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
 
-  const vScrollRef = useRef(null);
-  const _ref2 = useRef(null);
-  const _ref3 = useRef(null);
+  const hScrollRef = useRef(null);
+  const vScrollRefLeft = useRef(null);
+  const vScrollRefRight = useRef(null);
 
-  const isLeftCol = bracketMobileRegion === "E" || bracketMobileRegion === "S";
-  const vPair = isLeftCol ? ["E", "S"] : ["W", "MW"];
+  const getVisibleRegion = useCallback(() => {
+    const hEl = hScrollRef.current;
+    if (!hEl) return bracketMobileRegion;
+    const isRight = (hEl.scrollLeft + hEl.clientWidth / 2) > hEl.clientWidth;
+    const vRef = isRight ? vScrollRefRight.current : vScrollRefLeft.current;
+    const isBottom = vRef && (vRef.scrollTop + vRef.clientHeight / 2) > (vRef.children[0]?.offsetHeight || 0);
+    if (isRight) return isBottom ? "MW" : "W";
+    return isBottom ? "S" : "E";
+  }, [bracketMobileRegion]);
 
-  const handleVScroll = useCallback(() => {
-    const el = vScrollRef.current;
-    if (!el) return;
-    const mid = el.scrollTop + el.clientHeight / 2;
-    const firstH = el.children[0]?.offsetHeight || 0;
-    const newRegion = mid > firstH ? vPair[1] : vPair[0];
-    if (newRegion !== bracketMobileRegion) setBracketMobileRegion(newRegion);
-  }, [bracketMobileRegion, vPair]);
-
-  const switchColumn = useCallback(() => {
-    setBracketMobileRegion(isLeftCol ? "W" : "E");
-  }, [isLeftCol]);
+  const handleBracketScroll = useCallback(() => {
+    const r = getVisibleRegion();
+    if (r !== bracketMobileRegion) setBracketMobileRegion(r);
+  }, [getVisibleRegion, bracketMobileRegion]);
 
   const _cb1 = useCallback(() => {}, []);
   const _cb2 = useCallback(() => {}, []);
@@ -2679,7 +2678,7 @@ function Live2026() {
         const bracketOrder = [[1,16],[8,9],[5,12],[4,13],[6,11],[3,14],[7,10],[2,15]];
         const SLOT_H = 24;
         const isMobile = typeof window !== "undefined" && window.innerWidth < 820;
-        const TOTAL_H = isMobile ? Math.max(340, window.innerHeight - 130) : 500;
+        const TOTAL_H = isMobile ? Math.max(340, window.innerHeight - 150) : 500;
 
         const BSlot = ({ team, border, rtl, showScore }) => {
           if (!team) return (
@@ -2836,6 +2835,7 @@ function Live2026() {
                 ref={bracketScrollRef}
                 style={{
                   overflowX: "auto", WebkitOverflowScrolling: "touch",
+                  overscrollBehavior: "contain",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
                   paddingBottom: 4, paddingTop: 2,
                 }}
@@ -2868,41 +2868,46 @@ function Live2026() {
 
         return (
           <div>
-            {isMobile ? (
-              <div style={{ position: "relative", height: "calc(100dvh - 80px)" }}>
+            {isMobile ? (() => {
+              const bracketH = "calc(100dvh - 100px)";
+              const vColStyle = {
+                minWidth: "100%", flexShrink: 0, scrollSnapAlign: "start",
+                height: bracketH, overflowY: "auto",
+                scrollSnapType: "y mandatory",
+                overscrollBehaviorY: "contain",
+                WebkitOverflowScrolling: "touch",
+              };
+              return (
                 <div
-                  ref={vScrollRef}
-                  onScroll={handleVScroll}
+                  ref={hScrollRef}
+                  onScroll={handleBracketScroll}
                   style={{
-                    height: "100%",
-                    overflowY: "auto",
-                    scrollSnapType: "y mandatory",
+                    display: "flex", overflowX: "auto",
+                    scrollSnapType: "x mandatory",
                     overscrollBehavior: "contain",
                     WebkitOverflowScrolling: "touch",
+                    height: bracketH,
                   }}
                 >
-                  {vPair.map(r => (
-                    <div key={r} style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region={r} rtl={rtlRegions.has(r)} />
+                  <div ref={vScrollRefLeft} onScroll={handleBracketScroll} style={vColStyle}>
+                    <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
+                      <LiveRegionBracket region="E" rtl={false} />
                     </div>
-                  ))}
+                    <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
+                      <LiveRegionBracket region="S" rtl={false} />
+                    </div>
+                  </div>
+                  <div ref={vScrollRefRight} onScroll={handleBracketScroll} style={vColStyle}>
+                    <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
+                      <LiveRegionBracket region="W" rtl={true} />
+                    </div>
+                    <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
+                      <LiveRegionBracket region="MW" rtl={true} />
+                    </div>
+                  </div>
                 </div>
-                <button
-                  onClick={switchColumn}
-                  style={{
-                    position: "absolute", bottom: 10, left: "50%", transform: "translateX(-50%)",
-                    padding: "6px 16px", borderRadius: 20,
-                    background: "#0a0e17ee", border: `1px solid ${regionColors[isLeftCol ? "W" : "E"]}44`,
-                    color: isLeftCol ? regionColors.W : regionColors.E,
-                    fontSize: 9, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                    letterSpacing: 0.5, zIndex: 10,
-                    backdropFilter: "blur(4px)",
-                  }}
-                >
-                  {isLeftCol ? `${regionNames.W} / ${regionNames.MW} →` : `← ${regionNames.E} / ${regionNames.S}`}
-                </button>
-              </div>
-            ) : (
+              );
+            })() : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {regionOrder.map(r => (
                   <div key={r}>
