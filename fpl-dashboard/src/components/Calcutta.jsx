@@ -2489,12 +2489,17 @@ function Live2026() {
                         {(syn.roi * 100).toFixed(0)}%
                       </td>
                     </tr>
-                    {isOpen && teams.map(t => {
+                    {isOpen && <>
+                      <tr style={{ background: "#080c14" }}>
+                        <td colSpan={13} style={{ padding: "3px 4px 2px 20px", fontSize: 8, color: "#3a4a6a", fontStyle: "italic" }}>
+                          <span style={{ display: "inline-block", width: 8, height: 2, background: "#f97316", borderRadius: 1, marginRight: 4, verticalAlign: "middle" }} />
+                          breakeven round
+                        </td>
+                      </tr>
+                      {teams.map(t => {
                       const teamEarned = [0,1,2,3,4,5].reduce((sum, ri) => sum + (t.w > ri ? incrPayouts[ri] : 0), 0);
                       const teamNet = teamEarned - t.p;
-                      const beRounds = ["R32","S16","E8","F4","F2","Ch"];
                       const beIdx = cumPayouts.findIndex(cp => cp >= t.p);
-                      const beLabel = beIdx >= 0 ? beRounds[beIdx] : "Ch+";
                       return (
                         <tr key={t.sd} style={{ background: "#080c14", borderBottom: "1px solid #0d1321" }}>
                           <td style={{ padding: "4px 4px" }} />
@@ -2502,13 +2507,13 @@ function Live2026() {
                             <span style={{ color: "#3a4a6a", fontSize: 9, marginRight: 3 }}>{t.seed}</span>
                             {t.t}
                             {!t.alive && <span style={{ color: "#e63946", fontSize: 8, marginLeft: 4 }}>✗</span>}
-                            <span style={{ fontSize: 8, color: "#2a3a5a", marginLeft: 5, fontStyle: "italic" }}>b/e {beLabel}</span>
                           </td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: t.alive ? "#2ecc71" : "#3a4a6a", fontSize: 9 }}>{t.alive ? "✓" : "✗"}</td>
                           {[0,1,2,3,4,5].map(ri => {
                             const won = t.w > ri;
-                            return <td key={ri} style={{ padding: "4px 4px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10 }}>{won ? `$${incrPayouts[ri]}` : "—"}</td>;
+                            const isBE = ri === beIdx;
+                            return <td key={ri} style={{ padding: "4px 4px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10, borderBottom: isBE ? "2px solid #f97316" : "none" }}>{won ? `$${incrPayouts[ri]}` : "—"}</td>;
                           })}
                           <td style={{ padding: "4px 4px", textAlign: "right", color: teamEarned > 0 ? "#e8e6e3" : "#1e2a40", fontSize: 10, fontWeight: 600 }}>{teamEarned > 0 ? `$${teamEarned.toLocaleString()}` : "—"}</td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: "#8a9aba", fontSize: 10 }}>${t.p.toLocaleString()}</td>
@@ -2516,6 +2521,7 @@ function Live2026() {
                         </tr>
                       );
                     })}
+                    </>}
                     </React.Fragment>
                   );
                 })}
