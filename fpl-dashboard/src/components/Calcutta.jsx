@@ -2997,6 +2997,7 @@ function Live2026() {
                                   <span style={{ color: liveColor, fontWeight: 700 }}>
                                     <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: liveColor, marginRight: 3, verticalAlign: "middle" }} />
                                     {t.liveScore}-{t.oppLiveScore}
+                                    {t.gameDetail && <span style={{ fontSize: 7, fontWeight: 400, color: "#5a6a8a", marginLeft: 4 }}>{t.gameDetail}</span>}
                                   </span>
                                 );}
                                 if (t.gameStatus === "post") return (
