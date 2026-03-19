@@ -1,8 +1,19 @@
 import { useState, useMemo } from "react";
 
 // ═══════════════════════════════════════════
-// HOGAN CALCUTTA DATA (2023-2025)
+// HOGAN CALCUTTA DATA (2022-2025)
 // ═══════════════════════════════════════════
+
+const SYNDICATES_2022 = [
+  { name: "Curran", spent: 4520, totalWon: 5575, net: 1055, pct: 0.2334 },
+  { name: "Bacon", spent: 4440, totalWon: 3097, net: -1343, pct: -0.3025 },
+  { name: "Mustangs", spent: 4780, totalWon: 6659, net: 1879, pct: 0.3930 },
+  { name: "Coach", spent: 3400, totalWon: 5265, net: 1865, pct: 0.5485 },
+  { name: "Hogan", spent: 3660, totalWon: 2478, net: -1182, pct: -0.3230 },
+  { name: "Hudachek", spent: 4760, totalWon: 3407, net: -1353, pct: -0.2842 },
+  { name: "Smith", spent: 2970, totalWon: 1549, net: -1421, pct: -0.4785 },
+  { name: "Crumbling", spent: 2440, totalWon: 2942, net: 502, pct: 0.2057 },
+];
 
 const SYNDICATES_2023 = [
   { name: "Bacon", spent: 3650, totalWon: 8948, net: 5298, pct: 1.4515 },
@@ -39,6 +50,73 @@ const SYNDICATES_2025 = [
 ];
 
 // Teams by year
+const TEAMS_2022 = [
+  {s:"Curran",sd:"15W",t:"Cal St Fullerton",p:45,w:155,n:110,seed:15},
+  {s:"Curran",sd:"15S",t:"Delaware",p:45,w:0,n:-45,seed:15},
+  {s:"Curran",sd:"12E",t:"Indiana",p:150,w:0,n:-150,seed:12},
+  {s:"Curran",sd:"9E",t:"Marquette",p:200,w:0,n:-200,seed:9},
+  {s:"Curran",sd:"7E",t:"Murray St",p:260,w:155,n:-105,seed:7},
+  {s:"Curran",sd:"6MW",t:"LSU",p:400,w:0,n:-400,seed:6},
+  {s:"Curran",sd:"3W",t:"Texas Tech",p:1390,w:929,n:-461,seed:3},
+  {s:"Curran",sd:"1MW",t:"Kansas",p:2030,w:4336,n:2306,seed:1},
+  {s:"Bacon",sd:"11MW",t:"Iowa State",p:190,w:929,n:739,seed:11},
+  {s:"Bacon",sd:"10E",t:"San Francisco",p:170,w:0,n:-170,seed:10},
+  {s:"Bacon",sd:"10S",t:"Loyola Chicago",p:250,w:0,n:-250,seed:10},
+  {s:"Bacon",sd:"8MW",t:"San Diego St",p:260,w:0,n:-260,seed:8},
+  {s:"Bacon",sd:"8W",t:"Boise St",p:140,w:0,n:-140,seed:8},
+  {s:"Bacon",sd:"6E",t:"Texas",p:310,w:155,n:-155,seed:6},
+  {s:"Bacon",sd:"5S",t:"Houston",p:660,w:1858,n:1198,seed:5},
+  {s:"Bacon",sd:"5MW",t:"Iowa",p:780,w:0,n:-780,seed:5},
+  {s:"Bacon",sd:"1E",t:"Baylor",p:1680,w:155,n:-1525,seed:1},
+  {s:"Coach",sd:"16W",t:"Georgia State",p:45,w:155,n:110,seed:16},
+  {s:"Coach",sd:"16S",t:"Wright St",p:45,w:155,n:110,seed:16},
+  {s:"Coach",sd:"16MW",t:"Texas So",p:45,w:0,n:-45,seed:16},
+  {s:"Coach",sd:"16E",t:"Norfolk St",p:45,w:0,n:-45,seed:16},
+  {s:"Coach",sd:"14W",t:"Montana St",p:40,w:0,n:-40,seed:14},
+  {s:"Coach",sd:"13S",t:"Chattanooga",p:90,w:0,n:-90,seed:13},
+  {s:"Coach",sd:"11E",t:"Virginia Tech",p:300,w:0,n:-300,seed:11},
+  {s:"Coach",sd:"12S",t:"UAB",p:90,w:0,n:-90,seed:12},
+  {s:"Coach",sd:"10W",t:"Davidson",p:270,w:0,n:-270,seed:10},
+  {s:"Coach",sd:"8E",t:"UNC",p:280,w:3716,n:3436,seed:8},
+  {s:"Coach",sd:"5E",t:"St Mary's",p:340,w:155,n:-185,seed:5},
+  {s:"Coach",sd:"4MW",t:"Providence",p:540,w:929,n:389,seed:4},
+  {s:"Coach",sd:"3S",t:"Tennessee",p:1270,w:155,n:-1115,seed:3},
+  {s:"Hogan",sd:"14MW",t:"Colgate",p:110,w:0,n:-110,seed:14},
+  {s:"Hogan",sd:"14S",t:"Longwood",p:50,w:0,n:-50,seed:14},
+  {s:"Hogan",sd:"13E",t:"Akron",p:50,w:0,n:-50,seed:13},
+  {s:"Hogan",sd:"12MW",t:"Richmond",p:110,w:155,n:45,seed:12},
+  {s:"Hogan",sd:"11S",t:"Michigan",p:180,w:929,n:749,seed:11},
+  {s:"Hogan",sd:"7W",t:"Michigan State",p:200,w:155,n:-45,seed:7},
+  {s:"Hogan",sd:"4S",t:"Illinois",p:620,w:155,n:-465,seed:4},
+  {s:"Hogan",sd:"3E",t:"Purdue",p:820,w:929,n:109,seed:3},
+  {s:"Hogan",sd:"2MW",t:"Auburn",p:1520,w:155,n:-1365,seed:2},
+  {s:"Hudachek",sd:"10MW",t:"Miami FL",p:300,w:1858,n:1558,seed:10},
+  {s:"Hudachek",sd:"1S",t:"Arizona",p:2080,w:774,n:-1306,seed:1},
+  {s:"Hudachek",sd:"1W",t:"Gonzaga",p:2380,w:774,n:-1606,seed:1},
+  {s:"Smith",sd:"14E",t:"Yale",p:40,w:0,n:-40,seed:14},
+  {s:"Smith",sd:"13MW",t:"South Dakota St",p:190,w:0,n:-190,seed:13},
+  {s:"Smith",sd:"13W",t:"Vermont",p:160,w:0,n:-160,seed:13},
+  {s:"Smith",sd:"12W",t:"New Mexico St",p:110,w:155,n:45,seed:12},
+  {s:"Smith",sd:"9W",t:"Memphis",p:180,w:155,n:-25,seed:9},
+  {s:"Smith",sd:"8S",t:"Seton Hall",p:150,w:0,n:-150,seed:8},
+  {s:"Smith",sd:"7S",t:"Ohio State",p:200,w:155,n:-45,seed:7},
+  {s:"Smith",sd:"6W",t:"Alabama",p:360,w:0,n:-360,seed:6},
+  {s:"Smith",sd:"4E",t:"UCLA",p:900,w:929,n:29,seed:4},
+  {s:"Smith",sd:"3MW",t:"Wisconsin",p:680,w:155,n:-525,seed:3},
+  {s:"Crumbling",sd:"9MW",t:"Creighton",p:170,w:155,n:-15,seed:9},
+  {s:"Crumbling",sd:"7MW",t:"USC",p:260,w:0,n:-260,seed:7},
+  {s:"Crumbling",sd:"5W",t:"UConn",p:540,w:0,n:-540,seed:5},
+  {s:"Crumbling",sd:"2S",t:"Villanova",p:1470,w:2787,n:1317,seed:2},
+  {s:"Mustangs",sd:"15E",t:"Saint Pete",p:40,w:1858,n:1818,seed:15},
+  {s:"Mustangs",sd:"15S",t:"Jax St",p:40,w:0,n:-40,seed:15},
+  {s:"Mustangs",sd:"11W",t:"Notre Dame",p:160,w:155,n:-5,seed:11},
+  {s:"Mustangs",sd:"9S",t:"TCU",p:180,w:155,n:-25,seed:9},
+  {s:"Mustangs",sd:"6S",t:"Colorado State",p:280,w:0,n:-280,seed:6},
+  {s:"Mustangs",sd:"4W",t:"Arkansas",p:740,w:1858,n:1118,seed:4},
+  {s:"Mustangs",sd:"2E",t:"Kentucky",p:1660,w:0,n:-1660,seed:2},
+  {s:"Mustangs",sd:"2W",t:"Duke",p:1680,w:2632,n:952,seed:2},
+];
+
 const TEAMS_2023 = [
   {s:"Bacon",sd:"14E",t:"Montana State",p:60,w:0,n:-60,seed:14},
   {s:"Bacon",sd:"13MW",t:"Kent State",p:220,w:0,n:-220,seed:13},
@@ -241,6 +319,7 @@ const TEAMS_2025 = [
 ];
 
 const ALL_TEAMS = [
+  ...TEAMS_2022.map(t => ({...t, year: 2022})),
   ...TEAMS_2023.map(t => ({...t, year: 2023})),
   ...TEAMS_2024.map(t => ({...t, year: 2024})),
   ...TEAMS_2025.map(t => ({...t, year: 2025})),
@@ -346,14 +425,14 @@ const BRACKET_2026 = [
   {r:"E",s:1,t:"Duke",odds:"+300",s16:"90%",tr:"84%",em:"89%",note:"32-2, #1 overall, Foster ?"},
 ];
 
-const HIST_AVG_PRICE = {16:48,15:72,14:65,13:108,12:200,11:220,10:225,9:200,8:250,7:290,6:420,5:550,4:680,3:950,2:1550,1:2100};
-const HIST_ROI = {16:0.17,15:0.32,14:-0.81,13:-0.77,12:-0.59,11:0.19,10:-0.48,9:0.30,8:-0.39,7:-0.30,6:0.09,5:0.18,4:-0.08,3:0.02,2:-0.15,1:0.20};
-// Seed pricing stats from 2023-2025 Hogan data: [min, max, avg, median]
+const HIST_AVG_PRICE = {16:50,15:65,14:61,13:113,12:189,11:213,10:237,9:201,8:236,7:263,6:388,5:564,4:709,3:1011,2:1573,1:2059};
+const HIST_ROI = {16:0.36,15:2.31,14:-0.82,13:-0.81,12:-0.68,11:0.72,10:-0.13,9:0.33,8:0.41,7:-0.39,6:0.05,5:0.36,4:0.56,3:-0.17,2:-0.24,1:-0.01};
+// Seed pricing stats from 2022-2025 Hogan data: [min, max, avg, median]
 const SEED_PRICES = {
-  1:[1200,3350,2064,1810],2:[1200,2150,1570,1490],3:[680,1400,1001,1025],4:[480,1020,712,665],
-  5:[240,1000,558,545],6:[220,740,405,390],7:[150,400,273,255],8:[160,400,245,210],
-  9:[140,320,207,185],10:[140,340,233,225],11:[140,360,215,200],12:[140,270,213,215],
-  13:[60,220,109,95],14:[40,80,62,60],15:[70,80,73,70],16:[45,60,52,50],
+  1:[1200,3350,2059,1965],2:[1200,2150,1573,1550],3:[680,1400,1011,1025],4:[480,1020,709,665],
+  5:[240,1000,564,545],6:[220,740,388,370],7:[150,400,263,255],8:[140,400,236,210],
+  9:[140,320,201,180],10:[140,340,237,235],11:[140,360,213,195],12:[90,270,189,200],
+  13:[50,220,113,95],14:[40,110,61,60],15:[40,80,65,70],16:[45,60,50,48],
 };
 // Round-by-round probabilities: [R32, S16, E8, F4, F2, Champ] as decimals — T-Rank model
 const TORIK_ROUNDS = {
@@ -401,18 +480,18 @@ const EM_ROUNDS = {
   "E-6":[.71,.263,.108,.017,.003,.001],"E-5":[.86,.554,.156,.085,.03,.009],"E-4":[.922,.405,.079,.035,.01,.002],
   "E-3":[.938,.644,.366,.123,.047,.015],"E-2":[.964,.719,.409,.137,.052,.016],"E-1":[.996,.885,.716,.568,.369,.207],
 };
-// Avg cumulative Hogan payout per round reached (2023-2025 data)
-const HOGAN_PAYOUT = [163, 958, 1931, 2911, 3916, 4483];
+// Avg cumulative Hogan payout per round reached (2022-2025 data)
+const HOGAN_PAYOUT = [161, 951, 1913, 2880, 3866, 4446];
 const HOGAN_INCR_BASE = HOGAN_PAYOUT.map((v, i) => i === 0 ? v : v - HOGAN_PAYOUT[i - 1]);
 const ROUND_LABELS = ["R32","S16","E8","F4","F2","Ch"];
 
 // 9-syndicate adjustment: 2026 has 9 syndicates again (like 2024)
-// EV scales with pot: 9-syn pot ($35.5K) / 3yr avg pot ($32K) = 1.11x
-const EV_SCALE_9SYN = 1.1102;
+// EV scales with pot: 9-syn pot ($35.5K) / 4yr avg pot ($31.7K) = 1.12x
+const EV_SCALE_9SYN = 1.1189;
 const HOGAN_INCR = HOGAN_INCR_BASE.map(v => Math.round(v * EV_SCALE_9SYN));
-// Expected cost per seed in 9-syn auction: 8-syn baseline × dampened premium (70% of 2024 observed)
-// Premium dampened because 2024 is a single data point
-const ADJ_9SYN_PRICE = {1:2352,2:1710,3:1076,4:746,5:524,6:361,7:285,8:231,9:224,10:243,11:223,12:213,13:95,14:62,15:75,16:56};
+// Expected cost per seed in 9-syn auction: 8-syn baseline (2022+2023+2025) × dampened premium
+// Premium = 2024 observed / 8-syn avg, dampened to 70% since 2024 is a single data point
+const ADJ_9SYN_PRICE = {1:2376,2:1724,3:1087,4:748,5:523,6:350,7:282,8:226,9:223,10:245,11:223,12:203,13:95,14:62,15:73,16:56};
 
 function getTeamValue(team) {
   const key = `${team.r}-${team.s}`;
@@ -549,7 +628,7 @@ export default function App() {
         gap: 4,
         marginBottom: 24,
       }}>
-        {["All", "2023", "2024", "2025"].map(y => (
+        {["All", "2022", "2023", "2024", "2025"].map(y => (
           <button
             key={y}
             onClick={() => setSelectedYear(y)}
@@ -585,8 +664,8 @@ export default function App() {
 
 function Leaderboard({ year }) {
   const data = useMemo(() => {
-    const years = year === "All" ? [2023, 2024, 2025] : [parseInt(year)];
-    const allSyns = { 2023: SYNDICATES_2023, 2024: SYNDICATES_2024, 2025: SYNDICATES_2025 };
+    const years = year === "All" ? [2022, 2023, 2024, 2025] : [parseInt(year)];
+    const allSyns = { 2022: SYNDICATES_2022, 2023: SYNDICATES_2023, 2024: SYNDICATES_2024, 2025: SYNDICATES_2025 };
 
     const agg = {};
     years.forEach(y => {
@@ -917,8 +996,8 @@ function SeedROI({ year }) {
 
 function Strategy({ year }) {
   const spendData = useMemo(() => {
-    const years = year === "All" ? [2023, 2024, 2025] : [parseInt(year)];
-    const allSyns = { 2023: SYNDICATES_2023, 2024: SYNDICATES_2024, 2025: SYNDICATES_2025 };
+    const years = year === "All" ? [2022, 2023, 2024, 2025] : [parseInt(year)];
+    const allSyns = { 2022: SYNDICATES_2022, 2023: SYNDICATES_2023, 2024: SYNDICATES_2024, 2025: SYNDICATES_2025 };
 
     const entries = [];
     years.forEach(y => {
@@ -931,8 +1010,8 @@ function Strategy({ year }) {
 
   // Concentration analysis
   const concData = useMemo(() => {
-    const years = year === "All" ? [2023, 2024, 2025] : [parseInt(year)];
-    const allTeamSets = { 2023: TEAMS_2023, 2024: TEAMS_2024, 2025: TEAMS_2025 };
+    const years = year === "All" ? [2022, 2023, 2024, 2025] : [parseInt(year)];
+    const allTeamSets = { 2022: TEAMS_2022, 2023: TEAMS_2023, 2024: TEAMS_2024, 2025: TEAMS_2025 };
 
     const agg = {};
     years.forEach(y => {
@@ -1174,7 +1253,7 @@ function Strategy({ year }) {
 
       {/* Actionable Rules */}
       <div style={{ marginTop: 24 }}>
-        <SectionTitle>🎯 Actionable Rules (2023-2025 Data)</SectionTitle>
+        <SectionTitle>🎯 Actionable Rules (2022-2025 Data)</SectionTitle>
         
         <div style={{ display: "grid", gap: 12 }}>
           {/* Rule 1: The Anchor */}
@@ -1310,7 +1389,7 @@ function Strategy({ year }) {
 
       {/* ══════ HOGAN CALCUTTA INTELLIGENCE (moved from 2026 Prep) ══════ */}
       <div style={{ marginTop: 28 }}>
-        <SectionTitle>Hogan Calcutta Intelligence (3-Year Analysis)</SectionTitle>
+        <SectionTitle>Hogan Calcutta Intelligence (4-Year Analysis)</SectionTitle>
 
         <div style={{
           background: "linear-gradient(135deg, #111827, #1a2a3e)", borderRadius: 10, padding: 16,
@@ -1348,7 +1427,7 @@ function Strategy({ year }) {
             <div key={d.label} style={{ background: "#111827", borderRadius: 8, padding: 12, border: `1px solid ${d.color}33` }}>
               <div style={{ fontSize: 9, color: d.color, letterSpacing: 1, textTransform: "uppercase", fontWeight: 600 }}>{d.label}</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: d.color, fontFamily: "'Space Grotesk', sans-serif", marginTop: 4 }}>{d.roi}</div>
-              <div style={{ fontSize: 9, color: "#5a6a8a" }}>3yr avg ROI</div>
+              <div style={{ fontSize: 9, color: "#5a6a8a" }}>4yr avg ROI</div>
               <div style={{ fontSize: 8, color: "#4a5a7a", marginTop: 4 }}>{d.ex}</div>
             </div>
           ))}
@@ -1690,7 +1769,7 @@ function RegionBracket({ region }) {
         {/* Seed Pricing Reference */}
         <div style={{ padding: "10px 8px 6px", borderTop: "1px solid #1e2a40" }}>
           <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: 1, color: "#4a6a8a", textTransform: "uppercase", marginBottom: 6, textAlign: "center" }}>
-            Hogan Seed Prices '23-'25
+            Hogan Seed Prices '22-'25
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8 }}>
             <thead>
@@ -2075,14 +2154,14 @@ function AuctionPrep() {
           <div style={{ background: "#111827", borderRadius: 8, padding: 14, border: "1px solid #2ecc7133" }}>
             <div style={{ fontSize: 10, color: "#2ecc71", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>BUY — EV exceeds price by 25%+</div>
             {[
-              { t: "Tennessee", s: "6MW", ev: "$753", cost: "$361", ratio: "2.09x", why: "Best value in the field. Models love deep run odds (40% S16, 17% E8). Lost 4 of 6 suppresses price" },
-              { t: "Louisville", s: "6E", ev: "$626", cost: "$361", ratio: "1.73x", why: "37% S16 (Torik) with deep E8 value. 6-seeds have +9% hist ROI. Brown injury = buy-low" },
-              { t: "St. John's", s: "5E", ev: "$902", cost: "$524", ratio: "1.72x", why: "BE champ. 50-55% S16 across models. 5-seeds dodge 1s until E8 — great bracket path" },
-              { t: "Vanderbilt", s: "5S", ev: "$890", cost: "$524", ratio: "1.70x", why: "Both models agree: ~51% S16. Beat Florida by 17. Expert sleeper at deflated 5-seed cost" },
-              { t: "UCLA", s: "7E", ev: "$480", cost: "$285", ratio: "1.68x", why: "Both models have 24-26% S16 but deep run EV is unusual for a 7-seed at this price" },
-              { t: "Illinois", s: "3S", ev: "$1,680", cost: "$1,076", ratio: "1.56x", why: "Models avg 82% S16 — highest non-1-seed. E8 value is massive. Young, explosive O" },
-              { t: "Arkansas", s: "4W", ev: "$950", cost: "$746", ratio: "1.27x", why: "Models avg 58% S16 — highest 4-seed. Friendly bracket path boosts deep round value" },
-              { t: "Michigan", s: "1MW", ev: "$2,919", cost: "$2,352", ratio: "1.24x", why: "31-3, #1 KenPom. Deepest EV profile of any team. Best 1-seed by model — but 9-syn price is steep" },
+              { t: "Tennessee", s: "6MW", ev: "$753", cost: "$350", ratio: "2.15x", why: "Best value in the field. Models love deep run odds (40% S16, 17% E8). Lost 4 of 6 suppresses price" },
+              { t: "Louisville", s: "6E", ev: "$627", cost: "$350", ratio: "1.79x", why: "37% S16 (Torik) with deep E8 value. 6-seeds have +5% hist ROI. Brown injury = buy-low" },
+              { t: "St. John's", s: "5E", ev: "$901", cost: "$523", ratio: "1.72x", why: "BE champ. 50-55% S16 across models. 5-seeds dodge 1s until E8 — great bracket path" },
+              { t: "Vanderbilt", s: "5S", ev: "$889", cost: "$523", ratio: "1.70x", why: "Both models agree: ~51% S16. Beat Florida by 17. Expert sleeper at deflated 5-seed cost" },
+              { t: "UCLA", s: "7E", ev: "$478", cost: "$282", ratio: "1.70x", why: "Both models have 24-26% S16 but deep run EV is unusual for a 7-seed at this price" },
+              { t: "Illinois", s: "3S", ev: "$1,676", cost: "$1,087", ratio: "1.54x", why: "Models avg 82% S16 — highest non-1-seed. E8 value is massive. Young, explosive O" },
+              { t: "Arkansas", s: "4W", ev: "$947", cost: "$748", ratio: "1.27x", why: "Models avg 58% S16 — highest 4-seed. Friendly bracket path boosts deep round value" },
+              { t: "Michigan", s: "1MW", ev: "$2,913", cost: "$2,376", ratio: "1.23x", why: "31-3, #1 KenPom. Deepest EV profile of any team. Best 1-seed by model — but 9-syn price is steep" },
             ].map((pick, i) => (
               <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2101,11 +2180,11 @@ function AuctionPrep() {
             <div style={{ fontSize: 10, color: "#7c5cfc", letterSpacing: 1, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Cinderella / Cheap Value</div>
             {[
               { t: "16-seed pkg", s: "all 16s", ev: "$76", cost: "$56", ratio: "1.36x", why: "42% ATS cover rate in Hogan (5/12). $76 EV at $56 cost = best ROI per dollar in the auction" },
-              { t: "Ohio State", s: "8E", ev: "$290", cost: "$231", ratio: "1.26x", why: "Models like them more than other 8s. Rare deep value for an 8-seed at deflated 9-syn price" },
-              { t: "Iowa", s: "9S", ev: "$254", cost: "$224", ratio: "1.13x", why: "9-seeds are historically underpriced (+30% ROI). Underseeded per KenPom" },
-              { t: "Texas", s: "11W", ev: "$253", cost: "$223", ratio: "1.13x", why: "Won First Four. 13-15% S16 across models. S16 value at cheap 11-seed pricing" },
-              { t: "Utah State", s: "9W", ev: "$230", cost: "$224", ratio: "1.03x", why: "MWC champ. 9-seeds at this price are a sweet spot in 9-syn auctions" },
-              { t: "Furman", s: "15E", ev: "$67", cost: "$75", ratio: "0.89x", why: "Best 15-seed by model. 35% ATS cover = $63 R64 value. If spread is generous, worth a flier" },
+              { t: "Ohio State", s: "8E", ev: "$289", cost: "$226", ratio: "1.28x", why: "Models like them more than other 8s. Rare deep value for an 8-seed at deflated 9-syn price" },
+              { t: "Iowa", s: "9S", ev: "$253", cost: "$223", ratio: "1.13x", why: "9-seeds are historically underpriced (+33% ROI). Underseeded per KenPom" },
+              { t: "Texas", s: "11W", ev: "$252", cost: "$223", ratio: "1.13x", why: "Won First Four. 13-15% S16 across models. S16 value at cheap 11-seed pricing" },
+              { t: "Utah State", s: "9W", ev: "$230", cost: "$223", ratio: "1.03x", why: "MWC champ. 9-seeds at this price are a sweet spot in 9-syn auctions" },
+              { t: "Furman", s: "15E", ev: "$67", cost: "$73", ratio: "0.92x", why: "Best 15-seed by model. 35% ATS cover = $63 R64 value. If spread is generous, worth a flier" },
             ].map((pick, i) => (
               <div key={i} style={{ padding: "6px 0", borderBottom: "1px solid #1a1f2e", fontSize: 11 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2131,14 +2210,14 @@ function AuctionPrep() {
         <div style={{ fontSize: 9, color: "#4a5a7a", marginBottom: 8 }}>Teams where round-by-round EV is significantly less than what they'll cost. Only buy at a steep discount.</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           {[
-            { t: "North Carolina 6S", ev: "$234", cost: "$361", ratio: "0.65x", why: "Wilson out (broken thumb). EV is well below even the deflated 9-syn 6-seed cost" },
-            { t: "UConn 2E", ev: "$1,417", cost: "$1,710", ratio: "0.83x", why: "2x champ Hurley tax. Models coolest on this 2-seed — only 68-72% S16" },
-            { t: "BYU 6W", ev: "$294", cost: "$361", ratio: "0.81x", why: "Dybantsa hype will inflate price past $400. EV says $294 — let someone else overpay" },
-            { t: "Saint Louis 9MW", ev: "$152", cost: "$224", ratio: "0.68x", why: "DK has 32% S16 but both models say 4-5%. Massive line discrepancy" },
-            { t: "Any 12-seed over $100", ev: "$57-93", cost: "$213", ratio: "0.27-0.44x", why: "Worst EV tier. Even best 12 (Akron $93) is half the expected cost" },
+            { t: "North Carolina 6S", ev: "$234", cost: "$350", ratio: "0.67x", why: "Wilson out (broken thumb). EV is well below even the deflated 9-syn 6-seed cost" },
+            { t: "UConn 2E", ev: "$1,416", cost: "$1,724", ratio: "0.82x", why: "2x champ Hurley tax. Models coolest on this 2-seed — only 68-72% S16" },
+            { t: "BYU 6W", ev: "$294", cost: "$350", ratio: "0.84x", why: "Dybantsa hype will inflate price past $400. EV says $294 — let someone else overpay" },
+            { t: "Saint Louis 9MW", ev: "$152", cost: "$223", ratio: "0.68x", why: "DK has 32% S16 but both models say 4-5%. Massive line discrepancy" },
+            { t: "Any 12-seed over $100", ev: "$57-93", cost: "$203", ratio: "0.28-0.46x", why: "Worst EV tier. Even best 12 (Akron $93) is half the expected cost" },
             { t: "All 13-14 seeds", ev: "$7-64", cost: "$62-95", ratio: "0.11-0.67x", why: "Never justify the price. Hofstra ($64) is the only one close to breakeven" },
-            { t: "Villanova 8W", ev: "$143", cost: "$231", ratio: "0.62x", why: "Both models under 7% S16. Back in tourney but not competitive at 8-seed cost" },
-            { t: "Georgia 8MW", ev: "$177", cost: "$231", ratio: "0.77x", why: "315th pts allowed. 8-seeds are -39% ROI historically. Don't overpay" },
+            { t: "Villanova 8W", ev: "$142", cost: "$226", ratio: "0.63x", why: "Both models under 7% S16. Back in tourney but not competitive at 8-seed cost" },
+            { t: "Georgia 8MW", ev: "$176", cost: "$226", ratio: "0.78x", why: "315th pts allowed. 8-seeds are +41% ROI historically but Georgia is worst of the lot" },
           ].map((fade, i) => (
             <div key={i} style={{ fontSize: 10, padding: "4px 0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -2161,9 +2240,11 @@ function AuctionPrep() {
 function SpendingAnalysis() {
   const [spendView, setSpendView] = useState("overview");
 
-  const yearData = [2023, 2024, 2025].map(year => {
-    const syndicates = year === 2023 ? SYNDICATES_2023 : year === 2024 ? SYNDICATES_2024 : SYNDICATES_2025;
-    const teams = year === 2023 ? TEAMS_2023 : year === 2024 ? TEAMS_2024 : TEAMS_2025;
+  const allSyns = { 2022: SYNDICATES_2022, 2023: SYNDICATES_2023, 2024: SYNDICATES_2024, 2025: SYNDICATES_2025 };
+  const allTeams = { 2022: TEAMS_2022, 2023: TEAMS_2023, 2024: TEAMS_2024, 2025: TEAMS_2025 };
+  const yearData = [2022, 2023, 2024, 2025].map(year => {
+    const syndicates = allSyns[year];
+    const teams = allTeams[year];
     const pot = syndicates.reduce((a, s) => a + s.spent, 0);
     const numSyn = syndicates.length;
     const avgSpend = Math.round(pot / numSyn);
@@ -2220,7 +2301,7 @@ function SpendingAnalysis() {
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: 20 }}>
         <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700, margin: "0 0 4px 0", color: "#e8e6e3" }}>Spending Analysis</h2>
-        <div style={{ fontSize: 11, color: "#5a6a8a" }}>Where the money goes — 2023 vs 2024 vs 2025</div>
+        <div style={{ fontSize: 11, color: "#5a6a8a" }}>Where the money goes — 2022 through 2025</div>
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
@@ -2254,8 +2335,7 @@ function SpendingAnalysis() {
               );
             })}
             <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 8, lineHeight: 1.5 }}>
-              2024 pot was <span style={{ color: "#e63946", fontWeight: 600 }}>+$6,290 (+21.5%)</span> vs 2023 — driven by Tomek joining as 9th syndicate and a bidding war at the top.
-              2025 came back down <span style={{ color: "#4a9eff", fontWeight: 600 }}>-$4,280 (-12.1%)</span> when Smith left.
+              8-syn pots are stable: $31.0K ('22), $29.2K ('23), $31.2K ('25). The 2024 outlier (<span style={{ color: "#e63946", fontWeight: 600 }}>$35.5K</span>) was purely from Tomek joining as 9th syndicate.
             </div>
           </div>
 
@@ -2288,22 +2368,22 @@ function SpendingAnalysis() {
               ))}
             </div>
             <div style={{ fontSize: 10, color: "#5a6a8a", marginTop: 10, lineHeight: 1.5 }}>
-              Top seeds (1-2) ate <span style={{ color: "#e63946", fontWeight: 600 }}>49.7%</span> of the 2024 pot vs <span style={{ color: "#4a9eff" }}>39.2%</span> in 2023.
-              Mid-tier (5-8) got squeezed from <span style={{ color: "#4a9eff" }}>22.5%</span> to just <span style={{ color: "#e63946" }}>15.0%</span>.
+              Top seeds (1-2) ate <span style={{ color: "#e63946", fontWeight: 600 }}>49.7%</span> of the 2024 pot vs <span style={{ color: "#4a9eff" }}>39-40%</span> in 8-syn years.
+              Mid-tier (5-8) got squeezed from <span style={{ color: "#4a9eff" }}>20-23%</span> to just <span style={{ color: "#e63946" }}>15.0%</span> in the 9-syn year.
             </div>
           </div>
 
           {/* Year-over-year deltas — both transitions */}
           {[
-            { from: 0, to: 1, title: "2023 → 2024: Where the Extra $6,290 Went", subtitle: "8 → 9 syndicates (+Tomek)", accentUp: "#2ecc71", accentDown: "#e63946",
+            { from: 1, to: 2, title: "2023 → 2024: Where the Extra $6,290 Went", subtitle: "8 → 9 syndicates (+Tomek)", accentUp: "#2ecc71", accentDown: "#e63946",
               blurb: <>
                 <span style={{ color: "#e63946", fontWeight: 600 }}>70% of the increase</span> went to 1-seeds alone ($4,430). Top 3 seeds absorbed $7,280 — more than the total pot increase.
                 Mid-tier 5 and 6 seeds actually got <span style={{ color: "#2ecc71" }}>cheaper</span> as budgets were exhausted on the top.
               </> },
-            { from: 1, to: 2, title: "2024 → 2025: The Correction (−$4,280)", subtitle: "9 → 8 syndicates (−Smith)", accentUp: "#2ecc71", accentDown: "#4a9eff",
+            { from: 2, to: 3, title: "2024 → 2025: The Correction (−$4,280)", subtitle: "9 → 8 syndicates (−Smith)", accentUp: "#2ecc71", accentDown: "#4a9eff",
               blurb: <>
                 1-seeds gave back <span style={{ color: "#4a9eff", fontWeight: 600 }}>$1,850</span> and 2-seeds dropped <span style={{ color: "#4a9eff", fontWeight: 600 }}>$1,300</span> — almost the exact reverse of the 2024 inflation.
-                Mid-tier (5-8) partially recovered as spending re-balanced. The bottom (13-16) stayed flat across all 3 years.
+                Mid-tier (5-8) partially recovered as spending re-balanced. The bottom (13-16) stayed flat across all 4 years.
               </> },
           ].map(({ from, to, title, subtitle, accentUp, accentDown, blurb }) => {
             const dFrom = yearData[from].bySeed;
@@ -2357,19 +2437,19 @@ function SpendingAnalysis() {
                 </thead>
                 <tbody>
                   {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16].map(seed => {
-                    const d23 = yearData[0].bySeed[seed];
-                    const d24 = yearData[1].bySeed[seed];
-                    const d25 = yearData[2].bySeed[seed];
+                    const d23 = yearData[1].bySeed[seed];
+                    const d24 = yearData[2].bySeed[seed];
+                    const d25 = yearData[3].bySeed[seed];
                     const delta1 = d24.avg - d23.avg;
                     const delta2 = d25.avg - d24.avg;
-                    const avgPctOfPot = ((d23.pctOfPot + d24.pctOfPot + d25.pctOfPot) / 3);
+                    const avgPctOfPot = yearData.reduce((a, yd) => a + yd.bySeed[seed].pctOfPot, 0) / yearData.length;
                     const isTop = seed <= 2;
                     return (
                       <tr key={seed} style={{ borderBottom: "1px solid #0d1321", background: isTop ? "#14203a" : "transparent" }}>
                         <td style={{ padding: "5px 8px", color: isTop ? "#e9c46a" : "#8a9aba", fontWeight: 600 }}>{seed}</td>
-                        <td style={{ padding: "5px 8px", textAlign: "right", color: "#8a9aba" }}>${d23.avg.toLocaleString()}</td>
-                        <td style={{ padding: "5px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${d24.avg.toLocaleString()}</td>
-                        <td style={{ padding: "5px 8px", textAlign: "right", color: "#8a9aba" }}>${d25.avg.toLocaleString()}</td>
+                        {yearData.map(yd => (
+                          <td key={yd.year} style={{ padding: "5px 8px", textAlign: "right", color: yd.year === 2024 ? "#e8e6e3" : "#8a9aba", fontWeight: yd.year === 2024 ? 600 : 400 }}>${yd.bySeed[seed].avg.toLocaleString()}</td>
+                        ))}
                         <td style={{ padding: "5px 8px", textAlign: "right", color: delta1 >= 0 ? "#2ecc71" : "#e63946", fontWeight: 600 }}>
                           {delta1 >= 0 ? "+" : ""}${delta1.toLocaleString()}
                         </td>
@@ -2420,9 +2500,9 @@ function SpendingAnalysis() {
         <div>
           <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e6e3", marginBottom: 4 }}>Syndicate Strategy Profiles</div>
-            <div style={{ fontSize: 10, color: "#5a6a8a", marginBottom: 14 }}>How each syndicate allocates their budget across seed tiers (3-year avg)</div>
+            <div style={{ fontSize: 10, color: "#5a6a8a", marginBottom: 14 }}>How each syndicate allocates their budget across seed tiers (4-year avg)</div>
             {(() => {
-              const allNames = [...new Set([...Object.keys(yearData[0].synProfiles), ...Object.keys(yearData[1].synProfiles), ...Object.keys(yearData[2].synProfiles)])];
+              const allNames = [...new Set(yearData.flatMap(yd => Object.keys(yd.synProfiles)))];
               return allNames.sort().map(name => {
                 const profiles = yearData.filter(yd => yd.synProfiles[name]).map(yd => yd.synProfiles[name]);
                 const avgTop = profiles.reduce((a, p) => a + p.topPct, 0) / profiles.length;
@@ -2478,15 +2558,15 @@ function SpendingAnalysis() {
                 <thead>
                   <tr style={{ borderBottom: "1px solid #1e2a40" }}>
                     <th style={{ padding: "5px 6px", textAlign: "left", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Syndicate</th>
-                    <th style={{ padding: "5px 6px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>2023</th>
-                    <th style={{ padding: "5px 6px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>2024</th>
-                    <th style={{ padding: "5px 6px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>2025</th>
+                    {yearData.map(yd => (
+                      <th key={yd.year} style={{ padding: "5px 6px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>{yd.year}</th>
+                    ))}
                     <th style={{ padding: "5px 6px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Max Swing</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
-                    const allNames = [...new Set([...Object.keys(yearData[0].synProfiles), ...Object.keys(yearData[1].synProfiles), ...Object.keys(yearData[2].synProfiles)])];
+                    const allNames = [...new Set(yearData.flatMap(yd => Object.keys(yd.synProfiles)))];
                     return allNames.sort().map(name => {
                       const vals = yearData.map(yd => yd.synProfiles[name]?.spent || null);
                       const active = vals.filter(v => v !== null);
@@ -2519,25 +2599,25 @@ function SpendingAnalysis() {
             { title: "The 9th Syndicate Effect", color: "#e63946", content: [
               "Adding Tomek as a 9th syndicate in 2024 inflated the pot by $6,290 (+21.5%). But it wasn't distributed evenly — 70% of the increase ($4,430) went to 1-seeds alone.",
               "More bidders creates a bidding war at the top. 1-seeds went from avg $1,480 → $2,588 (+75%). Meanwhile mid-tier seeds 5-6 actually got CHEAPER as budgets were exhausted.",
-              "When Smith left in 2025, spending instantly normalized. Per-syndicate avg barely changed ($3,943 → $3,901), confirming it was purely a headcount effect.",
+              "When Smith left in 2025, spending instantly normalized. 4 years of data confirm: 8-syn pots cluster $29-31K, the 9-syn pot jumped to $35.5K.",
             ]},
             { title: "Top-Heavy Arms Race", color: "#f4a261", content: [
               "In 2024, the top 3 seed lines absorbed $7,280 more than 2023 — exceeding the entire $6,290 pot increase. The rest of the bracket actually deflated.",
-              "Top seeds (1-2) consumed 49.7% of the 2024 pot vs 39.2% in 2023. That's half the money on 8 of 64 teams.",
-              "The highest single team price nearly doubled: $1,720 (Alabama '23) → $3,350 (UConn '24). Three 1-seeds each sold above $1,550 in 2024.",
+              "Top seeds (1-2) consumed 49.7% of the 2024 pot vs 39-40% in 8-syn years (2022/2023/2025). That's half the money on 8 of 64 teams.",
+              "The highest single team price nearly doubled: $1,720 (Alabama '23) → $3,350 (UConn '24). Even in 2022, the max was $2,380 (Gonzaga) — well below 2024 levels.",
             ]},
             { title: "The Value Zone Got Cheaper", color: "#2ecc71", content: [
               "Seeds 5-6 dropped from avg $480/$410 to $495/$325 in the 9-syndicate year. When everyone chases the top, the middle gets discounted.",
               "Seeds 5-8 went from 22.5% to 15.0% of the pot in 2024 — a 33% reduction in relative allocation despite being where most tournament runs start.",
-              "This is where the value lives. In a competitive auction, let others overpay for 1-seeds and target the 5-8 range where prices are softest.",
+              "This is where the value lives. In a 9-syn auction, let others overpay for 1-seeds and target the 5-8 range where prices are softest.",
             ]},
             { title: "Syndicate Strategy Matters", color: "#4a9eff", content: [
               "Top-heavy strategies (Hudachek '24: 61% on 1-2 seeds, Curran '24: 83%) can hit big but are high variance — one bad 1-seed ruins your year.",
               "Spread strategies (Tomek: 0% on top seeds in '24, Hogan: 0% in '24) are safer but cap upside. Hogan spent only $1,800 in 2024 — lowest ever.",
-              "The consistent winners (Curran: +$5,742 career) blend both: they'll buy a 1-2 seed but also grab value in the 5-9 range. Don't go all-in either way.",
+              "Over 4 years, Curran leads with +$6,797 career net. The consistent winners blend both: buy a 1-2 seed but also grab value in the 5-9 range.",
             ]},
             { title: "2026 Auction Implications", color: "#7c5cfc", content: [
-              "If 8 syndicates return, expect a ~$31K pot. If a 9th joins, expect $35K+ with massive 1-seed inflation.",
+              "With 9 syndicates confirmed, expect a ~$35K pot. 1-seed prices will inflate 30-40% above the 8-syn baseline, while 5-6 seeds will deflate.",
               "Watch the first 1-seed that sells — it sets the ceiling. In 2024, once UConn went for $3,350, every other 1-seed was $1,550+.",
               "Your edge: know the EV of each team before the auction. When the bidding war pushes 1-seeds past their fair value, let them go and scoop up the deflated mid-tier.",
             ]},
