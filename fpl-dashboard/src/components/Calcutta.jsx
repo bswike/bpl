@@ -2360,6 +2360,7 @@ function Live2026() {
   const [bracketMobileRegion, setBracketMobileRegion] = useState("E");
   const [nerdMode, setNerdMode] = useState(false);
   const [expandedSyn, setExpandedSyn] = useState(null);
+  const [teamSort, setTeamSort] = useState({ key: "seed", dir: "asc" });
   const regions = ["S", "MW", "W", "E"];
   const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
   const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
@@ -2441,11 +2442,11 @@ function Live2026() {
                 <tr>
                   <th style={thL}>#</th>
                   <th style={thL}>Syndicate</th>
-                  <th style={thS}>Spent</th>
+                  <th style={thS}>Net</th>
                   <th style={thS}>Alive</th>
                   {roundLabels.map(r => <th key={r} style={thS}>{r}</th>)}
                   <th style={thS}>Earned</th>
-                  <th style={thS}>Net</th>
+                  <th style={thS}>Spent</th>
                   <th style={thS}>ROI</th>
                 </tr>
               </thead>
@@ -2465,7 +2466,9 @@ function Live2026() {
                       <td style={{ padding: "6px 8px", fontWeight: 600 }}>
                         <span style={{ color: synColor }}>{isOpen ? "▾" : "▸"} {syn.name}</span>
                       </td>
-                      <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${syn.spent.toLocaleString()}</td>
+                      <td style={{ padding: "6px 8px", textAlign: "right", color: netColor, fontWeight: 700 }}>
+                        {syn.net >= 0 ? "+" : ""}${syn.net.toLocaleString()}
+                      </td>
                       <td style={{ padding: "6px 8px", textAlign: "right", color: "#8a9aba" }}>{syn.teamsAlive}/{syn.totalTeams}</td>
                       {syn.roundEarnings.map((re, ri) => (
                         <td key={ri} style={{ padding: "6px 8px", textAlign: "right", color: re > 0 ? "#e8e6e3" : "#1e2a40" }}>{re > 0 ? `$${re.toLocaleString()}` : "—"}</td>
@@ -2473,9 +2476,7 @@ function Live2026() {
                       <td style={{ padding: "6px 8px", textAlign: "right", color: syn.totalEarned > 0 ? "#e8e6e3" : "#1e2a40", fontWeight: 700 }}>
                         {syn.totalEarned > 0 ? `$${syn.totalEarned.toLocaleString()}` : "—"}
                       </td>
-                      <td style={{ padding: "6px 8px", textAlign: "right", color: netColor, fontWeight: 700 }}>
-                        {syn.net >= 0 ? "+" : ""}${syn.net.toLocaleString()}
-                      </td>
+                      <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${syn.spent.toLocaleString()}</td>
                       <td style={{ padding: "6px 8px", textAlign: "right", color: netColor, fontWeight: 600 }}>
                         {(syn.roi * 100).toFixed(0)}%
                       </td>
@@ -2491,14 +2492,14 @@ function Live2026() {
                             {t.t}
                             {!t.alive && <span style={{ color: "#e63946", fontSize: 8, marginLeft: 4 }}>✗</span>}
                           </td>
-                          <td style={{ padding: "4px 8px", textAlign: "right", color: "#8a9aba", fontSize: 10 }}>${t.p.toLocaleString()}</td>
+                          <td style={{ padding: "4px 8px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
                           <td style={{ padding: "4px 8px", textAlign: "right", color: t.alive ? "#2ecc71" : "#3a4a6a", fontSize: 9 }}>{t.alive ? "✓" : "✗"}</td>
                           {[0,1,2,3,4,5].map(ri => {
                             const won = t.w > ri;
                             return <td key={ri} style={{ padding: "4px 8px", textAlign: "right", color: won ? "#e8e6e3" : "#1e2a40", fontSize: 10 }}>{won ? `$${incrPayouts[ri]}` : "—"}</td>;
                           })}
                           <td style={{ padding: "4px 8px", textAlign: "right", color: teamEarned > 0 ? "#e8e6e3" : "#1e2a40", fontSize: 10, fontWeight: 600 }}>{teamEarned > 0 ? `$${teamEarned.toLocaleString()}` : "—"}</td>
-                          <td style={{ padding: "4px 8px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
+                          <td style={{ padding: "4px 8px", textAlign: "right", color: "#8a9aba", fontSize: 10 }}>${t.p.toLocaleString()}</td>
                           <td style={{ padding: "4px 8px" }} />
                         </tr>
                       );
@@ -2510,14 +2511,15 @@ function Live2026() {
               <tfoot>
                 <tr style={{ borderTop: "2px solid #1e2a40" }}>
                   <td colSpan={2} style={{ padding: "6px 8px", color: "#5a6a8a", fontWeight: 700, fontSize: 10 }}>TOTAL</td>
-                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.spent, 0).toLocaleString()}</td>
+                  <td style={{ padding: "6px 8px" }} />
                   <td style={{ padding: "6px 8px", textAlign: "right", color: "#8a9aba" }}>{board.reduce((s, b) => s + b.teamsAlive, 0)}/64</td>
                   {[0,1,2,3,4,5].map(ri => {
                     const total = board.reduce((s, b) => s + b.roundEarnings[ri], 0);
                     return <td key={ri} style={{ padding: "6px 8px", textAlign: "right", color: total > 0 ? "#e8e6e3" : "#1e2a40", fontWeight: 600 }}>{total > 0 ? `$${total.toLocaleString()}` : "—"}</td>;
                   })}
                   <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.totalEarned, 0).toLocaleString()}</td>
-                  <td colSpan={2} />
+                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.spent, 0).toLocaleString()}</td>
+                  <td style={{ padding: "6px 8px" }} />
                 </tr>
               </tfoot>
             </table>
@@ -3022,60 +3024,88 @@ function Live2026() {
       })()}
 
       {/* ── ALL TEAMS VIEW ── */}
-      {liveView === "teams" && (
-        <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 12, overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-            <thead>
-              <tr style={{ borderBottom: "2px solid #1e2a40" }}>
-                <th style={{ padding: "6px 8px", textAlign: "left", color: "#5a6a8a", fontWeight: 500 }}>Seed</th>
-                <th style={{ padding: "6px 8px", textAlign: "left", color: "#5a6a8a", fontWeight: 500 }}>Team</th>
-                <th style={{ padding: "6px 8px", textAlign: "left", color: "#5a6a8a", fontWeight: 500 }}>Region</th>
-                <th style={{ padding: "6px 8px", textAlign: "left", color: "#5a6a8a", fontWeight: 500 }}>Owner</th>
-                <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500 }}>Price</th>
-                <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500 }}>EV</th>
-                <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500 }}>Ratio</th>
-                <th style={{ padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500 }}>Verdict</th>
-              </tr>
-            </thead>
-            <tbody>
-              {TEAMS_2026.slice().sort((a, b) => {
-                const va = getTeamValueLive2026({ r: a.sd.split("-")[0], s: a.seed }, a.p);
-                const vb = getTeamValueLive2026({ r: b.sd.split("-")[0], s: b.seed }, b.p);
-                return (vb.fairValue / b.p) - (va.fairValue / a.p);
-              }).map(t => {
-                const region = t.sd.split("-")[0];
-                const val = getTeamValueLive2026({ r: region, s: t.seed }, t.p);
-                const ratio = val.fairValue / t.p;
-                const synColor = SYNDICATE_COLORS[t.s] || "#5a6a8a";
-                return (
-                  <tr key={t.sd} style={{ borderBottom: "1px solid #0d1321", opacity: t.alive ? 1 : 0.35 }}>
-                    <td style={{ padding: "5px 8px", color: t.seed <= 2 ? "#e9c46a" : t.seed <= 4 ? "#f4a261" : "#8a9aba", fontWeight: 600 }}>{t.seed}</td>
-                    <td style={{ padding: "5px 8px", color: "#e8e6e3", fontWeight: 500 }}>
-                      {t.t}
-                      {t.spread ? <span style={{ color: "#3a4a6a", fontSize: 9, marginLeft: 4 }}>+{t.spread}</span> : null}
-                    </td>
-                    <td style={{ padding: "5px 8px", color: regionColors[region] || "#5a6a8a", fontWeight: 600, fontSize: 10 }}>{regionNames[region]}</td>
-                    <td style={{ padding: "5px 8px", color: synColor, fontWeight: 600 }}>{t.s}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", color: val.color }}>${val.fairValue.toLocaleString()}</td>
-                    <td style={{ padding: "5px 8px", textAlign: "right", color: ratio >= 1.0 ? "#2ecc71" : ratio >= 0.7 ? "#e9c46a" : "#e63946", fontWeight: 600 }}>
-                      {ratio.toFixed(2)}x
-                    </td>
-                    <td style={{ padding: "5px 8px", textAlign: "right" }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: val.color + "22", color: val.color }}>
-                        {val.label}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <div style={{ fontSize: 9, color: "#3a4a6a", marginTop: 8, textAlign: "center" }}>
-            EV = model-based expected value · Ratio = EV / Price · Sorted by best value
+      {liveView === "teams" && (() => {
+        const handleTeamSort = (key) => {
+          if (teamSort.key === key) setTeamSort({ key, dir: teamSort.dir === "desc" ? "asc" : "desc" });
+          else setTeamSort({ key, dir: key === "team" || key === "owner" || key === "region" ? "asc" : "desc" });
+        };
+        const arrow = (key) => teamSort.key === key ? (teamSort.dir === "desc" ? " ▼" : " ▲") : "";
+
+        const enriched = TEAMS_2026.map(t => {
+          const region = t.sd.split("-")[0];
+          const val = getTeamValueLive2026({ r: region, s: t.seed }, t.p);
+          return { ...t, region, ev: val.fairValue, ratio: val.fairValue / t.p, label: val.label, color: val.color };
+        });
+
+        const dir = teamSort.dir === "desc" ? 1 : -1;
+        const sortFns = {
+          seed: (a, b) => dir * (a.seed - b.seed),
+          team: (a, b) => dir * a.t.localeCompare(b.t),
+          region: (a, b) => dir * a.region.localeCompare(b.region),
+          owner: (a, b) => dir * a.s.localeCompare(b.s),
+          price: (a, b) => dir * (b.p - a.p),
+          ev: (a, b) => dir * (b.ev - a.ev),
+          ratio: (a, b) => dir * (b.ratio - a.ratio),
+        };
+        const sorted = enriched.slice().sort(sortFns[teamSort.key] || sortFns.seed);
+
+        const cols = [
+          { key: "seed", label: "Seed", align: "left" },
+          { key: "team", label: "Team", align: "left" },
+          { key: "region", label: "Region", align: "left" },
+          { key: "owner", label: "Owner", align: "left" },
+          { key: "price", label: "Price", align: "right" },
+          { key: "ev", label: "EV", align: "right" },
+          { key: "ratio", label: "Ratio", align: "right" },
+        ];
+
+        return (
+          <div style={{ maxHeight: 700, overflowY: "auto", borderRadius: 8, border: `1px solid ${cardBorder}` }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <thead style={{ position: "sticky", top: 0, background: "#0d1321", zIndex: 1 }}>
+                <tr style={{ borderBottom: "1px solid #1e2a40" }}>
+                  {cols.map(col => (
+                    <th
+                      key={col.key}
+                      onClick={() => handleTeamSort(col.key)}
+                      style={{
+                        padding: "8px 8px", textAlign: col.align,
+                        color: teamSort.key === col.key ? "#4a9eff" : "#4a6a8a",
+                        fontWeight: teamSort.key === col.key ? 700 : 500,
+                        fontSize: 9, letterSpacing: 1, textTransform: "uppercase",
+                        whiteSpace: "nowrap", cursor: "pointer", userSelect: "none",
+                        borderBottom: teamSort.key === col.key ? "2px solid #4a9eff" : "none",
+                      }}
+                    >{col.label}{arrow(col.key)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map(t => {
+                  const synColor = SYNDICATE_COLORS[t.s] || "#5a6a8a";
+                  return (
+                    <tr key={t.sd} style={{ borderBottom: "1px solid #0d1321", opacity: t.alive ? 1 : 0.35 }}>
+                      <td style={{ padding: "6px 8px", color: "#8a9aba", fontWeight: 600 }}>{t.seed}</td>
+                      <td style={{ padding: "6px 8px", color: "#e8e6e3", fontWeight: 500 }}>{t.t}</td>
+                      <td style={{ padding: "6px 8px", color: "#8a9aba", fontSize: 10 }}>{regionNames[t.region]}</td>
+                      <td style={{ padding: "6px 8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <div style={{ width: 6, height: 6, borderRadius: 1, background: synColor }} />
+                          <span style={{ color: "#8a9aba", fontSize: 10 }}>{t.s}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
+                      <td style={{ padding: "6px 8px", textAlign: "right", color: "#8a9aba" }}>${t.ev.toLocaleString()}</td>
+                      <td style={{ padding: "6px 8px", textAlign: "right", color: t.ratio >= 1.0 ? "#2ecc71" : t.ratio >= 0.7 ? "#e9c46a" : "#e63946", fontWeight: 600 }}>{t.ratio.toFixed(2)}x</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div style={{ fontSize: 9, color: "#3a4a6a", padding: 8, textAlign: "center" }}>Tap any column header to sort</div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
