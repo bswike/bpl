@@ -2396,12 +2396,6 @@ function Live2026() {
         const to = col === "right" ? vScrollRefRight.current : vScrollRefLeft.current;
         if (from && to) {
           to.scrollTop = from.scrollTop;
-          requestAnimationFrame(() => {
-            const innerBrackets = to.querySelectorAll(".inner-bracket-scroll");
-            innerBrackets.forEach(el => {
-              el.scrollLeft = col === "right" ? el.scrollWidth : 0;
-            });
-          });
         }
       }
       lastHCol.current = col;
@@ -2819,15 +2813,6 @@ function Live2026() {
           liveTeams.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
 
-          useEffect(() => {
-            const el = bracketScrollRef.current;
-            if (!el) return;
-            if (!rtl) { el.scrollLeft = 0; return; }
-            const snapRight = () => { el.scrollLeft = el.scrollWidth; };
-            requestAnimationFrame(snapRight);
-            setTimeout(snapRight, 50);
-          }, [region, rtl]);
-
           const MW = 150;
           const roundPay = [0.005, 0.025, 0.03, 0.03, 0.03, 0.02].map(pct => "$" + Math.round(pct * pot).toLocaleString());
           const ltrHeaders = [
@@ -2917,22 +2902,25 @@ function Live2026() {
                   overscrollBehavior: "contain",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
                   paddingBottom: 4, paddingTop: 2,
+                  direction: rtl ? "rtl" : "ltr",
                 }}
               >
-                <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
-                  {colWidths.map((w, i) => (
-                    <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
-                      {headers[i] && (
-                        <>
-                          <div style={{ fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{headers[i].name}</div>
-                          <div style={{ fontSize: 7, color: "#4a9eff", fontWeight: 500 }}>{headers[i].pay}</div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
-                  {bracketContent}
+                <div style={{ direction: "ltr", width: "fit-content" }}>
+                  <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
+                    {colWidths.map((w, i) => (
+                      <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
+                        {headers[i] && (
+                          <>
+                            <div style={{ fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{headers[i].name}</div>
+                            <div style={{ fontSize: 7, color: "#4a9eff", fontWeight: 500 }}>{headers[i].pay}</div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
+                    {bracketContent}
+                  </div>
                 </div>
               </div>
             </div>
