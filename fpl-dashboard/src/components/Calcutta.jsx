@@ -584,6 +584,28 @@ const HOGAN_INCR = HOGAN_INCR_BASE.map(v => Math.round(v * EV_SCALE_9SYN));
 // Premium = 2024 observed / 8-syn avg, dampened to 70% since 2024 is a single data point
 const ADJ_9SYN_PRICE = {1:2376,2:1724,3:1087,4:748,5:523,6:350,7:282,8:226,9:223,10:245,11:223,12:203,13:95,14:62,15:73,16:56};
 
+const PAYOUT_2026_CUM = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14];
+const PAYOUT_2026_INCR = PAYOUT_2026_CUM.map((v, i) => Math.round((i === 0 ? v : v - PAYOUT_2026_CUM[i - 1]) * POT_2026));
+
+function getTeamValueLive2026(team, price) {
+  const key = `${team.r}-${team.s}`;
+  const tr = TORIK_ROUNDS[key] || [0,0,0,0,0,0];
+  const em = EM_ROUNDS[key] || [0,0,0,0,0,0];
+  const avg = tr.map((v, i) => (v + em[i]) / 2);
+  if (team.s === 1) avg[0] = 0.75;
+  else if (team.s === 2) avg[0] = 0.78;
+  else if (team.s >= 15) avg[0] = team.s === 16 ? 0.42 : 0.35;
+  const roundEV = avg.map((p, i) => Math.round(p * PAYOUT_2026_INCR[i]));
+  const fairValue = roundEV.reduce((a, b) => a + b, 0);
+  const ratio = price > 0 ? fairValue / price : 0;
+  let label, color;
+  if (ratio >= 1.25) { label = "BUY"; color = "#2ecc71"; }
+  else if (ratio >= 0.9) { label = "FAIR"; color = "#e9c46a"; }
+  else if (ratio >= 0.6) { label = "MEH"; color = "#5a6a8a"; }
+  else { label = "AVOID"; color = "#e63946"; }
+  return { fairValue, label, color, roundEV, avg };
+}
+
 function getTeamValue(team) {
   const key = `${team.r}-${team.s}`;
   const tr = TORIK_ROUNDS[key] || [0,0,0,0,0,0];
@@ -2415,7 +2437,7 @@ function Live2026() {
             <div style={{ height: SLOT_H, display: "flex", alignItems: "center", padding: "0 6px", background: "#0a0e15", borderBottom: border ? "1px solid #151d2e" : "none", fontSize: 9, color: "#1e2a40" }}>—</div>
           );
           const sc = SYNDICATE_COLORS[team.s] || "#5a6a8a";
-          const val = getTeamValue({ r: team.sd.split("-")[0], s: team.seed });
+          const val = getTeamValueLive2026({ r: team.sd.split("-")[0], s: team.seed }, team.p);
           const ratio = val.fairValue > 0 ? val.fairValue / team.p : 0;
           const priceColor = ratio >= 1.0 ? "#2ecc71" : ratio >= 0.7 ? "#e9c46a" : "#5a6a8a";
           const seedEl = <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: "center", flexShrink: 0, color: team.seed <= 2 ? "#4a9eff" : team.seed <= 4 ? "#7c5cfc" : "#5a6a8a" }}>{team.seed}</span>;
@@ -2655,7 +2677,7 @@ function Live2026() {
         const synCards = SYNDICATES_2026.map(syn => {
           const sd = synData[syn.name];
           const teamEVs = sd.teams.map(t => {
-            const val = getTeamValue({ r: t.sd.split("-")[0], s: t.seed });
+            const val = getTeamValueLive2026({ r: t.sd.split("-")[0], s: t.seed }, t.p);
             const ratio = t.p > 0 ? val.fairValue / t.p : 0;
             return { ...t, ev: val.fairValue, ratio, label: val.label, color: val.color, roundEV: val.roundEV };
           });
@@ -2804,12 +2826,12 @@ function Live2026() {
             </thead>
             <tbody>
               {TEAMS_2026.slice().sort((a, b) => {
-                const va = getTeamValue({ r: a.sd.split("-")[0], s: a.seed });
-                const vb = getTeamValue({ r: b.sd.split("-")[0], s: b.seed });
+                const va = getTeamValueLive2026({ r: a.sd.split("-")[0], s: a.seed }, a.p);
+                const vb = getTeamValueLive2026({ r: b.sd.split("-")[0], s: b.seed }, b.p);
                 return (vb.fairValue / b.p) - (va.fairValue / a.p);
               }).map(t => {
                 const region = t.sd.split("-")[0];
-                const val = getTeamValue({ r: region, s: t.seed });
+                const val = getTeamValueLive2026({ r: region, s: t.seed }, t.p);
                 const ratio = val.fairValue / t.p;
                 const synColor = SYNDICATE_COLORS[t.s] || "#5a6a8a";
                 return (
