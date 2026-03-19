@@ -2356,7 +2356,7 @@ function AuctionPrep() {
 // ═══════════════════════════════════════════
 
 function Live2026() {
-  const [liveView, setLiveView] = useState("bracket");
+  const [liveView, setLiveView] = useState("leaderboard");
   const [bracketMobileRegion, setBracketMobileRegion] = useState("E");
   const [nerdMode, setNerdMode] = useState(false);
   const regions = ["S", "MW", "W", "E"];
@@ -2391,6 +2391,7 @@ function Live2026() {
   const cardBorder = "#1e2a40";
 
   const views = [
+    { key: "leaderboard", label: "Leaderboard" },
     { key: "bracket", label: "Bracket" },
     { key: "syndicates", label: "Syndicates" },
     { key: "teams", label: "All Teams" },
@@ -2409,6 +2410,92 @@ function Live2026() {
           }}>{v.label}</button>
         ))}
       </div>
+
+      {/* ── LEADERBOARD VIEW ── */}
+      {liveView === "leaderboard" && (() => {
+        const incrPayouts = [0.005, 0.025, 0.03, 0.03, 0.03, 0.02].map(pct => Math.round(pct * pot));
+        const cumPayouts = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14].map(pct => Math.round(pct * pot));
+        const roundLabels = ["R32", "S16", "E8", "F4", "F2", "Champ"];
+
+        const board = SYNDICATES_2026.map(syn => {
+          const teams = synData[syn.name].teams;
+          const teamsAlive = teams.filter(t => t.alive).length;
+          const roundWins = [0,1,2,3,4,5].map(ri =>
+            teams.filter(t => t.w > ri).length
+          );
+          const roundEarnings = roundWins.map((wins, ri) => wins * incrPayouts[ri]);
+          const totalEarned = roundEarnings.reduce((a, b) => a + b, 0);
+          const net = totalEarned - syn.spent;
+          const roi = syn.spent > 0 ? net / syn.spent : 0;
+          return { ...syn, teamsAlive, totalTeams: teams.length, roundWins, roundEarnings, totalEarned, net, roi };
+        }).sort((a, b) => b.net - a.net);
+
+        const thS = { padding: "6px 8px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 9, borderBottom: "2px solid #1e2a40", whiteSpace: "nowrap" };
+        const thL = { ...thS, textAlign: "left" };
+
+        return (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+              <thead>
+                <tr>
+                  <th style={thL}>#</th>
+                  <th style={thL}>Syndicate</th>
+                  <th style={thS}>Spent</th>
+                  <th style={thS}>Alive</th>
+                  {roundLabels.map(r => <th key={r} style={thS}>{r}</th>)}
+                  <th style={thS}>Earned</th>
+                  <th style={thS}>Net</th>
+                  <th style={thS}>ROI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {board.map((syn, i) => {
+                  const synColor = SYNDICATE_COLORS[syn.name] || "#5a6a8a";
+                  const netColor = syn.net > 0 ? "#2ecc71" : syn.net === 0 ? "#8a9aba" : "#e63946";
+                  return (
+                    <tr key={syn.name} style={{ borderBottom: "1px solid #111827", background: i % 2 === 0 ? "transparent" : "#0a0e1766" }}>
+                      <td style={{ padding: "6px 8px", color: "#5a6a8a", fontWeight: 700 }}>{i + 1}</td>
+                      <td style={{ padding: "6px 8px", fontWeight: 600 }}>
+                        <span style={{ color: synColor }}>{syn.name}</span>
+                      </td>
+                      <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${syn.spent.toLocaleString()}</td>
+                      <td style={{ padding: "6px 8px", textAlign: "right", color: "#8a9aba" }}>{syn.teamsAlive}/{syn.totalTeams}</td>
+                      {syn.roundEarnings.map((re, ri) => (
+                        <td key={ri} style={{ padding: "6px 8px", textAlign: "right", color: re > 0 ? "#e8e6e3" : "#1e2a40" }}>{re > 0 ? `$${re.toLocaleString()}` : "—"}</td>
+                      ))}
+                      <td style={{ padding: "6px 8px", textAlign: "right", color: syn.totalEarned > 0 ? "#e8e6e3" : "#1e2a40", fontWeight: 700 }}>
+                        {syn.totalEarned > 0 ? `$${syn.totalEarned.toLocaleString()}` : "—"}
+                      </td>
+                      <td style={{ padding: "6px 8px", textAlign: "right", color: netColor, fontWeight: 700 }}>
+                        {syn.net >= 0 ? "+" : ""}${syn.net.toLocaleString()}
+                      </td>
+                      <td style={{ padding: "6px 8px", textAlign: "right", color: netColor, fontWeight: 600 }}>
+                        {(syn.roi * 100).toFixed(0)}%
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop: "2px solid #1e2a40" }}>
+                  <td colSpan={2} style={{ padding: "6px 8px", color: "#5a6a8a", fontWeight: 700, fontSize: 10 }}>TOTAL</td>
+                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.spent, 0).toLocaleString()}</td>
+                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#8a9aba" }}>{board.reduce((s, b) => s + b.teamsAlive, 0)}/64</td>
+                  {[0,1,2,3,4,5].map(ri => {
+                    const total = board.reduce((s, b) => s + b.roundEarnings[ri], 0);
+                    return <td key={ri} style={{ padding: "6px 8px", textAlign: "right", color: total > 0 ? "#e8e6e3" : "#1e2a40", fontWeight: 600 }}>{total > 0 ? `$${total.toLocaleString()}` : "—"}</td>;
+                  })}
+                  <td style={{ padding: "6px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.totalEarned, 0).toLocaleString()}</td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
+            </table>
+            <div style={{ textAlign: "center", marginTop: 12, fontSize: 9, color: "#2a3a5a" }}>
+              Updated as results come in · {board.reduce((s, b) => s + b.teamsAlive, 0)} teams alive
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── BRACKET VIEW ── */}
       {liveView === "bracket" && (() => {
@@ -2758,6 +2845,7 @@ function Live2026() {
                       <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "6px 10px", borderLeft: `3px solid ${synColor}`, background: "#0d1321" }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: "#e8e6e3" }}>{syn.name}</span>
                         <span style={{ fontSize: 11, color: "#8a9aba" }}>{sorted.length} teams</span>
+                        <span style={{ fontSize: 9, color: "#3a4a6a" }}>R1 payout: ${r32Pay}</span>
                         <span style={{ fontSize: 11, color: "#8a9aba", marginLeft: "auto" }}>${totalPrice.toLocaleString()} spent</span>
                       </div>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
@@ -2767,7 +2855,6 @@ function Live2026() {
                             <th style={thS}>Price</th>
                             <th style={thL}>R1 Opponent</th>
                             <th style={thS}>Spread</th>
-                            <th style={thS}>R1 Payout</th>
                             <th style={thS}>B/E</th>
                           </tr>
                         </thead>
@@ -2792,7 +2879,6 @@ function Live2026() {
                                   <span style={{ color: "#3a4a6a", fontSize: 9, marginRight: 4 }}>{oppSeed}</span>{opp ? opp.t : "—"}
                                 </td>
                                 <td style={{ padding: "4px 8px", textAlign: "right", color: "#8a9aba", fontSize: 9 }}>{game ? game.spread : "—"}</td>
-                                <td style={{ padding: "4px 8px", textAlign: "right", color: "#8a9aba" }}>${r32Pay}</td>
                                 <td style={{ padding: "4px 8px", textAlign: "right", color: "#8a9aba", fontWeight: 500 }}>{beLabel}</td>
                               </tr>
                             );
