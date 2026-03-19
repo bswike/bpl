@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 
 // ═══════════════════════════════════════════
 // HOGAN CALCUTTA DATA (2022-2025)
@@ -2532,23 +2532,89 @@ function Live2026() {
 
         const regionOrder = ["E", "W", "S", "MW"];
         const rtlRegions = new Set(["W", "MW"]);
+        const leftCol = ["E", "S"];
+        const rightCol = ["W", "MW"];
+        const scrollRef = useRef(null);
+        const [activePage, setActivePage] = useState(0);
+
+        const handleScroll = useCallback(() => {
+          if (scrollRef.current) {
+            const page = Math.round(scrollRef.current.scrollLeft / scrollRef.current.offsetWidth);
+            setActivePage(page);
+          }
+        }, []);
+
+        const scrollToPage = (page) => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTo({ left: page * scrollRef.current.offsetWidth, behavior: "smooth" });
+          }
+        };
+
+        const mobilePages = [
+          { regions: leftCol, labels: ["East", "South"] },
+          { regions: rightCol, labels: ["West", "Midwest"] },
+        ];
 
         return (
           <div>
             {isMobile ? (
               <>
-                <div style={{ display: "flex", gap: 4, justifyContent: "center", marginBottom: 12 }}>
-                  {regionOrder.map(r => (
-                    <button key={r} onClick={() => setBracketMobileRegion(r)} style={{
-                      padding: "6px 14px", borderRadius: 4, cursor: "pointer", fontFamily: "inherit", fontSize: 11,
-                      background: bracketMobileRegion === r ? regionColors[r] : "transparent",
-                      border: `1px solid ${bracketMobileRegion === r ? regionColors[r] : "#1e2a40"}`,
-                      color: bracketMobileRegion === r ? "#0a0e17" : regionColors[r],
-                      fontWeight: bracketMobileRegion === r ? 700 : 400,
-                    }}>{regionNames[r]}</button>
+                <div style={{ display: "flex", gap: 4, justifyContent: "center", marginBottom: 10 }}>
+                  {mobilePages.map((pg, pi) => (
+                    <button key={pi} onClick={() => scrollToPage(pi)} style={{
+                      padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontFamily: "inherit", fontSize: 11,
+                      background: activePage === pi ? "#4a9eff" : "transparent",
+                      border: `1px solid ${activePage === pi ? "#4a9eff" : "#1e2a40"}`,
+                      color: activePage === pi ? "#0a0e17" : "#5a6a8a",
+                      fontWeight: activePage === pi ? 700 : 400,
+                      display: "flex", gap: 6, alignItems: "center",
+                    }}>
+                      {pg.labels.map((lbl, li) => (
+                        <span key={li} style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: regionColors[pg.regions[li]], display: "inline-block" }} />
+                          {lbl}
+                        </span>
+                      ))}
+                    </button>
                   ))}
                 </div>
-                <LiveRegionBracket region={bracketMobileRegion} rtl={rtlRegions.has(bracketMobileRegion)} />
+                <div style={{ fontSize: 8, textAlign: "center", color: "#3a4a6a", marginBottom: 6 }}>
+                  ← swipe between columns →
+                </div>
+                <div
+                  ref={scrollRef}
+                  onScroll={handleScroll}
+                  className="snap-scroll-hide"
+                  style={{
+                    display: "flex", overflowX: "auto", scrollSnapType: "x mandatory",
+                    WebkitOverflowScrolling: "touch", scrollbarWidth: "none", msOverflowStyle: "none",
+                    gap: 0,
+                  }}
+                >
+                  {mobilePages.map((pg, pi) => (
+                    <div key={pi} style={{
+                      scrollSnapAlign: "start", minWidth: "100%", width: "100%", flexShrink: 0,
+                      paddingRight: pi === 0 ? 14 : 0, paddingLeft: pi === 1 ? 14 : 0,
+                      boxSizing: "border-box",
+                    }}>
+                      {pg.regions.map((r, ri) => (
+                        <div key={r} style={{ marginBottom: ri === 0 ? 14 : 0 }}>
+                          <LiveRegionBracket region={r} rtl={rtlRegions.has(r)} />
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                {/* Dot indicators */}
+                <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
+                  {mobilePages.map((_, pi) => (
+                    <div key={pi} onClick={() => scrollToPage(pi)} style={{
+                      width: activePage === pi ? 16 : 6, height: 6, borderRadius: 3,
+                      background: activePage === pi ? "#4a9eff" : "#1e2a40",
+                      transition: "all 0.2s", cursor: "pointer",
+                    }} />
+                  ))}
+                </div>
               </>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
@@ -2559,56 +2625,6 @@ function Live2026() {
                 ))}
               </div>
             )}
-            {/* Final Four */}
-            <div style={{ marginTop: 14 }}>
-              <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: "2px solid #7c5cfc44" }}>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: "#7c5cfc" }}>FINAL FOUR</span>
-              </div>
-              <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12", padding: "8px 8px 12px" }}>
-                <div style={{ display: "flex", marginBottom: 4, minWidth: 380 }}>
-                  {[{ w: 150, l: "SEMIFINAL" }, { w: 16, l: "" }, { w: 130, l: "CHAMPIONSHIP" }, { w: 16, l: "" }, { w: 70, l: "" }].map((c, i) => (
-                    <div key={i} style={{ width: c.w, minWidth: c.w, flexShrink: 0, textAlign: "center", fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{c.l}</div>
-                  ))}
-                </div>
-                <div style={{ display: "flex", height: 200, minWidth: 380 }}>
-                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 150, minWidth: 150, flexShrink: 0 }}>
-                    {[
-                      [{ label: "East", color: regionColors.E }, { label: "South", color: regionColors.S }],
-                      [{ label: "West", color: regionColors.W }, { label: "Midwest", color: regionColors.MW }],
-                    ].map((pair, i) => (
-                      <div key={i} style={{ border: "1px solid #1e2a40", borderRadius: 3, overflow: "hidden" }}>
-                        {pair.map((r, j) => (
-                          <div key={j} style={{ height: 28, display: "flex", alignItems: "center", padding: "0 8px", background: "#0d1321", borderBottom: j === 0 ? "1px solid #1e2a40" : "none", gap: 6 }}>
-                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: r.color, flexShrink: 0 }} />
-                            <span style={{ fontSize: 10, fontWeight: 600, color: "#c8d6e5" }}>{r.label} Winner</span>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: 16, flexShrink: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
-                      <div style={{ width: "100%", height: "50%", borderRight: "2px solid #1e2a40", borderTop: "2px solid #1e2a40", borderBottom: "2px solid #1e2a40", borderTopRightRadius: 3, borderBottomRightRadius: 3 }} />
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", width: 130, minWidth: 130, flexShrink: 0 }}>
-                    <div style={{ border: "1px solid #1e2a40", borderRadius: 3, overflow: "hidden" }}>
-                      <div style={{ height: 28, display: "flex", alignItems: "center", padding: "0 6px", background: "#0a0e15", borderBottom: "1px solid #151d2e", fontSize: 9, color: "#1e2a40" }}>—</div>
-                      <div style={{ height: 28, display: "flex", alignItems: "center", padding: "0 6px", background: "#0a0e15", fontSize: 9, color: "#1e2a40" }}>—</div>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", width: 16, flexShrink: 0, justifyContent: "center" }}>
-                    <div style={{ width: "100%", height: 2, background: "#1e2a40" }} />
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", width: 70, minWidth: 70, flexShrink: 0 }}>
-                    <div style={{ border: "2px solid #7c5cfc44", borderRadius: 6, padding: "10px 8px", textAlign: "center", background: "#111827" }}>
-                      <div style={{ fontSize: 8, color: "#7c5cfc", letterSpacing: 1, fontWeight: 600 }}>CHAMP</div>
-                      <div style={{ fontSize: 16, marginTop: 2 }}>🏆</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         );
       })()}

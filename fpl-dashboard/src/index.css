@@ -38,3 +38,7 @@ html, body {
 .animate-scroll-x:hover {
   animation-play-state: paused;
 }
+
+.snap-scroll-hide::-webkit-scrollbar {
+  display: none;
+}
