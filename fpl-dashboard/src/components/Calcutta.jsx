@@ -2523,23 +2523,16 @@ function Live2026() {
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
       {/* Sub-nav */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 6 }}>
         {views.map(v => (
           <button key={v.key} onClick={() => setLiveView(v.key)} style={{
-            padding: "3px 10px", background: "transparent",
+            padding: "2px 8px", background: "transparent",
             border: "none", borderBottom: liveView === v.key ? "1px solid #4a9eff" : "1px solid transparent",
             color: liveView === v.key ? "#4a9eff" : "#4a5a7a", fontSize: 10, fontWeight: liveView === v.key ? 600 : 400,
             fontFamily: "inherit", cursor: "pointer", letterSpacing: 0.5,
           }}>{v.label}</button>
         ))}
       </div>
-
-      {lastFetch && espnGames.some(g => g.status === "in") && (
-        <div style={{ textAlign: "center", marginBottom: 8, fontSize: 8, color: "#2a3a5a" }}>
-          <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: "#22c55e", marginRight: 4, verticalAlign: "middle" }} />
-          Live · updates every 30s
-        </div>
-      )}
 
       {/* ── LEADERBOARD VIEW ── */}
       {liveView === "leaderboard" && (() => {
@@ -2844,23 +2837,18 @@ function Live2026() {
 
           return (
             <div style={isMobile ? { scrollSnapAlign: "start", flexShrink: 0 } : {}}>
-              <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
-                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: regionColors[region] }}>{regionNames[region].toUpperCase()} REGION</span>
+              <div style={{ textAlign: "center", marginBottom: isMobile ? 2 : 8, padding: isMobile ? "3px 0" : "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
+                <span style={{ fontSize: isMobile ? 9 : 11, fontWeight: 700, letterSpacing: 3, color: regionColors[region] }}>{regionNames[region].toUpperCase()} REGION</span>
               </div>
               <div
                 ref={bracketScrollRef}
                 style={{
                   overflowX: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
-                  paddingBottom: 8, paddingTop: 4,
+                  paddingBottom: 4, paddingTop: 2,
                 }}
               >
-                {isMobile && (
-                  <div style={{ fontSize: 7, textAlign: "center", padding: "2px 8px 4px", color: "#4a5a7a" }}>
-                    {rtl ? "← scroll for later rounds" : "scroll for later rounds →"}
-                  </div>
-                )}
-                <div style={{ display: "flex", marginBottom: 4, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
+                <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
                   {colWidths.map((w, i) => (
                     <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
                       {headers[i] && (
@@ -2872,7 +2860,7 @@ function Live2026() {
                     </div>
                   ))}
                 </div>
-                <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 8 }}>
+                <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
                   {bracketContent}
                 </div>
               </div>
@@ -2889,60 +2877,46 @@ function Live2026() {
         return (
           <div>
             {isMobile ? (
-              <>
-                <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 8 }}>
-                  {regionOrder.map(r => (
-                    <button key={r} onClick={() => { setBracketMobileRegion(r); setTimeout(() => scrollToRegion(r), 50); }} style={{
-                      padding: "2px 8px", cursor: "pointer", fontFamily: "inherit", fontSize: 9,
-                      background: "transparent", border: "none",
-                      borderBottom: bracketMobileRegion === r ? `1px solid ${regionColors[r]}` : "1px solid transparent",
-                      color: bracketMobileRegion === r ? regionColors[r] : "#3a4a6a",
-                      fontWeight: bracketMobileRegion === r ? 700 : 400,
-                      letterSpacing: 0.5, transition: "all 0.15s",
-                    }}>{regionNames[r]}</button>
-                  ))}
-                </div>
-                <div
-                  ref={hScrollRef}
-                  onScroll={handleHScroll}
+              <div
+                ref={hScrollRef}
+                onScroll={handleHScroll}
+                style={{
+                  display: "flex", overflowX: "auto",
+                  scrollSnapType: "x mandatory",
+                  overscrollBehavior: "contain",
+                  WebkitOverflowScrolling: "touch",
+                  borderRadius: 8,
+                }}
+              >
+                  <div
+                  ref={vScrollRefLeft}
+                  onScroll={handleVScrollLeft}
                   style={{
-                    display: "flex", overflowX: "auto",
-                    scrollSnapType: "x mandatory",
-                    overscrollBehavior: "contain",
+                    minWidth: "100%", flexShrink: 0, scrollSnapAlign: "start",
+                    height: "calc(100dvh - 110px)", overflowY: "auto",
+                    scrollSnapType: "y mandatory",
+                    overscrollBehaviorY: "contain",
                     WebkitOverflowScrolling: "touch",
-                    borderRadius: 8,
                   }}
                 >
-                  <div
-                    ref={vScrollRefLeft}
-                    onScroll={handleVScrollLeft}
-                    style={{
-                      minWidth: "100%", flexShrink: 0, scrollSnapAlign: "start",
-                      maxHeight: "75vh", overflowY: "auto",
-                      scrollSnapType: "y mandatory",
-                      overscrollBehaviorY: "contain",
-                      WebkitOverflowScrolling: "touch",
-                    }}
-                  >
-                    <LiveRegionBracket region="E" rtl={false} />
-                    <LiveRegionBracket region="S" rtl={false} />
-                  </div>
-                  <div
-                    ref={vScrollRefRight}
-                    onScroll={handleVScrollRight}
-                    style={{
-                      minWidth: "100%", flexShrink: 0, scrollSnapAlign: "start",
-                      maxHeight: "75vh", overflowY: "auto",
-                      scrollSnapType: "y mandatory",
-                      overscrollBehaviorY: "contain",
-                      WebkitOverflowScrolling: "touch",
-                    }}
-                  >
-                    <LiveRegionBracket region="W" rtl={true} />
-                    <LiveRegionBracket region="MW" rtl={true} />
-                  </div>
+                  <LiveRegionBracket region="E" rtl={false} />
+                  <LiveRegionBracket region="S" rtl={false} />
                 </div>
-              </>
+                <div
+                  ref={vScrollRefRight}
+                  onScroll={handleVScrollRight}
+                  style={{
+                    minWidth: "100%", flexShrink: 0, scrollSnapAlign: "start",
+                    height: "calc(100dvh - 110px)", overflowY: "auto",
+                    scrollSnapType: "y mandatory",
+                    overscrollBehaviorY: "contain",
+                    WebkitOverflowScrolling: "touch",
+                  }}
+                >
+                  <LiveRegionBracket region="W" rtl={true} />
+                  <LiveRegionBracket region="MW" rtl={true} />
+                </div>
+              </div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                 {regionOrder.map(r => (
