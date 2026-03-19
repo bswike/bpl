@@ -2492,6 +2492,9 @@ function Live2026() {
                     {isOpen && teams.map(t => {
                       const teamEarned = [0,1,2,3,4,5].reduce((sum, ri) => sum + (t.w > ri ? incrPayouts[ri] : 0), 0);
                       const teamNet = teamEarned - t.p;
+                      const beRounds = ["R32","S16","E8","F4","F2","Ch"];
+                      const beIdx = cumPayouts.findIndex(cp => cp >= t.p);
+                      const beLabel = beIdx >= 0 ? beRounds[beIdx] : "Ch+";
                       return (
                         <tr key={t.sd} style={{ background: "#080c14", borderBottom: "1px solid #0d1321" }}>
                           <td style={{ padding: "4px 4px" }} />
@@ -2499,6 +2502,7 @@ function Live2026() {
                             <span style={{ color: "#3a4a6a", fontSize: 9, marginRight: 3 }}>{t.seed}</span>
                             {t.t}
                             {!t.alive && <span style={{ color: "#e63946", fontSize: 8, marginLeft: 4 }}>✗</span>}
+                            <span style={{ fontSize: 8, color: "#2a3a5a", marginLeft: 5, fontStyle: "italic" }}>b/e {beLabel}</span>
                           </td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: t.alive ? "#2ecc71" : "#3a4a6a", fontSize: 9 }}>{t.alive ? "✓" : "✗"}</td>
