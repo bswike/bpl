@@ -2733,82 +2733,50 @@ function Live2026() {
 
             {!nerdMode ? (() => {
               const cumPayouts = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14].map(pct => Math.round(pct * POT_2026));
-              const roundLabels = ["R32","S16","E8","F4","F2","Ch"];
-              const thS = { padding: "5px 8px", textAlign: "right", color: "#7a8aaa", fontWeight: 600, fontSize: 9, borderBottom: "1px solid #2a3a50", whiteSpace: "nowrap" };
-              const thL = { ...thS, textAlign: "left" };
+              const rl = ["R32","S16","E8","F4","F2","Ch"];
               return (
-              <div style={{ overflowX: "auto" }}>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12, padding: "8px 10px", background: "#0d1321", borderRadius: 6, border: "1px solid #1e2a40" }}>
-                  <span style={{ fontSize: 9, color: "#5a6a8a", fontWeight: 600 }}>ROUND PAYOUTS:</span>
-                  {roundLabels.map((r, i) => (
+              <div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14, padding: "8px 12px", background: "#0d1321", borderRadius: 6, border: "1px solid #1e2a40" }}>
+                  <span style={{ fontSize: 10, color: "#8a9aba", fontWeight: 600 }}>Payouts per round:</span>
+                  {rl.map((r, i) => (
                     <span key={r} style={{ fontSize: 10, color: "#c8d6e5" }}>
-                      <span style={{ color: "#5a6a8a", fontSize: 9 }}>{r}</span> ${cumPayouts[i].toLocaleString()}
+                      <span style={{ color: "#5a6a8a" }}>{r}</span> ${cumPayouts[i].toLocaleString()}
                     </span>
                   ))}
-                  <span style={{ fontSize: 9, color: "#3a4a6a" }}>cumulative per team · pot ${POT_2026.toLocaleString()}</span>
                 </div>
                 {synCards.map(syn => {
                   const synColor = SYNDICATE_COLORS[syn.name] || "#5a6a8a";
                   const sorted = syn.teamEVs.slice().sort((a, b) => b.p - a.p);
                   const totalPrice = sorted.reduce((s, t) => s + t.p, 0);
                   return (
-                    <div key={syn.name} style={{ marginBottom: 14 }}>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "5px 8px", background: synColor + "12", borderBottom: `2px solid ${synColor}66` }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: synColor }}>{syn.name}</span>
-                        <span style={{ fontSize: 10, color: "#8a9aba" }}>{sorted.length} teams</span>
-                        <span style={{ fontSize: 10, color: "#8a9aba" }}>·</span>
-                        <span style={{ fontSize: 10, color: "#e8e6e3", fontWeight: 600 }}>${totalPrice.toLocaleString()} spent</span>
+                    <div key={syn.name} style={{ marginBottom: 16 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "6px 10px", borderLeft: `3px solid ${synColor}`, background: "#0d1321" }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "#e8e6e3" }}>{syn.name}</span>
+                        <span style={{ fontSize: 11, color: "#8a9aba" }}>{sorted.length} teams</span>
+                        <span style={{ fontSize: 11, color: "#8a9aba", marginLeft: "auto" }}>${totalPrice.toLocaleString()} spent</span>
                       </div>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, fontFamily: "'JetBrains Mono', monospace" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
                         <thead>
-                          <tr style={{ background: "#0a0e17" }}>
-                            <th style={thL}>Sd</th>
-                            <th style={thL}>Rgn</th>
-                            <th style={{ ...thL, minWidth: 80 }}>Team</th>
-                            <th style={thS}>Paid</th>
-                            {roundLabels.map(r => <th key={r} style={thS}>{r}</th>)}
-                            <th style={thS}>B/E</th>
+                          <tr style={{ borderBottom: "1px solid #1e2a40" }}>
+                            <th style={{ padding: "5px 10px", textAlign: "left", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Team</th>
+                            <th style={{ padding: "5px 10px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Seed</th>
+                            <th style={{ padding: "5px 10px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Price</th>
+                            <th style={{ padding: "5px 10px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 10 }}>Breakeven</th>
                           </tr>
                         </thead>
                         <tbody>
                           {sorted.map((t, ti) => {
-                            const rgn = t.sd.split("-")[0];
                             const beIdx = cumPayouts.findIndex(cp => cp >= t.p);
-                            const beLabel = beIdx >= 0 ? roundLabels[beIdx] : "—";
+                            const beLabel = beIdx >= 0 ? rl[beIdx] : "—";
                             return (
-                              <tr key={t.sd} style={{ background: ti % 2 === 0 ? "#0d1321" : "#0f1629", opacity: t.alive ? 1 : 0.35 }}>
-                                <td style={{ padding: "3px 8px", color: t.seed <= 2 ? "#4a9eff" : t.seed <= 4 ? "#7c5cfc" : "#8a9aba", fontWeight: 700 }}>{t.seed}</td>
-                                <td style={{ padding: "3px 8px", color: regionColors[rgn] || "#5a6a8a", fontWeight: 600, fontSize: 9 }}>{rgn}</td>
-                                <td style={{ padding: "3px 8px", color: "#c8d6e5", fontWeight: 500, whiteSpace: "nowrap" }}>{t.t}</td>
-                                <td style={{ padding: "3px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${t.p.toLocaleString()}</td>
-                                {cumPayouts.map((cp, ri) => {
-                                  const profit = cp - t.p;
-                                  const isGreen = cp >= t.p;
-                                  return (
-                                    <td key={ri} style={{ padding: "3px 8px", textAlign: "right", color: isGreen ? "#2ecc71" : "#8a9aba", fontWeight: isGreen ? 600 : 400 }}>
-                                      {isGreen ? "+" : ""}{profit >= 0 ? "$" : "-$"}{Math.abs(profit).toLocaleString()}
-                                    </td>
-                                  );
-                                })}
-                                <td style={{ padding: "3px 8px", textAlign: "right", fontWeight: 700, fontSize: 9, color: beIdx === 0 ? "#2ecc71" : beIdx <= 2 ? "#e9c46a" : "#e63946" }}>{beLabel}</td>
+                              <tr key={t.sd} style={{ borderBottom: "1px solid #111827", background: ti % 2 === 0 ? "transparent" : "#0a0e1766" }}>
+                                <td style={{ padding: "5px 10px", color: "#e8e6e3" }}>{t.t}</td>
+                                <td style={{ padding: "5px 10px", textAlign: "right", color: "#8a9aba" }}>{t.seed}</td>
+                                <td style={{ padding: "5px 10px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${t.p.toLocaleString()}</td>
+                                <td style={{ padding: "5px 10px", textAlign: "right", color: "#8a9aba", fontWeight: 500 }}>{beLabel}</td>
                               </tr>
                             );
                           })}
-                          <tr style={{ background: "#0a0e17", borderTop: `2px solid ${synColor}44` }}>
-                            <td colSpan={3} style={{ padding: "4px 8px", color: synColor, fontWeight: 700, fontSize: 9 }}>TOTAL</td>
-                            <td style={{ padding: "4px 8px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${totalPrice.toLocaleString()}</td>
-                            {cumPayouts.map((cp, ri) => {
-                              const teamCount = sorted.filter(t => t.alive).length;
-                              const totalPayout = cp * teamCount;
-                              const totalProfit = totalPayout - totalPrice;
-                              return (
-                                <td key={ri} style={{ padding: "4px 8px", textAlign: "right", color: totalProfit >= 0 ? "#2ecc71" : "#8a9aba", fontWeight: 600, fontSize: 9 }}>
-                                  {totalProfit >= 0 ? "+" : ""}{totalProfit >= 0 ? "$" : "-$"}{Math.abs(totalProfit).toLocaleString()}
-                                </td>
-                              );
-                            })}
-                            <td style={{ padding: "4px 8px" }} />
-                          </tr>
                         </tbody>
                       </table>
                     </div>
