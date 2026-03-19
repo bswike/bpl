@@ -2712,11 +2712,7 @@ function Live2026() {
                     {isLive && <span className="live-dot" style={{ width: 4, height: 4, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />}
                     {isLive ? (top?.gameDetail || "LIVE") : isFinal ? "FINAL" : isToday ? "TODAY " + game.time.split(" ")[1] : game.time}
                   </span>
-                  {hasEspn ? (
-                    <span>{(top?.liveScore ?? "")}-{(bot?.liveScore ?? "")}</span>
-                  ) : (
-                    <span>{game.spread}</span>
-                  )}
+                  <span>{game.spread}</span>
                 </div>
               )}
               <div style={{ border: `1px solid ${isLive ? "#22c55e44" : isToday ? "#4a9eff44" : "#1e2a40"}`, borderRadius: 3, overflow: "hidden", boxShadow: isLive ? "0 0 8px rgba(34,197,94,0.2)" : isToday ? "0 0 8px rgba(74,158,255,0.15)" : "none" }}>
