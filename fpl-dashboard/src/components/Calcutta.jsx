@@ -353,7 +353,7 @@ const TEAMS_2026 = [
   {s:"Tomek",sd:"W-12",t:"High Point",p:140,seed:12,w:0,n:0,alive:true},
   {s:"Stangs",sd:"E-12",t:"Northern Iowa",p:100,seed:12,w:0,n:0,alive:true},
   {s:"Bacon",sd:"S-11",t:"VCU",p:160,seed:11,w:0,n:0,alive:true},
-  {s:"Tomek",sd:"MW-11",t:"SMU",p:120,seed:11,w:0,n:0,alive:true},
+  {s:"Tomek",sd:"MW-11",t:"Miami (OH)",p:120,seed:11,w:0,n:0,alive:true},
   {s:"Bacon",sd:"W-11",t:"Texas",p:260,seed:11,w:0,n:0,alive:true},
   {s:"Tomek",sd:"E-11",t:"South Florida",p:200,seed:11,w:0,n:0,alive:true},
   {s:"Stangs",sd:"S-10",t:"Texas A&M",p:120,seed:10,w:0,n:0,alive:true},
@@ -469,7 +469,7 @@ const BRACKET_2026 = [
   {r:"MW",s:14,t:"Wright State",odds:"+20000",s16:"2%",tr:"1%",em:"<1%",note:""},
   {r:"MW",s:13,t:"Hofstra",odds:"+20000",s16:"5%",tr:"3%",em:"6%",note:""},
   {r:"MW",s:12,t:"Akron",odds:"+20000",s16:"10%",tr:"4%",em:"8%",note:""},
-  {r:"MW",s:11,t:"SMU/Miami OH",odds:"+20000",s16:"15%",tr:"5%",em:"3%",note:"First Four Wed"},
+  {r:"MW",s:11,t:"Miami (OH)",odds:"+20000",s16:"15%",tr:"5%",em:"3%",note:"First Four Wed"},
   {r:"MW",s:10,t:"Santa Clara",odds:"+20000",s16:"20%",tr:"13%",em:"6%",note:""},
   {r:"MW",s:9,t:"Saint Louis",odds:"+10000",s16:"32%",tr:"5%",em:"4%",note:"A10 champ, top-15 O & D"},
   {r:"MW",s:8,t:"Georgia",odds:"+10000",s16:"18%",tr:"8%",em:"3%",note:"315th pts allowed"},
@@ -2470,6 +2470,7 @@ function Live2026() {
           const bracketScrollRef = useRef(null);
           const edgeTimer = useRef(null);
           const autoScrolling = useRef(false);
+          const vTouchRef = useRef(null);
           const tm = {};
           TEAMS_2026.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
@@ -2485,6 +2486,22 @@ function Live2026() {
             }
             return () => { if (edgeTimer.current) clearTimeout(edgeTimer.current); };
           }, [region, rtl]);
+
+          const onVTouchStart = useCallback((e) => {
+            vTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+          }, []);
+
+          const onVTouchEnd = useCallback((e) => {
+            if (!vTouchRef.current || !isMobile) return;
+            const dx = e.changedTouches[0].clientX - vTouchRef.current.x;
+            const dy = e.changedTouches[0].clientY - vTouchRef.current.y;
+            const dt = Date.now() - vTouchRef.current.t;
+            vTouchRef.current = null;
+            if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.5 && dt < 500) {
+              if (dy < 0 && regionIsTop) setBracketMobileRegion(vNbr);
+              else if (dy > 0 && !regionIsTop) setBracketMobileRegion(vNbr);
+            }
+          }, [regionIsTop, vNbr]);
 
           const handleEdgeScroll = useCallback(() => {
             if (!bracketScrollRef.current || !isMobile || autoScrolling.current) return;
@@ -2554,7 +2571,7 @@ function Live2026() {
           );
 
           return (
-            <div>
+            <div onTouchStart={onVTouchStart} onTouchEnd={onVTouchEnd}>
               {!regionIsTop && isMobile && <div style={{ marginBottom: 6 }}>{vNav}</div>}
               <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: regionColors[region] }}>{regionNames[region].toUpperCase()} REGION</span>
@@ -2570,7 +2587,7 @@ function Live2026() {
               >
                 {isMobile && (
                   <div style={{ fontSize: 7, textAlign: "center", padding: "2px 8px 4px", color: "#4a5a7a" }}>
-                    {rtl ? "← scroll for later rounds · hold edge → " : "scroll for later rounds → · hold edge → "}{regionNames[neighbor]}
+                    {rtl ? "← scroll for later rounds" : "scroll for later rounds →"} · swipe ↕ {regionNames[vNbr]}
                   </div>
                 )}
                 <div style={{ display: "flex", marginBottom: 4, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
@@ -2748,6 +2765,7 @@ function Live2026() {
                             opacity: t.alive ? 1 : 0.35,
                           }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0 }}>
+                              <span style={{ color: "#3a4a6a", fontSize: 7, fontWeight: 600, width: 16, textAlign: "right", flexShrink: 0 }}>{t.sd.split("-")[0]}</span>
                               <span style={{ color: t.seed <= 2 ? "#4a9eff" : t.seed <= 4 ? "#7c5cfc" : "#5a6a8a", fontSize: 9, fontWeight: 700, width: 14, textAlign: "right", flexShrink: 0 }}>{t.seed}</span>
                               <span style={{ color: isTop ? "#e8e6e3" : "#8a9aba", fontWeight: isTop ? 600 : 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                 {t.t}
