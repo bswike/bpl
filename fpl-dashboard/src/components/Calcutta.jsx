@@ -2399,6 +2399,17 @@ function Live2026() {
     }
   }, [liveView]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || window.innerWidth >= 820) return;
+    const isRight = bracketMobileRegion === "W" || bracketMobileRegion === "MW";
+    if (!isRight || !vScrollRefRight.current) return;
+    requestAnimationFrame(() => {
+      vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => {
+        el.scrollLeft = el.scrollWidth;
+      });
+    });
+  }, [bracketMobileRegion]);
+
   const pot = POT_2026;
   const payoutLabels = ["R32", "S16", "E8", "F4", "F2", "Ch"];
   const payoutCum = [0.005, 0.03, 0.06, 0.09, 0.12, 0.14];
@@ -2833,6 +2844,7 @@ function Live2026() {
               </div>
               <div
                 ref={bracketScrollRef}
+                data-rtl={rtl ? "1" : undefined}
                 style={{
                   overflowX: "auto", WebkitOverflowScrolling: "touch",
                   overscrollBehavior: "contain",
