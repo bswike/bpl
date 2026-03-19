@@ -2812,9 +2812,15 @@ function Live2026() {
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
 
           useEffect(() => {
-            if (bracketScrollRef.current && !rtl) {
-              bracketScrollRef.current.scrollLeft = 0;
-            }
+            const el = bracketScrollRef.current;
+            if (!el) return;
+            if (!rtl) { el.scrollLeft = 0; return; }
+            el.scrollLeft = el.scrollWidth;
+            const obs = new IntersectionObserver(([entry]) => {
+              if (entry.isIntersecting) el.scrollLeft = el.scrollWidth;
+            }, { threshold: 0.1 });
+            obs.observe(el);
+            return () => obs.disconnect();
           }, [region, rtl]);
 
           const MW = 150;
@@ -2905,10 +2911,9 @@ function Live2026() {
                   overscrollBehavior: "contain",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
                   paddingBottom: 4, paddingTop: 2,
-                  direction: rtl ? "rtl" : "ltr",
                 }}
               >
-               <div style={{ direction: "ltr", display: "inline-block" }}>
+               <div>
                 <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
                   {colWidths.map((w, i) => (
                     <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
