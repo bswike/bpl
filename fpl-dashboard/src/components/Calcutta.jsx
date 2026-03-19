@@ -2395,6 +2395,11 @@ function Live2026() {
         const from = col === "right" ? vScrollRefLeft.current : vScrollRefRight.current;
         const to = col === "right" ? vScrollRefRight.current : vScrollRefLeft.current;
         if (from && to) to.scrollTop = from.scrollTop;
+        if (col === "right" && vScrollRefRight.current) {
+          vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => {
+            el.scrollLeft = el.scrollWidth;
+          });
+        }
       }
       lastHCol.current = col;
     }
