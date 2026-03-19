@@ -2830,9 +2830,9 @@ function Live2026() {
 
           const totalW = 150 + 100*3 + 16*3;
 
-          const vNav = isMobile && (
+          const navBtn = (target, arrow) => (
             <div
-              onClick={() => setBracketMobileRegion(vNbr)}
+              onClick={() => setBracketMobileRegion(target)}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                 padding: "8px 0", cursor: "pointer", borderRadius: 6,
@@ -2840,15 +2840,22 @@ function Live2026() {
                 transition: "background 0.15s",
               }}
             >
-              <span style={{ fontSize: 10, color: "#4a5a7a" }}>{regionIsTop ? "▼" : "▲"}</span>
-              <span style={{ fontSize: 10, color: regionColors[vNbr], fontWeight: 600 }}>{regionNames[vNbr]}</span>
+              <span style={{ fontSize: 10, color: "#4a5a7a" }}>{arrow}</span>
+              <span style={{ fontSize: 10, color: regionColors[target], fontWeight: 600 }}>{regionNames[target]}</span>
               <span style={{ fontSize: 8, color: "#3a4a6a" }}>Region</span>
             </div>
           );
 
+          const isLeft = region === "E" || region === "S";
+
           return (
             <div>
-              {!regionIsTop && isMobile && <div style={{ marginBottom: 6 }}>{vNav}</div>}
+              {!regionIsTop && isMobile && (
+                <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                  <div style={{ flex: 1 }}>{navBtn(neighbor, isLeft ? "→" : "←")}</div>
+                  <div style={{ flex: 1 }}>{navBtn(vNbr, "▲")}</div>
+                </div>
+              )}
               <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: regionColors[region] }}>{regionNames[region].toUpperCase()} REGION</span>
               </div>
@@ -2882,7 +2889,12 @@ function Live2026() {
                   {bracketContent}
                 </div>
               </div>
-              {regionIsTop && isMobile && <div style={{ marginTop: 6 }}>{vNav}</div>}
+              {isMobile && (
+                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                  <div style={{ flex: 1 }}>{navBtn(neighbor, isLeft ? "→" : "←")}</div>
+                  <div style={{ flex: 1 }}>{navBtn(vNbr, regionIsTop ? "▼" : "▲")}</div>
+                </div>
+              )}
             </div>
           );
         };
