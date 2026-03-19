@@ -2403,45 +2403,124 @@ function Live2026() {
       </div>
 
       {/* ── BRACKET VIEW ── */}
-      {liveView === "bracket" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {regions.map(r => {
-            const teams = TEAMS_2026.filter(t => t.sd.startsWith(r + "-")).sort((a, b) => a.seed - b.seed);
-            return (
-              <div key={r} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: 10, overflow: "hidden" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: regionColors[r], marginBottom: 8, textAlign: "center", letterSpacing: 1 }}>
-                  {regionNames[r].toUpperCase()}
-                </div>
-                {teams.map(team => {
-                  const synColor = SYNDICATE_COLORS[team.s] || "#5a6a8a";
-                  const val = getTeamValue({ r, s: team.seed });
-                  const ratio = val.fairValue / team.p;
-                  return (
-                    <div key={team.sd} style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "3px 6px", marginBottom: 1, borderRadius: 3,
-                      background: team.alive ? "transparent" : "#1a0a0a",
-                      opacity: team.alive ? 1 : 0.4,
-                      borderLeft: `3px solid ${synColor}`,
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
-                        <span style={{ fontSize: 9, color: "#5a6a8a", width: 16, textAlign: "right", flexShrink: 0 }}>{team.seed}</span>
-                        <span style={{ fontSize: 10, fontWeight: 600, color: "#e8e6e3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{team.t}</span>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                        <span style={{ fontSize: 9, color: "#5a6a8a" }}>${team.p}</span>
-                        <span style={{ fontSize: 8, fontWeight: 600, padding: "1px 4px", borderRadius: 3,
-                          background: synColor + "22", color: synColor,
-                        }}>{team.s.slice(0, 4)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+      {liveView === "bracket" && (() => {
+        const bracketOrder = [[1,16],[8,9],[5,12],[4,13],[6,11],[3,14],[7,10],[2,15]];
+        const rh = 370;
+
+        const BTeam = ({ team }) => {
+          if (!team) return <div style={{ height: 17, fontSize: 8, color: "#2a3a50", padding: "0 4px", display: "flex", alignItems: "center" }}>?</div>;
+          const sc = SYNDICATE_COLORS[team.s] || "#5a6a8a";
+          return (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "0 5px", height: 17, fontSize: 8.5, gap: 4,
+              borderLeft: `2px solid ${sc}`,
+              opacity: team.alive ? 1 : 0.3,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0, overflow: "hidden" }}>
+                <span style={{ color: "#5a6a8a", fontSize: 7.5, flexShrink: 0, width: 12, textAlign: "right" }}>{team.seed}</span>
+                <span style={{ color: "#e8e6e3", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{team.t}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <span style={{ color: "#5a6a8a", fontSize: 7, flexShrink: 0 }}>${team.p}</span>
+            </div>
+          );
+        };
+
+        const BConn = ({ pairs }) => (
+          <div style={{ display: "flex", flexDirection: "column", width: 14, flexShrink: 0 }}>
+            {Array.from({ length: pairs }).map((_, i) => (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                <div style={{ flex: 1, borderBottom: "1px solid #2a3a50", borderRight: "1px solid #2a3a50" }} />
+                <div style={{ flex: 1, borderTop: "1px solid #2a3a50", borderRight: "1px solid #2a3a50" }} />
+              </div>
+            ))}
+          </div>
+        );
+
+        const BSlot = () => (
+          <div style={{
+            height: 17, minWidth: 50, border: "1px dashed #1e2a40", borderRadius: 2,
+            background: "#0a0e17", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 7, color: "#2a3a50",
+          }}>—</div>
+        );
+
+        const BRound = ({ n }) => (
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", flexShrink: 0 }}>
+            {Array.from({ length: n }).map((_, i) => <BSlot key={i} />)}
+          </div>
+        );
+
+        const RegionBracket = ({ region }) => {
+          const tm = {};
+          TEAMS_2026.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
+          return (
+            <div style={{ display: "flex", height: rh, alignItems: "stretch" }}>
+              <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", flexShrink: 0 }}>
+                {bracketOrder.map(([s1, s2], i) => (
+                  <div key={i} style={{ border: "1px solid #1e2a40", borderRadius: 3, overflow: "hidden", background: "#0d1321" }}>
+                    <BTeam team={tm[s1]} />
+                    <div style={{ height: 1, background: "#1e2a40" }} />
+                    <BTeam team={tm[s2]} />
+                  </div>
+                ))}
+              </div>
+              <BConn pairs={4} />
+              <BRound n={4} />
+              <BConn pairs={2} />
+              <BRound n={2} />
+              <BConn pairs={1} />
+              <BRound n={1} />
+            </div>
+          );
+        };
+
+        return (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {regions.map(r => (
+                <div key={r} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: "8px 10px", overflowX: "auto" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: regionColors[r], marginBottom: 6, textAlign: "center", letterSpacing: 1 }}>
+                    {regionNames[r].toUpperCase()}
+                  </div>
+                  <RegionBracket region={r} />
+                </div>
+              ))}
+            </div>
+            {/* Final Four */}
+            <div style={{ display: "flex", justifyContent: "center", marginTop: 14 }}>
+              <div style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 8, padding: "12px 16px" }}>
+                <div style={{ fontSize: 10, color: "#5a6a8a", marginBottom: 10, textAlign: "center", letterSpacing: 1.5, fontWeight: 600 }}>FINAL FOUR</div>
+                <div style={{ display: "flex", height: 100, alignItems: "stretch" }}>
+                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", flexShrink: 0 }}>
+                    {[["S","South"],["MW","Midwest"],["W","West"],["E","East"]].map(([k,n]) => (
+                      <div key={k} style={{
+                        border: "1px dashed #1e2a40", borderRadius: 3, padding: "3px 14px",
+                        fontSize: 9, color: regionColors[k], fontWeight: 600, textAlign: "center", minWidth: 70,
+                      }}>{n}</div>
+                    ))}
+                  </div>
+                  <BConn pairs={2} />
+                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", flexShrink: 0 }}>
+                    <BSlot />
+                    <BSlot />
+                  </div>
+                  <BConn pairs={1} />
+                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", flexShrink: 0 }}>
+                    <div style={{
+                      border: "1px dashed #4a9eff44", borderRadius: 4, padding: "6px 16px",
+                      background: "#4a9eff08", textAlign: "center",
+                    }}>
+                      <div style={{ fontSize: 7, color: "#5a6a8a", marginBottom: 2, letterSpacing: 1 }}>CHAMPION</div>
+                      <div style={{ fontSize: 14 }}>🏆</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── SYNDICATES VIEW ── */}
       {liveView === "syndicates" && (
