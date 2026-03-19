@@ -2813,6 +2813,35 @@ function Live2026() {
           liveTeams.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
 
+          useEffect(() => {
+            const el = bracketScrollRef.current;
+            if (!el || !rtl) return;
+            let isVisible = false;
+            let snapTimer;
+            const forceRight = () => {
+              if (el.scrollWidth > el.clientWidth) el.scrollLeft = el.scrollWidth;
+            };
+            const obs = new IntersectionObserver(([entry]) => {
+              if (entry.isIntersecting && !isVisible) {
+                isVisible = true;
+                forceRight();
+                let ticks = 0;
+                snapTimer = setInterval(() => {
+                  forceRight();
+                  ticks++;
+                  if (ticks > 12) clearInterval(snapTimer);
+                }, 50);
+              } else if (!entry.isIntersecting) {
+                isVisible = false;
+                clearInterval(snapTimer);
+              }
+            }, { threshold: 0.05 });
+            obs.observe(el);
+            forceRight();
+            setTimeout(forceRight, 100);
+            return () => { obs.disconnect(); clearInterval(snapTimer); };
+          }, [rtl, bracketScrollRef]);
+
           const MW = 150;
           const roundPay = [0.005, 0.025, 0.03, 0.03, 0.03, 0.02].map(pct => "$" + Math.round(pct * pot).toLocaleString());
           const ltrHeaders = [
@@ -2895,32 +2924,28 @@ function Live2026() {
               </div>
               <div
                 ref={bracketScrollRef}
-                data-rtl={rtl ? "1" : undefined}
                 className="inner-bracket-scroll"
                 style={{
                   overflowX: "auto", WebkitOverflowScrolling: "touch",
                   overscrollBehavior: "contain",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
                   paddingBottom: 4, paddingTop: 2,
-                  direction: rtl ? "rtl" : "ltr",
                 }}
               >
-                <div style={{ direction: "ltr", width: "fit-content" }}>
-                  <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
-                    {colWidths.map((w, i) => (
-                      <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
-                        {headers[i] && (
-                          <>
-                            <div style={{ fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{headers[i].name}</div>
-                            <div style={{ fontSize: 7, color: "#4a9eff", fontWeight: 500 }}>{headers[i].pay}</div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
-                    {bracketContent}
-                  </div>
+                <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
+                  {colWidths.map((w, i) => (
+                    <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
+                      {headers[i] && (
+                        <>
+                          <div style={{ fontSize: 7, color: "#3a4a6a", letterSpacing: 1, fontWeight: 600 }}>{headers[i].name}</div>
+                          <div style={{ fontSize: 7, color: "#4a9eff", fontWeight: 500 }}>{headers[i].pay}</div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
+                  {bracketContent}
                 </div>
               </div>
             </div>
