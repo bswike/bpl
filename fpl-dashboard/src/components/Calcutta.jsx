@@ -2452,7 +2452,7 @@ function Live2026() {
                   <th style={thL}>Syndicate</th>
                   <th style={thS}>Net</th>
                   <th style={thS}>Alive</th>
-                  {roundLabels.map(r => <th key={r} style={thS}>{r}</th>)}
+                  {roundLabels.map((r, ri) => <th key={r} style={thS}>{r}<br /><span style={{ fontWeight: 400, fontSize: 7, color: "#2a3a5a" }}>${incrPayouts[ri]}</span></th>)}
                   <th style={thS}>Earned</th>
                   <th style={thS}>Spent</th>
                   <th style={thS}>ROI</th>
