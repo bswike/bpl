@@ -2804,6 +2804,7 @@ function Live2026() {
             }
           }, [region, rtl]);
 
+          const MW = 150;
           const roundPay = [0.005, 0.025, 0.03, 0.03, 0.03, 0.02].map(pct => "$" + Math.round(pct * pot).toLocaleString());
           const ltrHeaders = [
             { name: "FIRST ROUND", pay: roundPay[0] }, null,
@@ -2854,7 +2855,6 @@ function Live2026() {
             </div>
           );
 
-          const MW = 150;
           const bracketContent = rtl ? (
             <>
               <RoundCol matches={e8} w={MW} rtl={rtl} />
