@@ -2814,7 +2814,23 @@ function Live2026() {
             )}
 
             {popupSyn && (() => {
-              const synTeams = TEAMS_2026.filter(t => t.s === popupSyn).sort((a, b) => a.seed - b.seed);
+              const dayOrd = { Thu: 0, Fri: 1, Sat: 2, Sun: 3 };
+              const parseTime = (str) => {
+                if (!str) return 9999;
+                const [day, raw] = str.split(" ");
+                const isPM = raw.endsWith("p");
+                const [h, m] = raw.replace(/[ap]/, "").split(":").map(Number);
+                const hr24 = isPM && h !== 12 ? h + 12 : (!isPM && h === 12 ? 0 : h);
+                return (dayOrd[day] || 0) * 1440 + hr24 * 60 + m;
+              };
+              const synTeams = TEAMS_2026.filter(t => t.s === popupSyn).sort((a, b) => {
+                const rgnA = a.sd.split("-")[0], rgnB = b.sd.split("-")[0];
+                const sA = [a.seed, seedPairs[a.seed]].sort((x, y) => x - y);
+                const sB = [b.seed, seedPairs[b.seed]].sort((x, y) => x - y);
+                const gA = R64_GAMES[`${rgnA}-${sA[0]}v${sA[1]}`];
+                const gB = R64_GAMES[`${rgnB}-${sB[0]}v${sB[1]}`];
+                return parseTime(gA && gA.time) - parseTime(gB && gB.time);
+              });
               const sc = SYNDICATE_COLORS[popupSyn] || "#5a6a8a";
               return (
                 <div onClick={() => setPopupSyn(null)} style={{
