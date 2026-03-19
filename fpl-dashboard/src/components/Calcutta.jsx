@@ -2823,7 +2823,7 @@ function Live2026() {
           ];
           const colWidths = [MW, 16, MW, 16, MW, 16, MW];
 
-          const getWinner = (t, b) => {
+          const getR64Winner = (t, b) => {
             if (!t || !b) return null;
             if (t.gameStatus === "post" && t.alive) return t;
             if (b.gameStatus === "post" && b.alive) return b;
@@ -2832,17 +2832,24 @@ function Live2026() {
 
           const r32 = [];
           for (let i = 0; i < r64.length; i += 2) {
-            r32.push([getWinner(r64[i][0], r64[i][1]), getWinner(r64[i + 1][0], r64[i + 1][1])]);
+            r32.push([getR64Winner(r64[i][0], r64[i][1]), getR64Winner(r64[i + 1][0], r64[i + 1][1])]);
           }
+
+          const getLaterWinner = (t, b) => {
+            if (!t || !b) return null;
+            if (!t.alive && b.alive) return b;
+            if (t.alive && !b.alive) return t;
+            return null;
+          };
 
           const s16 = [];
           for (let i = 0; i < r32.length; i += 2) {
-            s16.push([getWinner(r32[i][0], r32[i][1]), getWinner(r32[i + 1][0], r32[i + 1][1])]);
+            s16.push([getLaterWinner(r32[i][0], r32[i][1]), getLaterWinner(r32[i + 1][0], r32[i + 1][1])]);
           }
 
           const e8 = [];
           for (let i = 0; i < s16.length; i += 2) {
-            e8.push([getWinner(s16[i][0], s16[i][1]), getWinner(s16[i + 1][0], s16[i + 1][1])]);
+            e8.push([getLaterWinner(s16[i][0], s16[i][1]), getLaterWinner(s16[i + 1][0], s16[i + 1][1])]);
           }
 
           const r64Col = (
