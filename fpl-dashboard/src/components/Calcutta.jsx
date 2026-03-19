@@ -2743,46 +2743,17 @@ function Live2026() {
           </div>
         );
 
-        const hNeighbor = { E: "W", W: "E", S: "MW", MW: "S" };
-        const vNeighbor = { E: "S", S: "E", W: "MW", MW: "W" };
-        const isTop = { E: true, W: true, S: false, MW: false };
-
         const LiveRegionBracket = ({ region, rtl }) => {
           const bracketScrollRef = useRef(null);
-          const edgeTimer = useRef(null);
-          const autoScrolling = useRef(false);
           const tm = {};
           liveTeams.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
-          const neighbor = hNeighbor[region];
-          const vNbr = vNeighbor[region];
-          const regionIsTop = isTop[region];
 
           useEffect(() => {
             if (bracketScrollRef.current) {
-              autoScrolling.current = true;
               bracketScrollRef.current.scrollLeft = rtl ? bracketScrollRef.current.scrollWidth : 0;
-              setTimeout(() => { autoScrolling.current = false; }, 150);
             }
-            return () => { if (edgeTimer.current) clearTimeout(edgeTimer.current); };
           }, [region, rtl]);
-
-
-          const handleEdgeScroll = useCallback(() => {
-            if (!bracketScrollRef.current || !isMobile || autoScrolling.current) return;
-            const el = bracketScrollRef.current;
-            const atEnd = rtl ? el.scrollLeft <= 2 : el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
-            if (atEnd) {
-              if (!edgeTimer.current) {
-                edgeTimer.current = setTimeout(() => {
-                  edgeTimer.current = null;
-                  setBracketMobileRegion(neighbor);
-                }, 350);
-              }
-            } else {
-              if (edgeTimer.current) { clearTimeout(edgeTimer.current); edgeTimer.current = null; }
-            }
-          }, [region, rtl, neighbor]);
 
           const roundPay = [0.005, 0.025, 0.03, 0.03, 0.03, 0.02].map(pct => "$" + Math.round(pct * pot).toLocaleString());
           const ltrHeaders = [
@@ -2830,24 +2801,6 @@ function Live2026() {
 
           const totalW = 150 + 100*3 + 16*3;
 
-          const navBtn = (target, arrow) => (
-            <div
-              onClick={() => setBracketMobileRegion(target)}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "8px 0", cursor: "pointer", borderRadius: 6,
-                background: "#0a0e17", border: "1px solid #1e2a40",
-                transition: "background 0.15s",
-              }}
-            >
-              <span style={{ fontSize: 10, color: "#4a5a7a" }}>{arrow}</span>
-              <span style={{ fontSize: 10, color: regionColors[target], fontWeight: 600 }}>{regionNames[target]}</span>
-              <span style={{ fontSize: 8, color: "#3a4a6a" }}>Region</span>
-            </div>
-          );
-
-          const isLeft = region === "E" || region === "S";
-
           return (
             <div style={isMobile ? { scrollSnapAlign: "start", flexShrink: 0 } : {}}>
               <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
@@ -2855,7 +2808,6 @@ function Live2026() {
               </div>
               <div
                 ref={bracketScrollRef}
-                onScroll={handleEdgeScroll}
                 style={{
                   overflowX: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
@@ -2864,7 +2816,7 @@ function Live2026() {
               >
                 {isMobile && (
                   <div style={{ fontSize: 7, textAlign: "center", padding: "2px 8px 4px", color: "#4a5a7a" }}>
-                    {rtl ? "← scroll for later rounds · hold edge → " : "scroll for later rounds → · hold edge → "}{regionNames[neighbor]}
+                    {rtl ? "← scroll for later rounds" : "scroll for later rounds →"}
                   </div>
                 )}
                 <div style={{ display: "flex", marginBottom: 4, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
@@ -2883,11 +2835,6 @@ function Live2026() {
                   {bracketContent}
                 </div>
               </div>
-              {isMobile && (
-                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                  <div style={{ flex: 1 }}>{navBtn(neighbor, isLeft ? "→" : "←")}</div>
-                </div>
-              )}
             </div>
           );
         };
@@ -2898,30 +2845,46 @@ function Live2026() {
         const teamsBySD = {};
         liveTeams.forEach(t => { teamsBySD[t.sd] = t; });
 
-        const vScrollRef = useRef(null);
-        const vPair = (bracketMobileRegion === "E" || bracketMobileRegion === "S") ? ["E", "S"] : ["W", "MW"];
+        const hScrollRef = useRef(null);
+        const vScrollRefLeft = useRef(null);
+        const vScrollRefRight = useRef(null);
 
-        const handleVScroll = useCallback(() => {
-          const el = vScrollRef.current;
-          if (!el) return;
-          const mid = el.scrollTop + el.clientHeight / 2;
-          const firstH = el.children[0]?.offsetHeight || 0;
-          const newRegion = mid > firstH ? vPair[1] : vPair[0];
-          if (newRegion !== bracketMobileRegion) setBracketMobileRegion(newRegion);
-        }, [bracketMobileRegion, vPair]);
+        const getVisibleRegion = useCallback(() => {
+          const hEl = hScrollRef.current;
+          if (!hEl) return bracketMobileRegion;
+          const isRight = (hEl.scrollLeft + hEl.clientWidth / 2) > (hEl.children[0]?.offsetWidth || 0);
+          const vRef = isRight ? vScrollRefRight.current : vScrollRefLeft.current;
+          const isBottom = vRef && (vRef.scrollTop + vRef.clientHeight / 2) > (vRef.children[0]?.offsetHeight || 0);
+          if (isRight) return isBottom ? "MW" : "W";
+          return isBottom ? "S" : "E";
+        }, [bracketMobileRegion]);
+
+        const handleHScroll = useCallback(() => {
+          const r = getVisibleRegion();
+          if (r !== bracketMobileRegion) setBracketMobileRegion(r);
+        }, [getVisibleRegion, bracketMobileRegion]);
+
+        const handleVScrollLeft = useCallback(() => {
+          const r = getVisibleRegion();
+          if (r !== bracketMobileRegion) setBracketMobileRegion(r);
+        }, [getVisibleRegion, bracketMobileRegion]);
+
+        const handleVScrollRight = useCallback(() => {
+          const r = getVisibleRegion();
+          if (r !== bracketMobileRegion) setBracketMobileRegion(r);
+        }, [getVisibleRegion, bracketMobileRegion]);
 
         const scrollToRegion = useCallback((r) => {
-          if (!vScrollRef.current) return;
-          const idx = vPair.indexOf(r);
-          if (idx >= 0 && vScrollRef.current.children[idx]) {
-            vScrollRef.current.children[idx].scrollIntoView({ block: "start", behavior: "smooth" });
+          const isRight = r === "W" || r === "MW";
+          const isBottom = r === "S" || r === "MW";
+          if (hScrollRef.current) {
+            hScrollRef.current.scrollTo({ left: isRight ? hScrollRef.current.scrollWidth : 0, behavior: "smooth" });
           }
-        }, [vPair]);
-
-        useEffect(() => {
-          if (!isMobile || !vScrollRef.current) return;
-          scrollToRegion(bracketMobileRegion);
-        }, [vPair[0]]);
+          const vRef = isRight ? vScrollRefRight.current : vScrollRefLeft.current;
+          if (vRef) {
+            vRef.scrollTo({ top: isBottom ? vRef.scrollHeight : 0, behavior: "smooth" });
+          }
+        }, []);
 
         return (
           <div>
@@ -2940,18 +2903,44 @@ function Live2026() {
                   ))}
                 </div>
                 <div
-                  ref={vScrollRef}
-                  onScroll={handleVScroll}
+                  ref={hScrollRef}
+                  onScroll={handleHScroll}
                   style={{
-                    maxHeight: "75vh", overflowY: "auto",
-                    overscrollBehavior: "contain", WebkitOverflowScrolling: "touch",
-                    scrollSnapType: "y mandatory",
+                    display: "flex", overflowX: "auto",
+                    scrollSnapType: "x mandatory",
+                    overscrollBehavior: "contain",
+                    WebkitOverflowScrolling: "touch",
                     borderRadius: 8,
                   }}
                 >
-                  {vPair.map(r => (
-                    <LiveRegionBracket key={r} region={r} rtl={rtlRegions.has(r)} />
-                  ))}
+                  <div
+                    ref={vScrollRefLeft}
+                    onScroll={handleVScrollLeft}
+                    style={{
+                      minWidth: "100%", flexShrink: 0, scrollSnapAlign: "start",
+                      maxHeight: "75vh", overflowY: "auto",
+                      scrollSnapType: "y mandatory",
+                      overscrollBehaviorY: "contain",
+                      WebkitOverflowScrolling: "touch",
+                    }}
+                  >
+                    <LiveRegionBracket region="E" rtl={false} />
+                    <LiveRegionBracket region="S" rtl={false} />
+                  </div>
+                  <div
+                    ref={vScrollRefRight}
+                    onScroll={handleVScrollRight}
+                    style={{
+                      minWidth: "100%", flexShrink: 0, scrollSnapAlign: "start",
+                      maxHeight: "75vh", overflowY: "auto",
+                      scrollSnapType: "y mandatory",
+                      overscrollBehaviorY: "contain",
+                      WebkitOverflowScrolling: "touch",
+                    }}
+                  >
+                    <LiveRegionBracket region="W" rtl={true} />
+                    <LiveRegionBracket region="MW" rtl={true} />
+                  </div>
                 </div>
               </>
             ) : (
