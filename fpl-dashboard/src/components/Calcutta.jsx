@@ -2584,10 +2584,8 @@ function Live2026() {
               flexDirection: rtl ? "row-reverse" : "row",
             }}>
               <span style={{ width: 14, fontSize: 9, fontWeight: 700, textAlign: "center", flexShrink: 0, color: "#5a6a8a" }}>{team.seed}</span>
-              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center", textAlign: rtl ? "right" : "left" }}>
-                <span onClick={e => { e.stopPropagation(); setPopupSyn(team.s); }} style={{ fontSize: 6, fontWeight: 600, color: sc, cursor: "pointer", lineHeight: 1.1 }}>{team.s}</span>
-                <span style={{ fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", lineHeight: 1.2 }}>{team.t}</span>
-              </div>
+              <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: rtl ? "right" : "left" }}>{team.t}</span>
+              <span onClick={e => { e.stopPropagation(); setPopupSyn(team.s); }} style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2, cursor: "pointer" }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
               <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 500, color: "#5a6a8a" }}>${team.p.toLocaleString()}</span>
             </div>
           );
