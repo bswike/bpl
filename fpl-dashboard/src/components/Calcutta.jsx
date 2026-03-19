@@ -2463,9 +2463,18 @@ function Live2026() {
         );
 
         const LiveRegionBracket = ({ region, rtl }) => {
+          const bracketScrollRef = useRef(null);
           const tm = {};
           TEAMS_2026.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
+
+          useEffect(() => {
+            if (rtl && bracketScrollRef.current) {
+              bracketScrollRef.current.scrollLeft = bracketScrollRef.current.scrollWidth;
+            } else if (bracketScrollRef.current) {
+              bracketScrollRef.current.scrollLeft = 0;
+            }
+          }, [region, rtl]);
 
           const ltrHeaders = ["FIRST ROUND", "", "SECOND ROUND", "", "SWEET 16", "", "ELITE 8"];
           const rtlHeaders = ["ELITE 8", "", "SWEET 16", "", "SECOND ROUND", "", "FIRST ROUND"];
@@ -2507,14 +2516,17 @@ function Live2026() {
               <div style={{ textAlign: "center", marginBottom: 8, padding: "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
                 <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: regionColors[region] }}>{regionNames[region].toUpperCase()} REGION</span>
               </div>
-              <div style={{
-                overflowX: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y",
-                border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
-                paddingBottom: 8, paddingTop: 4,
-              }}>
+              <div
+                ref={bracketScrollRef}
+                style={{
+                  overflowX: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y",
+                  border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
+                  paddingBottom: 8, paddingTop: 4,
+                }}
+              >
                 {isMobile && (
                   <div style={{ fontSize: 7, textAlign: "center", padding: "2px 8px 4px", color: "#4a5a7a" }}>
-                    ← swipe to see full bracket →
+                    {rtl ? "← scroll left for later rounds" : "scroll right for later rounds →"}
                   </div>
                 )}
                 <div style={{ display: "flex", marginBottom: 4, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
