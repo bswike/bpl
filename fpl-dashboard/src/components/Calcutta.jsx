@@ -2395,13 +2395,6 @@ function Live2026() {
         const from = col === "right" ? vScrollRefLeft.current : vScrollRefRight.current;
         const to = col === "right" ? vScrollRefRight.current : vScrollRefLeft.current;
         if (from && to) to.scrollTop = from.scrollTop;
-        if (col === "right" && vScrollRefRight.current) {
-          const snapRTL = () => vScrollRefRight.current && vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => { el.scrollLeft = el.scrollWidth; });
-          snapRTL();
-          setTimeout(snapRTL, 50);
-          setTimeout(snapRTL, 150);
-          setTimeout(snapRTL, 350);
-        }
       }
       lastHCol.current = col;
     }
@@ -2421,13 +2414,20 @@ function Live2026() {
 
   useEffect(() => {
     if (typeof window === "undefined" || window.innerWidth >= 820) return;
-    const isRight = bracketMobileRegion === "W" || bracketMobileRegion === "MW";
-    if (!isRight || !vScrollRefRight.current) return;
-    const snapRTL = () => vScrollRefRight.current && vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => { el.scrollLeft = el.scrollWidth; });
-    requestAnimationFrame(snapRTL);
-    setTimeout(snapRTL, 100);
-    setTimeout(snapRTL, 300);
-  }, [bracketMobileRegion]);
+    const hEl = hScrollRef.current;
+    if (!hEl) return;
+    const snapRTL = () => {
+      if (!vScrollRefRight.current) return;
+      vScrollRefRight.current.querySelectorAll("[data-rtl]").forEach(el => { el.scrollLeft = el.scrollWidth; });
+    };
+    const onScrollEnd = () => {
+      const isRight = (hEl.scrollLeft + hEl.clientWidth / 2) > hEl.clientWidth;
+      if (isRight) snapRTL();
+    };
+    hEl.addEventListener("scrollend", onScrollEnd);
+    snapRTL();
+    return () => hEl.removeEventListener("scrollend", onScrollEnd);
+  }, [liveView, bracketMobileRegion]);
 
   const pot = POT_2026;
   const payoutLabels = ["R32", "S16", "E8", "F4", "F2", "Ch"];
