@@ -2368,46 +2368,46 @@ function Live2026() {
   const regionNames = { S: "South", MW: "Midwest", W: "West", E: "East" };
   const regionColors = { S: "#e63946", MW: "#f4a261", W: "#2a9d8f", E: "#457b9d" };
 
-  const hScrollRef = useRef(null);
-  const vScrollRefLeft = useRef(null);
-  const vScrollRefRight = useRef(null);
+  const gridScrollRef = useRef(null);
+  const _bracketRef2 = useRef(null);
+  const _bracketRef3 = useRef(null);
 
   const getVisibleRegion = useCallback(() => {
-    const hEl = hScrollRef.current;
-    if (!hEl) return bracketMobileRegion;
-    const isRight = (hEl.scrollLeft + hEl.clientWidth / 2) > (hEl.children[0]?.offsetWidth || 0);
-    const vRef = isRight ? vScrollRefRight.current : vScrollRefLeft.current;
-    const isBottom = vRef && (vRef.scrollTop + vRef.clientHeight / 2) > (vRef.children[0]?.offsetHeight || 0);
+    const el = gridScrollRef.current;
+    if (!el) return bracketMobileRegion;
+    const isRight = (el.scrollLeft + el.clientWidth / 2) > el.clientWidth;
+    const isBottom = (el.scrollTop + el.clientHeight / 2) > el.clientHeight;
     if (isRight) return isBottom ? "MW" : "W";
     return isBottom ? "S" : "E";
   }, [bracketMobileRegion]);
 
-  const handleHScroll = useCallback(() => {
+  const handleGridScroll = useCallback(() => {
     const r = getVisibleRegion();
     if (r !== bracketMobileRegion) setBracketMobileRegion(r);
   }, [getVisibleRegion, bracketMobileRegion]);
 
-  const handleVScrollLeft = useCallback(() => {
-    const r = getVisibleRegion();
-    if (r !== bracketMobileRegion) setBracketMobileRegion(r);
-  }, [getVisibleRegion, bracketMobileRegion]);
-
-  const handleVScrollRight = useCallback(() => {
-    const r = getVisibleRegion();
-    if (r !== bracketMobileRegion) setBracketMobileRegion(r);
-  }, [getVisibleRegion, bracketMobileRegion]);
+  const _unusedCb1 = useCallback(() => {}, []);
+  const _unusedCb2 = useCallback(() => {}, []);
 
   const scrollToRegion = useCallback((r) => {
+    const el = gridScrollRef.current;
+    if (!el) return;
     const isRight = r === "W" || r === "MW";
     const isBottom = r === "S" || r === "MW";
-    if (hScrollRef.current) {
-      hScrollRef.current.scrollTo({ left: isRight ? hScrollRef.current.scrollWidth : 0, behavior: "smooth" });
-    }
-    const vRef = isRight ? vScrollRefRight.current : vScrollRefLeft.current;
-    if (vRef) {
-      vRef.scrollTo({ top: isBottom ? vRef.scrollHeight : 0, behavior: "smooth" });
-    }
+    el.scrollTo({
+      left: isRight ? el.scrollWidth / 2 : 0,
+      top: isBottom ? el.scrollHeight / 2 : 0,
+      behavior: "smooth",
+    });
   }, []);
+
+  useEffect(() => {
+    const isMob = typeof window !== "undefined" && window.innerWidth < 820;
+    if (liveView === "bracket" && isMob) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [liveView]);
 
   const pot = POT_2026;
   const payoutLabels = ["R32", "S16", "E8", "F4", "F2", "Ch"];
@@ -2687,8 +2687,8 @@ function Live2026() {
       {liveView === "bracket" && (() => {
         const bracketOrder = [[1,16],[8,9],[5,12],[4,13],[6,11],[3,14],[7,10],[2,15]];
         const SLOT_H = 24;
-        const TOTAL_H = 500;
         const isMobile = typeof window !== "undefined" && window.innerWidth < 820;
+        const TOTAL_H = isMobile ? Math.max(340, window.innerHeight - 160) : 500;
 
         const BSlot = ({ team, border, rtl, showScore }) => {
           if (!team) return (
@@ -2836,14 +2836,14 @@ function Live2026() {
           const totalW = 150 + 100*3 + 16*3;
 
           return (
-            <div style={isMobile ? { scrollSnapAlign: "start", flexShrink: 0 } : {}}>
-              <div style={{ textAlign: "center", marginBottom: isMobile ? 2 : 8, padding: isMobile ? "3px 0" : "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
+            <div>
+              <div style={{ textAlign: "center", marginBottom: isMobile ? 2 : 8, padding: isMobile ? "2px 0" : "6px 0", borderBottom: `2px solid ${regionColors[region]}44` }}>
                 <span style={{ fontSize: isMobile ? 9 : 11, fontWeight: 700, letterSpacing: 3, color: regionColors[region] }}>{regionNames[region].toUpperCase()} REGION</span>
               </div>
               <div
                 ref={bracketScrollRef}
                 style={{
-                  overflowX: "auto", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y",
+                  overflowX: "auto", WebkitOverflowScrolling: "touch",
                   border: "1px solid #1e2a40", borderRadius: 8, background: "#080c12",
                   paddingBottom: 4, paddingTop: 2,
                 }}
@@ -2878,42 +2878,31 @@ function Live2026() {
           <div>
             {isMobile ? (
               <div
-                ref={hScrollRef}
-                onScroll={handleHScroll}
+                ref={gridScrollRef}
+                onScroll={handleGridScroll}
                 style={{
-                  display: "flex", overflowX: "auto",
-                  scrollSnapType: "x mandatory",
+                  display: "grid",
+                  gridTemplateColumns: "100% 100%",
+                  gridTemplateRows: "calc(100dvh - 100px) calc(100dvh - 100px)",
+                  width: "100%",
+                  height: "calc(100dvh - 100px)",
+                  overflow: "auto",
+                  scrollSnapType: "both mandatory",
                   overscrollBehavior: "contain",
                   WebkitOverflowScrolling: "touch",
                   borderRadius: 8,
                 }}
               >
-                  <div
-                  ref={vScrollRefLeft}
-                  onScroll={handleVScrollLeft}
-                  style={{
-                    minWidth: "100%", flexShrink: 0, scrollSnapAlign: "start",
-                    height: "calc(100dvh - 110px)", overflowY: "auto",
-                    scrollSnapType: "y mandatory",
-                    overscrollBehaviorY: "contain",
-                    WebkitOverflowScrolling: "touch",
-                  }}
-                >
+                <div style={{ scrollSnapAlign: "start" }}>
                   <LiveRegionBracket region="E" rtl={false} />
+                </div>
+                <div style={{ scrollSnapAlign: "start" }}>
+                  <LiveRegionBracket region="W" rtl={true} />
+                </div>
+                <div style={{ scrollSnapAlign: "start" }}>
                   <LiveRegionBracket region="S" rtl={false} />
                 </div>
-                <div
-                  ref={vScrollRefRight}
-                  onScroll={handleVScrollRight}
-                  style={{
-                    minWidth: "100%", flexShrink: 0, scrollSnapAlign: "start",
-                    height: "calc(100dvh - 110px)", overflowY: "auto",
-                    scrollSnapType: "y mandatory",
-                    overscrollBehaviorY: "contain",
-                    WebkitOverflowScrolling: "touch",
-                  }}
-                >
-                  <LiveRegionBracket region="W" rtl={true} />
+                <div style={{ scrollSnapAlign: "start" }}>
                   <LiveRegionBracket region="MW" rtl={true} />
                 </div>
               </div>
