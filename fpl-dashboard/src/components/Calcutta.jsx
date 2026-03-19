@@ -399,38 +399,38 @@ const TEAMS_2026 = [
 ];
 
 const R64_GAMES = {
-  "S-1v16":  { time: "Thu 12:15p", spread: "FL -23.5" },
-  "S-8v9":   { time: "Thu 2:45p", spread: "Clem -1" },
-  "S-5v12":  { time: "Thu 7:10p", spread: "Van -5.5" },
-  "S-4v13":  { time: "Thu 9:40p", spread: "NEB -10" },
-  "S-6v11":  { time: "Fri 12:15p", spread: "UNC -5" },
-  "S-3v14":  { time: "Fri 2:45p", spread: "ILL -16.5" },
-  "S-7v10":  { time: "Fri 7:10p", spread: "SMC -2.5" },
-  "S-2v15":  { time: "Fri 9:40p", spread: "HOU -23.5" },
-  "MW-1v16": { time: "Thu 12:40p", spread: "MICH -24" },
-  "MW-8v9":  { time: "Thu 3:10p", spread: "UGA -1.5" },
-  "MW-5v12": { time: "Thu 6:50p", spread: "TTU -8.5" },
-  "MW-4v13": { time: "Thu 9:20p", spread: "BAMA -13.5" },
-  "MW-6v11": { time: "Fri 12:40p", spread: "TENN -12.5" },
-  "MW-3v14": { time: "Fri 3:10p", spread: "UVA -15" },
-  "MW-7v10": { time: "Fri 6:50p", spread: "UK -4.5" },
-  "MW-2v15": { time: "Fri 9:20p", spread: "ISU -24.5" },
-  "W-1v16":  { time: "Thu 1:30p", spread: "ARIZ -25.5" },
-  "W-8v9":   { time: "Thu 4:00p", spread: "NOVA -1.5" },
-  "W-5v12":  { time: "Thu 7:25p", spread: "WIS -6" },
-  "W-4v13":  { time: "Thu 9:55p", spread: "ARK -11" },
-  "W-6v11":  { time: "Fri 1:30p", spread: "BYU -5" },
-  "W-3v14":  { time: "Fri 4:00p", spread: "GONZ -17" },
-  "W-7v10":  { time: "Fri 7:25p", spread: "MIA -3" },
-  "W-2v15":  { time: "Fri 9:55p", spread: "PUR -25.5" },
-  "E-1v16":  { time: "Thu 2:00p", spread: "DUKE -22" },
-  "E-8v9":   { time: "Thu 4:30p", spread: "OSU -2.5" },
-  "E-5v12":  { time: "Thu 7:00p", spread: "SJU -6.5" },
-  "E-4v13":  { time: "Thu 9:30p", spread: "KU -12" },
-  "E-6v11":  { time: "Fri 2:00p", spread: "LOU -4.5" },
-  "E-3v14":  { time: "Fri 4:30p", spread: "MSU -17" },
-  "E-7v10":  { time: "Fri 7:00p", spread: "UCLA -5" },
-  "E-2v15":  { time: "Fri 9:30p", spread: "UCONN -20.5" },
+  "S-1v16":  { time: "Fri 9:25p", spread: "FL -23.5" },
+  "S-8v9":   { time: "Fri 6:50p", spread: "Clem -1" },
+  "S-5v12":  { time: "Thu 3:15p", spread: "Van -5.5" },
+  "S-4v13":  { time: "Thu 12:40p", spread: "NEB -10" },
+  "S-6v11":  { time: "Thu 6:50p", spread: "UNC -5" },
+  "S-3v14":  { time: "Thu 9:25p", spread: "ILL -16.5" },
+  "S-7v10":  { time: "Thu 7:35p", spread: "SMC -2.5" },
+  "S-2v15":  { time: "Thu 10:10p", spread: "HOU -23.5" },
+  "MW-1v16": { time: "Thu 7:10p", spread: "MICH -24" },
+  "MW-8v9":  { time: "Thu 9:45p", spread: "UGA -1.5" },
+  "MW-5v12": { time: "Fri 12:40p", spread: "TTU -8.5" },
+  "MW-4v13": { time: "Fri 3:15p", spread: "BAMA -13.5" },
+  "MW-6v11": { time: "Fri 4:25p", spread: "TENN -12.5" },
+  "MW-3v14": { time: "Fri 1:50p", spread: "UVA -15" },
+  "MW-7v10": { time: "Fri 12:15p", spread: "UK -4.5" },
+  "MW-2v15": { time: "Fri 2:50p", spread: "ISU -24.5" },
+  "W-1v16":  { time: "Fri 1:35p", spread: "ARIZ -25.5" },
+  "W-8v9":   { time: "Fri 4:10p", spread: "NOVA -1.5" },
+  "W-5v12":  { time: "Thu 1:50p", spread: "WIS -6" },
+  "W-4v13":  { time: "Thu 4:25p", spread: "ARK -11" },
+  "W-6v11":  { time: "Thu 7:25p", spread: "BYU -5" },
+  "W-3v14":  { time: "Thu 10:00p", spread: "GONZ -17" },
+  "W-7v10":  { time: "Fri 10:10p", spread: "MIA -3" },
+  "W-2v15":  { time: "Fri 7:35p", spread: "PUR -25.5" },
+  "E-1v16":  { time: "Thu 2:50p", spread: "DUKE -22" },
+  "E-8v9":   { time: "Thu 12:15p", spread: "OSU -2.5" },
+  "E-5v12":  { time: "Fri 7:10p", spread: "SJU -6.5" },
+  "E-4v13":  { time: "Fri 9:45p", spread: "KU -12" },
+  "E-6v11":  { time: "Thu 1:30p", spread: "LOU -4.5" },
+  "E-3v14":  { time: "Thu 4:05p", spread: "MSU -17" },
+  "E-7v10":  { time: "Fri 7:25p", spread: "UCLA -5" },
+  "E-2v15":  { time: "Fri 10:00p", spread: "UCONN -20.5" },
 };
 
 const POT_2026 = 37750;
@@ -683,31 +683,8 @@ export default function App() {
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
       {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: 28, position: "relative" }}>
-        <div style={{
-          fontSize: 11,
-          letterSpacing: 6,
-          color: "#4a9eff",
-          textTransform: "uppercase",
-          marginBottom: 6,
-          fontWeight: 600,
-        }}>March Madness Calcutta</div>
-        <h1 style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontSize: "clamp(24px, 5vw, 38px)",
-          fontWeight: 700,
-          margin: 0,
-          background: "linear-gradient(135deg, #4a9eff, #7c5cfc, #e63946)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          letterSpacing: -1,
-        }}>HOGAN CALCUTTA</h1>
-        <div style={{
-          fontSize: 12,
-          color: "#5a6a8a",
-          marginTop: 4,
-          letterSpacing: 2,
-        }}>2022 — 2023 — 2024 — 2025 — 2026</div>
+      <div style={{ textAlign: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 11, letterSpacing: 3, color: "#3a4a6a", fontWeight: 500 }}>HOGAN CALCUTTA 2026</div>
       </div>
 
       {/* Top-level nav */}
@@ -2421,23 +2398,12 @@ function Live2026() {
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-      <div style={{ textAlign: "center", marginBottom: 16 }}>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700, margin: "0 0 4px 0", color: "#e8e6e3" }}>
-          2026 Hogan Calcutta — LIVE
-        </h2>
-        <div style={{ fontSize: 11, color: "#5a6a8a" }}>
-          9 syndicates · <span style={{ color: "#2ecc71", fontWeight: 600 }}>${pot.toLocaleString()}</span> pot · ${Math.round(pot / 9).toLocaleString()}/syn avg
-        </div>
-      </div>
-
-      {/* Payout strip */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      {/* Compact payout line */}
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap", fontSize: 9, color: "#4a5a7a" }}>
+        <span style={{ color: "#5a6a8a", fontWeight: 600 }}>Pot ${pot.toLocaleString()}</span>
+        <span style={{ color: "#1e2a40" }}>|</span>
         {payoutLabels.map((label, i) => (
-          <div key={label} style={{ background: cardBg, border: `1px solid ${cardBorder}`, borderRadius: 6, padding: "6px 12px", textAlign: "center", minWidth: 70 }}>
-            <div style={{ fontSize: 9, color: "#5a6a8a", marginBottom: 2 }}>{label}</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#e8e6e3" }}>${Math.round(pot * payoutCum[i]).toLocaleString()}</div>
-            <div style={{ fontSize: 8, color: "#4a9eff" }}>+${Math.round(pot * payoutIncr[i]).toLocaleString()}</div>
-          </div>
+          <span key={label}><span style={{ color: "#3a4a6a" }}>{label}</span> <span style={{ color: "#8a9aba" }}>${Math.round(pot * payoutCum[i]).toLocaleString()}</span></span>
         ))}
       </div>
 
@@ -2492,16 +2458,16 @@ function Live2026() {
           const game = R64_GAMES[gameKey];
           return (
             <div>
-              <div style={{ border: "1px solid #1e2a40", borderRadius: 3, overflow: "hidden" }}>
-                <BSlot team={top} border rtl={rtl} />
-                <BSlot team={bot} rtl={rtl} />
-              </div>
               {game && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "1px 4px", fontSize: 6.5, color: "#3a4a6a" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4px 1px", fontSize: 6.5, color: "#3a4a6a" }}>
                   <span>{game.time}</span>
                   <span>{game.spread}</span>
                 </div>
               )}
+              <div style={{ border: "1px solid #1e2a40", borderRadius: 3, overflow: "hidden" }}>
+                <BSlot team={top} border rtl={rtl} />
+                <BSlot team={bot} rtl={rtl} />
+              </div>
             </div>
           );
         };
