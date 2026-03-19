@@ -2811,14 +2811,23 @@ function Live2026() {
           liveTeams.filter(t => t.sd.startsWith(region + "-")).forEach(t => { tm[t.seed] = t; });
           const r64 = bracketOrder.map(([a, b]) => [tm[a], tm[b]]);
 
+          const hasUserScrolled = useRef(false);
           useEffect(() => {
             const el = bracketScrollRef.current;
             if (!el) return;
             if (!rtl) { el.scrollLeft = 0; return; }
-            el.scrollLeft = el.scrollWidth;
+            const scrollRight = () => { el.scrollLeft = el.scrollWidth; };
+            scrollRight();
+            hasUserScrolled.current = false;
+            el.addEventListener("scroll", () => { hasUserScrolled.current = true; }, { once: true });
             const obs = new IntersectionObserver(([entry]) => {
-              if (entry.isIntersecting) el.scrollLeft = el.scrollWidth;
-            }, { threshold: 0.1 });
+              if (entry.isIntersecting) {
+                hasUserScrolled.current = false;
+                scrollRight();
+                requestAnimationFrame(scrollRight);
+                el.addEventListener("scroll", () => { hasUserScrolled.current = true; }, { once: true });
+              }
+            }, { threshold: 0.01 });
             obs.observe(el);
             return () => obs.disconnect();
           }, [region, rtl]);
@@ -2913,7 +2922,6 @@ function Live2026() {
                   paddingBottom: 4, paddingTop: 2,
                 }}
               >
-               <div>
                 <div style={{ display: "flex", marginBottom: 2, minWidth: totalW, paddingLeft: 8, paddingRight: 8 }}>
                   {colWidths.map((w, i) => (
                     <div key={i} style={{ width: w, minWidth: w, flexShrink: 0, textAlign: "center" }}>
@@ -2929,7 +2937,6 @@ function Live2026() {
                 <div style={{ display: "flex", height: TOTAL_H, minWidth: totalW, paddingLeft: 8, paddingRight: 8, paddingBottom: 4 }}>
                   {bracketContent}
                 </div>
-               </div>
               </div>
             </div>
           );
