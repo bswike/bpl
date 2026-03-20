@@ -433,6 +433,17 @@ const R64_GAMES = {
   "E-2v15":  { time: "Fri 10:00p", spread: "UCONN -20.5" },
 };
 
+const R32_GAMES = {
+  "MW-1v8v9":  { time: "Sat 12:10p", spread: "MICH -13.5" },
+  "E-3v6":     { time: "Sat 2:45p",  spread: "MSU -4.5" },
+  "E-1v8v9":   { time: "Sat 5:15p",  spread: "DUKE -10.5" },
+  "S-2v7v10":  { time: "Sat 6:10p",  spread: "HOU -8.5" },
+  "W-3v6":     { time: "Sat 7:10p",  spread: "GONZ -4.5" },
+  "S-3v6":     { time: "Sat 7:50p",  spread: "ILL -9.5" },
+  "S-4v5":     { time: "Sat 8:45p",  spread: "VAN -2.5" },
+  "W-4v5":     { time: "Sat 9:45p",  spread: "ARK -10.5" },
+};
+
 const POT_2026 = 37750;
 const PAYOUT_2026 = {
   R32: Math.round(POT_2026 * 0.005 * 100) / 100,
@@ -2756,11 +2767,19 @@ function Live2026() {
           return nowMins >= gameMins && nowMins - gameMins <= 150;
         };
 
+        const r32KeyMap = {1:"1v8v9",16:"1v8v9",8:"1v8v9",9:"1v8v9",5:"4v5",12:"4v5",4:"4v5",13:"4v5",6:"3v6",11:"3v6",3:"3v6",14:"3v6",7:"2v7v10",10:"2v7v10",2:"2v7v10",15:"2v7v10"};
+
         const BMatch = ({ top, bot, rtl, isR64 }) => {
           const region = top ? top.sd.split("-")[0] : (bot ? bot.sd.split("-")[0] : "");
           const seeds = [top, bot].filter(Boolean).map(t => t.seed).sort((a, b) => a - b);
           const gameKey = seeds.length === 2 ? `${region}-${seeds[0]}v${seeds[1]}` : "";
-          const game = isR64 ? R64_GAMES[gameKey] : null;
+          let game = null;
+          if (isR64) {
+            game = R64_GAMES[gameKey];
+          } else if (seeds.length >= 1) {
+            const r32Key = r32KeyMap[seeds[0]];
+            if (r32Key) game = R32_GAMES[`${region}-${r32Key}`];
+          }
           const isToday = game && game.time.startsWith(todayAbbr);
           const espnStatus = isR64 ? (top?.gameStatus || bot?.gameStatus) : null;
           const isLive = espnStatus === "in";
