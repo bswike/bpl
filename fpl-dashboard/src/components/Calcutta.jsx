@@ -2373,6 +2373,7 @@ function Live2026() {
   const [expandedSyn, setExpandedSyn] = useState(null);
   const [teamSort, setTeamSort] = useState({ key: "seed", dir: "asc" });
   const [popupSyn, setPopupSyn] = useState(null);
+  const [lbSort, setLbSort] = useState({ key: "settled", dir: "desc" });
   const [espnGames, setEspnGames] = useState([]);
   const [lastFetch, setLastFetch] = useState(null);
   const regions = ["S", "MW", "W", "E"];
@@ -2584,12 +2585,33 @@ function Live2026() {
             return sum + payout - loss;
           }, 0);
           return { ...syn, teamsAlive, totalTeams: teams.length, roundWins, roundEarnings, totalEarned, net, roi, settled };
-        }).sort((a, b) => b.settled - a.settled);
+        }).sort((a, b) => {
+          const k = lbSort.key;
+          let av, bv;
+          if (k.startsWith("r")) {
+            const ri = parseInt(k.slice(1));
+            av = a.roundEarnings[ri]; bv = b.roundEarnings[ri];
+          } else {
+            av = a[k]; bv = b[k];
+          }
+          return lbSort.dir === "desc" ? bv - av : av - bv;
+        });
 
         const thS = { padding: "6px 4px", textAlign: "right", color: "#5a6a8a", fontWeight: 500, fontSize: 9, borderBottom: "2px solid #1e2a40", whiteSpace: "nowrap" };
         const thL = { ...thS, textAlign: "left" };
         const stickyR = { position: "sticky", left: 0, zIndex: 2, background: "#0a0e15" };
         const stickySyn = { position: "sticky", left: 18, zIndex: 2, background: "#0a0e15" };
+        const sortTh = (key, label) => {
+          const active = lbSort.key === key;
+          return (
+            <th
+              style={{ ...thS, cursor: "pointer", color: active ? "#e8e6e3" : "#5a6a8a", userSelect: "none" }}
+              onClick={() => setLbSort(prev => prev.key === key ? { key, dir: prev.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" })}
+            >
+              {label}{active ? (lbSort.dir === "desc" ? " ▾" : " ▴") : ""}
+            </th>
+          );
+        };
 
         return (
           <div style={{ overflowX: "auto" }}>
@@ -2598,13 +2620,24 @@ function Live2026() {
                 <tr>
                   <th style={{ ...thL, width: 18, ...stickyR, background: "#0d1117" }}>#</th>
                   <th style={{ ...thL, ...stickySyn, background: "#0d1117" }}>Syndicate</th>
-                  <th style={thS}>Results</th>
-                  <th style={thS}>Alive</th>
-                  {roundLabels.map((r, ri) => <th key={r} style={thS}>{r}<br /><span style={{ fontWeight: 400, fontSize: 7, color: "#2a3a5a" }}>${incrPayouts[ri]}</span></th>)}
-                  <th style={thS}>Earned</th>
-                  <th style={thS}>Spent</th>
-                  <th style={thS}>ROI</th>
-                  <th style={thS}>Net</th>
+                  {sortTh("settled", "Results")}
+                  {sortTh("teamsAlive", "Alive")}
+                  {roundLabels.map((r, ri) => {
+                    const key = `r${ri}`;
+                    const active = lbSort.key === key;
+                    return (
+                      <th key={r}
+                        style={{ ...thS, cursor: "pointer", color: active ? "#e8e6e3" : "#5a6a8a", userSelect: "none" }}
+                        onClick={() => setLbSort(prev => prev.key === key ? { key, dir: prev.dir === "desc" ? "asc" : "desc" } : { key, dir: "desc" })}
+                      >
+                        {r}{active ? (lbSort.dir === "desc" ? " ▾" : " ▴") : ""}<br /><span style={{ fontWeight: 400, fontSize: 7, color: "#2a3a5a" }}>${incrPayouts[ri]}</span>
+                      </th>
+                    );
+                  })}
+                  {sortTh("totalEarned", "Earned")}
+                  {sortTh("spent", "Spent")}
+                  {sortTh("roi", "ROI")}
+                  {sortTh("net", "Net")}
                 </tr>
               </thead>
               <tbody>
