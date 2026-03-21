@@ -442,6 +442,14 @@ const R32_GAMES = {
   "S-3v6":     { time: "Sat 7:50p",  spread: "ILL -9.5" },
   "S-4v5":     { time: "Sat 8:45p",  spread: "VAN -2.5" },
   "W-4v5":     { time: "Sat 9:45p",  spread: "ARK -10.5" },
+  "W-2v7v10":  { time: "Sun 12:10p", spread: "PUR -8.5" },
+  "MW-2v7v10": { time: "Sun 2:45p",  spread: "ISU -5.5" },
+  "E-4v5":     { time: "Sun 5:15p",  spread: "SJU -3" },
+  "MW-3v6":    { time: "Sun 6:10p",  spread: "TENN -1.5" },
+  "S-1v8v9":   { time: "Sun 7:10p",  spread: "FLA -11.5" },
+  "W-1v8v9":   { time: "Sun 7:50p",  spread: "ARIZ -12.5" },
+  "E-2v7v10":  { time: "Sun 8:45p",  spread: "UCONN -4.5" },
+  "MW-4v5":    { time: "Sun 9:45p",  spread: "TTU -1.5" },
 };
 
 const POT_2026 = 37750;
@@ -3043,13 +3051,50 @@ function Live2026() {
                 const hr24 = isPM && h !== 12 ? h + 12 : (!isPM && h === 12 ? 0 : h);
                 return (dayOrd[day] || 0) * 1440 + hr24 * 60 + m;
               };
+              const r32OppSeeds = {1:[8,9],16:[8,9],8:[1,16],9:[1,16],4:[5,12],13:[5,12],5:[4,13],12:[4,13],3:[6,11],14:[6,11],6:[3,14],11:[3,14],2:[7,10],15:[7,10],7:[2,15],10:[2,15]};
+              const r32KeyMapP = {1:"1v8v9",16:"1v8v9",8:"1v8v9",9:"1v8v9",5:"4v5",12:"4v5",4:"4v5",13:"4v5",6:"3v6",11:"3v6",3:"3v6",14:"3v6",7:"2v7v10",10:"2v7v10",2:"2v7v10",15:"2v7v10"};
+              const r32FavSD = {"MICH":"MW-1","MSU":"E-3","DUKE":"E-1","HOU":"S-2","GONZ":"W-3","ILL":"S-3","VAN":"S-5","ARK":"W-4","PUR":"W-2","ISU":"MW-2","SJU":"E-5","TENN":"MW-6","FLA":"S-1","ARIZ":"W-1","UCONN":"E-2","TTU":"MW-5"};
+
+              const getTeamGame = (t) => {
+                const rgn = t.sd.split("-")[0];
+                const wonR64 = t.gameStatus === "post" && t.alive;
+                if (!wonR64 && t.alive) {
+                  const oppSeed = seedPairs[t.seed];
+                  const opp = teamsBySD[`${rgn}-${oppSeed}`];
+                  const seeds = [t.seed, oppSeed].sort((a, b) => a - b);
+                  const game = R64_GAMES[`${rgn}-${seeds[0]}v${seeds[1]}`];
+                  const spreadStr = (() => {
+                    if (!game) return "—";
+                    const num = game.spread.match(/-?\d+\.?\d*/);
+                    if (!num) return game.spread;
+                    const pts = Math.abs(parseFloat(num[0]));
+                    return t.seed < oppSeed ? `-${pts}` : `+${pts}`;
+                  })();
+                  return { opp, oppSeed, game, spreadStr, round: "R64" };
+                }
+                if (wonR64) {
+                  const possOppSeeds = r32OppSeeds[t.seed] || [];
+                  const r32Opp = possOppSeeds.map(s => teamsBySD[`${rgn}-${s}`]).find(o => o && o.alive);
+                  const r32Key = r32KeyMapP[t.seed];
+                  const game = r32Key ? R32_GAMES[`${rgn}-${r32Key}`] : null;
+                  const spreadStr = (() => {
+                    if (!game) return "—";
+                    const favAbbr = game.spread.split(" ")[0];
+                    const num = game.spread.match(/-?\d+\.?\d*/);
+                    if (!num) return game.spread;
+                    const pts = Math.abs(parseFloat(num[0]));
+                    const isFav = r32FavSD[favAbbr] === t.sd;
+                    return isFav ? `-${pts}` : `+${pts}`;
+                  })();
+                  return { opp: r32Opp, oppSeed: r32Opp ? r32Opp.seed : null, game, spreadStr, round: "R32" };
+                }
+                return { opp: null, oppSeed: null, game: null, spreadStr: "—", round: "OUT" };
+              };
+
               const synTeams = liveTeams.filter(t => t.s === popupSyn).sort((a, b) => {
-                const rgnA = a.sd.split("-")[0], rgnB = b.sd.split("-")[0];
-                const sA = [a.seed, seedPairs[a.seed]].sort((x, y) => x - y);
-                const sB = [b.seed, seedPairs[b.seed]].sort((x, y) => x - y);
-                const gA = R64_GAMES[`${rgnA}-${sA[0]}v${sA[1]}`];
-                const gB = R64_GAMES[`${rgnB}-${sB[0]}v${sB[1]}`];
-                return parseTime(gA && gA.time) - parseTime(gB && gB.time);
+                const gA = getTeamGame(a);
+                const gB = getTeamGame(b);
+                return parseTime(gA.game && gA.game.time) - parseTime(gB.game && gB.game.time);
               });
               const sc = SYNDICATE_COLORS[popupSyn] || "#5a6a8a";
               return (
@@ -3080,28 +3125,19 @@ function Live2026() {
                       <tbody>
                         {synTeams.map(t => {
                           const rgn = t.sd.split("-")[0];
-                          const oppSeed = seedPairs[t.seed];
-                          const opp = teamsBySD[`${rgn}-${oppSeed}`];
-                          const seeds = [t.seed, oppSeed].sort((a, b) => a - b);
-                          const game = R64_GAMES[`${rgn}-${seeds[0]}v${seeds[1]}`];
+                          const { opp, oppSeed, game, spreadStr, round } = getTeamGame(t);
                           const isToday = game && game.time.startsWith(todayAbbr);
-                          const isLive = game && isGameLive(game.time);
                           return (
                             <tr key={t.sd} style={{ borderBottom: "1px solid #111827", opacity: t.alive ? 1 : 0.4, background: t.gameStatus === "post" && t.alive ? "#22c55e12" : isToday && t.gameStatus !== "post" ? "#4a9eff08" : "transparent" }}>
                               <td style={{ padding: "5px 4px", color: t.gameStatus === "post" && t.alive ? "#22c55e" : isToday && t.gameStatus !== "post" ? "#fff" : "#e8e6e3", whiteSpace: "nowrap", textDecoration: t.alive ? "none" : "line-through", fontWeight: t.gameStatus === "post" && t.alive ? 600 : isToday && t.gameStatus !== "post" ? 600 : 400 }}>
                                 <span style={{ color: isToday && t.gameStatus !== "post" ? "#8a9aba" : "#3a4a6a", fontSize: 8, marginRight: 3 }}>{t.seed}{rgn}</span>{t.t}
+                                {round === "R32" && <span style={{ fontSize: 6, color: "#4a9eff", marginLeft: 3, fontWeight: 400 }}>R32</span>}
                               </td>
                               <td style={{ padding: "5px 4px", color: isToday && t.gameStatus !== "post" ? "#ccc" : "#8a9aba", whiteSpace: "nowrap" }}>
                                 {opp && <span style={{ display: "block", fontSize: 6, color: SYNDICATE_COLORS[opp.s] || "#3a4a6a", lineHeight: 1.1 }}>{opp.s}</span>}
-                                <span><span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{oppSeed}</span>{opp ? opp.t : "—"}</span>
+                                <span>{oppSeed && <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{oppSeed}</span>}{opp ? opp.t : "TBD"}</span>
                               </td>
-                              <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontSize: 9, whiteSpace: "nowrap" }}>{(() => {
-                                if (!game) return "—";
-                                const num = game.spread.match(/-?\d+\.?\d*/);
-                                if (!num) return game.spread;
-                                const pts = Math.abs(parseFloat(num[0]));
-                                return t.seed < oppSeed ? `-${pts}` : `+${pts}`;
-                              })()}</td>
+                              <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontSize: 9, whiteSpace: "nowrap" }}>{spreadStr}</td>
                               <td style={{ padding: "5px 4px", textAlign: "center", fontSize: 9, whiteSpace: "nowrap" }}>{(() => {
                                 if (t.gameStatus === "in") {
                                   const liveColor = t.liveScore > t.oppLiveScore ? "#22c55e" : t.liveScore < t.oppLiveScore ? "#e63946" : "#e8e6e3";
@@ -3112,6 +3148,12 @@ function Live2026() {
                                     {t.gameDetail && <span style={{ fontSize: 7, fontWeight: 400, color: "#5a6a8a", marginLeft: 4 }}>{t.gameDetail}</span>}
                                   </span>
                                 );}
+                                if (round === "OUT") return (
+                                  <span style={{ color: "#e63946", fontWeight: 600 }}>
+                                    {t.liveScore != null ? `${t.liveScore}-${t.oppLiveScore}` : "L"}
+                                  </span>
+                                );
+                                if (round === "R32") return <span style={{ color: "#3a4a6a" }}>{game ? game.time : "TBD"}</span>;
                                 if (t.gameStatus === "post") return (
                                   <span style={{ color: t.alive || (t.ats === true) ? "#e8e6e3" : "#e63946", fontWeight: 600 }}>
                                     {t.liveScore}-{t.oppLiveScore}
