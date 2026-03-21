@@ -3127,9 +3127,11 @@ function Live2026() {
                           const rgn = t.sd.split("-")[0];
                           const { opp, oppSeed, game, spreadStr, round } = getTeamGame(t);
                           const isToday = game && game.time.startsWith(todayAbbr);
+                          const wonCurrent = round === "OUT";
+                          const upcoming = round === "R32" || round === "R64";
                           return (
-                            <tr key={t.sd} style={{ borderBottom: "1px solid #111827", opacity: t.alive ? 1 : 0.4, background: t.gameStatus === "post" && t.alive ? "#22c55e12" : isToday && t.gameStatus !== "post" ? "#4a9eff08" : "transparent" }}>
-                              <td style={{ padding: "5px 4px", color: t.gameStatus === "post" && t.alive ? "#22c55e" : isToday && t.gameStatus !== "post" ? "#fff" : "#e8e6e3", whiteSpace: "nowrap", textDecoration: t.alive ? "none" : "line-through", fontWeight: t.gameStatus === "post" && t.alive ? 600 : isToday && t.gameStatus !== "post" ? 600 : 400 }}>
+                            <tr key={t.sd} style={{ borderBottom: "1px solid #111827", opacity: t.alive ? 1 : 0.4, background: wonCurrent ? "transparent" : isToday && upcoming ? "#4a9eff08" : "transparent" }}>
+                              <td style={{ padding: "5px 4px", color: upcoming && isToday ? "#fff" : upcoming ? "#e8e6e3" : wonCurrent ? "#e8e6e3" : "#e8e6e3", whiteSpace: "nowrap", textDecoration: t.alive ? "none" : "line-through", fontWeight: isToday && upcoming ? 600 : 400 }}>
                                 <span style={{ color: isToday && t.gameStatus !== "post" ? "#8a9aba" : "#3a4a6a", fontSize: 8, marginRight: 3 }}>{t.seed}{rgn}</span>{t.t}
                                 {round === "R32" && <span style={{ fontSize: 6, color: "#4a9eff", marginLeft: 3, fontWeight: 400 }}>R32</span>}
                               </td>
