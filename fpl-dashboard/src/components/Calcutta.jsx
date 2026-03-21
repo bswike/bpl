@@ -3001,33 +3001,70 @@ function Live2026() {
                 overscrollBehaviorY: "contain",
                 WebkitOverflowScrolling: "touch",
               };
+              const scrollToRegion = (r) => {
+                const hEl = hScrollRef.current;
+                if (!hEl) return;
+                const isRight = r === "W" || r === "MW";
+                const isBottom = r === "S" || r === "MW";
+                hEl.scrollTo({ left: isRight ? hEl.scrollWidth : 0, behavior: "smooth" });
+                const vRef = isRight ? vScrollRefRight.current : vScrollRefLeft.current;
+                if (vRef) {
+                  vRef.scrollTo({ top: isBottom ? vRef.scrollHeight : 0, behavior: "smooth" });
+                }
+              };
+              const regionLabels = { E: "East", W: "West", S: "South", MW: "Midwest" };
               return (
-                <div
-                  ref={hScrollRef}
-                  onScroll={handleBracketScroll}
-                  style={{
-                    display: "flex", overflowX: "auto",
-                    scrollSnapType: "x mandatory",
-                    overscrollBehavior: "contain",
-                    WebkitOverflowScrolling: "touch",
-                    height: bracketH,
-                  }}
-                >
-                  <div ref={vScrollRefLeft} onScroll={handleBracketScroll} style={vColStyle}>
-                    <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="E" rtl={false} />
+                <div style={{ position: "relative" }}>
+                  <div
+                    ref={hScrollRef}
+                    onScroll={handleBracketScroll}
+                    style={{
+                      display: "flex", overflowX: "auto",
+                      scrollSnapType: "x mandatory",
+                      overscrollBehavior: "contain",
+                      WebkitOverflowScrolling: "touch",
+                      height: bracketH,
+                    }}
+                  >
+                    <div ref={vScrollRefLeft} onScroll={handleBracketScroll} style={vColStyle}>
+                      <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
+                        <LiveRegionBracket region="E" rtl={false} />
+                      </div>
+                      <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
+                        <LiveRegionBracket region="S" rtl={false} />
+                      </div>
                     </div>
-                    <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="S" rtl={false} />
+                    <div ref={vScrollRefRight} onScroll={handleBracketScroll} style={vColStyle}>
+                      <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
+                        <LiveRegionBracket region="W" rtl={true} />
+                      </div>
+                      <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
+                        <LiveRegionBracket region="MW" rtl={true} />
+                      </div>
                     </div>
                   </div>
-                  <div ref={vScrollRefRight} onScroll={handleBracketScroll} style={vColStyle}>
-                    <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="W" rtl={true} />
-                    </div>
-                    <div style={{ scrollSnapAlign: "start", minHeight: "100%" }}>
-                      <LiveRegionBracket region="MW" rtl={true} />
-                    </div>
+                  <div style={{
+                    position: "absolute", bottom: 8, right: 8, zIndex: 50,
+                    display: "grid", gridTemplateColumns: "1fr 1fr",
+                    gap: 2, background: "#0d132199", backdropFilter: "blur(6px)",
+                    borderRadius: 8, padding: 3, border: "1px solid #1e2a4066",
+                  }}>
+                    {[["E","W"],["S","MW"]].map((row, ri) => row.map(r => {
+                      const active = bracketMobileRegion === r;
+                      return (
+                        <button key={r} onClick={() => scrollToRegion(r)} style={{
+                          background: active ? "#4a9eff22" : "transparent",
+                          border: active ? "1px solid #4a9eff44" : "1px solid transparent",
+                          borderRadius: 5, padding: "4px 8px", cursor: "pointer",
+                          color: active ? "#4a9eff" : "#5a6a8a",
+                          fontSize: 8, fontWeight: active ? 700 : 500,
+                          lineHeight: 1, letterSpacing: 0.5,
+                          transition: "all 0.15s ease",
+                        }}>
+                          {r}
+                        </button>
+                      );
+                    }))}
                   </div>
                 </div>
               );
