@@ -2846,15 +2846,15 @@ function Live2026() {
 
         const r32KeyMap = {1:"1v8v9",16:"1v8v9",8:"1v8v9",9:"1v8v9",5:"4v5",12:"4v5",4:"4v5",13:"4v5",6:"3v6",11:"3v6",3:"3v6",14:"3v6",7:"2v7v10",10:"2v7v10",2:"2v7v10",15:"2v7v10"};
 
-        const BMatch = ({ top, bot, rtl, isR64 }) => {
+        const BMatch = ({ top, bot, rtl, isR64, round }) => {
           const region = top ? top.sd.split("-")[0] : (bot ? bot.sd.split("-")[0] : "");
           const seeds = [top, bot].filter(Boolean).map(t => t.seed).sort((a, b) => a - b);
           const gameKey = seeds.length === 2 ? `${region}-${seeds[0]}v${seeds[1]}` : "";
+          const isR32 = round === "R32";
           let game = null;
-          const isR32 = !isR64;
           if (isR64) {
             game = R64_GAMES[gameKey];
-          } else if (seeds.length >= 1) {
+          } else if (isR32 && seeds.length >= 1) {
             const r32Key = r32KeyMap[seeds[0]];
             if (r32Key) game = R32_GAMES[`${region}-${r32Key}`];
           }
@@ -2914,9 +2914,9 @@ function Live2026() {
           </div>
         );
 
-        const RoundCol = ({ matches, w, rtl }) => (
+        const RoundCol = ({ matches, w, rtl, round }) => (
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", width: w, minWidth: w, flexShrink: 0 }}>
-            {matches.map(([t, b], i) => <BMatch key={i} top={t} bot={b} rtl={rtl} />)}
+            {matches.map(([t, b], i) => <BMatch key={i} top={t} bot={b} rtl={rtl} round={round} />)}
           </div>
         );
 
@@ -2938,9 +2938,8 @@ function Live2026() {
           const colWidths = [MW, 16, MW, 16, MW, 16, MW];
 
           const getRoundWinner = (t, b, minWins) => {
-            if (!t || !b) return null;
-            if (t.w >= minWins) return t;
-            if (b.w >= minWins) return b;
+            if (t && t.w >= minWins) return t;
+            if (b && b.w >= minWins) return b;
             return null;
           };
 
@@ -2967,11 +2966,11 @@ function Live2026() {
 
           const bracketContent = rtl ? (
             <>
-              <RoundCol matches={e8} w={MW} rtl={rtl} />
+              <RoundCol matches={e8} w={MW} rtl={rtl} round="E8" />
               <BConn pairs={1} rtl />
-              <RoundCol matches={s16} w={MW} rtl={rtl} />
+              <RoundCol matches={s16} w={MW} rtl={rtl} round="S16" />
               <BConn pairs={2} rtl />
-              <RoundCol matches={r32} w={MW} rtl={rtl} />
+              <RoundCol matches={r32} w={MW} rtl={rtl} round="R32" />
               <BConn pairs={4} rtl />
               {r64Col}
             </>
@@ -2979,11 +2978,11 @@ function Live2026() {
             <>
               {r64Col}
               <BConn pairs={4} />
-              <RoundCol matches={r32} w={MW} />
+              <RoundCol matches={r32} w={MW} round="R32" />
               <BConn pairs={2} />
-              <RoundCol matches={s16} w={MW} />
+              <RoundCol matches={s16} w={MW} round="S16" />
               <BConn pairs={1} />
-              <RoundCol matches={e8} w={MW} />
+              <RoundCol matches={e8} w={MW} round="E8" />
             </>
           );
 
