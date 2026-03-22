@@ -2466,54 +2466,85 @@ function Live2026() {
 
     const isATSSeed = s => s <= 2 || s >= 15;
 
-    const gamesByKey = {};
+    const byRegionSeedRound = {};
     espnGames.forEach(g => {
       if (!g.region || !g.homeSeed || !g.awaySeed) return;
-      const seeds = [g.homeSeed, g.awaySeed].sort((a, b) => a - b);
-      const key = `${g.region}-${seeds[0]}v${seeds[1]}-r${g.round}`;
-      gamesByKey[key] = g;
+      [g.homeSeed, g.awaySeed].forEach(seed => {
+        const key = `${g.region}-${seed}-r${g.round}`;
+        byRegionSeedRound[key] = g;
+      });
     });
 
     return TEAMS_2026.map(team => {
       const rgn = team.sd.split("-")[0];
-      const oppSeed = { 1:16,16:1,2:15,15:2,3:14,14:3,4:13,13:4,5:12,12:5,6:11,11:6,7:10,10:7,8:9,9:8 }[team.seed];
-      if (oppSeed == null) return team;
+      let updates = {};
+      let currentW = team.w;
+      let currentAlive = team.alive;
+      let currentAts = team.ats;
 
-      const seeds = [team.seed, oppSeed].sort((a, b) => a - b);
-      const r64Key = `${rgn}-${seeds[0]}v${seeds[1]}-r1`;
-      const game = gamesByKey[r64Key];
+      // R64
+      const r64Game = byRegionSeedRound[`${rgn}-${team.seed}-r1`];
+      if (r64Game) {
+        const isHome = r64Game.homeSeed === team.seed;
+        const tScore = isHome ? r64Game.homeScore : r64Game.awayScore;
+        const oScore = isHome ? r64Game.awayScore : r64Game.homeScore;
+        const won = isHome ? r64Game.homeWinner : r64Game.awayWinner;
 
-      if (!game) return team;
+        updates.liveScore = tScore;
+        updates.oppLiveScore = oScore;
+        updates.gameStatus = r64Game.status;
+        updates.gameClock = r64Game.clock;
+        updates.gamePeriod = r64Game.period;
+        updates.gameDetail = r64Game.detail;
 
-      const isHome = game.homeSeed === team.seed;
-      const teamScore = isHome ? game.homeScore : game.awayScore;
-      const oppScore = isHome ? game.awayScore : game.homeScore;
-      const teamWon = isHome ? game.homeWinner : game.awayWinner;
-
-      const updates = {
-        liveScore: teamScore,
-        oppLiveScore: oppScore,
-        gameStatus: game.status,
-        gameClock: game.clock,
-        gamePeriod: game.period,
-        gameDetail: game.detail,
-      };
-
-      if (game.status === "post") {
-        const margin = teamScore - oppScore;
-
-        if (teamWon) {
-          updates.w = Math.max(team.w, 1);
-          updates.alive = true;
-        } else {
-          updates.alive = false;
-        }
-
-        if (isATSSeed(team.seed) && team.spread) {
-          updates.ats = Math.abs(margin) < team.spread;
+        if (r64Game.status === "post") {
+          if (won) { currentW = Math.max(currentW, 1); currentAlive = true; }
+          else { currentAlive = false; }
+          if (isATSSeed(team.seed) && team.spread) {
+            currentAts = Math.abs(tScore - oScore) < team.spread;
+          }
         }
       }
 
+      // R32 (only if team survived R64)
+      if (currentAlive && currentW >= 1) {
+        const r32Game = byRegionSeedRound[`${rgn}-${team.seed}-r2`];
+        if (r32Game) {
+          const isHome = r32Game.homeSeed === team.seed;
+          const tScore = isHome ? r32Game.homeScore : r32Game.awayScore;
+          const oScore = isHome ? r32Game.awayScore : r32Game.homeScore;
+          const won = isHome ? r32Game.homeWinner : r32Game.awayWinner;
+
+          updates.r2Status = r32Game.status;
+          updates.r2Score = tScore;
+          updates.r2OppScore = oScore;
+          updates.r2Detail = r32Game.detail;
+          updates.r2Clock = r32Game.clock;
+          updates.r2Period = r32Game.period;
+
+          if (r32Game.status === "post") {
+            if (won) { currentW = Math.max(currentW, 2); }
+            else { currentAlive = false; }
+          }
+        }
+      }
+
+      // S16+ (only if team survived R32)
+      if (currentAlive && currentW >= 2) {
+        const s16Game = byRegionSeedRound[`${rgn}-${team.seed}-r3`];
+        if (s16Game) {
+          const isHome = s16Game.homeSeed === team.seed;
+          const won = isHome ? s16Game.homeWinner : s16Game.awayWinner;
+          if (s16Game.status === "post") {
+            if (won) { currentW = Math.max(currentW, 3); }
+            else { currentAlive = false; }
+          }
+        }
+      }
+
+      updates.w = currentW;
+      updates.alive = currentAlive;
+      updates.ats = currentAts;
       return { ...team, ...updates };
     });
   }, [espnGames]);
@@ -2586,9 +2617,12 @@ function Live2026() {
           const net = totalEarned - syn.spent;
           const roi = syn.spent > 0 ? net / syn.spent : 0;
           const settled = teams.reduce((sum, t) => {
-            const finished = t.gameStatus === "post" || !t.alive;
-            if (!finished) return sum;
-            const payout = getR32Paid(t) ? incrPayouts[0] : 0;
+            const hasResult = t.gameStatus === "post" || t.r2Status === "post" || !t.alive;
+            if (!hasResult) return sum;
+            let payout = 0;
+            if (getR32Paid(t)) payout += incrPayouts[0];
+            if (t.w >= 2) payout += incrPayouts[1];
+            for (let ri = 2; ri < 6; ri++) { if (t.w > ri) payout += incrPayouts[ri]; }
             const loss = !t.alive ? t.p : 0;
             return sum + payout - loss;
           }, 0);
@@ -2705,9 +2739,9 @@ function Live2026() {
                         return sum + (t.w > ri ? incrPayouts[ri] : 0);
                       }, 0);
                       const teamNet = teamEarned - t.p;
-                      const finished = t.gameStatus === "post" || !t.alive;
-                      const teamSettled = finished
-                        ? (r32Paid ? incrPayouts[0] : 0) - (!t.alive ? t.p : 0)
+                      const hasResult = t.gameStatus === "post" || t.r2Status === "post" || !t.alive;
+                      const teamSettled = hasResult
+                        ? ((r32Paid ? incrPayouts[0] : 0) + (t.w >= 2 ? incrPayouts[1] : 0) + [2,3,4,5].reduce((s, ri) => s + (t.w > ri ? incrPayouts[ri] : 0), 0)) - (!t.alive ? t.p : 0)
                         : null;
                       const beIdx = cumPayouts.findIndex(cp => cp >= t.p);
                       return (
@@ -2771,11 +2805,13 @@ function Live2026() {
         const isMobile = typeof window !== "undefined" && window.innerWidth < 820;
         const TOTAL_H = isMobile ? Math.max(340, window.innerHeight - 150) : 500;
 
-        const BSlot = ({ team, border, rtl, showScore }) => {
+        const BSlot = ({ team, border, rtl, showScore, score, scoreStatus }) => {
           if (!team) return (
             <div style={{ height: SLOT_H, display: "flex", alignItems: "center", padding: "0 6px", background: "#0a0e15", borderBottom: border ? "1px solid #151d2e" : "none", fontSize: 9, color: "#1e2a40" }}>—</div>
           );
           const sc = SYNDICATE_COLORS[team.s] || "#5a6a8a";
+          const displayScore = score != null ? score : (showScore ? team.liveScore : null);
+          const status = scoreStatus || team.gameStatus;
           return (
             <div style={{
               height: SLOT_H, display: "flex", alignItems: "center", padding: "0 4px",
@@ -2787,8 +2823,8 @@ function Live2026() {
               <span style={{ flex: 1, fontSize: 8.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#c8d6e5", textAlign: "left", textDecoration: team.alive ? "none" : "line-through" }}>{team.t}</span>
               <span onClick={e => { e.stopPropagation(); setPopupSyn(team.s); }} style={{ fontSize: 7, flexShrink: 0, fontWeight: 600, color: sc, padding: "0 3px", background: sc + "18", borderRadius: 2, cursor: "pointer" }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
               <span style={{ fontSize: 7, flexShrink: 0, fontWeight: 500, color: "#5a6a8a" }}>${team.p.toLocaleString()}</span>
-              {showScore && team.liveScore != null && (
-                <span style={{ fontSize: 9, flexShrink: 0, fontWeight: 700, color: team.gameStatus === "post" && !team.alive ? "#e63946" : "#e8e6e3", minWidth: 14, textAlign: "right" }}>{team.liveScore}</span>
+              {displayScore != null && (
+                <span style={{ fontSize: 9, flexShrink: 0, fontWeight: 700, color: status === "post" && !team.alive ? "#e63946" : "#e8e6e3", minWidth: 14, textAlign: "right" }}>{displayScore}</span>
               )}
             </div>
           );
@@ -2815,6 +2851,7 @@ function Live2026() {
           const seeds = [top, bot].filter(Boolean).map(t => t.seed).sort((a, b) => a - b);
           const gameKey = seeds.length === 2 ? `${region}-${seeds[0]}v${seeds[1]}` : "";
           let game = null;
+          const isR32 = !isR64;
           if (isR64) {
             game = R64_GAMES[gameKey];
           } else if (seeds.length >= 1) {
@@ -2822,7 +2859,25 @@ function Live2026() {
             if (r32Key) game = R32_GAMES[`${region}-${r32Key}`];
           }
           const isToday = game && game.time.startsWith(todayAbbr);
-          const espnStatus = isR64 ? (top?.gameStatus || bot?.gameStatus) : null;
+
+          let espnStatus = null;
+          let topScore = null, botScore = null;
+          let liveDetail = null;
+          if (isR64) {
+            espnStatus = top?.gameStatus || bot?.gameStatus;
+            topScore = top?.liveScore;
+            botScore = bot?.liveScore;
+            liveDetail = top?.gameDetail || bot?.gameDetail;
+          } else if (isR32) {
+            const r2Top = top?.r2Status;
+            const r2Bot = bot?.r2Status;
+            espnStatus = r2Top || r2Bot || null;
+            if (espnStatus) {
+              topScore = top?.r2Score != null ? top.r2Score : null;
+              botScore = bot?.r2Score != null ? bot.r2Score : null;
+              liveDetail = top?.r2Detail || bot?.r2Detail;
+            }
+          }
           const isLive = espnStatus === "in";
           const isFinal = espnStatus === "post";
           const hasEspn = isLive || isFinal;
@@ -2832,14 +2887,14 @@ function Live2026() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 4px 1px", fontSize: 6.5, fontWeight: isLive || isToday ? 600 : 400 }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 3, color: isLive ? "#22c55e" : isFinal ? "#8a9aba" : isToday ? "#e8e6e3" : "#3a4a6a" }}>
                     {isLive && <span className="live-dot" style={{ width: 4, height: 4, borderRadius: "50%", background: "#22c55e", flexShrink: 0 }} />}
-                    {isLive ? (top?.gameDetail || "LIVE") : isFinal ? "FINAL" : isToday ? "TODAY " + game.time.split(" ")[1] : game.time}
+                    {isLive ? (liveDetail || "LIVE") : isFinal ? "FINAL" : isToday ? "TODAY " + game.time.split(" ")[1] : game.time}
                   </span>
                   <span style={{ color: isToday ? "#e8e6e3" : "#3a4a6a" }}>{game.spread}</span>
                 </div>
               )}
               <div style={{ border: `1px solid ${isLive ? "#22c55e44" : isToday ? "#4a9eff44" : "#1e2a40"}`, borderRadius: 3, overflow: "hidden", boxShadow: isLive ? "0 0 8px rgba(34,197,94,0.2)" : isToday ? "0 0 8px rgba(74,158,255,0.15)" : "none" }}>
-                <BSlot team={top} border rtl={rtl} showScore={hasEspn} />
-                <BSlot team={bot} rtl={rtl} showScore={hasEspn} />
+                <BSlot team={top} border rtl={rtl} showScore={hasEspn && isR64} score={hasEspn && isR32 ? topScore : undefined} scoreStatus={isR32 ? espnStatus : undefined} />
+                <BSlot team={bot} rtl={rtl} showScore={hasEspn && isR64} score={hasEspn && isR32 ? botScore : undefined} scoreStatus={isR32 ? espnStatus : undefined} />
               </div>
             </div>
           );
@@ -3178,6 +3233,21 @@ function Live2026() {
                               </td>
                               <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontSize: 9, whiteSpace: "nowrap" }}>{spreadStr}</td>
                               <td style={{ padding: "5px 4px", textAlign: "center", fontSize: 9, whiteSpace: "nowrap" }}>{(() => {
+                                if (round === "R32" && t.r2Status === "in") {
+                                  const liveColor = t.r2Score > t.r2OppScore ? "#22c55e" : t.r2Score < t.r2OppScore ? "#e63946" : "#e8e6e3";
+                                  return (
+                                  <span style={{ color: liveColor, fontWeight: 700 }}>
+                                    <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: liveColor, marginRight: 3, verticalAlign: "middle" }} />
+                                    {t.r2Score}-{t.r2OppScore}
+                                    {t.r2Detail && <span style={{ fontSize: 7, fontWeight: 400, color: "#5a6a8a", marginLeft: 4 }}>{t.r2Detail}</span>}
+                                  </span>
+                                );}
+                                if (round === "R32" && t.r2Status === "post") return (
+                                  <span style={{ color: t.alive ? "#e8e6e3" : "#e63946", fontWeight: 600 }}>
+                                    {t.r2Score}-{t.r2OppScore}
+                                  </span>
+                                );
+                                if (round === "R32") return <span style={{ color: "#3a4a6a" }}>{game ? game.time : "TBD"}</span>;
                                 if (t.gameStatus === "in") {
                                   const liveColor = t.liveScore > t.oppLiveScore ? "#22c55e" : t.liveScore < t.oppLiveScore ? "#e63946" : "#e8e6e3";
                                   return (
@@ -3192,7 +3262,6 @@ function Live2026() {
                                     {t.liveScore != null ? `${t.liveScore}-${t.oppLiveScore}` : "L"}
                                   </span>
                                 );
-                                if (round === "R32") return <span style={{ color: "#3a4a6a" }}>{game ? game.time : "TBD"}</span>;
                                 if (t.gameStatus === "post") return (
                                   <span style={{ color: t.alive || (t.ats === true) ? "#e8e6e3" : "#e63946", fontWeight: 600 }}>
                                     {t.liveScore}-{t.oppLiveScore}
