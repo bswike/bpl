@@ -2500,8 +2500,17 @@ function Live2026() {
         if (r64Game.status === "post") {
           if (won) { currentW = Math.max(currentW, 1); currentAlive = true; }
           else { currentAlive = false; }
-          if (isATSSeed(team.seed) && team.spread) {
-            currentAts = Math.abs(tScore - oScore) < team.spread;
+          if (isATSSeed(team.seed)) {
+            const margin = tScore - oScore;
+            if (team.spread) {
+              currentAts = Math.abs(margin) < team.spread;
+            } else {
+              const oppSeed = {1:16,16:1,2:15,15:2}[team.seed];
+              const oppTeam = oppSeed && TEAMS_2026.find(o => o.sd === `${rgn}-${oppSeed}`);
+              if (oppTeam && oppTeam.spread) {
+                currentAts = margin > oppTeam.spread;
+              }
+            }
           }
         }
       }
