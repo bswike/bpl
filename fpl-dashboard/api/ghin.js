@@ -27,6 +27,26 @@ async function getFirebaseSessionToken() {
   }
 }
 
+/** Pull a numeric GHIN / golfer id from login-related objects if the API includes it. */
+function extractGolferIdFromObject(obj) {
+  if (!obj || typeof obj !== "object") return null;
+  const candidates = [
+    obj.ghin_number,
+    obj.ghin,
+    obj.golfer_id,
+    obj.id,
+    obj.golfer?.ghin_number,
+    obj.golfer?.ghin,
+    obj.golfer?.golfer_id,
+  ];
+  for (const c of candidates) {
+    if (c == null || c === "") continue;
+    const s = String(c).trim();
+    if (/^\d+$/.test(s)) return s;
+  }
+  return null;
+}
+
 async function loginToGhin(username, password, sessionToken) {
   const loginRes = await fetch(`${API_BASE}/golfer_login.json`, {
     method: "POST",
@@ -40,7 +60,12 @@ async function loginToGhin(username, password, sessionToken) {
   if (loginRes.ok) {
     const data = await loginRes.json();
     const token = data?.golfer_user?.golfer_user_token ?? data?.token;
-    if (token) return token;
+    if (token) {
+      const hint =
+        extractGolferIdFromObject(data.golfer_user) ??
+        extractGolferIdFromObject(data);
+      return { token, golferIdHint: hint };
+    }
   }
 
   const loginRes2 = await fetch(`${API_BASE}/users/login.json`, {
@@ -58,7 +83,9 @@ async function loginToGhin(username, password, sessionToken) {
 
   const data2 = await loginRes2.json();
   if (!data2.token) throw new Error("Login succeeded but no token returned.");
-  return data2.token;
+  const hint =
+    extractGolferIdFromObject(data2.user) ?? extractGolferIdFromObject(data2);
+  return { token: data2.token, golferIdHint: hint };
 }
 
 async function fetchGolfer(token, ghinNumber) {
@@ -77,6 +104,73 @@ async function fetchGolfer(token, ghinNumber) {
   if (!res.ok) return null;
   const data = await res.json();
   return data?.golfers?.[0] ?? null;
+}
+
+async function fetchGolferIdByEmail(token, email) {
+  const params = new URLSearchParams({
+    source: SOURCE,
+    page: "1",
+    per_page: "100",
+    sorting_criteria: "last_name_first_name",
+    status: "Active",
+    order: "asc",
+    email: email.trim(),
+  });
+
+  const res = await fetch(`${API_BASE}/golfers/search.json?${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) return { golfers: [], error: null };
+  const data = await res.json();
+  return { golfers: data?.golfers ?? [], error: null };
+}
+
+async function fetchGolferIdsFromAccesses(token) {
+  const res = await fetch(`${API_BASE}/users/accesses.json`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  const raw = data?.gpa_accesses ?? data?.accesses ?? [];
+  return Array.isArray(raw) ? raw : [];
+}
+
+async function resolveGolferId(token, email, explicitGhin, golferIdHint) {
+  const manual = explicitGhin?.trim() || "";
+  if (manual) {
+    if (!/^\d+$/.test(manual)) {
+      throw new Error("GHIN number should contain digits only.");
+    }
+    return manual;
+  }
+
+  if (golferIdHint) return golferIdHint;
+
+  const { golfers } = await fetchGolferIdByEmail(token, email);
+  if (golfers.length === 1 && golfers[0].ghin != null) {
+    return String(golfers[0].ghin);
+  }
+  if (golfers.length > 1) {
+    throw new Error(
+      "Multiple golfers match this email. Enter your GHIN number in the optional field."
+    );
+  }
+
+  const accesses = await fetchGolferIdsFromAccesses(token);
+  const ids = accesses
+    .map((a) => a?.golfer_id)
+    .filter((id) => id != null && String(id).match(/^\d+$/));
+  if (ids.length === 1) return String(ids[0]);
+  if (ids.length > 1) {
+    throw new Error(
+      "Multiple golfers on this account. Enter the GHIN number for the golfer you want."
+    );
+  }
+
+  throw new Error(
+    "Could not find your GHIN number automatically. Enter it in the optional field below."
+  );
 }
 
 async function fetchAllScores(token, golferId) {
@@ -122,16 +216,26 @@ export default async function handler(req, res) {
   try {
     const { email, password, ghinNumber } = req.body;
 
-    if (!email || !password || !ghinNumber) {
-      return res
-        .status(400)
-        .json({ error: "Email, password, and GHIN number are required." });
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
     }
 
     const sessionToken = await getFirebaseSessionToken();
-    const authToken = await loginToGhin(email, password, sessionToken);
-    const golferInfo = await fetchGolfer(authToken, ghinNumber.trim());
-    const scores = await fetchAllScores(authToken, ghinNumber.trim());
+    const { token: authToken, golferIdHint } = await loginToGhin(
+      email,
+      password,
+      sessionToken
+    );
+
+    const resolvedId = await resolveGolferId(
+      authToken,
+      email,
+      ghinNumber,
+      golferIdHint
+    );
+
+    const golferInfo = await fetchGolfer(authToken, resolvedId);
+    const scores = await fetchAllScores(authToken, resolvedId);
 
     const withHoleDetail = scores.filter(
       (s) => Array.isArray(s.hole_details) && s.hole_details.length > 0
@@ -144,11 +248,11 @@ export default async function handler(req, res) {
         ? {
             first_name: golferInfo.first_name,
             last_name: golferInfo.last_name,
-            ghin_number: golferInfo.ghin_number ?? ghinNumber.trim(),
+            ghin_number: golferInfo.ghin_number ?? resolvedId,
             handicap_index: golferInfo.handicap_index,
             club_name: golferInfo.club_name,
           }
-        : { ghin_number: ghinNumber.trim() },
+        : { ghin_number: resolvedId },
       total_scores: scores.length,
       scores_with_hole_detail: withHoleDetail,
       scores,

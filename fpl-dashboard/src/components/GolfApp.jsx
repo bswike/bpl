@@ -87,7 +87,11 @@ function LandingPage({ onLoad }) {
       const res = await fetch("/api/ghin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, ghinNumber }),
+        body: JSON.stringify({
+          email,
+          password,
+          ghinNumber: ghinNumber.trim() || undefined,
+        }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -131,8 +135,8 @@ function LandingPage({ onLoad }) {
             <input type="password" required value={password} onChange={e => setPassword(e.target.value)} style={S.input} disabled={loading} />
           </div>
           <div style={{ marginBottom: 20 }}>
-            <label style={S.inputLabel}>GHIN Number</label>
-            <input type="text" required value={ghinNumber} onChange={e => setGhinNumber(e.target.value)} placeholder="e.g. 1234567" style={S.input} disabled={loading} />
+            <label style={S.inputLabel}>GHIN number <span style={{ opacity: 0.45, fontWeight: 400 }}>(optional)</span></label>
+            <input type="text" value={ghinNumber} onChange={e => setGhinNumber(e.target.value)} placeholder="Only if you have several golfers or auto-detect fails" style={S.input} disabled={loading} />
           </div>
           <button type="submit" disabled={loading} style={{ ...S.btn, opacity: loading ? 0.6 : 1 }}>
             {loading ? loadingMsg : "Fetch My Scores"}
