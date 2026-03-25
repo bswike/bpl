@@ -1,23 +1,57 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 
 const scoreToPar = (score, par) => {
-  const diff = score - par;
-  if (diff <= -2) return "eagle";
-  if (diff === -1) return "birdie";
-  if (diff === 0) return "par";
-  if (diff === 1) return "bogey";
-  if (diff === 2) return "double";
+  const d = score - par;
+  if (d <= -2) return "eagle";
+  if (d === -1) return "birdie";
+  if (d === 0) return "par";
+  if (d === 1) return "bogey";
+  if (d === 2) return "double";
   return "triple";
 };
 const RC = { eagle: "#d4af37", birdie: "#e74c3c", par: "#27ae60", bogey: "#3498db", double: "#8e44ad", triple: "#6b7280" };
 const RL = { eagle: "Eagle+", birdie: "Birdie", par: "Par", bogey: "Bogey", double: "Double", triple: "Triple+" };
 
-function getCourseKey(s) {
-  // Use course_name/facility_name if available (raw API), else fall back to rating/slope fingerprint
-  if (s.course_name) return s.course_name;
-  if (s.facility_name) return s.facility_name;
-  if (s.course_display_value) return s.course_display_value;
-  return `CR ${s.course_rating} / Slope ${s.slope_rating}`;
+// ── Known course par sequences for fingerprinting ──
+const KNOWN_COURSES = {
+  "Suntree CC - Classic": [4,5,3,4,5,4,3,4,4,5,4,4,4,3,4,3,4,5],
+  "Suntree CC - Challenge": [4,3,4,4,5,4,5,3,4,4,4,3,4,5,4,4,3,5],
+};
+
+function identifyCourse(score) {
+  // 1. If the API gave us a name, use it
+  if (score.course_name) return score.course_name;
+  if (score.facility_name) return score.facility_name;
+  if (score.course_display_value) return score.course_display_value;
+
+  // 2. Fingerprint by par sequence
+  const hds = score.hole_details;
+  if (hds?.length >= 9) {
+    const sorted = [...hds].sort((a, b) => a.hole_number - b.hole_number);
+    const pars = sorted.map(h => h.par);
+
+    // Check 18-hole matches
+    if (pars.length >= 18) {
+      const p18 = pars.slice(0, 18);
+      for (const [name, known] of Object.entries(KNOWN_COURSES)) {
+        if (known.length === 18 && known.every((p, i) => p === p18[i])) return name;
+      }
+    }
+
+    // Check front-9 or back-9 matches
+    const p9 = pars.slice(0, Math.min(pars.length, 18));
+    for (const [name, known] of Object.entries(KNOWN_COURSES)) {
+      const front = known.slice(0, 9);
+      const back = known.slice(9, 18);
+      if (p9.length >= 9) {
+        if (front.every((p, i) => p === p9[i])) return name + " (Front)";
+        if (back.every((p, i) => p === p9[i])) return name + " (Back)";
+      }
+    }
+  }
+
+  // 3. Fallback to rating/slope
+  return `CR ${score.course_rating} / Slope ${score.slope_rating}`;
 }
 
 function FileLoader({ onLoad }) {
@@ -61,10 +95,10 @@ function FileLoader({ onLoad }) {
 
 function SummaryCards({ stats }) {
   const cards = [
-    { label: "Rounds", value: stats.rounds, sub: `${stats.e18} × 18  •  ${stats.n9} × 9` },
+    { label: "Rounds", value: stats.rounds, sub: stats.e18 > 0 && stats.n9 > 0 ? `${stats.e18} × 18  •  ${stats.n9} × 9` : stats.e18 > 0 ? `${stats.e18} × 18` : `${stats.n9} × 9` },
     { label: "Avg Score (18)", value: stats.avg18 ? stats.avg18.toFixed(1) : "—", sub: stats.best18 ? `Best: ${stats.best18}` : "" },
-    { label: "Avg vs Par", value: stats.vsPar != null ? (stats.vsPar > 0 ? "+" : "") + stats.vsPar.toFixed(1) : "—", sub: stats.par ? `Par ${stats.par}` : "", color: stats.vsPar > 0 ? "#e74c3c" : "#27ae60" },
-    { label: "Holes w/ Data", value: stats.holeCount, sub: "of 18" },
+    { label: "Avg vs Par", value: stats.vsPar != null ? (stats.vsPar > 0 ? "+" : "") + stats.vsPar.toFixed(1) : "—", sub: stats.par ? `Par ${stats.par}` : "", color: stats.vsPar != null ? (stats.vsPar > 0 ? "#e74c3c" : "#27ae60") : undefined },
+    { label: "Total Holes", value: stats.totalHoles, sub: `across ${stats.roundsWithHoles} rounds` },
   ];
   return (
     <div style={S.grid4}>{cards.map((c, i) => (
@@ -88,9 +122,9 @@ function BarChart({ holes }) {
         {holes.map(h => {
           const d = h.avg - h.par; const over = d > 0;
           return (<div key={h.hole} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", height: "100%", justifyContent: "flex-end" }}>
-            <div style={{ fontSize: 9, opacity: 0.5, marginBottom: 2, fontFamily: "mono", color: over ? "#e74c3c" : "#27ae60" }}>{d > 0 ? "+" : ""}{d.toFixed(1)}</div>
+            <div style={{ fontSize: 9, opacity: 0.5, marginBottom: 2, fontFamily: "'JetBrains Mono',monospace", color: over ? "#e74c3c" : "#27ae60" }}>{d > 0 ? "+" : ""}{d.toFixed(1)}</div>
             <div style={{ width: "65%", height: Math.max(Math.abs(d) * sc, 2), background: over ? "linear-gradient(to top,#c0392b,#e74c3c)" : "linear-gradient(to top,#1e8449,#27ae60)", borderRadius: "3px 3px 0 0" }} />
-            <div style={{ fontSize: 10, marginTop: 6, fontWeight: 700, opacity: 0.6, fontFamily: "mono" }}>{h.hole}</div>
+            <div style={{ fontSize: 10, marginTop: 6, fontWeight: 700, opacity: 0.6, fontFamily: "'JetBrains Mono',monospace" }}>{h.hole}</div>
           </div>);
         })}
       </div>
@@ -105,7 +139,7 @@ function Extremes({ holes }) {
     <div style={S.teCard}><div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>{icon}</div>
       {items.map((h, i) => { const d = h.avg - h.par; return (
         <div key={h.hole} style={S.teRow}><span style={S.teRank}>#{i + 1}</span><span style={{ fontWeight: 700, flex: 1 }}>Hole {h.hole}</span><span style={{ opacity: 0.4, fontSize: 11 }}>Par {h.par}</span>
-          <span style={{ fontFamily: "monospace", fontWeight: 700, fontSize: 14, color }}>{d > 0 ? "+" : ""}{d.toFixed(2)}</span></div>); })}
+          <span style={{ fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: 14, color }}>{d > 0 ? "+" : ""}{d.toFixed(2)}</span></div>); })}
     </div>);
   return (<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 32 }}>
     <List items={tough} icon="🔥 Toughest Holes" color="#e74c3c" /><List items={easy} icon="💪 Best Holes" color="#27ae60" /></div>);
@@ -125,12 +159,19 @@ function DistBar({ dist, total }) {
 
 function HoleTable({ holes, mode }) {
   if (!holes.length) return null;
-  const nines = [holes.slice(0, 9), holes.slice(9, 18)].filter(n => n.length > 0);
+  const maxHole = Math.max(...holes.map(h => h.hole));
+  const isFull18 = maxHole >= 18 && holes.length >= 18;
+  const nines = isFull18 
+    ? [holes.filter(h => h.hole <= 9), holes.filter(h => h.hole > 9)]
+    : [holes];
+  const nineLabels = isFull18 ? ["Front 9", "Back 9"] : ["Holes"];
+  
   return (<div>{nines.map((nine, ni) => {
+    if (!nine.length) return null;
     const nP = nine.reduce((s, h) => s + h.par, 0), nA = nine.reduce((s, h) => s + h.avg, 0), nD = nA - nP;
     return (<div key={ni} style={{ marginBottom: 28 }}>
-      <div style={S.nineHdr}><span style={{ fontWeight: 700, fontSize: 13 }}>{ni === 0 ? "Front 9" : "Back 9"}</span>
-        <span style={{ fontSize: 12, opacity: 0.65, fontFamily: "monospace" }}>Par {nP} • Avg {nA.toFixed(1)} • <span style={{ color: nD > 0 ? "#e74c3c" : "#27ae60", fontWeight: 700 }}>{nD > 0 ? "+" : ""}{nD.toFixed(1)}</span></span></div>
+      <div style={S.nineHdr}><span style={{ fontWeight: 700, fontSize: 13 }}>{nineLabels[ni]}</span>
+        <span style={{ fontSize: 12, opacity: 0.65, fontFamily: "'JetBrains Mono',monospace" }}>Par {nP} • Avg {nA.toFixed(1)} • <span style={{ color: nD > 0 ? "#e74c3c" : "#27ae60", fontWeight: 700 }}>{nD > 0 ? "+" : ""}{nD.toFixed(1)}</span></span></div>
       <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead><tr>
           <th style={{ ...S.th, width: 48, textAlign: "center" }}>Hole</th><th style={{ ...S.th, width: 40, textAlign: "center" }}>Par</th>
@@ -169,9 +210,9 @@ function Trend({ scores }) {
   const W = 700, H = 140, p = { t: 10, r: 10, b: 24, l: 36 }, pW = W - p.l - p.r, pH = H - p.t - p.b;
   const pts = e18.map((s, i) => ({ x: p.l + (i / (e18.length - 1)) * pW, y: p.t + (1 - (s.adjusted_gross_score - mn) / rng) * pH, s: s.adjusted_gross_score, d: s.played_at }));
   const pathD = pts.map((pt, i) => `${i === 0 ? "M" : "L"}${pt.x},${pt.y}`).join(" ");
-  return (<div style={{ marginBottom: 36 }}><h3 style={S.sec}>18-Hole Score Trend</h3>
+  return (<div style={{ marginBottom: 36 }}><h3 style={S.sec}>Score Trend</h3>
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
-      {[0, .25, .5, .75, 1].map(pct => { const y = p.t + (1 - pct) * pH; return (<g key={pct}><line x1={p.l} x2={W - p.r} y1={y} y2={y} stroke="rgba(255,255,255,0.06)" /><text x={p.l - 4} y={y + 3} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={9} fontFamily="monospace">{Math.round(mn + pct * rng)}</text></g>); })}
+      {[0, .25, .5, .75, 1].map(pct => { const y = p.t + (1 - pct) * pH; return (<g key={pct}><line x1={p.l} x2={W - p.r} y1={y} y2={y} stroke="rgba(255,255,255,0.06)" /><text x={p.l - 4} y={y + 3} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize={9} fontFamily="JetBrains Mono, monospace">{Math.round(mn + pct * rng)}</text></g>); })}
       <path d={pathD} fill="none" stroke="#c9a227" strokeWidth={1.5} strokeLinejoin="round" />
       {pts.map((pt, i) => <circle key={i} cx={pt.x} cy={pt.y} r={2.5} fill="#c9a227" opacity={0.8}><title>{`${pt.d}: ${pt.s}`}</title></circle>)}
       {[pts[0], pts[pts.length - 1]].map((pt, i) => <text key={i} x={pt.x} y={H - 4} textAnchor={i === 0 ? "start" : "end"} fill="rgba(255,255,255,0.3)" fontSize={9}>{new Date(pt.d).toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</text>)}
@@ -186,55 +227,60 @@ function Legend() {
   </div>);
 }
 
+// ── Main ──
 export default function App() {
   const [data, setData] = useState(null);
   const [course, setCourse] = useState(null);
-  const [tee, setTee] = useState("all");
   const [mode, setMode] = useState("stats");
 
+  // Identify courses and build dropdown
   const courses = useMemo(() => {
     if (!data) return [];
     const m = {};
     data.scores.forEach(s => {
-      const k = getCourseKey(s);
-      if (!m[k]) m[k] = { id: k, name: k, count: 0, hc: 0 };
-      m[k].count++;
-      if (s.hole_details?.length > 0) m[k].hc++;
+      const name = identifyCourse(s);
+      if (!m[name]) m[name] = { id: name, name, rounds: 0, totalHoles: 0, e18: 0, n9: 0 };
+      m[name].rounds++;
+      m[name].totalHoles += (s.hole_details?.length || 0);
+      if (s.number_of_holes === 9) m[name].n9++;
+      else m[name].e18++;
     });
-    return Object.values(m).sort((a, b) => b.count - a.count);
+    return Object.values(m).sort((a, b) => b.rounds - a.rounds);
   }, [data]);
 
+  // Auto-select Suntree
   useEffect(() => {
     if (courses.length && !course) {
-      const st = courses.find(c => /suntree|sun tree/i.test(c.name));
+      const st = courses.find(c => /suntree/i.test(c.name));
       setCourse(st ? st.id : courses[0].id);
     }
   }, [courses, course]);
 
+  // Filter scores for selected course
   const filtered = useMemo(() => {
     if (!data || !course) return [];
-    let s = data.scores.filter(s => getCourseKey(s) === course);
-    if (tee !== "all") s = s.filter(x => (x.tee_set_name || x.tee_name) === tee);
-    return s;
-  }, [data, course, tee]);
-
-  const tees = useMemo(() => {
-    const t = new Set();
-    (data?.scores || []).filter(s => getCourseKey(s) === course).forEach(s => { if (s.tee_set_name || s.tee_name) t.add(s.tee_set_name || s.tee_name); });
-    return [...t].sort();
+    return data.scores.filter(s => identifyCourse(s) === course);
   }, [data, course]);
 
+  // Build hole stats — handle both 9 and 18 hole rounds
   const holes = useMemo(() => {
-    const h = {}; for (let i = 1; i <= 18; i++) h[i] = { hole: i, scores: [], putts: [], gir: [], fir: [], par: null, sa: null };
-    filtered.forEach(sc => { if (!sc.hole_details?.length) return; sc.hole_details.forEach(hd => {
-      const n = hd.hole_number; if (n < 1 || n > 18) return;
-      const v = hd.raw_score || hd.adjusted_gross_score; if (v > 0) h[n].scores.push(v);
-      if (hd.par) h[n].par = hd.par; if (hd.stroke_allocation) h[n].sa = hd.stroke_allocation;
-      if (hd.putts > 0) h[n].putts.push(hd.putts);
-      if (hd.gir_flag != null) h[n].gir.push(hd.gir_flag ? 1 : 0);
-      if (hd.fairway_hit != null) h[n].fir.push(hd.fairway_hit ? 1 : 0);
-    }); });
-    return Object.values(h).filter(x => x.scores.length > 0).map(x => {
+    const h = {};
+    filtered.forEach(sc => {
+      if (!sc.hole_details?.length) return;
+      sc.hole_details.forEach(hd => {
+        const n = hd.hole_number;
+        if (!n || n < 1 || n > 18) return;
+        if (!h[n]) h[n] = { hole: n, scores: [], putts: [], gir: [], fir: [], par: null, sa: null };
+        const v = hd.raw_score || hd.adjusted_gross_score;
+        if (v > 0) h[n].scores.push(v);
+        if (hd.par) h[n].par = hd.par;
+        if (hd.stroke_allocation) h[n].sa = hd.stroke_allocation;
+        if (hd.putts != null && hd.putts > 0) h[n].putts.push(hd.putts);
+        if (hd.gir_flag != null) h[n].gir.push(hd.gir_flag ? 1 : 0);
+        if (hd.fairway_hit != null) h[n].fir.push(hd.fairway_hit ? 1 : 0);
+      });
+    });
+    return Object.values(h).sort((a, b) => a.hole - b.hole).filter(x => x.scores.length > 0).map(x => {
       const avg = x.scores.reduce((a, b) => a + b, 0) / x.scores.length;
       const dist = {}; x.scores.forEach(s => { const k = scoreToPar(s, x.par); dist[k] = (dist[k] || 0) + 1; });
       return { hole: x.hole, par: x.par || 4, sa: x.sa, avg, best: Math.min(...x.scores), worst: Math.max(...x.scores), count: x.scores.length,
@@ -244,21 +290,26 @@ export default function App() {
     });
   }, [filtered]);
 
+  // Summary
   const stats = useMemo(() => {
     const e18 = filtered.filter(s => s.number_of_holes === 18 || s.number_of_played_holes === 18);
     const n9 = filtered.filter(s => s.number_of_holes === 9 || s.number_of_played_holes === 9);
     const t = e18.map(s => s.adjusted_gross_score).filter(Boolean);
-    const par = holes.length === 18 ? holes.reduce((s, h) => s + h.par, 0) : null;
+    const par = holes.length >= 18 ? holes.filter(h => h.hole <= 18).reduce((s, h) => s + h.par, 0) : null;
+    const roundsWithHoles = filtered.filter(s => s.hole_details?.length > 0).length;
+    const totalHoles = filtered.reduce((sum, s) => sum + (s.hole_details?.length || 0), 0);
     return { rounds: filtered.length, e18: e18.length, n9: n9.length,
       avg18: t.length ? t.reduce((a, b) => a + b, 0) / t.length : null,
       best18: t.length ? Math.min(...t) : null,
       vsPar: t.length && par ? t.reduce((a, b) => a + b, 0) / t.length - par : null,
-      par, holeCount: holes.length };
+      par, totalHoles, roundsWithHoles };
   }, [filtered, holes]);
 
   if (!data) return (
     <div style={S.page}><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
-      <div style={S.center}><FileLoader onLoad={d => { setData(d); setCourse(null); setTee("all"); }} /></div></div>);
+      <div style={S.center}><FileLoader onLoad={d => { setData(d); setCourse(null); }} /></div></div>);
+
+  const selectedCourse = courses.find(c => c.id === course);
 
   return (
     <div style={S.page}><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -267,7 +318,7 @@ export default function App() {
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>⛳ Hole-by-Hole Analysis</h1>
           <p style={{ fontSize: 12, opacity: 0.45, margin: "3px 0 0" }}>
             {data.golfer?.first_name ? `${data.golfer.first_name} ${data.golfer.last_name} • HI: ${data.golfer.handicap_index} • ` : ""}
-            {data.total_scores} scores ({data.scores_with_hole_detail} with hole detail)
+            {data.total_scores} scores loaded
           </p>
         </div>
         <button style={{ ...S.btn, width: "auto", padding: "8px 16px", fontSize: 12 }} onClick={() => { setData(null); setCourse(null); }}>New File</button>
@@ -276,19 +327,19 @@ export default function App() {
       <div style={S.content}>
         <div style={S.ctrls}>
           <div style={S.fg}><label style={S.fl}>Course</label>
-            <select style={S.sel} value={course || ""} onChange={e => { setCourse(e.target.value); setTee("all"); }}>
-              {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.count} rds, {c.hc} holes)</option>)}
+            <select style={S.sel} value={course || ""} onChange={e => setCourse(e.target.value)}>
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name} — {c.rounds} rds ({c.e18 > 0 ? `${c.e18}×18` : ""}{c.e18 > 0 && c.n9 > 0 ? ", " : ""}{c.n9 > 0 ? `${c.n9}×9` : ""}) • {c.totalHoles} holes
+                </option>
+              ))}
             </select></div>
-          {tees.length > 1 && <div style={S.fg}><label style={S.fl}>Tees</label>
-            <select style={S.sel} value={tee} onChange={e => setTee(e.target.value)}>
-              <option value="all">All Tees</option>{tees.map(t => <option key={t} value={t}>{t}</option>)}
-            </select></div>}
           <div style={S.fg}><label style={S.fl}>View</label>
             <div style={S.tog}>{[["stats", "Stats"], ["dist", "Distribution"]].map(([k, l]) => (
               <button key={k} onClick={() => setMode(k)} style={{ ...S.togBtn, ...(mode === k ? S.togA : {}) }}>{l}</button>))}</div></div>
         </div>
 
-        {filtered.length === 0 ? <div style={S.empty}>No hole-by-hole data for this selection.</div> : <>
+        {filtered.length === 0 ? <div style={S.empty}>No data for this selection.</div> : <>
           <SummaryCards stats={stats} />
           <Trend scores={filtered} />
           {holes.length > 0 && <>
@@ -324,7 +375,7 @@ const S = {
   ctrls: { display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 24, alignItems: "flex-end" },
   fg: { display: "flex", flexDirection: "column", gap: 4 },
   fl: { fontSize: 9, textTransform: "uppercase", letterSpacing: "0.12em", opacity: 0.35, fontWeight: 700 },
-  sel: { padding: "7px 10px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, color: "#e0ded8", fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: "none", minWidth: 200 },
+  sel: { padding: "7px 10px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 6, color: "#e0ded8", fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: "none", minWidth: 280 },
   tog: { display: "flex", borderRadius: 6, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" },
   togBtn: { padding: "7px 14px", background: "rgba(255,255,255,0.03)", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 12, fontFamily: "'DM Sans',sans-serif", cursor: "pointer", fontWeight: 500 },
   togA: { background: "rgba(201,162,39,0.18)", color: "#c9a227", fontWeight: 700 },
@@ -340,6 +391,6 @@ const S = {
   mono: { padding: "9px 8px", fontSize: 13, fontFamily: "'JetBrains Mono',monospace" },
   teCard: { background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: 18 },
   teRow: { display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.025)" },
-  teRank: { fontSize: 10, opacity: 0.35, fontFamily: "monospace", width: 22 },
+  teRank: { fontSize: 10, opacity: 0.35, fontFamily: "'JetBrains Mono',monospace", width: 22 },
   empty: { textAlign: "center", padding: "50px 20px", opacity: 0.4, lineHeight: 1.6 },
 };
