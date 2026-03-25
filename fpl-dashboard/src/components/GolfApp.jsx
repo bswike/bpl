@@ -352,40 +352,45 @@ function BarChart({ holes }) {
   const mx = Math.max(...holes.map((h) => Math.abs(h.avg - h.par)), 0.5);
   const sc = 80 / mx;
   return (
-    <div className="mb-8">
+    <div className="mb-8 min-w-0">
       <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-3">
         Scoring vs Par
       </h3>
-      <div className="flex items-end gap-1 h-[180px] pt-5 border-b border-gray-200">
-        {holes.map((h) => {
-          const d = h.avg - h.par;
-          const over = d > 0;
-          return (
-            <div
-              key={h.hole}
-              className="flex-1 flex flex-col items-center h-full justify-end"
-            >
+      <p className="text-xs text-gray-400 mb-2 sm:hidden">
+        Scroll sideways to see all holes
+      </p>
+      <div className="w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-lg border border-gray-200 bg-gray-50/50 touch-pan-x">
+        <div className="inline-flex items-end gap-2 h-[180px] pt-5 pb-1 px-3 min-h-[180px] border-b border-gray-200">
+          {holes.map((h) => {
+            const d = h.avg - h.par;
+            const over = d > 0;
+            return (
               <div
-                className={`text-[9px] mb-0.5 font-mono ${over ? "text-red-600" : "text-green-600"}`}
+                key={h.hole}
+                className="flex w-11 shrink-0 flex-col items-center h-full justify-end"
               >
-                {d > 0 ? "+" : ""}
-                {d.toFixed(1)}
+                <div
+                  className={`text-[9px] mb-0.5 font-mono tabular-nums ${over ? "text-red-600" : "text-green-600"}`}
+                >
+                  {d > 0 ? "+" : ""}
+                  {d.toFixed(1)}
+                </div>
+                <div
+                  className="w-[70%] max-w-[28px] rounded-t"
+                  style={{
+                    height: Math.max(Math.abs(d) * sc, 2),
+                    background: over
+                      ? "linear-gradient(to top,#dc2626,#f87171)"
+                      : "linear-gradient(to top,#166534,#22c55e)",
+                  }}
+                />
+                <div className="text-[10px] mt-1.5 font-bold text-gray-500 font-mono tabular-nums">
+                  {h.hole}
+                </div>
               </div>
-              <div
-                className="w-[65%] rounded-t"
-                style={{
-                  height: Math.max(Math.abs(d) * sc, 2),
-                  background: over
-                    ? "linear-gradient(to top,#dc2626,#f87171)"
-                    : "linear-gradient(to top,#166534,#22c55e)",
-                }}
-              />
-              <div className="text-[10px] mt-1.5 font-bold text-gray-500 font-mono">
-                {h.hole}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -625,12 +630,24 @@ function Trend({ scores }) {
   const pathD = pts
     .map((pt, i) => `${i === 0 ? "M" : "L"}${pt.x},${pt.y}`)
     .join(" ");
+  const svgW = Math.min(1400, Math.max(720, e18.length * 36));
+  const svgH = (svgW * H) / W;
   return (
-    <div className="mb-8">
+    <div className="mb-8 min-w-0">
       <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-3">
         Score trend (this course)
       </h3>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-full h-auto block">
+      <p className="text-xs text-gray-400 mb-2 sm:hidden">
+        Scroll sideways to see the full chart
+      </p>
+      <div className="w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-lg border border-gray-200 bg-gray-50/50 touch-pan-x">
+        <svg
+          width={svgW}
+          height={svgH}
+          viewBox={`0 0 ${W} ${H}`}
+          className="block shrink-0"
+          preserveAspectRatio="xMinYMid meet"
+        >
         {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
           const y = p.t + (1 - pct) * pH;
           return (
@@ -682,7 +699,8 @@ function Trend({ scores }) {
             })}
           </text>
         ))}
-      </svg>
+        </svg>
+      </div>
     </div>
   );
 }
