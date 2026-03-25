@@ -54,10 +54,17 @@ function identifyCourse(score) {
   return `CR ${score.course_rating} / Slope ${score.slope_rating}`;
 }
 
-function FileLoader({ onLoad }) {
+function LandingPage({ onLoad }) {
   const fileRef = useRef();
+  const [tab, setTab] = useState("login");
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [ghinNumber, setGhinNumber] = useState("");
+
   const processFile = (file) => {
     setError(null);
     const reader = new FileReader();
@@ -70,25 +77,90 @@ function FileLoader({ onLoad }) {
     };
     reader.readAsText(file);
   };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    setLoadingMsg("Authenticating with GHIN...");
+    try {
+      const res = await fetch("/api/ghin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, ghinNumber }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || `Request failed (${res.status})`);
+      }
+      setLoadingMsg("Processing scores...");
+      const data = await res.json();
+      if (!data.scores?.length) throw new Error("No scores found for this GHIN number.");
+      onLoad(data);
+    } catch (err) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+      setLoadingMsg("");
+    }
+  };
+
   return (
     <div style={S.loginCard}>
       <div style={{ fontSize: 44, marginBottom: 4 }}>⛳</div>
       <h1 style={S.loginTitle}>Hole-by-Hole Analysis</h1>
       <p style={S.loginSub}>GHIN Score Dashboard</p>
-      <div style={{ margin: "24px 0 16px", textAlign: "left" }}>
-        <div style={S.stepBox}><div style={S.stepNum}>1</div><div><div style={S.stepLabel}>Run the fetcher on your machine</div><code style={S.code}>npm install @spicygolf/ghin{"\n"}node fetch-ghin-scores.mjs</code></div></div>
-        <div style={S.stepBox}><div style={S.stepNum}>2</div><div><div style={S.stepLabel}>Drop the JSON file below</div></div></div>
+
+      {/* Tab switcher */}
+      <div style={{ display: "flex", marginTop: 24, borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
+        <button onClick={() => { setTab("login"); setError(null); }} style={{ ...S.tabBtn, ...(tab === "login" ? S.tabActive : {}) }}>Sign In to GHIN</button>
+        <button onClick={() => { setTab("file"); setError(null); }} style={{ ...S.tabBtn, ...(tab === "file" ? S.tabActive : {}) }}>Upload File</button>
       </div>
-      {error && <div style={S.err}>{error}</div>}
-      <div style={{ ...S.drop, borderColor: dragging ? "#c9a227" : "rgba(255,255,255,0.12)", background: dragging ? "rgba(201,162,39,0.08)" : "rgba(255,255,255,0.02)" }}
-        onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)}
-        onDrop={e => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); }}
-        onClick={() => fileRef.current?.click()}>
-        <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.4 }}>📂</div>
-        <div style={{ fontWeight: 600 }}>Drop <span style={{ color: "#c9a227" }}>ghin-scores.json</span> here</div>
-        <div style={{ fontSize: 12, opacity: 0.4, marginTop: 4 }}>or click to browse</div>
-        <input ref={fileRef} type="file" accept=".json" style={{ display: "none" }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); }} />
-      </div>
+
+      {error && <div style={{ ...S.err, marginTop: 16 }}>{error}</div>}
+
+      {/* Login tab */}
+      {tab === "login" && (
+        <form onSubmit={handleLogin} style={{ marginTop: 20, textAlign: "left" }}>
+          <div style={{ marginBottom: 14 }}>
+            <label style={S.inputLabel}>GHIN Email</label>
+            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" style={S.input} disabled={loading} />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={S.inputLabel}>Password</label>
+            <input type="password" required value={password} onChange={e => setPassword(e.target.value)} style={S.input} disabled={loading} />
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <label style={S.inputLabel}>GHIN Number</label>
+            <input type="text" required value={ghinNumber} onChange={e => setGhinNumber(e.target.value)} placeholder="e.g. 1234567" style={S.input} disabled={loading} />
+          </div>
+          <button type="submit" disabled={loading} style={{ ...S.btn, opacity: loading ? 0.6 : 1 }}>
+            {loading ? loadingMsg : "Fetch My Scores"}
+          </button>
+          <p style={{ fontSize: 11, opacity: 0.3, marginTop: 12, textAlign: "center" }}>
+            Your credentials are sent directly to GHIN's servers and are never stored.
+          </p>
+        </form>
+      )}
+
+      {/* File upload tab */}
+      {tab === "file" && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ margin: "0 0 16px", textAlign: "left" }}>
+            <div style={S.stepBox}><div style={S.stepNum}>1</div><div><div style={S.stepLabel}>Run the fetcher on your machine</div><code style={S.code}>npm install @spicygolf/ghin{"\n"}node fetch-ghin-scores.mjs</code></div></div>
+            <div style={S.stepBox}><div style={S.stepNum}>2</div><div><div style={S.stepLabel}>Drop the JSON file below</div></div></div>
+          </div>
+          <div style={{ ...S.drop, borderColor: dragging ? "#c9a227" : "rgba(255,255,255,0.12)", background: dragging ? "rgba(201,162,39,0.08)" : "rgba(255,255,255,0.02)" }}
+            onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)}
+            onDrop={e => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); }}
+            onClick={() => fileRef.current?.click()}>
+            <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.4 }}>📂</div>
+            <div style={{ fontWeight: 600 }}>Drop <span style={{ color: "#c9a227" }}>ghin-scores.json</span> here</div>
+            <div style={{ fontSize: 12, opacity: 0.4, marginTop: 4 }}>or click to browse</div>
+            <input ref={fileRef} type="file" accept=".json" style={{ display: "none" }} onChange={e => { if (e.target.files[0]) processFile(e.target.files[0]); }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -307,7 +379,7 @@ export default function App() {
 
   if (!data) return (
     <div style={S.page}><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
-      <div style={S.center}><FileLoader onLoad={d => { setData(d); setCourse(null); }} /></div></div>);
+      <div style={S.center}><LandingPage onLoad={d => { setData(d); setCourse(null); }} /></div></div>);
 
   const selectedCourse = courses.find(c => c.id === course);
 
@@ -369,6 +441,10 @@ const S = {
   code: { display: "block", background: "rgba(0,0,0,0.3)", borderRadius: 4, padding: "8px 10px", fontSize: 11, fontFamily: "'JetBrains Mono',monospace", color: "#a8c97e", whiteSpace: "pre", textAlign: "left", marginTop: 4 },
   drop: { border: "2px dashed rgba(255,255,255,0.12)", borderRadius: 12, padding: "32px 20px", cursor: "pointer", transition: "all 0.2s" },
   err: { background: "rgba(231,76,60,0.12)", border: "1px solid rgba(231,76,60,0.25)", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#e74c3c" },
+  tabBtn: { flex: 1, padding: "10px 0", background: "rgba(255,255,255,0.03)", border: "none", color: "rgba(255,255,255,0.4)", fontSize: 13, fontFamily: "'DM Sans',sans-serif", cursor: "pointer", fontWeight: 500, transition: "all 0.15s" },
+  tabActive: { background: "rgba(201,162,39,0.18)", color: "#c9a227", fontWeight: 700 },
+  inputLabel: { display: "block", fontSize: 11, fontWeight: 600, marginBottom: 5, opacity: 0.5, textTransform: "uppercase", letterSpacing: "0.06em" },
+  input: { width: "100%", padding: "10px 12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#e0ded8", fontSize: 14, fontFamily: "'DM Sans',sans-serif", outline: "none", boxSizing: "border-box" },
   btn: { display: "block", width: "100%", padding: 12, background: "linear-gradient(135deg,#c9a227,#a8871e)", border: "none", borderRadius: 8, color: "#0a0f0d", fontSize: 14, fontWeight: 700, fontFamily: "'DM Sans',sans-serif", cursor: "pointer" },
   hdr: { display: "flex", alignItems: "center", gap: 16, padding: "20px 28px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)", flexWrap: "wrap" },
   content: { padding: "20px 28px 48px", maxWidth: 1100 },
