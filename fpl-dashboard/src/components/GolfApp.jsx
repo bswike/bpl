@@ -131,7 +131,7 @@ function LandingPage({ onLoad }) {
   const tabActive = "bg-green-50 text-green-800 font-semibold";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 max-w-md w-full mx-auto">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 max-w-md w-full min-w-0 mx-auto">
       <div className="text-5xl mb-1 text-center">⛳</div>
       <h1 className="text-2xl font-bold text-center text-gray-900 tracking-tight">
         GHIN Score Exporter
@@ -235,7 +235,7 @@ function LandingPage({ onLoad }) {
               <div className="text-sm font-semibold text-gray-800">
                 Run the fetcher locally (optional)
               </div>
-              <code className="block mt-1 text-[11px] font-mono bg-gray-900 text-green-100 rounded px-2 py-1.5 whitespace-pre">
+              <code className="block mt-1 text-[11px] font-mono bg-gray-900 text-green-100 rounded px-2 py-1.5 whitespace-pre overflow-x-auto max-w-full">
                 npm install @spicygolf/ghin{"\n"}node fetch-ghin-scores.mjs
               </code>
             </div>
@@ -630,7 +630,7 @@ function Trend({ scores }) {
       <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-3">
         Score trend (this course)
       </h3>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-full h-auto block">
         {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
           const y = p.t + (1 - pct) * pH;
           return (
@@ -707,6 +707,29 @@ export default function App() {
   const [data, setData] = useState(null);
   const [course, setCourse] = useState(null);
   const [mode, setMode] = useState("stats");
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const root = document.getElementById("root");
+    const prevHtml = html.style.overflowX;
+    const prevBody = body.style.overflowX;
+    const prevRoot = root?.style.overflowX ?? "";
+    html.style.overflowX = "hidden";
+    body.style.overflowX = "hidden";
+    if (root) {
+      root.style.overflowX = "hidden";
+      root.style.maxWidth = "100%";
+    }
+    return () => {
+      html.style.overflowX = prevHtml;
+      body.style.overflowX = prevBody;
+      if (root) {
+        root.style.overflowX = prevRoot;
+        root.style.maxWidth = "";
+      }
+    };
+  }, []);
 
   const courses = useMemo(() => {
     if (!data) return [];
@@ -848,9 +871,9 @@ export default function App() {
 
   if (!data) {
     return (
-      <main className="min-h-screen bg-[#f8faf8] text-gray-900 flex flex-col">
-        <header className="bg-green-800 text-white shrink-0">
-          <div className="max-w-4xl mx-auto px-4 py-6">
+      <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col">
+        <header className="bg-green-800 text-white shrink-0 w-full min-w-0">
+          <div className="max-w-4xl mx-auto px-4 py-6 min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">
               GHIN Score Exporter
             </h1>
@@ -859,7 +882,7 @@ export default function App() {
             </p>
           </div>
         </header>
-        <div className="flex-1 flex items-center justify-center px-4 py-10">
+        <div className="flex-1 flex items-center justify-center px-4 py-10 min-w-0 w-full">
           <LandingPage
             onLoad={(d) => {
               setData(d);
@@ -875,9 +898,9 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8faf8] text-gray-900 flex flex-col">
-      <header className="bg-green-800 text-white shrink-0">
-        <div className="max-w-4xl mx-auto px-4 py-5 flex flex-wrap items-center justify-between gap-3">
+    <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col">
+      <header className="bg-green-800 text-white shrink-0 w-full min-w-0">
+        <div className="max-w-4xl mx-auto px-4 py-5 flex flex-wrap items-center justify-between gap-3 min-w-0">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
               GHIN Score Exporter
@@ -896,7 +919,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
+      <div className="flex-1 max-w-4xl w-full min-w-0 mx-auto px-4 py-8">
         <GolfExporterDashboard data={data} onDownload={handleDownload} />
 
         <section className="mt-12 pt-8 border-t border-gray-200">
@@ -907,9 +930,9 @@ export default function App() {
             Deep dive into a single course — averages, trends, and distributions.
           </p>
 
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6">
-            <div className="flex flex-wrap gap-4 mb-6 items-end">
-              <div className="flex flex-col gap-1 min-w-[200px] flex-1">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 min-w-0 overflow-x-hidden">
+            <div className="flex flex-wrap gap-4 mb-6 items-end min-w-0">
+              <div className="flex flex-col gap-1 min-w-0 flex-1 basis-full sm:basis-auto max-w-full">
                 <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
                   Course
                 </label>

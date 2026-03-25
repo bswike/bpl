@@ -128,7 +128,7 @@ function computeStats(data) {
 function Card({ title, children, className = "" }) {
   return (
     <div
-      className={`bg-white rounded-2xl border border-gray-200 shadow-sm p-5 ${className}`}
+      className={`bg-white rounded-2xl border border-gray-200 shadow-sm p-5 min-w-0 max-w-full ${className}`}
     >
       {title ? (
         <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-3">
@@ -165,9 +165,9 @@ export function GolfExporterDashboard({ data, onDownload }) {
   ];
 
   return (
-    <div className="space-y-6">
-      <header className="bg-green-800 text-white rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
+    <div className="space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
+      <header className="bg-green-800 text-white rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4 min-w-0">
+        <div className="min-w-0">
           <h2 className="text-2xl font-bold">
             {g.first_name} {g.last_name}
           </h2>
@@ -179,7 +179,7 @@ export function GolfExporterDashboard({ data, onDownload }) {
             rounds
           </p>
         </div>
-        <div className="text-right">
+        <div className="text-right shrink-0 min-w-0">
           <div className="text-4xl font-bold">{g.handicap_index ?? "—"}</div>
           <div className="text-green-200 text-xs">Handicap Index</div>
         </div>
@@ -235,9 +235,10 @@ export function GolfExporterDashboard({ data, onDownload }) {
         </div>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-6 min-w-0">
         <Card title="Year-by-Year Trends">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-1 px-1 min-w-0">
+          <table className="w-full text-sm min-w-0">
             <thead>
               <tr className="text-left text-gray-500 border-b">
                 <th className="pb-2">Year</th>
@@ -265,6 +266,7 @@ export function GolfExporterDashboard({ data, onDownload }) {
                 ))}
             </tbody>
           </table>
+          </div>
         </Card>
 
         <Card title={`Hole-by-Hole Breakdown (${s.totalHoles} holes)`}>
@@ -303,7 +305,7 @@ export function GolfExporterDashboard({ data, onDownload }) {
       </div>
 
       <Card title="Average Score by Par">
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center min-w-0">
           {[3, 4, 5].map((p) => {
             const d = s.parScoring[p];
             if (!d || d.count === 0) return null;
@@ -327,7 +329,8 @@ export function GolfExporterDashboard({ data, onDownload }) {
       </Card>
 
       <Card title="Most Played Courses">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto -mx-1 px-1 min-w-0">
+        <table className="w-full text-sm min-w-0">
           <thead>
             <tr className="text-left text-gray-500 border-b">
               <th className="pb-2">Course</th>
@@ -353,6 +356,7 @@ export function GolfExporterDashboard({ data, onDownload }) {
             ))}
           </tbody>
         </table>
+        </div>
       </Card>
 
       <Card title="Recent Rounds">
