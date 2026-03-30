@@ -2677,6 +2677,7 @@ function Live2026() {
                 <tr>
                   <th style={{ ...thL, width: 18, ...stickyR, background: "#0d1117" }}>#</th>
                   <th style={{ ...thL, ...stickySyn, background: "#0d1117" }}>Syndicate</th>
+                  {sortTh("net", "Net")}
                   {sortTh("settled", "Results")}
                   {sortTh("teamsAlive", "Alive")}
                   {roundLabels.map((r, ri) => {
@@ -2694,7 +2695,6 @@ function Live2026() {
                   {sortTh("totalEarned", "Earned")}
                   {sortTh("spent", "Spent")}
                   {sortTh("roi", "ROI")}
-                  {sortTh("net", "Net")}
                 </tr>
               </thead>
               <tbody>
@@ -2721,6 +2721,9 @@ function Live2026() {
                         <span style={{ color: synColor }}>{isOpen ? "▾" : "▸"} {syn.name}</span>
                         <span style={{ fontSize: 8, color: "#3a4a6a", marginLeft: 4 }}>{syn.totalTeams} teams</span>
                       </td>
+                      <td style={{ padding: "6px 4px", textAlign: "right", color: netColor, fontWeight: 700 }}>
+                        {syn.net >= 0 ? "+" : ""}${syn.net.toLocaleString()}
+                      </td>
                       <td style={{ padding: "6px 4px", textAlign: "right", color: syn.settled > 0 ? "#2ecc71" : syn.settled === 0 ? "#8a9aba" : "#e63946", fontWeight: 700 }}>
                         {syn.settled >= 0 ? "+" : ""}${syn.settled.toLocaleString()}
                       </td>
@@ -2734,9 +2737,6 @@ function Live2026() {
                       <td style={{ padding: "6px 4px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${syn.spent.toLocaleString()}</td>
                       <td style={{ padding: "6px 4px", textAlign: "right", color: syn.roi >= 0 ? "#2ecc71" : "#e63946", fontWeight: 600 }}>
                         {(syn.roi * 100).toFixed(0)}%
-                      </td>
-                      <td style={{ padding: "6px 4px", textAlign: "right", color: netColor, fontWeight: 700 }}>
-                        {syn.net >= 0 ? "+" : ""}${syn.net.toLocaleString()}
                       </td>
                     </tr>
                     {isOpen && <>
@@ -2767,6 +2767,7 @@ function Live2026() {
                             {t.t}
                             {t.spread && <span style={{ fontSize: 8, color: "#3a4a6a", marginLeft: 5 }}>+{t.spread}</span>}
                           </td>
+                          <td style={{ padding: "4px 4px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
                           <td style={{ padding: "4px 4px", textAlign: "right", fontSize: 10, fontWeight: 600, color: teamSettled == null ? "#1e2a40" : teamSettled > 0 ? "#2ecc71" : teamSettled === 0 ? "#8a9aba" : "#e63946" }}>
                             {teamSettled == null ? "—" : `${teamSettled >= 0 ? "+" : ""}$${teamSettled.toLocaleString()}`}
                           </td>
@@ -2779,8 +2780,7 @@ function Live2026() {
                           })}
                           <td style={{ padding: "4px 4px", textAlign: "right", color: teamEarned > 0 ? "#e8e6e3" : "#1e2a40", fontSize: 10, fontWeight: 600 }}>{teamEarned > 0 ? `$${teamEarned.toLocaleString()}` : "—"}</td>
                           <td style={{ padding: "4px 4px", textAlign: "right", color: "#8a9aba", fontSize: 10 }}>${t.p.toLocaleString()}</td>
-                          <td style={{ padding: "4px 4px" }} />
-                          <td style={{ padding: "4px 4px", textAlign: "right", color: teamNet >= 0 ? "#2ecc71" : "#e63946", fontSize: 10, fontWeight: 600 }}>{teamNet >= 0 ? "+" : ""}${teamNet.toLocaleString()}</td>
+                          <td style={{ padding: "4px 4px", textAlign: "right", color: syn.roi >= 0 ? "#2ecc71" : "#e63946", fontSize: 10 }}>{(syn.roi * 100).toFixed(0)}%</td>
                         </tr>
                       );
                     })}
@@ -2793,6 +2793,7 @@ function Live2026() {
                 <tr style={{ borderTop: "2px solid #1e2a40" }}>
                   <td style={{ padding: "6px 4px", ...stickyR, background: "#0a0e15" }} />
                   <td style={{ padding: "6px 4px", color: "#5a6a8a", fontWeight: 700, fontSize: 10, ...stickySyn, background: "#0a0e15" }}>TOTAL</td>
+                  {(() => { const tn = board.reduce((s, b) => s + b.net, 0); return <td style={{ padding: "6px 4px", textAlign: "right", color: tn > 0 ? "#2ecc71" : tn === 0 ? "#8a9aba" : "#e63946", fontWeight: 700 }}>{tn >= 0 ? "+" : ""}${tn.toLocaleString()}</td>; })()}
                   {(() => { const ts = board.reduce((s, b) => s + b.settled, 0); return <td style={{ padding: "6px 4px", textAlign: "right", color: ts > 0 ? "#2ecc71" : ts === 0 ? "#8a9aba" : "#e63946", fontWeight: 700 }}>{ts >= 0 ? "+" : ""}${ts.toLocaleString()}</td>; })()}
                   <td style={{ padding: "6px 4px", textAlign: "right", color: "#8a9aba" }}>{board.reduce((s, b) => s + b.teamsAlive, 0)}/64</td>
                   {[0,1,2,3,4,5].map(ri => {
@@ -2802,7 +2803,6 @@ function Live2026() {
                   <td style={{ padding: "6px 4px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.totalEarned, 0).toLocaleString()}</td>
                   <td style={{ padding: "6px 4px", textAlign: "right", color: "#e8e6e3", fontWeight: 700 }}>${board.reduce((s, b) => s + b.spent, 0).toLocaleString()}</td>
                   <td style={{ padding: "6px 4px" }} />
-                  {(() => { const tn = board.reduce((s, b) => s + b.net, 0); return <td style={{ padding: "6px 4px", textAlign: "right", color: tn > 0 ? "#2ecc71" : tn === 0 ? "#8a9aba" : "#e63946", fontWeight: 700 }}>{tn >= 0 ? "+" : ""}${tn.toLocaleString()}</td>; })()}
                 </tr>
               </tfoot>
             </table>
