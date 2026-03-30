@@ -3062,53 +3062,88 @@ function Live2026() {
           { label: "Semifinal 2", left: "W", right: "MW" },
         ];
 
+        const sw = isMobile ? 110 : 140;
+        const slotH = isMobile ? 28 : 32;
         const F4Slot = ({ team, region }) => {
+          const rc = regionColors[region];
           if (!team) return (
-            <div style={{ padding: "8px 10px", background: "#0a0e15", borderRadius: 5, border: "1px solid #1e2a40", minWidth: 120, textAlign: "center" }}>
-              <div style={{ fontSize: 8, color: regionColors[region], fontWeight: 600, letterSpacing: 1, marginBottom: 2 }}>{regionNames[region]}</div>
-              <div style={{ fontSize: 10, color: "#2a3a5a" }}>TBD</div>
+            <div style={{ width: sw, height: slotH, display: "flex", alignItems: "center", padding: "0 6px", background: "#0a0e15", border: "1px solid #1e2a40", borderRadius: 3, gap: 4 }}>
+              <span style={{ fontSize: 7, color: rc, fontWeight: 700 }}>{regionNames[region].slice(0,1)}</span>
+              <span style={{ fontSize: 9, color: "#2a3a5a" }}>TBD</span>
             </div>
           );
           const sc = SYNDICATE_COLORS[team.s] || "#5a6a8a";
           return (
-            <div style={{ padding: "8px 10px", background: "#0d1321", borderRadius: 5, border: `1px solid ${regionColors[region]}44`, minWidth: 120, opacity: team.alive ? 1 : 0.4 }}>
-              <div style={{ fontSize: 8, color: regionColors[region], fontWeight: 600, letterSpacing: 1, marginBottom: 2 }}>{regionNames[region]}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#5a6a8a" }}>{team.seed}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#e8e6e3", textDecoration: team.alive ? "none" : "line-through" }}>{team.t}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-                <span style={{ fontSize: 8, color: sc, fontWeight: 600 }}>{team.s}</span>
-                <span style={{ fontSize: 8, color: "#5a6a8a" }}>${team.p.toLocaleString()}</span>
-              </div>
+            <div style={{ width: sw, height: slotH, display: "flex", alignItems: "center", padding: "0 6px", background: "#0d1321", border: `1px solid ${rc}44`, borderRadius: 3, gap: 4, opacity: team.alive ? 1 : 0.4 }}>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#5a6a8a", flexShrink: 0 }}>{team.seed}</span>
+              <span style={{ fontSize: isMobile ? 8 : 9, fontWeight: 600, color: "#e8e6e3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textDecoration: team.alive ? "none" : "line-through" }}>{team.t}</span>
+              <span style={{ fontSize: 7, color: sc, fontWeight: 600, flexShrink: 0 }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
             </div>
           );
         };
 
+        const f4Winners = {};
+        f4Semis.forEach(semi => {
+          const a = f4Teams[semi.left], b = f4Teams[semi.right];
+          if (a && a.w >= 5) f4Winners[semi.left + semi.right] = a;
+          else if (b && b.w >= 5) f4Winners[semi.left + semi.right] = b;
+        });
+        const finalistLeft = f4Winners["ES"] || null;
+        const finalistRight = f4Winners["WMW"] || null;
+
+        const connW = isMobile ? 12 : 16;
+        const champW = isMobile ? 120 : 150;
+
         return (
           <div>
-            {/* Final Four */}
-            <div style={{ marginBottom: 16, padding: "12px 8px", background: "#080c12", borderRadius: 10, border: "1px solid #1e2a40" }}>
-              <div style={{ textAlign: "center", marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 3, color: "#e8e6e3" }}>FINAL FOUR</span>
+            {/* Final Four bracket */}
+            <div style={{ marginBottom: 14, padding: "10px 0", background: "#080c12", borderRadius: 10, border: "1px solid #1e2a40", overflow: "hidden" }}>
+              <div style={{ textAlign: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 3, color: "#5a6a8a" }}>FINAL FOUR</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                {f4Semis.map((semi, si) => (
-                  <div key={si} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <F4Slot team={f4Teams[semi.left]} region={semi.left} />
-                    <span style={{ fontSize: 10, color: "#3a4a6a", fontWeight: 700 }}>vs</span>
-                    <F4Slot team={f4Teams[semi.right]} region={semi.right} />
-                    {si === 0 && <div style={{ width: 1, height: 50, background: "#1e2a40", margin: "0 8px", flexShrink: 0 }} />}
-                  </div>
-                ))}
-              </div>
-              {champTeam && (
-                <div style={{ textAlign: "center", marginTop: 10, padding: "6px 12px", background: "#ffd70015", borderRadius: 6, display: "inline-block", width: "100%" }}>
-                  <div style={{ fontSize: 8, color: "#ffd700", fontWeight: 600, letterSpacing: 1, marginBottom: 2 }}>CHAMPION</div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: "#ffd700" }}>{champTeam.seed} {champTeam.t}</span>
-                  <span style={{ fontSize: 9, color: "#5a6a8a", marginLeft: 6 }}>{champTeam.s} · ${champTeam.p.toLocaleString()}</span>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {/* Left semifinal */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <F4Slot team={f4Teams["E"]} region="E" />
+                  <F4Slot team={f4Teams["S"]} region="S" />
                 </div>
-              )}
+                {/* Connector left */}
+                <div style={{ width: connW, height: slotH * 2 + 4, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  <div style={{ borderRight: "2px solid #1e2a40", borderTop: "2px solid #1e2a40", borderBottom: "2px solid #1e2a40", height: "60%", borderTopRightRadius: 3, borderBottomRightRadius: 3 }} />
+                </div>
+                {/* Championship */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, margin: "0 2px" }}>
+                  <div style={{ width: champW, height: slotH, display: "flex", alignItems: "center", justifyContent: "center", background: finalistLeft ? "#0d1321" : "#0a0e15", border: finalistLeft ? "1px solid #1e2a40" : "1px solid #1e2a40", borderRadius: 3, padding: "0 6px" }}>
+                    {finalistLeft ? (
+                      <span style={{ fontSize: isMobile ? 8 : 9, fontWeight: 600, color: "#e8e6e3", textDecoration: finalistLeft.alive ? "none" : "line-through", opacity: finalistLeft.alive ? 1 : 0.4 }}><span style={{ color: "#5a6a8a", fontWeight: 700, marginRight: 4 }}>{finalistLeft.seed}</span>{finalistLeft.t}</span>
+                    ) : <span style={{ fontSize: 9, color: "#2a3a5a" }}>TBD</span>}
+                  </div>
+                  {champTeam ? (
+                    <div style={{ padding: "4px 10px", background: "#ffd70012", border: "1px solid #ffd70033", borderRadius: 4, textAlign: "center" }}>
+                      <div style={{ fontSize: 7, color: "#ffd700", fontWeight: 700, letterSpacing: 1 }}>CHAMPION</div>
+                      <div style={{ fontSize: isMobile ? 9 : 11, fontWeight: 700, color: "#ffd700" }}>{champTeam.seed} {champTeam.t}</div>
+                    </div>
+                  ) : (
+                    <div style={{ padding: "3px 8px", borderRadius: 4 }}>
+                      <div style={{ fontSize: 7, color: "#3a4a6a", fontWeight: 600, letterSpacing: 1, textAlign: "center" }}>CHAMPIONSHIP</div>
+                    </div>
+                  )}
+                  <div style={{ width: champW, height: slotH, display: "flex", alignItems: "center", justifyContent: "center", background: finalistRight ? "#0d1321" : "#0a0e15", border: finalistRight ? "1px solid #1e2a40" : "1px solid #1e2a40", borderRadius: 3, padding: "0 6px" }}>
+                    {finalistRight ? (
+                      <span style={{ fontSize: isMobile ? 8 : 9, fontWeight: 600, color: "#e8e6e3", textDecoration: finalistRight.alive ? "none" : "line-through", opacity: finalistRight.alive ? 1 : 0.4 }}><span style={{ color: "#5a6a8a", fontWeight: 700, marginRight: 4 }}>{finalistRight.seed}</span>{finalistRight.t}</span>
+                    ) : <span style={{ fontSize: 9, color: "#2a3a5a" }}>TBD</span>}
+                  </div>
+                </div>
+                {/* Connector right */}
+                <div style={{ width: connW, height: slotH * 2 + 4, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  <div style={{ borderLeft: "2px solid #1e2a40", borderTop: "2px solid #1e2a40", borderBottom: "2px solid #1e2a40", height: "60%", borderTopLeftRadius: 3, borderBottomLeftRadius: 3 }} />
+                </div>
+                {/* Right semifinal */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <F4Slot team={f4Teams["W"]} region="W" />
+                  <F4Slot team={f4Teams["MW"]} region="MW" />
+                </div>
+              </div>
             </div>
 
             {isMobile ? (() => {
