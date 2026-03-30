@@ -2375,7 +2375,7 @@ function AuctionPrep() {
 // ═══════════════════════════════════════════
 
 function Live2026() {
-  const [liveView, setLiveView] = useState("bracket");
+  const [liveView, setLiveView] = useState("leaderboard");
   const [bracketMobileRegion, setBracketMobileRegion] = useState("E");
   const [nerdMode, setNerdMode] = useState(false);
   const [expandedSyn, setExpandedSyn] = useState(null);
@@ -2587,8 +2587,8 @@ function Live2026() {
   const cardBorder = "#1e2a40";
 
   const views = [
-    { key: "bracket", label: "Bracket" },
     { key: "leaderboard", label: "Leaderboard" },
+    { key: "bracket", label: "Bracket" },
     { key: "syndicates", label: "Syndicates" },
     { key: "teams", label: "All Teams" },
   ];
@@ -3052,8 +3052,65 @@ function Live2026() {
         const teamsBySD = {};
         liveTeams.forEach(t => { teamsBySD[t.sd] = t; });
 
+        const f4Teams = {};
+        regionOrder.forEach(rgn => {
+          f4Teams[rgn] = liveTeams.find(t => t.sd.startsWith(rgn + "-") && t.w >= 4) || null;
+        });
+        const champTeam = liveTeams.find(t => t.w >= 6) || null;
+        const f4Semis = [
+          { label: "Semifinal 1", left: "E", right: "S" },
+          { label: "Semifinal 2", left: "W", right: "MW" },
+        ];
+
+        const F4Slot = ({ team, region }) => {
+          if (!team) return (
+            <div style={{ padding: "8px 10px", background: "#0a0e15", borderRadius: 5, border: "1px solid #1e2a40", minWidth: 120, textAlign: "center" }}>
+              <div style={{ fontSize: 8, color: regionColors[region], fontWeight: 600, letterSpacing: 1, marginBottom: 2 }}>{regionNames[region]}</div>
+              <div style={{ fontSize: 10, color: "#2a3a5a" }}>TBD</div>
+            </div>
+          );
+          const sc = SYNDICATE_COLORS[team.s] || "#5a6a8a";
+          return (
+            <div style={{ padding: "8px 10px", background: "#0d1321", borderRadius: 5, border: `1px solid ${regionColors[region]}44`, minWidth: 120, opacity: team.alive ? 1 : 0.4 }}>
+              <div style={{ fontSize: 8, color: regionColors[region], fontWeight: 600, letterSpacing: 1, marginBottom: 2 }}>{regionNames[region]}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#5a6a8a" }}>{team.seed}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#e8e6e3", textDecoration: team.alive ? "none" : "line-through" }}>{team.t}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                <span style={{ fontSize: 8, color: sc, fontWeight: 600 }}>{team.s}</span>
+                <span style={{ fontSize: 8, color: "#5a6a8a" }}>${team.p.toLocaleString()}</span>
+              </div>
+            </div>
+          );
+        };
+
         return (
           <div>
+            {/* Final Four */}
+            <div style={{ marginBottom: 16, padding: "12px 8px", background: "#080c12", borderRadius: 10, border: "1px solid #1e2a40" }}>
+              <div style={{ textAlign: "center", marginBottom: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 3, color: "#e8e6e3" }}>FINAL FOUR</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {f4Semis.map((semi, si) => (
+                  <div key={si} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <F4Slot team={f4Teams[semi.left]} region={semi.left} />
+                    <span style={{ fontSize: 10, color: "#3a4a6a", fontWeight: 700 }}>vs</span>
+                    <F4Slot team={f4Teams[semi.right]} region={semi.right} />
+                    {si === 0 && <div style={{ width: 1, height: 50, background: "#1e2a40", margin: "0 8px", flexShrink: 0 }} />}
+                  </div>
+                ))}
+              </div>
+              {champTeam && (
+                <div style={{ textAlign: "center", marginTop: 10, padding: "6px 12px", background: "#ffd70015", borderRadius: 6, display: "inline-block", width: "100%" }}>
+                  <div style={{ fontSize: 8, color: "#ffd700", fontWeight: 600, letterSpacing: 1, marginBottom: 2 }}>CHAMPION</div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#ffd700" }}>{champTeam.seed} {champTeam.t}</span>
+                  <span style={{ fontSize: 9, color: "#5a6a8a", marginLeft: 6 }}>{champTeam.s} · ${champTeam.p.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+
             {isMobile ? (() => {
               const bracketH = "calc(100dvh - 100px)";
               const vColStyle = {
