@@ -2538,16 +2538,22 @@ function Live2026() {
         }
       }
 
-      // S16+ (only if team survived R32)
-      if (currentAlive && currentW >= 2) {
-        const s16Game = byRegionSeedRound[`${rgn}-${team.seed}-r3`];
-        if (s16Game) {
-          const isHome = s16Game.homeSeed === team.seed;
-          const won = isHome ? s16Game.homeWinner : s16Game.awayWinner;
-          if (s16Game.status === "post") {
-            if (won) { currentW = Math.max(currentW, 3); }
-            else { currentAlive = false; }
-          }
+      // S16, E8, F4, Championship (rounds 3-6)
+      const laterRounds = [
+        { round: 3, minW: 2, wVal: 3 },
+        { round: 4, minW: 3, wVal: 4 },
+        { round: 5, minW: 4, wVal: 5 },
+        { round: 6, minW: 5, wVal: 6 },
+      ];
+      for (const { round, minW, wVal } of laterRounds) {
+        if (!(currentAlive && currentW >= minW)) break;
+        const g = byRegionSeedRound[`${rgn}-${team.seed}-r${round}`];
+        if (!g) break;
+        if (g.status === "post") {
+          const isHome = g.homeSeed === team.seed;
+          const won = isHome ? g.homeWinner : g.awayWinner;
+          if (won) { currentW = Math.max(currentW, wVal); }
+          else { currentAlive = false; }
         }
       }
 
@@ -2626,8 +2632,8 @@ function Live2026() {
           const net = totalEarned - syn.spent;
           const roi = syn.spent > 0 ? net / syn.spent : 0;
           const settled = teams.reduce((sum, t) => {
-            const hasResult = t.gameStatus === "post" || t.r2Status === "post" || !t.alive;
-            if (!hasResult) return sum;
+            const hasAnyResult = t.gameStatus === "post" || t.w > 0 || !t.alive;
+            if (!hasAnyResult) return sum;
             let payout = 0;
             if (getR32Paid(t)) payout += incrPayouts[0];
             if (t.w >= 2) payout += incrPayouts[1];
@@ -2748,7 +2754,7 @@ function Live2026() {
                         return sum + (t.w > ri ? incrPayouts[ri] : 0);
                       }, 0);
                       const teamNet = teamEarned - t.p;
-                      const hasResult = t.gameStatus === "post" || t.r2Status === "post" || !t.alive;
+                      const hasResult = t.gameStatus === "post" || t.w > 0 || !t.alive;
                       const teamSettled = hasResult
                         ? ((r32Paid ? incrPayouts[0] : 0) + (t.w >= 2 ? incrPayouts[1] : 0) + [2,3,4,5].reduce((s, ri) => s + (t.w > ri ? incrPayouts[ri] : 0), 0)) - (!t.alive ? t.p : 0)
                         : null;
