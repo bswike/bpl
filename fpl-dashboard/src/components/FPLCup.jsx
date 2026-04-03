@@ -59,7 +59,7 @@ const GROUP_COLORS = {
 
 const FPLCup = () => {
   const { gameweekData, latestGameweek, fixtureData, projectionsLookup } = useData();
-  const [selectedTab, setSelectedTab] = useState('groups');
+  const [selectedTab, setSelectedTab] = useState('bracket');
   const [selectedGroup, setSelectedGroup] = useState('A');
   const [selectedManager, setSelectedManager] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
@@ -652,11 +652,52 @@ const FPLCup = () => {
       return `Winner ${matchId}`;
     };
 
+    // QF matchup definitions: [team1Seed, team2Seed]
+    const qfMatchups = {
+      1: [1, 'PI-B'],  // seed 1 vs PI-B winner
+      2: [4, 5],
+      3: [2, 'PI-A'],  // seed 2 vs PI-A winner
+      4: [3, 6],
+    };
+
+    const getQFTeams = (qfNum) => {
+      const m = qfMatchups[qfNum];
+      if (!m) return [null, null];
+      const t1 = typeof m[0] === 'number' ? getTeamBySeed(m[0]).name : getPlayInWinner(m[0]);
+      const t2 = typeof m[1] === 'number' ? getTeamBySeed(m[1]).name : getPlayInWinner(m[1]);
+      return [t1, t2];
+    };
+
     // Get QF winners (for SF matchups)
     const getQFWinner = (qfNum) => {
+      const [t1, t2] = getQFTeams(qfNum);
+      if (!t1 || !t2) return `Winner QF${qfNum}`;
       if (!qfComplete) return `Winner QF${qfNum}`;
-      // This would need actual QF matchup tracking - simplified for now
+      const s1 = getLiveScore(t1, 30);
+      const s2 = getLiveScore(t2, 30);
+      if (!s1 || !s2) return `Winner QF${qfNum}`;
+      if (s1.score > s2.score) return t1;
+      if (s2.score > s1.score) return t2;
       return `Winner QF${qfNum}`;
+    };
+
+    // SF matchup definitions
+    const sfMatchups = {
+      1: [1, 2],  // QF1 winner vs QF2 winner
+      2: [3, 4],  // QF3 winner vs QF4 winner
+    };
+
+    const getSFWinner = (sfNum) => {
+      const [q1, q2] = sfMatchups[sfNum];
+      const t1 = getQFWinner(q1);
+      const t2 = getQFWinner(q2);
+      if (!sfComplete || t1.startsWith('Winner') || t2.startsWith('Winner')) return `Winner SF${sfNum}`;
+      const s1 = getLiveScore(t1, 31);
+      const s2 = getLiveScore(t2, 31);
+      if (!s1 || !s2) return `Winner SF${sfNum}`;
+      if (s1.score > s2.score) return t1;
+      if (s2.score > s1.score) return t2;
+      return `Winner SF${sfNum}`;
     };
 
     return (
@@ -765,6 +806,7 @@ const FPLCup = () => {
                 matchGw={31}
                 onTeamClick={handleManagerClick}
               />
+
             </div>
 
             <ChevronRight className="text-gray-600 mt-24" size={24} />
@@ -779,8 +821,8 @@ const FPLCup = () => {
               </h4>
               <BracketMatch 
                 label="🏆 FINAL"
-                team1Name={sfComplete ? "Winner SF1" : "Winner SF1"}
-                team2Name={sfComplete ? "Winner SF2" : "Winner SF2"}
+                team1Name={getSFWinner(1)}
+                team2Name={getSFWinner(2)}
                 matchGw={32}
                 isFinal={true}
                 onTeamClick={handleManagerClick}
