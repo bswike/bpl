@@ -2467,11 +2467,14 @@ function Live2026() {
     const isATSSeed = s => s <= 2 || s >= 15;
 
     const byRegionSeedRound = {};
+    const bySeedRound = {};
     espnGames.forEach(g => {
-      if (!g.region || !g.homeSeed || !g.awaySeed) return;
+      if (!g.homeSeed || !g.awaySeed) return;
       [g.homeSeed, g.awaySeed].forEach(seed => {
-        const key = `${g.region}-${seed}-r${g.round}`;
-        byRegionSeedRound[key] = g;
+        if (g.region) {
+          byRegionSeedRound[`${g.region}-${seed}-r${g.round}`] = g;
+        }
+        bySeedRound[`${seed}-r${g.round}`] = g;
       });
     });
 
@@ -2547,10 +2550,16 @@ function Live2026() {
       ];
       for (const { round, minW, wVal } of laterRounds) {
         if (!(currentAlive && currentW >= minW)) break;
-        const g = byRegionSeedRound[`${rgn}-${team.seed}-r${round}`];
+        const g = byRegionSeedRound[`${rgn}-${team.seed}-r${round}`]
+          || bySeedRound[`${team.seed}-r${round}`];
         if (!g) break;
+        const rKey = `r${round}`;
+        const isHome = g.homeSeed === team.seed;
+        updates[`${rKey}Status`] = g.status;
+        updates[`${rKey}Score`] = isHome ? g.homeScore : g.awayScore;
+        updates[`${rKey}OppScore`] = isHome ? g.awayScore : g.homeScore;
+        updates[`${rKey}Detail`] = g.detail || "";
         if (g.status === "post") {
-          const isHome = g.homeSeed === team.seed;
           const won = isHome ? g.homeWinner : g.awayWinner;
           if (won) { currentW = Math.max(currentW, wVal); }
           else { currentAlive = false; }
@@ -2670,8 +2679,58 @@ function Live2026() {
           );
         };
 
+        const champion = liveTeams.find(t => t.w >= 6);
+        const champSyn = champion ? board.find(b => b.name === champion.s) : null;
+
         return (
           <div style={{ overflowX: "auto" }}>
+            {champSyn && (() => {
+              const champColor = SYNDICATE_COLORS[champSyn.name] || "#ffd700";
+              const champTeams = synData[champSyn.name].teams;
+              const teamsAlive = champTeams.filter(t => t.alive).length;
+              const bestTeam = champTeams.slice().sort((a, b) => b.w - a.w)[0];
+              const r32Hits = champTeams.filter(t => t.w >= 1 || (isATS(t.seed) && t.ats === true)).length;
+              return (
+                <div style={{
+                  marginBottom: 16, padding: "16px 14px", borderRadius: 10,
+                  background: `linear-gradient(135deg, #0d1321, ${champColor}15, #0d1321)`,
+                  border: `1px solid ${champColor}44`,
+                  textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>🏆</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#ffd700", letterSpacing: 2, marginBottom: 2 }}>CHAMPION</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: champColor, marginBottom: 6 }}>{champSyn.name}</div>
+                  <div style={{ fontSize: 11, color: "#e8e6e3", marginBottom: 8 }}>
+                    <span style={{ fontWeight: 700, color: "#ffd700" }}>{champion.seed} {champion.t}</span>
+                    <span style={{ color: "#5a6a8a" }}> wins the 2026 Hogan Calcutta</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap", fontSize: 10 }}>
+                    <div>
+                      <div style={{ color: "#5a6a8a", fontSize: 8, fontWeight: 600, letterSpacing: 1 }}>NET</div>
+                      <div style={{ color: champSyn.net >= 0 ? "#2ecc71" : "#e63946", fontWeight: 700, fontSize: 14 }}>
+                        {champSyn.net >= 0 ? "+" : ""}${champSyn.net.toLocaleString()}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ color: "#5a6a8a", fontSize: 8, fontWeight: 600, letterSpacing: 1 }}>SPENT</div>
+                      <div style={{ color: "#e8e6e3", fontWeight: 700, fontSize: 14 }}>${champSyn.spent.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: "#5a6a8a", fontSize: 8, fontWeight: 600, letterSpacing: 1 }}>EARNED</div>
+                      <div style={{ color: "#e8e6e3", fontWeight: 700, fontSize: 14 }}>${champSyn.totalEarned.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: "#5a6a8a", fontSize: 8, fontWeight: 600, letterSpacing: 1 }}>ROI</div>
+                      <div style={{ color: champSyn.roi >= 0 ? "#2ecc71" : "#e63946", fontWeight: 700, fontSize: 14 }}>{(champSyn.roi * 100).toFixed(0)}%</div>
+                    </div>
+                    <div>
+                      <div style={{ color: "#5a6a8a", fontSize: 8, fontWeight: 600, letterSpacing: 1 }}>R32 HITS</div>
+                      <div style={{ color: "#e8e6e3", fontWeight: 700, fontSize: 14 }}>{r32Hits}/{champSyn.totalTeams}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, minWidth: 520 }}>
               <thead>
                 <tr>
@@ -3062,9 +3121,9 @@ function Live2026() {
           { label: "Semifinal 2", left: "W", right: "MW" },
         ];
 
-        const sw = isMobile ? 110 : 140;
-        const slotH = isMobile ? 28 : 32;
-        const F4Slot = ({ team, region }) => {
+        const sw = isMobile ? 120 : 150;
+        const slotH = isMobile ? 30 : 34;
+        const F4Slot = ({ team, region, scoreKey }) => {
           const rc = regionColors[region];
           if (!team) return (
             <div style={{ width: sw, height: slotH, display: "flex", alignItems: "center", padding: "0 6px", background: "#0a0e15", border: "1px solid #1e2a40", borderRadius: 3, gap: 4 }}>
@@ -3073,11 +3132,18 @@ function Live2026() {
             </div>
           );
           const sc = SYNDICATE_COLORS[team.s] || "#5a6a8a";
+          const tScore = scoreKey ? team[`${scoreKey}Score`] : null;
+          const oScore = scoreKey ? team[`${scoreKey}OppScore`] : null;
+          const gStatus = scoreKey ? team[`${scoreKey}Status`] : null;
+          const showScore = gStatus && (gStatus === "in" || gStatus === "post") && tScore != null;
+          const isWinning = showScore && tScore > oScore;
+          const isLosing = showScore && tScore < oScore;
           return (
             <div style={{ width: sw, height: slotH, display: "flex", alignItems: "center", padding: "0 6px", background: "#0d1321", border: `1px solid ${rc}44`, borderRadius: 3, gap: 4, opacity: team.alive ? 1 : 0.4 }}>
               <span style={{ fontSize: 9, fontWeight: 700, color: "#5a6a8a", flexShrink: 0 }}>{team.seed}</span>
               <span style={{ fontSize: isMobile ? 8 : 9, fontWeight: 600, color: "#e8e6e3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, textDecoration: team.alive ? "none" : "line-through" }}>{team.t}</span>
-              <span style={{ fontSize: 7, color: sc, fontWeight: 600, flexShrink: 0 }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>
+              {showScore && <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 700, color: isWinning ? "#2ecc71" : isLosing ? "#e63946" : "#e8e6e3", flexShrink: 0 }}>{tScore}</span>}
+              {!showScore && <span style={{ fontSize: 7, color: sc, fontWeight: 600, flexShrink: 0 }}>{team.s.length > 5 ? team.s.slice(0,4) : team.s}</span>}
             </div>
           );
         };
@@ -3100,12 +3166,27 @@ function Live2026() {
             <div style={{ marginBottom: 14, padding: "10px 0", background: "#080c12", borderRadius: 10, border: "1px solid #1e2a40", overflow: "hidden" }}>
               <div style={{ textAlign: "center", marginBottom: 8 }}>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 3, color: "#5a6a8a" }}>FINAL FOUR</span>
+                {(() => {
+                  const anyLive = [f4Teams["E"], f4Teams["S"], f4Teams["W"], f4Teams["MW"]].some(t => t && (t.r5Status === "in" || t.r6Status === "in"));
+                  return anyLive ? (
+                    <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: "50%", background: "#2ecc71", marginLeft: 6, verticalAlign: "middle", animation: "live-pulse 1.5s ease-in-out infinite" }} />
+                  ) : null;
+                })()}
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {/* Left semifinal */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <F4Slot team={f4Teams["E"]} region="E" />
-                  <F4Slot team={f4Teams["S"]} region="S" />
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <F4Slot team={f4Teams["E"]} region="E" scoreKey="r5" />
+                  {(() => {
+                    const eT = f4Teams["E"], sT = f4Teams["S"];
+                    const detail = eT?.r5Detail || sT?.r5Detail;
+                    const status = eT?.r5Status || sT?.r5Status;
+                    if (!detail) return null;
+                    return (
+                      <div style={{ textAlign: "center", fontSize: 7, color: status === "in" ? "#2ecc71" : "#3a4a6a", fontWeight: 500 }}>{detail}</div>
+                    );
+                  })()}
+                  <F4Slot team={f4Teams["S"]} region="S" scoreKey="r5" />
                 </div>
                 {/* Connector left */}
                 <div style={{ width: connW, height: slotH * 2 + 4, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -3113,35 +3194,75 @@ function Live2026() {
                 </div>
                 {/* Championship */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, margin: "0 2px" }}>
-                  <div style={{ width: champW, height: slotH, display: "flex", alignItems: "center", justifyContent: "center", background: finalistLeft ? "#0d1321" : "#0a0e15", border: finalistLeft ? "1px solid #1e2a40" : "1px solid #1e2a40", borderRadius: 3, padding: "0 6px" }}>
-                    {finalistLeft ? (
-                      <span style={{ fontSize: isMobile ? 8 : 9, fontWeight: 600, color: "#e8e6e3", textDecoration: finalistLeft.alive ? "none" : "line-through", opacity: finalistLeft.alive ? 1 : 0.4 }}><span style={{ color: "#5a6a8a", fontWeight: 700, marginRight: 4 }}>{finalistLeft.seed}</span>{finalistLeft.t}</span>
-                    ) : <span style={{ fontSize: 9, color: "#2a3a5a" }}>TBD</span>}
-                  </div>
+                  {(() => {
+                    const fLeft = finalistLeft;
+                    const fLeftScore = fLeft && fLeft.r6Score != null ? fLeft.r6Score : null;
+                    const fLeftOpp = fLeft && fLeft.r6OppScore != null ? fLeft.r6OppScore : null;
+                    const fLeftStatus = fLeft ? fLeft.r6Status : null;
+                    const showLeft = fLeftStatus && (fLeftStatus === "in" || fLeftStatus === "post") && fLeftScore != null;
+                    const leftWin = showLeft && fLeftScore > fLeftOpp;
+                    const leftLose = showLeft && fLeftScore < fLeftOpp;
+                    return (
+                      <div style={{ width: champW, height: slotH, display: "flex", alignItems: "center", justifyContent: "space-between", background: fLeft ? "#0d1321" : "#0a0e15", border: fLeft ? (champTeam === fLeft ? "1px solid #ffd70055" : "1px solid #1e2a40") : "1px solid #1e2a40", borderRadius: 3, padding: "0 6px" }}>
+                        {fLeft ? (
+                          <>
+                            <span style={{ fontSize: isMobile ? 8 : 9, fontWeight: 600, color: "#e8e6e3", textDecoration: fLeft.alive ? "none" : "line-through", opacity: fLeft.alive ? 1 : 0.4 }}><span style={{ color: "#5a6a8a", fontWeight: 700, marginRight: 4 }}>{fLeft.seed}</span>{fLeft.t}</span>
+                            {showLeft && <span style={{ fontSize: isMobile ? 10 : 11, fontWeight: 700, color: leftWin ? "#2ecc71" : leftLose ? "#e63946" : "#e8e6e3" }}>{fLeftScore}</span>}
+                          </>
+                        ) : <span style={{ fontSize: 9, color: "#2a3a5a" }}>TBD</span>}
+                      </div>
+                    );
+                  })()}
                   {champTeam ? (
                     <div style={{ padding: "4px 10px", background: "#ffd70012", border: "1px solid #ffd70033", borderRadius: 4, textAlign: "center" }}>
                       <div style={{ fontSize: 7, color: "#ffd700", fontWeight: 700, letterSpacing: 1 }}>CHAMPION</div>
                       <div style={{ fontSize: isMobile ? 9 : 11, fontWeight: 700, color: "#ffd700" }}>{champTeam.seed} {champTeam.t}</div>
+                      <div style={{ fontSize: 7, color: SYNDICATE_COLORS[champTeam.s] || "#5a6a8a", fontWeight: 600 }}>{champTeam.s}</div>
                     </div>
                   ) : (
                     <div style={{ padding: "3px 8px", borderRadius: 4 }}>
-                      <div style={{ fontSize: 7, color: "#3a4a6a", fontWeight: 600, letterSpacing: 1, textAlign: "center" }}>CHAMPIONSHIP</div>
+                      <div style={{ fontSize: 7, color: "#3a4a6a", fontWeight: 600, letterSpacing: 1, textAlign: "center" }}>
+                        {finalistLeft && finalistRight ? "CHAMPIONSHIP" : "FINAL FOUR"}
+                      </div>
                     </div>
                   )}
-                  <div style={{ width: champW, height: slotH, display: "flex", alignItems: "center", justifyContent: "center", background: finalistRight ? "#0d1321" : "#0a0e15", border: finalistRight ? "1px solid #1e2a40" : "1px solid #1e2a40", borderRadius: 3, padding: "0 6px" }}>
-                    {finalistRight ? (
-                      <span style={{ fontSize: isMobile ? 8 : 9, fontWeight: 600, color: "#e8e6e3", textDecoration: finalistRight.alive ? "none" : "line-through", opacity: finalistRight.alive ? 1 : 0.4 }}><span style={{ color: "#5a6a8a", fontWeight: 700, marginRight: 4 }}>{finalistRight.seed}</span>{finalistRight.t}</span>
-                    ) : <span style={{ fontSize: 9, color: "#2a3a5a" }}>TBD</span>}
-                  </div>
+                  {(() => {
+                    const fRight = finalistRight;
+                    const fRightScore = fRight && fRight.r6Score != null ? fRight.r6Score : null;
+                    const fRightOpp = fRight && fRight.r6OppScore != null ? fRight.r6OppScore : null;
+                    const fRightStatus = fRight ? fRight.r6Status : null;
+                    const showRight = fRightStatus && (fRightStatus === "in" || fRightStatus === "post") && fRightScore != null;
+                    const rightWin = showRight && fRightScore > fRightOpp;
+                    const rightLose = showRight && fRightScore < fRightOpp;
+                    return (
+                      <div style={{ width: champW, height: slotH, display: "flex", alignItems: "center", justifyContent: "space-between", background: fRight ? "#0d1321" : "#0a0e15", border: fRight ? (champTeam === fRight ? "1px solid #ffd70055" : "1px solid #1e2a40") : "1px solid #1e2a40", borderRadius: 3, padding: "0 6px" }}>
+                        {fRight ? (
+                          <>
+                            <span style={{ fontSize: isMobile ? 8 : 9, fontWeight: 600, color: "#e8e6e3", textDecoration: fRight.alive ? "none" : "line-through", opacity: fRight.alive ? 1 : 0.4 }}><span style={{ color: "#5a6a8a", fontWeight: 700, marginRight: 4 }}>{fRight.seed}</span>{fRight.t}</span>
+                            {showRight && <span style={{ fontSize: isMobile ? 10 : 11, fontWeight: 700, color: rightWin ? "#2ecc71" : rightLose ? "#e63946" : "#e8e6e3" }}>{fRightScore}</span>}
+                          </>
+                        ) : <span style={{ fontSize: 9, color: "#2a3a5a" }}>TBD</span>}
+                      </div>
+                    );
+                  })()}
                 </div>
                 {/* Connector right */}
                 <div style={{ width: connW, height: slotH * 2 + 4, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                   <div style={{ borderLeft: "2px solid #1e2a40", borderTop: "2px solid #1e2a40", borderBottom: "2px solid #1e2a40", height: "60%", borderTopLeftRadius: 3, borderBottomLeftRadius: 3 }} />
                 </div>
                 {/* Right semifinal */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <F4Slot team={f4Teams["W"]} region="W" />
-                  <F4Slot team={f4Teams["MW"]} region="MW" />
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <F4Slot team={f4Teams["W"]} region="W" scoreKey="r5" />
+                  {(() => {
+                    const wT = f4Teams["W"], mwT = f4Teams["MW"];
+                    const detail = wT?.r5Detail || mwT?.r5Detail;
+                    const status = wT?.r5Status || mwT?.r5Status;
+                    if (!detail) return null;
+                    return (
+                      <div style={{ textAlign: "center", fontSize: 7, color: status === "in" ? "#2ecc71" : "#3a4a6a", fontWeight: 500 }}>{detail}</div>
+                    );
+                  })()}
+                  <F4Slot team={f4Teams["MW"]} region="MW" scoreKey="r5" />
                 </div>
               </div>
             </div>
@@ -3248,8 +3369,8 @@ function Live2026() {
 
               const getTeamGame = (t) => {
                 const rgn = t.sd.split("-")[0];
-                const wonR64 = t.gameStatus === "post" && t.alive;
-                if (!wonR64 && t.alive) {
+
+                if (!t.alive && t.w === 0 && t.gameStatus !== "post") {
                   const oppSeed = seedPairs[t.seed];
                   const opp = teamsBySD[`${rgn}-${oppSeed}`];
                   const seeds = [t.seed, oppSeed].sort((a, b) => a - b);
@@ -3263,9 +3384,48 @@ function Live2026() {
                   })();
                   return { opp, oppSeed, game, spreadStr, round: "R64" };
                 }
-                if (wonR64) {
+
+                if (t.w === 0 && t.gameStatus !== "post") {
+                  const oppSeed = seedPairs[t.seed];
+                  const opp = teamsBySD[`${rgn}-${oppSeed}`];
+                  const seeds = [t.seed, oppSeed].sort((a, b) => a - b);
+                  const game = R64_GAMES[`${rgn}-${seeds[0]}v${seeds[1]}`];
+                  const spreadStr = (() => {
+                    if (!game) return "—";
+                    const num = game.spread.match(/-?\d+\.?\d*/);
+                    if (!num) return game.spread;
+                    const pts = Math.abs(parseFloat(num[0]));
+                    return t.seed < oppSeed ? `-${pts}` : `+${pts}`;
+                  })();
+                  return { opp, oppSeed, game, spreadStr, round: "R64" };
+                }
+
+                const roundLabelsP = ["R64", "R32", "S16", "E8", "F4", "CHAMP"];
+                const currentRound = t.alive ? t.w : t.w;
+                const roundStr = roundLabelsP[currentRound] || "OUT";
+
+                if (!t.alive) {
+                  return { opp: null, oppSeed: null, game: null, spreadStr: "—", round: "OUT", lastRound: roundStr };
+                }
+
+                if (currentRound === 0) {
+                  const oppSeed = seedPairs[t.seed];
+                  const opp = teamsBySD[`${rgn}-${oppSeed}`];
+                  const seeds = [t.seed, oppSeed].sort((a, b) => a - b);
+                  const game = R64_GAMES[`${rgn}-${seeds[0]}v${seeds[1]}`];
+                  const spreadStr = (() => {
+                    if (!game) return "—";
+                    const num = game.spread.match(/-?\d+\.?\d*/);
+                    if (!num) return game.spread;
+                    const pts = Math.abs(parseFloat(num[0]));
+                    return t.seed < oppSeed ? `-${pts}` : `+${pts}`;
+                  })();
+                  return { opp, oppSeed, game, spreadStr, round: "R64" };
+                }
+
+                if (currentRound === 1) {
                   const possOppSeeds = r32OppSeeds[t.seed] || [];
-                  const r32Opp = possOppSeeds.map(s => teamsBySD[`${rgn}-${s}`]).find(o => o && o.alive);
+                  const r32Opp = possOppSeeds.map(s => teamsBySD[`${rgn}-${s}`]).find(o => o && o.w >= 1);
                   const r32Key = r32KeyMapP[t.seed];
                   const game = r32Key ? R32_GAMES[`${rgn}-${r32Key}`] : null;
                   const spreadStr = (() => {
@@ -3279,6 +3439,14 @@ function Live2026() {
                   })();
                   return { opp: r32Opp, oppSeed: r32Opp ? r32Opp.seed : null, game, spreadStr, round: "R32" };
                 }
+
+                // S16+ - find opponent from liveTeams data
+                if (currentRound >= 2) {
+                  const rKey = `r${currentRound + 1}`;
+                  const hasData = t[`${rKey}Status`] != null;
+                  return { opp: null, oppSeed: null, game: null, spreadStr: "—", round: roundStr, rKey: hasData ? rKey : null };
+                }
+
                 return { opp: null, oppSeed: null, game: null, spreadStr: "—", round: "OUT" };
               };
 
@@ -3327,40 +3495,67 @@ function Live2026() {
                                 {round === "R32" && <span style={{ fontSize: 6, color: "#4a9eff", marginLeft: 3, fontWeight: 400 }}>R32</span>}
                               </td>
                               <td style={{ padding: "5px 4px", color: isToday && t.gameStatus !== "post" ? "#ccc" : "#8a9aba", whiteSpace: "nowrap" }}>
-                                {opp && <span style={{ display: "block", fontSize: 6, color: SYNDICATE_COLORS[opp.s] || "#3a4a6a", lineHeight: 1.1 }}>{opp.s}</span>}
-                                <span>{oppSeed && <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{oppSeed}</span>}{opp ? opp.t : "TBD"}</span>
+                                {round === "S16" || round === "E8" || round === "F4" || round === "CHAMP" ? (
+                                  <span style={{ fontSize: 8, color: "#4a9eff" }}>{round}</span>
+                                ) : (
+                                  <>
+                                    {opp && <span style={{ display: "block", fontSize: 6, color: SYNDICATE_COLORS[opp.s] || "#3a4a6a", lineHeight: 1.1 }}>{opp.s}</span>}
+                                    <span>{oppSeed && <span style={{ color: "#3a4a6a", fontSize: 8, marginRight: 3 }}>{oppSeed}</span>}{opp ? opp.t : "TBD"}</span>
+                                  </>
+                                )}
                               </td>
                               <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9aba", fontSize: 9, whiteSpace: "nowrap" }}>{spreadStr}</td>
                               <td style={{ padding: "5px 4px", textAlign: "center", fontSize: 9, whiteSpace: "nowrap" }}>{(() => {
-                                if (round === "R32" && t.r2Status === "in") {
-                                  const liveColor = t.r2Score > t.r2OppScore ? "#22c55e" : t.r2Score < t.r2OppScore ? "#e63946" : "#e8e6e3";
-                                  return (
-                                  <span style={{ color: liveColor, fontWeight: 700 }}>
-                                    <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: liveColor, marginRight: 3, verticalAlign: "middle" }} />
-                                    {t.r2Score}-{t.r2OppScore}
-                                    {t.r2Detail && <span style={{ fontSize: 7, fontWeight: 400, color: "#5a6a8a", marginLeft: 4 }}>{t.r2Detail}</span>}
-                                  </span>
-                                );}
-                                if (round === "R32" && t.r2Status === "post") return (
-                                  <span style={{ color: t.alive ? "#e8e6e3" : "#e63946", fontWeight: 600 }}>
-                                    {t.r2Score}-{t.r2OppScore}
-                                  </span>
-                                );
-                                if (round === "R32") return <span style={{ color: "#3a4a6a" }}>{game ? game.time : "TBD"}</span>;
+                                const { round: rd, rKey } = getTeamGame(t);
+
+                                if (rd === "CHAMP" && t.w >= 6) return <span style={{ color: "#ffd700", fontWeight: 700 }}>CHAMP</span>;
+
+                                const scoreKeys = [
+                                  { status: "r6Status", score: "r6Score", opp: "r6OppScore", detail: "r6Detail" },
+                                  { status: "r5Status", score: "r5Score", opp: "r5OppScore", detail: "r5Detail" },
+                                  { status: "r4Status", score: "r4Score", opp: "r4OppScore", detail: "r4Detail" },
+                                  { status: "r3Status", score: "r3Score", opp: "r3OppScore", detail: "r3Detail" },
+                                  { status: "r2Status", score: "r2Score", opp: "r2OppScore", detail: "r2Detail" },
+                                ];
+
+                                for (const sk of scoreKeys) {
+                                  const st = t[sk.status];
+                                  if (!st) continue;
+                                  const sc = t[sk.score];
+                                  const oc = t[sk.opp];
+                                  const dt = t[sk.detail];
+                                  if (st === "in") {
+                                    const liveColor = sc > oc ? "#22c55e" : sc < oc ? "#e63946" : "#e8e6e3";
+                                    return (
+                                      <span style={{ color: liveColor, fontWeight: 700 }}>
+                                        <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: liveColor, marginRight: 3, verticalAlign: "middle" }} />
+                                        {sc}-{oc}
+                                        {dt && <span style={{ fontSize: 7, fontWeight: 400, color: "#5a6a8a", marginLeft: 4 }}>{dt}</span>}
+                                      </span>
+                                    );
+                                  }
+                                }
+
+                                if (rd === "OUT") {
+                                  for (const sk of [...scoreKeys, { status: "gameStatus", score: "liveScore", opp: "oppLiveScore", detail: "gameDetail" }].reverse()) {
+                                    const st = t[sk.status];
+                                    if (st === "post" && t[sk.score] != null) {
+                                      return <span style={{ color: "#e63946", fontWeight: 600 }}>{t[sk.score]}-{t[sk.opp]}</span>;
+                                    }
+                                  }
+                                  return <span style={{ color: "#e63946", fontWeight: 600 }}>L</span>;
+                                }
+
                                 if (t.gameStatus === "in") {
                                   const liveColor = t.liveScore > t.oppLiveScore ? "#22c55e" : t.liveScore < t.oppLiveScore ? "#e63946" : "#e8e6e3";
                                   return (
-                                  <span style={{ color: liveColor, fontWeight: 700 }}>
-                                    <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: liveColor, marginRight: 3, verticalAlign: "middle" }} />
-                                    {t.liveScore}-{t.oppLiveScore}
-                                    {t.gameDetail && <span style={{ fontSize: 7, fontWeight: 400, color: "#5a6a8a", marginLeft: 4 }}>{t.gameDetail}</span>}
-                                  </span>
-                                );}
-                                if (round === "OUT") return (
-                                  <span style={{ color: "#e63946", fontWeight: 600 }}>
-                                    {t.liveScore != null ? `${t.liveScore}-${t.oppLiveScore}` : "L"}
-                                  </span>
-                                );
+                                    <span style={{ color: liveColor, fontWeight: 700 }}>
+                                      <span className="live-dot" style={{ display: "inline-block", width: 4, height: 4, borderRadius: "50%", background: liveColor, marginRight: 3, verticalAlign: "middle" }} />
+                                      {t.liveScore}-{t.oppLiveScore}
+                                      {t.gameDetail && <span style={{ fontSize: 7, fontWeight: 400, color: "#5a6a8a", marginLeft: 4 }}>{t.gameDetail}</span>}
+                                    </span>
+                                  );
+                                }
                                 if (t.gameStatus === "post") return (
                                   <span style={{ color: t.alive || (t.ats === true) ? "#e8e6e3" : "#e63946", fontWeight: 600 }}>
                                     {t.liveScore}-{t.oppLiveScore}
