@@ -2468,8 +2468,10 @@ function Live2026() {
 
     const byRegionSeedRound = {};
     const bySeedRound = {};
+    const allGames = [];
     espnGames.forEach(g => {
       if (!g.homeSeed || !g.awaySeed) return;
+      allGames.push(g);
       [g.homeSeed, g.awaySeed].forEach(seed => {
         if (g.region) {
           byRegionSeedRound[`${g.region}-${seed}-r${g.round}`] = g;
@@ -2550,11 +2552,27 @@ function Live2026() {
       ];
       for (const { round, minW, wVal } of laterRounds) {
         if (!(currentAlive && currentW >= minW)) break;
-        const g = byRegionSeedRound[`${rgn}-${team.seed}-r${round}`]
-          || bySeedRound[`${team.seed}-r${round}`];
+        let g = byRegionSeedRound[`${rgn}-${team.seed}-r${round}`];
+        let isHome;
+        if (g) {
+          isHome = g.homeSeed === team.seed && g.region === rgn;
+          if (!isHome && g.homeSeed === team.seed) {
+            isHome = g.homeTeam.includes(team.t) || g.homeAbbr.toUpperCase().includes(team.t.slice(0,4).toUpperCase());
+          }
+        }
+        if (!g && round >= 5) {
+          g = allGames.find(gm => gm.round === round &&
+            (gm.homeTeam.includes(team.t) || gm.awayTeam.includes(team.t)));
+          if (g) isHome = g.homeTeam.includes(team.t);
+        }
+        if (!g) {
+          g = bySeedRound[`${team.seed}-r${round}`];
+          if (g) {
+            isHome = g.homeTeam.includes(team.t) || (!g.awayTeam.includes(team.t) && g.homeSeed === team.seed);
+          }
+        }
         if (!g) break;
         const rKey = `r${round}`;
-        const isHome = g.homeSeed === team.seed;
         updates[`${rKey}Status`] = g.status;
         updates[`${rKey}Score`] = isHome ? g.homeScore : g.awayScore;
         updates[`${rKey}OppScore`] = isHome ? g.awayScore : g.homeScore;
