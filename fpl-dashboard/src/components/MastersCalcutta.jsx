@@ -71,83 +71,85 @@ const TOP_FINISHES = [
 ];
 
 const ALL_TIME = [
-  { name: "Peter Berger", years: 6, spent: 1137, won: 2523, net: 1386 },
-  { name: "Scott Block", years: 3, spent: 338, won: 972, net: 634 },
+  { name: "Peter Berger", years: 7, spent: 1281, won: 2523, net: 1242 },
+  { name: "Steve Licata", years: 9, spent: 1477, won: 2372, net: 895 },
+  { name: "Scott Block", years: 4, spent: 393, won: 972, net: 579 },
+  { name: "Pat Fitzgerald", years: 3, spent: 186, won: 579, net: 393 },
   { name: "Adam Yeager", years: 1, spent: 79, won: 439, net: 360 },
-  { name: "Ryan Lee", years: 7, spent: 501, won: 797, net: 296 },
-  { name: "Alex Carroll", years: 3, spent: 95, won: 210, net: 115 },
-  { name: "Kyle Rajotte", years: 3, spent: 269, won: 335, net: 66 },
-  { name: "Brian Gibbons", years: 8, spent: 806, won: 907, net: 101 },
-  { name: "Joe Mangione", years: 8, spent: 1271, won: 1324, net: 53 },
-  { name: "Chase Cusack", years: 1, spent: 16, won: 0, net: -16 },
-  { name: "Michael Butta", years: 1, spent: 11, won: 0, net: -11 },
-  { name: "Michael Toomer", years: 1, spent: 52, won: 0, net: -52 },
-  { name: "Anthony Meek", years: 2, spent: 54, won: 0, net: -54 },
-  { name: "Brian Nickel", years: 3, spent: 93, won: 0, net: -93 },
-  { name: "Pat Fitzgerald", years: 3, spent: 186, won: 579, net: 394 },
+  { name: "Ryan Lee", years: 8, spent: 509, won: 797, net: 288 },
+  { name: "Alex Carroll", years: 4, spent: 95, won: 210, net: 115 },
   { name: "Steve Childres", years: 2, spent: 177, won: 250, net: 73 },
+  { name: "Kyle Rajotte", years: 4, spent: 269, won: 335, net: 66 },
+  { name: "Brian Gibbons", years: 9, spent: 859, won: 907, net: 48 },
+  { name: "Patrick Dugan", years: 1, spent: 0, won: 0, net: 0 },
+  { name: "Michael Butta", years: 1, spent: 11, won: 0, net: -11 },
+  { name: "Chase Cusack", years: 1, spent: 16, won: 0, net: -16 },
+  { name: "Taylor Smyth", years: 7, spent: 1197, won: 1164, net: -33 },
+  { name: "Michael Toomer", years: 1, spent: 52, won: 0, net: -52 },
+  { name: "Brian Nickel", years: 3, spent: 93, won: 0, net: -93 },
+  { name: "Anthony Meek", years: 3, spent: 101, won: 0, net: -101 },
+  { name: "Austin Stewart", years: 1, spent: 131, won: 0, net: -131 },
+  { name: "Nick Mangione", years: 6, spent: 613, won: 449, net: -164 },
   { name: "Bobby Reagan", years: 3, spent: 307, won: 101, net: -206 },
   { name: "Shane Griffith", years: 1, spent: 212, won: 0, net: -212 },
-  { name: "JP Fischer", years: 3, spent: 237, won: 0, net: -237 },
+  { name: "JP Fischer", years: 4, spent: 237, won: 0, net: -237 },
   { name: "Jimmy Tangires", years: 2, spent: 249, won: 0, net: -249 },
-  { name: "Joe Curran", years: 5, spent: 1255, won: 947, net: -308 },
-  { name: "Nick Mangione", years: 5, spent: 542, won: 449, net: -93 },
-  { name: "Erik Cobuzzi", years: 3, spent: 336, won: 0, net: -336 },
+  { name: "Erik Cobuzzi", years: 4, spent: 336, won: 0, net: -336 },
+  { name: "Joe Mangione", years: 9, spent: 1708, won: 1324, net: -384 },
   { name: "Brandon Call", years: 3, spent: 444, won: 0, net: -444 },
-  { name: "Taylor Smyth", years: 6, spent: 1135, won: 1164, net: 29 },
-  { name: "Brian Black", years: 5, spent: 1107, won: 502, net: -605 },
-  { name: "Steve Licata", years: 8, spent: 1390, won: 2372, net: 982 },
-  { name: "Michael Myers", years: 8, spent: 1739, won: 73, net: -1666 },
+  { name: "Joe Curran", years: 6, spent: 1452, won: 947, net: -505 },
+  { name: "Brian Black", years: 6, spent: 1197, won: 502, net: -695 },
+  { name: "Michael Myers", years: 9, spent: 2077, won: 73, net: -2004 },
 ].sort((a, b) => b.net - a.net);
 
 const GOLFERS_2026 = [
-  { name: "Scottie Scheffler", odds: "+500" },
-  { name: "Jon Rahm", odds: "+700" },
-  { name: "Rory McIlroy", odds: "+900" },
-  { name: "Bryson DeChambeau", odds: "+900" },
-  { name: "Xander Schauffele", odds: "16/1" },
-  { name: "Ludvig Åberg", odds: "16/1" },
-  { name: "Cameron Young", odds: "20/1" },
-  { name: "Matt Fitzpatrick", odds: "22/1" },
-  { name: "Tommy Fleetwood", odds: "22/1" },
-  { name: "Robert MacIntyre", odds: "30/1" },
-  { name: "Justin Rose", odds: "30/1" },
-  { name: "Collin Morikawa", odds: "33/1" },
-  { name: "Hideki Matsuyama", odds: "35/1" },
-  { name: "Patrick Reed", odds: "35/1" },
-  { name: "Min Woo Lee", odds: "35/1" },
-  { name: "Chris Gotterup", odds: "45/1" },
-  { name: "Sam Burns", odds: "45/1" },
-  { name: "Joaquin Niemann", odds: "45/1" },
-  { name: "Cameron Smith", odds: "50/1" },
-  { name: "Tony Finau", odds: "50/1" },
-  { name: "Jason Day", odds: "50/1" },
-  { name: "Russell Henley", odds: "55/1" },
-  { name: "Wyndham Clark", odds: "55/1" },
-  { name: "Dustin Johnson", odds: "55/1" },
-  { name: "Adam Scott", odds: "55/1" },
-  { name: "Sungjae Im", odds: "55/1" },
-  { name: "Patrick Cantlay", odds: "60/1" },
-  { name: "Brooks Koepka", odds: "60/1" },
-  { name: "Viktor Hovland", odds: "60/1" },
-  { name: "Jordan Spieth", odds: "60/1" },
-  { name: "Justin Thomas", odds: "60/1" },
-  { name: "Shane Lowry", odds: "60/1" },
-  { name: "Brian Harman", odds: "80/1" },
-  { name: "Tom Kim", odds: "80/1" },
-  { name: "Keegan Bradley", odds: "80/1" },
-  { name: "Si Woo Kim", odds: "80/1" },
-  { name: "Nick Dunlap", odds: "80/1" },
-  { name: "Tiger Woods", odds: "80/1" },
-  { name: "Phil Mickelson", odds: "100/1" },
-  { name: "Sergio Garcia", odds: "100/1" },
-  { name: "Maverick McNealy", odds: "100/1" },
-  { name: "Daniel Berger", odds: "100/1" },
-  { name: "The Field", odds: "—" },
+  { name: "Scottie Scheffler", odds: "+500", owner: "Joe Mangione", price: 205 },
+  { name: "Jon Rahm", odds: "+700", owner: "Michael Myers", price: 118 },
+  { name: "Rory McIlroy", odds: "+900", owner: "Joe Mangione", price: 110 },
+  { name: "Bryson DeChambeau", odds: "+900", owner: "Austin Stewart", price: 117 },
+  { name: "Xander Schauffele", odds: "16/1", owner: "Michael Myers", price: 90 },
+  { name: "Ludvig Aberg", odds: "16/1", owner: "Brian Black", price: 90 },
+  { name: "Cameron Young", odds: "20/1", owner: "Nick Mangione", price: 71 },
+  { name: "Matt Fitzpatrick", odds: "22/1", owner: "Joe Curran", price: 75 },
+  { name: "Tommy Fleetwood", odds: "22/1", owner: "Joe Mangione", price: 60 },
+  { name: "Robert MacIntyre", odds: "30/1", owner: "Scott Block", price: 55 },
+  { name: "Justin Rose", odds: "30/1", owner: "Steve Licata", price: 55 },
+  { name: "Collin Morikawa", odds: "33/1", owner: "Brian Gibbons", price: 35 },
+  { name: "Hideki Matsuyama", odds: "35/1", owner: "Michael Myers", price: 38 },
+  { name: "Patrick Reed", odds: "35/1", owner: "Joe Curran", price: 37 },
+  { name: "Min Woo Lee", odds: "35/1", owner: "Michael Myers", price: 29 },
+  { name: "Chris Gotterup", odds: "45/1", owner: "Taylor Smyth", price: 23 },
+  { name: "Jordan Spieth", odds: "45/1", owner: "Joe Mangione", price: 27 },
+  { name: "Brooks Koepka", odds: "45/1", owner: "Anthony Meek", price: 25 },
+  { name: "Si Woo Kim", odds: "50/1", owner: "Joe Curran", price: 20 },
+  { name: "Shane Lowry", odds: "55/1", owner: "Joe Mangione", price: 17 },
+  { name: "Russell Henley", odds: "55/1", owner: "Michael Myers", price: 19 },
+  { name: "Viktor Hovland", odds: "55/1", owner: "Peter Berger", price: 17 },
+  { name: "Akshay Bhatia", odds: "60/1", owner: "Joe Curran", price: 25 },
+  { name: "Adam Scott", odds: "65/1", owner: "Taylor Smyth", price: 23 },
+  { name: "Justin Thomas", odds: "65/1", owner: "Anthony Meek", price: 22 },
+  { name: "Nicolai Hojgaard", odds: "65/1", owner: "Steve Licata", price: 17 },
+  { name: "Sepp Straka", odds: "70/1", owner: "Brian Gibbons", price: 18 },
+  { name: "Jake Knapp", odds: "70/1", owner: "Joe Curran", price: 20 },
+  { name: "Tyrrell Hatton", odds: "70/1", owner: "Taylor Smyth", price: 16 },
+  { name: "JJ Spaun", odds: "70/1", owner: "Michael Myers", price: 16 },
+  { name: "Patrick Cantlay", odds: "70/1", owner: "Joe Mangione", price: 18 },
+  { name: "Jacob Bridgeman", odds: "70/1", owner: "Peter Berger", price: 18 },
+  { name: "Marco Penge", odds: "80/1", owner: "Michael Myers", price: 12 },
+  { name: "Jason Day", odds: "80/1", owner: "Austin Stewart", price: 14 },
+  { name: "Sungjae Im", odds: "100/1", owner: "Joe Curran", price: 13 },
+  { name: "Sam Burns", odds: "100/1", owner: "Ryan Lee", price: 8 },
+  { name: "Corey Conners", odds: "100/1", owner: "Michael Myers", price: 10 },
+  { name: "Harris English", odds: "100/1", owner: "Michael Myers", price: 6 },
+  { name: "Cam Smith", odds: "100/1", owner: "Steve Licata", price: 12 },
+  { name: "Gary Woodland", odds: "100/1", owner: "Joe Curran", price: 7 },
+  { name: "Maverick McNealy", odds: "100/1", owner: "Steve Licata", price: 3 },
+  { name: "Daniel Berger", odds: "100/1", owner: "Peter Berger", price: 9 },
+  { name: "The Field", odds: "—", owner: "Peter Berger", price: 100 },
 ];
 
 const PARTICIPANTS_2026 = [
-  "Alex Carroll", "Anthony Meek", "Brian Black", "Brian Gibbons", "Chase Cusack",
+  "Alex Carroll", "Anthony Meek", "Austin Stewart", "Brian Black", "Brian Gibbons",
   "Joe Curran", "Joe Mangione", "JP Fischer", "Michael Myers", "Nick Mangione",
   "Patrick Dugan", "Peter Berger", "Ryan Lee", "Scott Block", "Steve Licata",
   "Taylor Smyth", "Erik Cobuzzi", "Kyle Rajotte",
@@ -174,34 +176,40 @@ const AUCTION_DATA = {
   2023: [{g:"Scottie Scheffler",o:"Joe Curran",p:101},{g:"Rory McIlroy",o:"Steve Licata",p:80},{g:"Jon Rahm",o:"Brian Gibbons",p:72},{g:"Cameron Smith",o:"Joe Curran",p:60},{g:"Jordan Spieth",o:"Joe Mangione",p:57},{g:"Collin Morikawa",o:"Brandon Call",p:55},{g:"Patrick Cantlay",o:"Nick Mangione",p:52},{g:"Justin Thomas",o:"Brian Gibbons",p:52},{g:"Tony Finau",o:"Steve Licata",p:46},{g:"Xander Schauffele",o:"Taylor Smyth",p:45},{g:"The Field",o:"Kyle Rajotte",p:42},{g:"Cameron Young",o:"Taylor Smyth",p:41},{g:"Brooks Koepka",o:"Ryan Lee",p:41},{g:"Dustin Johnson",o:"Joe Curran",p:38},{g:"Max Homa",o:"Brian Gibbons",p:34},{g:"Sung Jae Im",o:"Michael Myers",p:31},{g:"Tommy Fleetwood",o:"Steve Licata",p:30},{g:"Matthew Fitzpatrick",o:"Joe Mangione",p:30},{g:"Viktor Hovland",o:"Scott Block",p:30},{g:"Will Zalatoris",o:"Ryan Lee",p:29},{g:"Sam Burns",o:"Taylor Smyth",p:28},{g:"Hideki Matsuyama",o:"Brian Gibbons",p:25},{g:"Corey Conners",o:"Michael Myers",p:24},{g:"Min Woo Lee",o:"Scott Block",p:22},{g:"Tiger Woods",o:"Steve Licata",p:22},{g:"Shane Lowry",o:"Ryan Lee",p:21},{g:"Patrick Reed",o:"Joe Curran",p:21},{g:"Bryson DeChambeau",o:"Michael Myers",p:18},{g:"Tom Kim",o:"Joe Mangione",p:18},{g:"Tyrrell Hatton",o:"Chase Cusack",p:16},{g:"Justin Rose",o:"Taylor Smyth",p:16},{g:"Joaquin Niemann",o:"Michael Myers",p:15},{g:"Si Woo Kim",o:"Ryan Lee",p:17},{g:"Adam Scott",o:"Brian Gibbons",p:14},{g:"Tom Hoge",o:"Brian Gibbons",p:14},{g:"Louis Oosthuizen",o:"Brian Gibbons",p:12},{g:"Mito Pereira",o:"Joe Mangione",p:12},{g:"Phil Mickelson",o:"Kyle Rajotte",p:10},{g:"Russell Henley",o:"Kyle Rajotte",p:8},{g:"Abraham Ancer",o:"Joe Curran",p:8},{g:"Keegan Bradley",o:"Nick Mangione",p:5},{g:"Sahith Theegala",o:"Ryan Lee",p:5},{g:"Keith Mitchell",o:"Steve Licata",p:4}],
   2024: [{g:"Scottie Scheffler",o:"Peter Berger",p:262},{g:"The Field",o:"Kyle Rajotte",p:162},{g:"Jon Rahm",o:"Nick Mangione",p:142},{g:"Xander Schauffele",o:"Taylor Smyth",p:135},{g:"Rory McIlroy",o:"Joe Curran",p:131},{g:"Jordan Spieth",o:"Joe Mangione",p:85},{g:"Hideki Matsuyama",o:"Peter Berger",p:84},{g:"Brooks Koepka",o:"Taylor Smyth",p:82},{g:"Joaquin Niemann",o:"Steve Licata",p:70},{g:"Will Zalatoris",o:"Erik Cobuzzi",p:61},{g:"Viktor Hovland",o:"Michael Myers",p:56},{g:"Wyndham Clark",o:"Joe Curran",p:50},{g:"Cam Smith",o:"Joe Curran",p:50},{g:"Ludvig Åberg",o:"Joe Curran",p:47},{g:"Bryson DeChambeau",o:"Brian Gibbons",p:46},{g:"Patrick Cantlay",o:"Kyle Rajotte",p:46},{g:"Dustin Johnson",o:"Michael Myers",p:46},{g:"Justin Thomas",o:"Peter Berger",p:43},{g:"Collin Morikawa",o:"Steve Licata",p:40},{g:"Tommy Fleetwood",o:"Nick Mangione",p:39},{g:"Tony Finau",o:"Brian Gibbons",p:37},{g:"Matthew Fitzpatrick",o:"Peter Berger",p:37},{g:"Cam Young",o:"Peter Berger",p:30},{g:"Sahith Theegala",o:"Ryan Lee",p:29},{g:"Shane Lowry",o:"Joe Curran",p:28},{g:"Max Homa",o:"Alex Carroll",p:26},{g:"Russell Henley",o:"Joe Curran",p:22},{g:"Tyrrell Hatton",o:"Peter Berger",p:22},{g:"Corey Conners",o:"Taylor Smyth",p:22},{g:"Jason Day",o:"Steve Licata",p:21},{g:"Brian Harman",o:"Erik Cobuzzi",p:19},{g:"Si Woo Kim",o:"Steve Licata",p:18},{g:"Tiger Woods",o:"Steve Licata",p:18},{g:"Patrick Reed",o:"Joe Curran",p:13},{g:"Byeong Hun An",o:"Peter Berger",p:12},{g:"Sungjae Im",o:"Ryan Lee",p:11},{g:"Sam Burns",o:"Taylor Smyth",p:10},{g:"Adam Scott",o:"Kyle Rajotte",p:10},{g:"Min Woo Lee",o:"Brian Gibbons",p:10},{g:"Akshay Bhatia",o:"Taylor Smyth",p:10},{g:"Denny McCarthy",o:"Peter Berger",p:10},{g:"Sergio Garcia",o:"Joe Curran",p:10}],
   2025: [{g:"Scottie Scheffler",o:"Peter Berger",p:220},{g:"Rory McIlroy",o:"Scott Block",p:170},{g:"Collin Morikawa",o:"Joe Curran",p:112},{g:"Jon Rahm",o:"Michael Myers",p:102},{g:"The Field",o:"Steve Licata",p:100},{g:"Ludvig Aberg",o:"Michael Myers",p:95},{g:"Bryson DeChambeau",o:"Scott Block",p:80},{g:"Xander Schauffele",o:"Taylor Smyth",p:75},{g:"Justin Thomas",o:"Nick Mangione",p:66},{g:"Jordan Spieth",o:"Brian Gibbons",p:64},{g:"Brooks Koepka",o:"Taylor Smyth",p:60},{g:"Viktor Hovland",o:"Erik Cobuzzi",p:56},{g:"Hideki Matsuyama",o:"Peter Berger",p:55},{g:"Joaquin Niemann",o:"Taylor Smyth",p:53},{g:"Shane Lowry",o:"Michael Myers",p:52},{g:"Min Woo Lee",o:"Peter Berger",p:50},{g:"Tommy Fleetwood",o:"Joe Curran",p:46},{g:"Patrick Cantlay",o:"JP Fischer",p:45},{g:"Will Zalatoris",o:"Joe Mangione",p:41},{g:"Russell Henley",o:"Joe Curran",p:41},{g:"Tyrrell Hatton",o:"Taylor Smyth",p:36},{g:"Cameron Smith",o:"Michael Myers",p:35},{g:"Akshay Bhatia",o:"Ryan Lee",p:35},{g:"Robert McIntyre",o:"Joe Curran",p:33},{g:"Corey Conners",o:"Joe Curran",p:31},{g:"Wyndham Clark",o:"Erik Cobuzzi",p:30},{g:"Tony Finau",o:"Michael Myers",p:29},{g:"Jason Day",o:"Erik Cobuzzi",p:25},{g:"Sepp Straka",o:"JP Fischer",p:25},{g:"Tom Kim",o:"Joe Mangione",p:19},{g:"Dustin Johnson",o:"Taylor Smyth",p:16},{g:"Sergio Garcia",o:"Steve Licata",p:15},{g:"Patrick Reed",o:"Joe Curran",p:15},{g:"Keegan Bradley",o:"JP Fischer",p:15},{g:"Sahith Theegala",o:"Michael Myers",p:15},{g:"Sungjae Im",o:"Ryan Lee",p:15},{g:"Justin Rose",o:"Peter Berger",p:13},{g:"Daniel Berger",o:"Peter Berger",p:11},{g:"Brian Harman",o:"Brian Gibbons",p:11},{g:"JJ Spaun",o:"Taylor Smyth",p:10},{g:"Matt Fitzpatrick",o:"Michael Myers",p:9},{g:"Adam Scott",o:"Kyle Rajotte",p:9},{g:"Sam Burns",o:"Michael Myers",p:7},{g:"Phil Mickelson",o:"Brian Gibbons",p:5}],
+  2026: [{g:"Scottie Scheffler",o:"Joe Mangione",p:205},{g:"Joe Curran",o:"Joe Curran",p:197},{g:"Jon Rahm",o:"Michael Myers",p:118},{g:"Bryson DeChambeau",o:"Austin Stewart",p:117},{g:"Rory McIlroy",o:"Joe Mangione",p:110},{g:"The Field",o:"Peter Berger",p:100},{g:"Xander Schauffele",o:"Michael Myers",p:90},{g:"Ludvig Aberg",o:"Brian Black",p:90},{g:"Matt Fitzpatrick",o:"Joe Curran",p:75},{g:"Cameron Young",o:"Nick Mangione",p:71},{g:"Tommy Fleetwood",o:"Joe Mangione",p:60},{g:"Robert MacIntyre",o:"Scott Block",p:55},{g:"Justin Rose",o:"Steve Licata",p:55},{g:"Hideki Matsuyama",o:"Michael Myers",p:38},{g:"Patrick Reed",o:"Joe Curran",p:37},{g:"Collin Morikawa",o:"Brian Gibbons",p:35},{g:"Min Woo Lee",o:"Michael Myers",p:29},{g:"Jordan Spieth",o:"Joe Mangione",p:27},{g:"Brooks Koepka",o:"Anthony Meek",p:25},{g:"Akshay Bhatia",o:"Joe Curran",p:25},{g:"Chris Gotterup",o:"Taylor Smyth",p:23},{g:"Adam Scott",o:"Taylor Smyth",p:23},{g:"Justin Thomas",o:"Anthony Meek",p:22},{g:"Si Woo Kim",o:"Joe Curran",p:20},{g:"Jake Knapp",o:"Joe Curran",p:20},{g:"Russell Henley",o:"Michael Myers",p:19},{g:"Sepp Straka",o:"Brian Gibbons",p:18},{g:"Patrick Cantlay",o:"Joe Mangione",p:18},{g:"Jacob Bridgeman",o:"Peter Berger",p:18},{g:"Shane Lowry",o:"Joe Mangione",p:17},{g:"Viktor Hovland",o:"Peter Berger",p:17},{g:"Nicolai Hojgaard",o:"Steve Licata",p:17},{g:"Tyrrell Hatton",o:"Taylor Smyth",p:16},{g:"JJ Spaun",o:"Michael Myers",p:16},{g:"Jason Day",o:"Austin Stewart",p:14},{g:"Sungjae Im",o:"Joe Curran",p:13},{g:"Marco Penge",o:"Michael Myers",p:12},{g:"Cam Smith",o:"Steve Licata",p:12},{g:"Corey Conners",o:"Michael Myers",p:10},{g:"Daniel Berger",o:"Peter Berger",p:9},{g:"Sam Burns",o:"Ryan Lee",p:8},{g:"Gary Woodland",o:"Joe Curran",p:7},{g:"Harris English",o:"Michael Myers",p:6},{g:"Maverick McNealy",o:"Steve Licata",p:3}],
 };
 
 const REPEAT_BUYS = [
-  { owner: "Joe Mangione", golfer: "Jordan Spieth", times: 6, years: [2017,2019,2021,2022,2023,2024], avgPrice: 96 },
+  { owner: "Joe Mangione", golfer: "Jordan Spieth", times: 8, years: [2017,2018,2019,2021,2022,2023,2024,2026], avgPrice: 97 },
+  { owner: "Michael Myers", golfer: "Jon Rahm", times: 4, years: [2019,2022,2025,2026], avgPrice: 91 },
   { owner: "Taylor Smyth", golfer: "Xander Schauffele", times: 4, years: [2019,2023,2024,2025], avgPrice: 71 },
   { owner: "Ryan Lee", golfer: "Brooks Koepka", times: 4, years: [2019,2021,2022,2023], avgPrice: 63 },
+  { owner: "Joe Curran", golfer: "Patrick Reed", times: 4, years: [2023,2024,2025,2026], avgPrice: 22 },
   { owner: "Peter Berger", golfer: "Hideki Matsuyama", times: 3, years: [2021,2024,2025], avgPrice: 56 },
   { owner: "Bobby Reagan", golfer: "Tommy Fleetwood", times: 3, years: [2017,2018,2019], avgPrice: 32 },
-  { owner: "Joe Curran", golfer: "Patrick Reed", times: 3, years: [2023,2024,2025], avgPrice: 16 },
-  { owner: "Peter Berger", golfer: "Scottie Scheffler", times: 2, years: [2024,2025], avgPrice: 241 },
   { owner: "Brian Gibbons", golfer: "Hideki Matsuyama", times: 3, years: [2018,2022,2023], avgPrice: 33 },
-  { owner: "Michael Myers", golfer: "Jon Rahm", times: 3, years: [2019,2022,2025], avgPrice: 82 },
-  { owner: "Steve Licata", golfer: "Adam Scott", times: 2, years: [2017,2018], avgPrice: 29 },
+  { owner: "Michael Myers", golfer: "Matthew Fitzpatrick", times: 3, years: [2017,2022,2025], avgPrice: 16 },
+  { owner: "Steve Licata", golfer: "Tony Finau", times: 3, years: [2019,2021,2023], avgPrice: 45 },
+  { owner: "Joe Curran", golfer: "Cameron Smith", times: 3, years: [2021,2023,2024], avgPrice: 50 },
+  { owner: "Peter Berger", golfer: "Tyrrell Hatton", times: 3, years: [2018,2021,2024], avgPrice: 19 },
+  { owner: "Ryan Lee", golfer: "Sungjae Im", times: 3, years: [2022,2024,2025], avgPrice: 14 },
   { owner: "Brian Black", golfer: "Justin Rose", times: 3, years: [2018,2019,2021], avgPrice: 104 },
-  { owner: "Joe Mangione", golfer: "Justin Thomas", times: 2, years: [2022,2021], avgPrice: 124 },
+  { owner: "Michael Myers", golfer: "Bryson DeChambeau", times: 3, years: [2019,2021,2023], avgPrice: 65 },
 ];
 
 const GOLFER_HISTORIES = [
-  { golfer: "Scottie Scheffler", data: [{y:2021,p:30},{y:2022,p:101},{y:2023,p:101},{y:2024,p:262},{y:2025,p:220}] },
-  { golfer: "Jon Rahm", data: [{y:2017,p:40},{y:2018,p:69},{y:2019,p:45},{y:2021,p:105},{y:2022,p:98},{y:2023,p:72},{y:2024,p:142},{y:2025,p:102}] },
-  { golfer: "Rory McIlroy", data: [{y:2017,p:91},{y:2018,p:135},{y:2019,p:90},{y:2021,p:80},{y:2022,p:55},{y:2023,p:80},{y:2024,p:131},{y:2025,p:170}] },
+  { golfer: "Scottie Scheffler", data: [{y:2021,p:30},{y:2022,p:101},{y:2023,p:101},{y:2024,p:262},{y:2025,p:220},{y:2026,p:205}] },
+  { golfer: "Jon Rahm", data: [{y:2017,p:40},{y:2018,p:69},{y:2019,p:45},{y:2021,p:105},{y:2022,p:98},{y:2023,p:72},{y:2024,p:142},{y:2025,p:102},{y:2026,p:118}] },
+  { golfer: "Rory McIlroy", data: [{y:2017,p:91},{y:2018,p:135},{y:2019,p:90},{y:2021,p:80},{y:2022,p:55},{y:2023,p:80},{y:2024,p:131},{y:2025,p:170},{y:2026,p:110}] },
   { golfer: "Tiger Woods", data: [{y:2018,p:208},{y:2019,p:76},{y:2022,p:26},{y:2023,p:22},{y:2024,p:18}] },
   { golfer: "Dustin Johnson", data: [{y:2017,p:135},{y:2018,p:140},{y:2019,p:85},{y:2021,p:155},{y:2022,p:97},{y:2023,p:38},{y:2024,p:46},{y:2025,p:16}] },
-  { golfer: "Jordan Spieth", data: [{y:2017,p:152},{y:2019,p:71},{y:2021,p:145},{y:2022,p:69},{y:2023,p:57},{y:2024,p:85},{y:2025,p:64}] },
-  { golfer: "Brooks Koepka", data: [{y:2017,p:18},{y:2019,p:77},{y:2021,p:61},{y:2022,p:72},{y:2023,p:41},{y:2024,p:82},{y:2025,p:60}] },
-  { golfer: "Xander Schauffele", data: [{y:2018,p:11},{y:2019,p:30},{y:2021,p:80},{y:2022,p:65},{y:2023,p:45},{y:2024,p:135},{y:2025,p:75}] },
-  { golfer: "Patrick Reed", data: [{y:2017,p:20},{y:2018,p:48},{y:2019,p:20},{y:2021,p:60},{y:2022,p:16},{y:2023,p:21},{y:2024,p:13},{y:2025,p:15}] },
-  { golfer: "Hideki Matsuyama", data: [{y:2017,p:45},{y:2018,p:50},{y:2019,p:40},{y:2021,p:29},{y:2022,p:25},{y:2023,p:25},{y:2024,p:84},{y:2025,p:55}] },
+  { golfer: "Jordan Spieth", data: [{y:2017,p:152},{y:2018,p:169},{y:2019,p:71},{y:2021,p:145},{y:2022,p:69},{y:2023,p:57},{y:2024,p:85},{y:2025,p:64},{y:2026,p:27}] },
+  { golfer: "Brooks Koepka", data: [{y:2017,p:18},{y:2019,p:77},{y:2021,p:61},{y:2022,p:72},{y:2023,p:41},{y:2024,p:82},{y:2025,p:60},{y:2026,p:25}] },
+  { golfer: "Xander Schauffele", data: [{y:2018,p:11},{y:2019,p:30},{y:2021,p:80},{y:2022,p:65},{y:2023,p:45},{y:2024,p:135},{y:2025,p:75},{y:2026,p:90}] },
+  { golfer: "Patrick Reed", data: [{y:2017,p:20},{y:2018,p:48},{y:2019,p:20},{y:2021,p:60},{y:2022,p:16},{y:2023,p:21},{y:2024,p:13},{y:2025,p:15},{y:2026,p:37}] },
+  { golfer: "Hideki Matsuyama", data: [{y:2017,p:45},{y:2018,p:50},{y:2019,p:40},{y:2021,p:29},{y:2022,p:25},{y:2023,p:25},{y:2024,p:84},{y:2025,p:55},{y:2026,p:38}] },
+  { golfer: "Tommy Fleetwood", data: [{y:2017,p:9},{y:2018,p:45},{y:2019,p:41},{y:2021,p:25},{y:2022,p:12},{y:2023,p:30},{y:2024,p:39},{y:2025,p:46},{y:2026,p:60}] },
+  { golfer: "Bryson DeChambeau", data: [{y:2018,p:30},{y:2019,p:38},{y:2021,p:138},{y:2022,p:19},{y:2023,p:18},{y:2024,p:46},{y:2025,p:80},{y:2026,p:117}] },
 ];
 
 const augustaGreen = "#006747";
@@ -236,14 +244,14 @@ export default function MastersCalcutta() {
   const funStats = [
     { label: "Biggest Single Win", value: "$1,042.65", sub: "Steve Licata · Patrick Reed · 2018", icon: "💰" },
     { label: "Best All-Time ROI", value: "+455%", sub: "Adam Yeager · 1 year, $79 spent", icon: "📈" },
-    { label: "Biggest Auction Spend (1 yr)", value: "$500", sub: "Peter Berger · 2024", icon: "🔥" },
+    { label: "Biggest Auction Spend (1 yr)", value: "$437", sub: "Joe Mangione · 2026", icon: "🔥" },
     { label: "Most Green Jackets Owned", value: "3", sub: "Steve Licata ('18, '22) & Peter Berger ('21, '24)", icon: "🧥" },
     { label: "Cheapest Champion", value: "$35", sub: "Patrick Reed for Steve Licata · 2018", icon: "🎯" },
     { label: "Most Expensive Champion", value: "$262", sub: "Scottie Scheffler for Peter Berger · 2024", icon: "💎" },
-    { label: "All-Time Money Pit", value: "-$1,666", sub: "Michael Myers · 8 years, $73 won", icon: "🕳️" },
-    { label: "Most Years Participated", value: "8", sub: "Brian Gibbons, Joe Mangione, Steve Licata, Michael Myers", icon: "🏌️" },
+    { label: "All-Time Money Pit", value: "-$2,004", sub: "Michael Myers · 9 years, $2,077 spent, $73 won", icon: "🕳️" },
+    { label: "Most Years Participated", value: "9", sub: "Brian Gibbons, Joe Mangione, Steve Licata, Michael Myers", icon: "🏌️" },
     { label: "Tiger Tax", value: "$76", sub: "Taylor Smyth bought Tiger at 14/1 in 2019 — worth every cent", icon: "🐯" },
-    { label: "Average Pot Size", value: "$1,755", sub: "Across 8 Masters auctions (2017-2025)", icon: "🏦" },
+    { label: "Average Pot Size", value: "$1,715", sub: "Across 9 Masters auctions (2017-2026)", icon: "🏦" },
   ];
 
   return (
@@ -723,21 +731,25 @@ export default function MastersCalcutta() {
               </div>
             </div>
 
-            {/* Golfer List */}
-            <div style={{ background: cardBg, borderRadius: 8, padding: 14, border: `1px solid ${borderColor}` }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#5a7a60", marginBottom: 6 }}>AUCTION BOARD ({GOLFERS_2026.length} lots)</div>
+            {/* Auction Results */}
+            <div style={{ background: cardBg, borderRadius: 8, padding: 14, border: `1px solid ${borderColor}`, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#5a7a60" }}>AUCTION RESULTS ({GOLFERS_2026.length} lots)</div>
+                <div style={{ fontSize: 10, color: gold, fontWeight: 700 }}>Pot: $1,720</div>
+              </div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${borderColor}` }}>
                     <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>#</th>
                     <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Golfer</th>
                     <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Odds</th>
-                    <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Masters History</th>
+                    <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Owner</th>
+                    <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Price</th>
                   </tr>
                 </thead>
                 <tbody>
                   {GOLFERS_2026.map((g, i) => {
-                    const prevWins = CHAMPIONS.filter(c => c.golfer === g.name);
+                    const prevWins = CHAMPIONS.filter(c => golferNameNorm(c.golfer) === golferNameNorm(g.name));
                     const tier = i < 4 ? gold : i < 10 ? "#c0c0c0" : i < 20 ? "#cd7f32" : "#5a7a60";
                     return (
                       <tr key={g.name} style={{ borderBottom: `1px solid ${borderColor}22` }}>
@@ -748,12 +760,50 @@ export default function MastersCalcutta() {
                           {prevWins.length > 0 && <span style={{ fontSize: 8, color: gold, marginLeft: 4 }}>🏆{prevWins.length > 1 ? `×${prevWins.length}` : ""}</span>}
                         </td>
                         <td style={{ padding: "5px 4px", textAlign: "right", color: augustaGreen, fontWeight: 600, fontSize: 9 }}>{g.odds}</td>
-                        <td style={{ padding: "5px 4px", textAlign: "right", fontSize: 8, color: "#5a7a60" }}>
-                          {prevWins.length > 0 ? prevWins.map(w => w.year).join(", ") : "—"}
-                        </td>
+                        <td style={{ padding: "5px 4px", color: "#8a9a90", fontSize: 9 }}>{g.owner}</td>
+                        <td style={{ padding: "5px 4px", textAlign: "right", color: "#e8e6e3", fontWeight: 600 }}>${g.price}</td>
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Spending by Participant */}
+            <div style={{ background: cardBg, borderRadius: 8, padding: 14, border: `1px solid ${borderColor}` }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#5a7a60", marginBottom: 6 }}>SPENDING BY PARTICIPANT</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${borderColor}` }}>
+                    <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Participant</th>
+                    <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Spent</th>
+                    <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Teams</th>
+                    <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>All-Time Net</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const spending = {};
+                    GOLFERS_2026.forEach(g => {
+                      if (!g.owner) return;
+                      if (!spending[g.owner]) spending[g.owner] = { spent: 0, teams: 0 };
+                      spending[g.owner].spent += g.price;
+                      spending[g.owner].teams += 1;
+                    });
+                    return Object.entries(spending).sort((a, b) => b[1].spent - a[1].spent).map(([name, d]) => {
+                      const allTimeP = ALL_TIME.find(p => p.name === name);
+                      return (
+                        <tr key={name} style={{ borderBottom: `1px solid ${borderColor}22` }}>
+                          <td style={{ padding: "5px 4px", color: "#e8e6e3", fontWeight: 500 }}>{name}</td>
+                          <td style={{ padding: "5px 4px", textAlign: "right", color: gold, fontWeight: 600 }}>${d.spent}</td>
+                          <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9a90" }}>{d.teams}</td>
+                          <td style={{ padding: "5px 4px", textAlign: "right", color: allTimeP ? (allTimeP.net >= 0 ? "#2ecc71" : "#e63946") : "#5a7a60", fontWeight: 600, fontSize: 9 }}>
+                            {allTimeP ? `${allTimeP.net >= 0 ? "+" : ""}$${allTimeP.net}` : "—"}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>
