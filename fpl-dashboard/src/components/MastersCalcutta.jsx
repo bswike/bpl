@@ -153,6 +153,103 @@ const PARTICIPANTS_2026 = [
   "Taylor Smyth", "Erik Cobuzzi", "Kyle Rajotte",
 ];
 
+const AUCTION_DATA = {
+  2017: [
+    {g:"Jordan Spieth",o:"Joe Mangione",p:152},{g:"Dustin Johnson",o:"Peter Berger",p:135},{g:"The Field",o:"Brian Black",p:165},
+    {g:"Rory McIlroy",o:"Pat Fitzgerald",p:91},{g:"Bobby Reagan",o:"Bobby Reagan",p:92},{g:"Peter Berger",o:"Peter Berger",p:86},
+    {g:"Jason Day",o:"Steve Licata",p:75},{g:"Phil Mickelson",o:"Michael Myers",p:42},{g:"Rickie Fowler",o:"Nick Mangione",p:46},
+    {g:"Hideki Matsuyama",o:"Steve Licata",p:45},{g:"Jon Rahm",o:"Pat Fitzgerald",p:40},{g:"Justin Rose",o:"Adam Yeager",p:37},
+    {g:"Sergio Garcia",o:"Joe Mangione",p:36},{g:"Justin Thomas",o:"Alex Carroll",p:35},{g:"Adam Scott",o:"Steve Licata",p:33},
+    {g:"Henrik Stenson",o:"Brian Black",p:35},{g:"Bubba Watson",o:"Brian Nickel",p:28},{g:"Brooks Koepka",o:"Nick Mangione",p:18},
+    {g:"Patrick Reed",o:"Brian Black",p:20},{g:"Paul Casey",o:"Brian Gibbons",p:21},{g:"Matt Kuchar",o:"Bobby Reagan",p:25},
+    {g:"Daniel Berger",o:"Adam Yeager",p:16},{g:"Tommy Fleetwood",o:"Bobby Reagan",p:9},
+  ],
+  2018: [
+    {g:"Tiger Woods",o:"Jimmy Tangires",p:208},{g:"Justin Thomas",o:"Steve Licata",p:183},{g:"Jordan Spieth",o:"Joe Mangione",p:169},
+    {g:"Dustin Johnson",o:"Shane Griffith",p:140},{g:"Rory McIlroy",o:"Brian Black",p:135},{g:"The Field",o:"Michael Myers",p:200},
+    {g:"Bubba Watson",o:"Nick Mangione",p:91},{g:"Justin Rose",o:"Brian Black",p:90},{g:"Rickie Fowler",o:"Pat Fitzgerald",p:80},
+    {g:"Paul Casey",o:"JP Fischer",p:81},{g:"Jon Rahm",o:"Brian Black",p:69},{g:"Jason Day",o:"Bobby Reagan",p:70},
+    {g:"Phil Mickelson",o:"Steve Childres",p:72},{g:"Sergio Garcia",o:"Michael Myers",p:35},{g:"Hideki Matsuyama",o:"Brian Gibbons",p:50},
+    {g:"Patrick Reed",o:"Steve Licata",p:48},{g:"Tommy Fleetwood",o:"Bobby Reagan",p:45},{g:"Adam Scott",o:"Steve Licata",p:25},
+  ],
+  2019: [
+    {g:"Rory McIlroy",o:"Erik Cobuzzi",p:90},{g:"Dustin Johnson",o:"Steve Childres",p:85},{g:"Justin Rose",o:"Brian Black",p:88},
+    {g:"Tiger Woods",o:"Taylor Smyth",p:76},{g:"Jordan Spieth",o:"Joe Mangione",p:71},{g:"Brooks Koepka",o:"Ryan Lee",p:77},
+    {g:"The Field",o:"Joe Mangione",p:95},{g:"Justin Thomas",o:"Michael Myers",p:82},{g:"Rickie Fowler",o:"Brian Gibbons",p:69},
+    {g:"Jon Rahm",o:"Michael Myers",p:45},{g:"Bryson DeChambeau",o:"Michael Myers",p:38},{g:"Tommy Fleetwood",o:"Bobby Reagan",p:41},
+    {g:"Xander Schauffele",o:"Taylor Smyth",p:30},{g:"Tony Finau",o:"Steve Licata",p:38},{g:"Patrick Reed",o:"Joe Mangione",p:20},
+    {g:"Hideki Matsuyama",o:"Bobby Reagan",p:40},{g:"Adam Scott",o:"Brian Black",p:30},{g:"Jason Day",o:"Brian Black",p:40},
+  ],
+  2021: [
+    {g:"Dustin Johnson",o:"Brian Black",p:155},{g:"Jordan Spieth",o:"Joe Mangione",p:145},{g:"Justin Thomas",o:"Michael Myers",p:140},
+    {g:"Bryson DeChambeau",o:"Michael Myers",p:138},{g:"Jon Rahm",o:"Joe Curran",p:105},{g:"The Field",o:"Brian Black",p:95},
+    {g:"Rory McIlroy",o:"Taylor Smyth",p:80},{g:"Patrick Cantlay",o:"Brandon Call",p:80},{g:"Xander Schauffele",o:"Steve Licata",p:80},
+    {g:"Collin Morikawa",o:"Taylor Smyth",p:80},{g:"Brooks Koepka",o:"Ryan Lee",p:61},{g:"Patrick Reed",o:"Brandon Call",p:60},
+    {g:"Tony Finau",o:"Steve Licata",p:52},{g:"Cameron Smith",o:"Joe Curran",p:40},{g:"Viktor Hovland",o:"Peter Berger",p:37},
+    {g:"Hideki Matsuyama",o:"Peter Berger",p:29},{g:"Scottie Scheffler",o:"Taylor Smyth",p:30},
+  ],
+  2022: [
+    {g:"Justin Thomas",o:"Joe Mangione",p:107},{g:"Scottie Scheffler",o:"Steve Licata",p:101},{g:"Jon Rahm",o:"Michael Myers",p:98},
+    {g:"Dustin Johnson",o:"Joe Curran",p:97},{g:"Cameron Smith",o:"Brian Gibbons",p:83},{g:"The Field",o:"Peter Berger",p:75},
+    {g:"Brooks Koepka",o:"Ryan Lee",p:72},{g:"Jordan Spieth",o:"Joe Mangione",p:69},{g:"Xander Schauffele",o:"Brandon Call",p:65},
+    {g:"Rory McIlroy",o:"Joe Mangione",p:55},{g:"Collin Morikawa",o:"Michael Myers",p:53},{g:"Patrick Cantlay",o:"Taylor Smyth",p:50},
+    {g:"Viktor Hovland",o:"Joe Curran",p:45},{g:"Will Zalatoris",o:"Joe Mangione",p:35},{g:"Tony Finau",o:"Joe Curran",p:30},
+    {g:"Tiger Woods",o:"Joe Mangione",p:26},{g:"Hideki Matsuyama",o:"Brian Gibbons",p:25},{g:"Shane Lowry",o:"Steve Licata",p:16},
+  ],
+  2023: [
+    {g:"Scottie Scheffler",o:"Joe Curran",p:101},{g:"Rory McIlroy",o:"Steve Licata",p:80},{g:"Jon Rahm",o:"Brian Gibbons",p:72},
+    {g:"Cameron Smith",o:"Joe Curran",p:60},{g:"Jordan Spieth",o:"Joe Mangione",p:57},{g:"Collin Morikawa",o:"Brandon Call",p:55},
+    {g:"Patrick Cantlay",o:"Nick Mangione",p:52},{g:"Justin Thomas",o:"Brian Gibbons",p:52},{g:"Tony Finau",o:"Steve Licata",p:46},
+    {g:"Xander Schauffele",o:"Taylor Smyth",p:45},{g:"The Field",o:"Kyle Rajotte",p:42},{g:"Brooks Koepka",o:"Ryan Lee",p:41},
+    {g:"Dustin Johnson",o:"Joe Curran",p:38},{g:"Max Homa",o:"Brian Gibbons",p:34},{g:"Hideki Matsuyama",o:"Brian Gibbons",p:25},
+    {g:"Patrick Reed",o:"Joe Curran",p:21},{g:"Shane Lowry",o:"Ryan Lee",p:21},{g:"Tommy Fleetwood",o:"Steve Licata",p:30},
+  ],
+  2024: [
+    {g:"Scottie Scheffler",o:"Peter Berger",p:262},{g:"The Field",o:"Kyle Rajotte",p:162},{g:"Jon Rahm",o:"Nick Mangione",p:142},
+    {g:"Xander Schauffele",o:"Taylor Smyth",p:135},{g:"Rory McIlroy",o:"Joe Curran",p:131},{g:"Jordan Spieth",o:"Joe Mangione",p:85},
+    {g:"Hideki Matsuyama",o:"Peter Berger",p:84},{g:"Brooks Koepka",o:"Taylor Smyth",p:82},{g:"Joaquin Niemann",o:"Steve Licata",p:70},
+    {g:"Will Zalatoris",o:"Erik Cobuzzi",p:61},{g:"Viktor Hovland",o:"Michael Myers",p:56},{g:"Wyndham Clark",o:"Joe Curran",p:50},
+    {g:"Ludvig Åberg",o:"Joe Curran",p:47},{g:"Bryson DeChambeau",o:"Brian Gibbons",p:46},{g:"Dustin Johnson",o:"Michael Myers",p:46},
+    {g:"Tommy Fleetwood",o:"Nick Mangione",p:39},{g:"Patrick Reed",o:"Joe Curran",p:13},{g:"Max Homa",o:"Alex Carroll",p:26},
+  ],
+  2025: [
+    {g:"Scottie Scheffler",o:"Peter Berger",p:220},{g:"Rory McIlroy",o:"Scott Block",p:170},{g:"Collin Morikawa",o:"Joe Curran",p:112},
+    {g:"Jon Rahm",o:"Michael Myers",p:102},{g:"The Field",o:"Steve Licata",p:100},{g:"Ludvig Åberg",o:"Michael Myers",p:95},
+    {g:"Bryson DeChambeau",o:"Scott Block",p:80},{g:"Xander Schauffele",o:"Taylor Smyth",p:75},{g:"Justin Thomas",o:"Nick Mangione",p:66},
+    {g:"Jordan Spieth",o:"Brian Gibbons",p:64},{g:"Brooks Koepka",o:"Taylor Smyth",p:60},{g:"Viktor Hovland",o:"Erik Cobuzzi",p:56},
+    {g:"Hideki Matsuyama",o:"Peter Berger",p:55},{g:"Joaquin Niemann",o:"Taylor Smyth",p:53},{g:"Shane Lowry",o:"Michael Myers",p:52},
+    {g:"Tommy Fleetwood",o:"Joe Curran",p:46},{g:"Patrick Reed",o:"Joe Curran",p:15},{g:"Justin Rose",o:"Peter Berger",p:13},
+  ],
+};
+
+const REPEAT_BUYS = [
+  { owner: "Joe Mangione", golfer: "Jordan Spieth", times: 6, years: [2017,2019,2021,2022,2023,2024], avgPrice: 96 },
+  { owner: "Taylor Smyth", golfer: "Xander Schauffele", times: 4, years: [2019,2023,2024,2025], avgPrice: 71 },
+  { owner: "Ryan Lee", golfer: "Brooks Koepka", times: 4, years: [2019,2021,2022,2023], avgPrice: 63 },
+  { owner: "Peter Berger", golfer: "Hideki Matsuyama", times: 3, years: [2021,2024,2025], avgPrice: 56 },
+  { owner: "Bobby Reagan", golfer: "Tommy Fleetwood", times: 3, years: [2017,2018,2019], avgPrice: 32 },
+  { owner: "Joe Curran", golfer: "Patrick Reed", times: 3, years: [2023,2024,2025], avgPrice: 16 },
+  { owner: "Peter Berger", golfer: "Scottie Scheffler", times: 2, years: [2024,2025], avgPrice: 241 },
+  { owner: "Brian Gibbons", golfer: "Hideki Matsuyama", times: 3, years: [2018,2022,2023], avgPrice: 33 },
+  { owner: "Michael Myers", golfer: "Jon Rahm", times: 3, years: [2019,2022,2025], avgPrice: 82 },
+  { owner: "Steve Licata", golfer: "Adam Scott", times: 2, years: [2017,2018], avgPrice: 29 },
+  { owner: "Brian Black", golfer: "Justin Rose", times: 3, years: [2018,2019,2021], avgPrice: 104 },
+  { owner: "Joe Mangione", golfer: "Justin Thomas", times: 2, years: [2022,2021], avgPrice: 124 },
+];
+
+const GOLFER_HISTORIES = [
+  { golfer: "Scottie Scheffler", data: [{y:2021,p:30},{y:2022,p:101},{y:2023,p:101},{y:2024,p:262},{y:2025,p:220}] },
+  { golfer: "Jon Rahm", data: [{y:2017,p:40},{y:2018,p:69},{y:2019,p:45},{y:2021,p:105},{y:2022,p:98},{y:2023,p:72},{y:2024,p:142},{y:2025,p:102}] },
+  { golfer: "Rory McIlroy", data: [{y:2017,p:91},{y:2018,p:135},{y:2019,p:90},{y:2021,p:80},{y:2022,p:55},{y:2023,p:80},{y:2024,p:131},{y:2025,p:170}] },
+  { golfer: "Tiger Woods", data: [{y:2018,p:208},{y:2019,p:76},{y:2022,p:26},{y:2023,p:22},{y:2024,p:18}] },
+  { golfer: "Dustin Johnson", data: [{y:2017,p:135},{y:2018,p:140},{y:2019,p:85},{y:2021,p:155},{y:2022,p:97},{y:2023,p:38},{y:2024,p:46},{y:2025,p:16}] },
+  { golfer: "Jordan Spieth", data: [{y:2017,p:152},{y:2019,p:71},{y:2021,p:145},{y:2022,p:69},{y:2023,p:57},{y:2024,p:85},{y:2025,p:64}] },
+  { golfer: "Brooks Koepka", data: [{y:2017,p:18},{y:2019,p:77},{y:2021,p:61},{y:2022,p:72},{y:2023,p:41},{y:2024,p:82},{y:2025,p:60}] },
+  { golfer: "Xander Schauffele", data: [{y:2018,p:11},{y:2019,p:30},{y:2021,p:80},{y:2022,p:65},{y:2023,p:45},{y:2024,p:135},{y:2025,p:75}] },
+  { golfer: "Patrick Reed", data: [{y:2017,p:20},{y:2018,p:48},{y:2019,p:20},{y:2021,p:60},{y:2022,p:16},{y:2023,p:21},{y:2024,p:13},{y:2025,p:15}] },
+  { golfer: "Hideki Matsuyama", data: [{y:2017,p:45},{y:2018,p:50},{y:2019,p:40},{y:2021,p:29},{y:2022,p:25},{y:2023,p:25},{y:2024,p:84},{y:2025,p:55}] },
+];
+
 const augustaGreen = "#006747";
 const gold = "#ffd700";
 const darkBg = "#0a1208";
@@ -169,9 +266,12 @@ export default function MastersCalcutta() {
     return [...ALL_TIME].sort((a, b) => lbSort.dir === "desc" ? b[k] - a[k] : a[k] - b[k]);
   }, [lbSort]);
 
+  const [selectedGolfer, setSelectedGolfer] = useState(null);
+
   const tabs = [
     { key: "home", label: "Home" },
     { key: "results", label: "Results" },
+    { key: "strategies", label: "Strategies" },
     { key: "leaderboard", label: "All-Time" },
     { key: "preview", label: "2026" },
   ];
@@ -322,6 +422,7 @@ export default function MastersCalcutta() {
             {TOP_FINISHES.slice().reverse().map(yr => {
               const champ = CHAMPIONS.find(c => c.year === yr.year);
               const isOpen = selectedYear === yr.year;
+              const auction = AUCTION_DATA[yr.year] || [];
               return (
                 <div key={yr.year} style={{ marginBottom: 8 }}>
                   <div
@@ -345,28 +446,54 @@ export default function MastersCalcutta() {
                   </div>
                   {isOpen && (
                     <div style={{ background: "#0d1a10", borderRadius: "0 0 8px 8px", padding: "8px 12px", border: `1px solid ${borderColor}`, borderTop: "none" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                      {/* Top 5 finishers */}
+                      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, color: "#5a7a60", marginBottom: 4 }}>TOP FINISHERS</div>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, marginBottom: 10 }}>
                         <thead>
                           <tr style={{ borderBottom: `1px solid ${borderColor}` }}>
                             <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Finish</th>
                             <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Golfer</th>
                             <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Owner</th>
-                            <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Payout</th>
+                            <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Paid</th>
+                            <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Won</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {yr.results.map((r, i) => (
-                            <tr key={i} style={{ borderBottom: `1px solid ${borderColor}22` }}>
-                              <td style={{ padding: "5px 4px", fontWeight: 700, color: r.pos === "1st" ? gold : "#e8e6e3", fontSize: r.pos === "1st" ? 11 : 10 }}>
-                                {r.pos === "1st" ? "🏆 " : ""}{r.pos}
-                              </td>
-                              <td style={{ padding: "5px 4px", color: "#e8e6e3", fontWeight: r.pos === "1st" ? 700 : 400 }}>{r.golfer}</td>
-                              <td style={{ padding: "5px 4px", color: augustaGreen, fontSize: 9 }}>{r.owner}</td>
-                              <td style={{ padding: "5px 4px", textAlign: "right", color: "#2ecc71", fontWeight: 600 }}>${r.payout.toFixed(0)}</td>
-                            </tr>
-                          ))}
+                          {yr.results.map((r, i) => {
+                            const auc = auction.find(a => a.g === r.golfer || r.golfer.startsWith(a.g));
+                            return (
+                              <tr key={i} style={{ borderBottom: `1px solid ${borderColor}22` }}>
+                                <td style={{ padding: "5px 4px", fontWeight: 700, color: r.pos === "1st" ? gold : "#e8e6e3", fontSize: r.pos === "1st" ? 11 : 10 }}>
+                                  {r.pos === "1st" ? "🏆 " : ""}{r.pos}
+                                </td>
+                                <td style={{ padding: "5px 4px", color: "#e8e6e3", fontWeight: r.pos === "1st" ? 700 : 400 }}>{r.golfer}</td>
+                                <td style={{ padding: "5px 4px", color: augustaGreen, fontSize: 9 }}>{r.owner}</td>
+                                <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9a90", fontSize: 9 }}>{auc ? `$${auc.p}` : "—"}</td>
+                                <td style={{ padding: "5px 4px", textAlign: "right", color: "#2ecc71", fontWeight: 600 }}>${r.payout.toFixed(0)}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
+                      {/* Full auction */}
+                      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, color: "#5a7a60", marginBottom: 4 }}>FULL AUCTION ({auction.length} lots)</div>
+                      <div style={{ maxHeight: 200, overflowY: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 9 }}>
+                          <tbody>
+                            {auction.sort((a, b) => b.p - a.p).map((a, i) => {
+                              const isFinisher = yr.results.some(r => r.golfer === a.g || a.g.startsWith(r.golfer.substring(0, 10)));
+                              return (
+                                <tr key={i} style={{ borderBottom: `1px solid ${borderColor}11`, background: isFinisher ? `${augustaGreen}10` : "transparent" }}>
+                                  <td style={{ padding: "3px 4px", color: "#6a8a70", width: 16, fontSize: 8 }}>{i + 1}</td>
+                                  <td style={{ padding: "3px 4px", color: isFinisher ? "#e8e6e3" : "#8a9a90", fontWeight: isFinisher ? 600 : 400 }}>{a.g}</td>
+                                  <td style={{ padding: "3px 4px", color: "#5a7a60", fontSize: 8 }}>{a.o}</td>
+                                  <td style={{ padding: "3px 4px", textAlign: "right", color: "#8a9a90", fontWeight: 600 }}>${a.p}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                       <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 8, color: "#4a6a50", justifyContent: "center" }}>
                         <span>Pot: ${champ.pot.toLocaleString()}</span>
                         <span>Golfers: {champ.field}</span>
@@ -377,6 +504,141 @@ export default function MastersCalcutta() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* ─── STRATEGIES TAB ─── */}
+        {tab === "strategies" && (
+          <div>
+            {/* Loyalty Plays */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2, color: gold, marginBottom: 4, textAlign: "center" }}>LOYALTY PLAYS</div>
+              <div style={{ fontSize: 9, color: "#5a7a60", textAlign: "center", marginBottom: 12 }}>When you find your guy, you stick with him</div>
+              {REPEAT_BUYS.map((rb, i) => (
+                <div key={i} style={{
+                  background: cardBg, borderRadius: 8, padding: "10px 12px", marginBottom: 6,
+                  border: `1px solid ${borderColor}`, display: "flex", alignItems: "center", gap: 10,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: "50%",
+                    background: rb.times >= 5 ? `${gold}22` : rb.times >= 4 ? `${augustaGreen}22` : "#1a2a1d",
+                    border: `1px solid ${rb.times >= 5 ? gold + "44" : borderColor}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 14, fontWeight: 800, color: rb.times >= 5 ? gold : "#6a8a70",
+                  }}>{rb.times}x</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#e8e6e3" }}>
+                      <span style={{ color: augustaGreen }}>{rb.owner}</span> → {rb.golfer}
+                    </div>
+                    <div style={{ fontSize: 8, color: "#5a7a60", marginTop: 1 }}>
+                      {rb.years.join(", ")} · avg ${rb.avgPrice}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 2 }}>
+                    {rb.years.map(y => (
+                      <div key={y} style={{ width: 6, height: 6, borderRadius: "50%", background: augustaGreen }} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Golfer Price History */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: "#5a7a60", marginBottom: 8 }}>GOLFER PRICE TRACKER</div>
+              <div style={{ fontSize: 9, color: "#4a6a50", marginBottom: 8 }}>Tap a golfer to see their auction price history</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
+                {GOLFER_HISTORIES.map(gh => (
+                  <button key={gh.golfer} onClick={() => setSelectedGolfer(selectedGolfer === gh.golfer ? null : gh.golfer)} style={{
+                    background: selectedGolfer === gh.golfer ? augustaGreen : "#1a2a1d",
+                    border: `1px solid ${selectedGolfer === gh.golfer ? augustaGreen : borderColor}`,
+                    borderRadius: 4, padding: "3px 8px", fontSize: 9, cursor: "pointer", fontFamily: "inherit",
+                    color: selectedGolfer === gh.golfer ? "#fff" : "#8a9a90",
+                  }}>{gh.golfer}</button>
+                ))}
+              </div>
+              {selectedGolfer && (() => {
+                const gh = GOLFER_HISTORIES.find(g => g.golfer === selectedGolfer);
+                if (!gh) return null;
+                const maxP = Math.max(...gh.data.map(d => d.p));
+                const allYears = [2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025];
+                return (
+                  <div style={{ background: cardBg, borderRadius: 8, padding: 14, border: `1px solid ${borderColor}` }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#e8e6e3", marginBottom: 8 }}>{gh.golfer}</div>
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 80, marginBottom: 4 }}>
+                      {allYears.map(y => {
+                        const entry = gh.data.find(d => d.y === y);
+                        return (
+                          <div key={y} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                            {entry ? (
+                              <>
+                                <div style={{ fontSize: 8, color: "#8a9a90", fontWeight: 600 }}>${entry.p}</div>
+                                <div style={{
+                                  width: "100%", maxWidth: 28,
+                                  height: `${(entry.p / maxP) * 55}px`,
+                                  background: `linear-gradient(to top, ${augustaGreen}, ${augustaGreen}88)`,
+                                  borderRadius: "2px 2px 0 0", minHeight: 4,
+                                }} />
+                              </>
+                            ) : (
+                              <div style={{ width: "100%", maxWidth: 28, height: 1, background: `${borderColor}44` }} />
+                            )}
+                            <div style={{ fontSize: 7, color: "#4a6a50" }}>'{String(y).slice(2)}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ display: "flex", gap: 12, fontSize: 8, color: "#5a7a60", justifyContent: "center", marginTop: 4 }}>
+                      <span>Avg: ${Math.round(gh.data.reduce((s, d) => s + d.p, 0) / gh.data.length)}</span>
+                      <span>High: ${maxP}</span>
+                      <span>Low: ${Math.min(...gh.data.map(d => d.p))}</span>
+                      <span>{gh.data.length} auctions</span>
+                    </div>
+                    {/* Who bought them each year */}
+                    <div style={{ marginTop: 8, borderTop: `1px solid ${borderColor}`, paddingTop: 6 }}>
+                      {gh.data.map(d => {
+                        const auction = AUCTION_DATA[d.y];
+                        const entry = auction ? auction.find(a => a.g === gh.golfer || a.g.startsWith(gh.golfer.substring(0, 10))) : null;
+                        return (
+                          <div key={d.y} style={{ display: "flex", gap: 6, padding: "2px 0", fontSize: 9 }}>
+                            <span style={{ color: gold, fontWeight: 700, width: 30 }}>{d.y}</span>
+                            <span style={{ color: "#8a9a90", width: 35, textAlign: "right" }}>${d.p}</span>
+                            <span style={{ color: augustaGreen, flex: 1 }}>{entry ? entry.o : "—"}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Strategy Archetypes */}
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: "#5a7a60", marginBottom: 8 }}>STRATEGY ARCHETYPES</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {[
+                  { name: "The Whale", icon: "🐋", desc: "Drops $500+ in a single auction. Goes big on the favorites and prays.", who: "Peter Berger ($500 in '24), Brian Black ($371 in '18)", color: "#4a9eff" },
+                  { name: "The Sniper", icon: "🎯", desc: "Buys cheap mid-tier and hits. Maximum ROI per dollar.", who: "Adam Yeager (2 players in '17, +$360), Kyle Rajotte (Field '23 + '24)", color: "#2ecc71" },
+                  { name: "The Loyalist", icon: "🤝", desc: "Same golfer, same owner, every year. Ride or die.", who: "Joe Mangione × Jordan Spieth (6x), Ryan Lee × Brooks Koepka (4x)", color: gold },
+                  { name: "The Portfolio", icon: "📊", desc: "Buys 6-10 players and diversifies. Wins by volume.", who: "Joe Curran (10 players in '24, $351 total), Steve Licata", color: "#e67e22" },
+                  { name: "The Field General", icon: "🎰", desc: "Buys The Field and hopes for a Cinderella story.", who: "Brian Black ($165 in '17), Kyle Rajotte ($162 in '24), Michael Myers ($200 in '18)", color: "#8e44ad" },
+                  { name: "The Contrarian", icon: "🔄", desc: "Bets against the market. Grabs fallen stars at discount.", who: "Joe Curran × Patrick Reed (3x at avg $16), Taylor Smyth × Tiger ('19 at $76)", color: "#e63946" },
+                ].map((arch, i) => (
+                  <div key={i} style={{
+                    background: cardBg, borderRadius: 8, padding: "10px 12px",
+                    border: `1px solid ${borderColor}`, borderLeft: `3px solid ${arch.color}`,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 16 }}>{arch.icon}</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: arch.color }}>{arch.name}</span>
+                    </div>
+                    <div style={{ fontSize: 9, color: "#b0c0b0", marginBottom: 4, lineHeight: 1.4 }}>{arch.desc}</div>
+                    <div style={{ fontSize: 8, color: "#5a7a60", fontStyle: "italic" }}>{arch.who}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
