@@ -68,38 +68,37 @@ const TOP_FINISHES = [
     { pos: "4th", golfer: "Scottie Scheffler", owner: "Peter Berger", payout: 204.70 },
     { pos: "T5", golfer: "Sungjae Im", owner: "Ryan Lee", payout: 51.18 },
   ]},
+  { year: 2026, results: [] },
 ];
 
 const ALL_TIME = [
-  { name: "Peter Berger", years: 7, spent: 1281, won: 2523, net: 1242 },
-  { name: "Steve Licata", years: 9, spent: 1477, won: 2372, net: 895 },
-  { name: "Scott Block", years: 4, spent: 393, won: 972, net: 579 },
+  { name: "Peter Berger", years: 6, spent: 1137, won: 2523, net: 1386 },
+  { name: "Steve Licata", years: 8, spent: 1390, won: 2372, net: 982 },
+  { name: "Scott Block", years: 3, spent: 338, won: 972, net: 634 },
   { name: "Pat Fitzgerald", years: 3, spent: 186, won: 579, net: 393 },
   { name: "Adam Yeager", years: 1, spent: 79, won: 439, net: 360 },
-  { name: "Ryan Lee", years: 8, spent: 509, won: 797, net: 288 },
-  { name: "Alex Carroll", years: 4, spent: 95, won: 210, net: 115 },
+  { name: "Ryan Lee", years: 7, spent: 501, won: 797, net: 296 },
+  { name: "Alex Carroll", years: 3, spent: 95, won: 210, net: 115 },
+  { name: "Brian Gibbons", years: 8, spent: 806, won: 907, net: 101 },
   { name: "Steve Childres", years: 2, spent: 177, won: 250, net: 73 },
-  { name: "Kyle Rajotte", years: 4, spent: 269, won: 335, net: 66 },
-  { name: "Brian Gibbons", years: 9, spent: 859, won: 907, net: 48 },
-  { name: "Patrick Dugan", years: 1, spent: 0, won: 0, net: 0 },
+  { name: "Kyle Rajotte", years: 3, spent: 269, won: 335, net: 66 },
+  { name: "Joe Mangione", years: 8, spent: 1271, won: 1324, net: 53 },
+  { name: "Taylor Smyth", years: 6, spent: 1135, won: 1164, net: 29 },
   { name: "Michael Butta", years: 1, spent: 11, won: 0, net: -11 },
   { name: "Chase Cusack", years: 1, spent: 16, won: 0, net: -16 },
-  { name: "Taylor Smyth", years: 7, spent: 1197, won: 1164, net: -33 },
   { name: "Michael Toomer", years: 1, spent: 52, won: 0, net: -52 },
+  { name: "Anthony Meek", years: 2, spent: 54, won: 0, net: -54 },
   { name: "Brian Nickel", years: 3, spent: 93, won: 0, net: -93 },
-  { name: "Anthony Meek", years: 3, spent: 101, won: 0, net: -101 },
-  { name: "Austin Stewart", years: 1, spent: 131, won: 0, net: -131 },
-  { name: "Nick Mangione", years: 6, spent: 613, won: 449, net: -164 },
+  { name: "Nick Mangione", years: 5, spent: 542, won: 449, net: -93 },
   { name: "Bobby Reagan", years: 3, spent: 307, won: 101, net: -206 },
   { name: "Shane Griffith", years: 1, spent: 212, won: 0, net: -212 },
-  { name: "JP Fischer", years: 4, spent: 237, won: 0, net: -237 },
+  { name: "JP Fischer", years: 3, spent: 237, won: 0, net: -237 },
   { name: "Jimmy Tangires", years: 2, spent: 249, won: 0, net: -249 },
-  { name: "Erik Cobuzzi", years: 4, spent: 336, won: 0, net: -336 },
-  { name: "Joe Mangione", years: 9, spent: 1708, won: 1324, net: -384 },
+  { name: "Joe Curran", years: 5, spent: 1255, won: 947, net: -308 },
+  { name: "Erik Cobuzzi", years: 3, spent: 336, won: 0, net: -336 },
   { name: "Brandon Call", years: 3, spent: 444, won: 0, net: -444 },
-  { name: "Joe Curran", years: 6, spent: 1452, won: 947, net: -505 },
-  { name: "Brian Black", years: 6, spent: 1197, won: 502, net: -695 },
-  { name: "Michael Myers", years: 9, spent: 2077, won: 73, net: -2004 },
+  { name: "Brian Black", years: 5, spent: 1107, won: 502, net: -605 },
+  { name: "Michael Myers", years: 8, spent: 1739, won: 73, net: -1666 },
 ].sort((a, b) => b.net - a.net);
 
 const GOLFERS_2026 = [
@@ -244,14 +243,14 @@ export default function MastersCalcutta() {
   const funStats = [
     { label: "Biggest Single Win", value: "$1,042.65", sub: "Steve Licata · Patrick Reed · 2018", icon: "💰" },
     { label: "Best All-Time ROI", value: "+455%", sub: "Adam Yeager · 1 year, $79 spent", icon: "📈" },
-    { label: "Biggest Auction Spend (1 yr)", value: "$437", sub: "Joe Mangione · 2026", icon: "🔥" },
+    { label: "Biggest Auction Spend (1 yr)", value: "$500", sub: "Peter Berger · 2024", icon: "🔥" },
     { label: "Most Green Jackets Owned", value: "3", sub: "Steve Licata ('18, '22) & Peter Berger ('21, '24)", icon: "🧥" },
     { label: "Cheapest Champion", value: "$35", sub: "Patrick Reed for Steve Licata · 2018", icon: "🎯" },
     { label: "Most Expensive Champion", value: "$262", sub: "Scottie Scheffler for Peter Berger · 2024", icon: "💎" },
-    { label: "All-Time Money Pit", value: "-$2,004", sub: "Michael Myers · 9 years, $2,077 spent, $73 won", icon: "🕳️" },
-    { label: "Most Years Participated", value: "9", sub: "Brian Gibbons, Joe Mangione, Steve Licata, Michael Myers", icon: "🏌️" },
+    { label: "All-Time Money Pit", value: "-$1,666", sub: "Michael Myers · 8 years, $73 won", icon: "🕳️" },
+    { label: "Most Years Participated", value: "8", sub: "Brian Gibbons, Joe Mangione, Steve Licata, Michael Myers", icon: "🏌️" },
     { label: "Tiger Tax", value: "$76", sub: "Taylor Smyth bought Tiger at 14/1 in 2019 — worth every cent", icon: "🐯" },
-    { label: "Average Pot Size", value: "$1,715", sub: "Across 9 Masters auctions (2017-2026)", icon: "🏦" },
+    { label: "Average Pot Size", value: "$1,755", sub: "Across 8 Masters auctions (2017-2025)", icon: "🏦" },
   ];
 
   return (
@@ -385,82 +384,110 @@ export default function MastersCalcutta() {
               const champ = CHAMPIONS.find(c => c.year === yr.year);
               const isOpen = selectedYear === yr.year;
               const auction = AUCTION_DATA[yr.year] || [];
+              const pending = yr.results.length === 0;
               return (
                 <div key={yr.year} style={{ marginBottom: 8 }}>
                   <div
                     onClick={() => setSelectedYear(isOpen ? null : yr.year)}
                     style={{
                       background: cardBg, borderRadius: isOpen ? "8px 8px 0 0" : 8, padding: "10px 12px",
-                      border: `1px solid ${borderColor}`, cursor: "pointer",
+                      border: `1px solid ${pending ? gold + "44" : borderColor}`, cursor: "pointer",
                       display: "flex", alignItems: "center", gap: 10,
                     }}
                   >
                     <span style={{ fontSize: 16, fontWeight: 800, color: gold, width: 40 }}>{yr.year}</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#e8e6e3" }}>{champ.golfer}</div>
-                      <div style={{ fontSize: 9, color: augustaGreen }}>{champ.owner}</div>
+                      {champ ? (
+                        <>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "#e8e6e3" }}>{champ.golfer}</div>
+                          <div style={{ fontSize: 9, color: augustaGreen }}>{champ.owner}</div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: gold }}>April 9–12</div>
+                          <div style={{ fontSize: 9, color: augustaGreen }}>Tournament begins Thursday</div>
+                        </>
+                      )}
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#2ecc71" }}>+${Math.round(champ.payout - champ.price)}</div>
-                      <div style={{ fontSize: 8, color: "#5a7a60" }}>${champ.pot.toLocaleString()} pot</div>
+                      {champ ? (
+                        <>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#2ecc71" }}>+${Math.round(champ.payout - champ.price)}</div>
+                          <div style={{ fontSize: 8, color: "#5a7a60" }}>${champ.pot.toLocaleString()} pot</div>
+                        </>
+                      ) : (
+                        <div style={{ fontSize: 8, color: "#5a7a60" }}>$1,720 pot</div>
+                      )}
                     </div>
                     <span style={{ fontSize: 10, color: "#5a7a60", transform: isOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▼</span>
                   </div>
                   {isOpen && (
-                    <div style={{ background: "#0d1a10", borderRadius: "0 0 8px 8px", padding: "8px 12px", border: `1px solid ${borderColor}`, borderTop: "none" }}>
-                      {/* Top 5 finishers */}
-                      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, color: "#5a7a60", marginBottom: 4 }}>TOP FINISHERS</div>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, marginBottom: 10 }}>
-                        <thead>
-                          <tr style={{ borderBottom: `1px solid ${borderColor}` }}>
-                            <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Finish</th>
-                            <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Golfer</th>
-                            <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Owner</th>
-                            <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Paid</th>
-                            <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Won</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {yr.results.map((r, i) => {
-                            const auc = matchGolfer(auction, r.golfer);
-                            return (
-                              <tr key={i} style={{ borderBottom: `1px solid ${borderColor}22` }}>
-                                <td style={{ padding: "5px 4px", fontWeight: 700, color: r.pos === "1st" ? gold : "#e8e6e3", fontSize: r.pos === "1st" ? 11 : 10 }}>
-                                  {r.pos === "1st" ? "🏆 " : ""}{r.pos}
-                                </td>
-                                <td style={{ padding: "5px 4px", color: "#e8e6e3", fontWeight: r.pos === "1st" ? 700 : 400 }}>{r.golfer}</td>
-                                <td style={{ padding: "5px 4px", color: augustaGreen, fontSize: 9 }}>{r.owner}</td>
-                                <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9a90", fontSize: 9 }}>{auc ? `$${auc.p}` : "—"}</td>
-                                <td style={{ padding: "5px 4px", textAlign: "right", color: "#2ecc71", fontWeight: 600 }}>${r.payout.toFixed(0)}</td>
+                    <div style={{ background: "#0d1a10", borderRadius: "0 0 8px 8px", padding: "8px 12px", border: `1px solid ${pending ? gold + "44" : borderColor}`, borderTop: "none" }}>
+                      {pending ? (
+                        <div style={{ textAlign: "center", padding: "12px 0", color: "#5a7a60", fontSize: 10 }}>
+                          Results will be updated after the tournament
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, color: "#5a7a60", marginBottom: 4 }}>TOP FINISHERS</div>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10, marginBottom: 10 }}>
+                            <thead>
+                              <tr style={{ borderBottom: `1px solid ${borderColor}` }}>
+                                <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Finish</th>
+                                <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Golfer</th>
+                                <th style={{ padding: "4px 4px", textAlign: "left", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Owner</th>
+                                <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Paid</th>
+                                <th style={{ padding: "4px 4px", textAlign: "right", color: "#5a7a60", fontWeight: 500, fontSize: 8 }}>Won</th>
                               </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                            </thead>
+                            <tbody>
+                              {yr.results.map((r, i) => {
+                                const auc = matchGolfer(auction, r.golfer);
+                                return (
+                                  <tr key={i} style={{ borderBottom: `1px solid ${borderColor}22` }}>
+                                    <td style={{ padding: "5px 4px", fontWeight: 700, color: r.pos === "1st" ? gold : "#e8e6e3", fontSize: r.pos === "1st" ? 11 : 10 }}>
+                                      {r.pos === "1st" ? "🏆 " : ""}{r.pos}
+                                    </td>
+                                    <td style={{ padding: "5px 4px", color: "#e8e6e3", fontWeight: r.pos === "1st" ? 700 : 400 }}>{r.golfer}</td>
+                                    <td style={{ padding: "5px 4px", color: augustaGreen, fontSize: 9 }}>{r.owner}</td>
+                                    <td style={{ padding: "5px 4px", textAlign: "right", color: "#8a9a90", fontSize: 9 }}>{auc ? `$${auc.p}` : "—"}</td>
+                                    <td style={{ padding: "5px 4px", textAlign: "right", color: "#2ecc71", fontWeight: 600 }}>${r.payout.toFixed(0)}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </>
+                      )}
                       {/* Full auction */}
-                      <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, color: "#5a7a60", marginBottom: 4 }}>FULL AUCTION ({auction.length} lots)</div>
-                      <div style={{ maxHeight: 200, overflowY: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 9 }}>
-                          <tbody>
-                            {auction.sort((a, b) => b.p - a.p).map((a, i) => {
-                              const isFinisher = yr.results.some(r => golferNameNorm(r.golfer) === golferNameNorm(a.g) || golferNameNorm(a.g).startsWith(golferNameNorm(r.golfer).substring(0, 10)));
-                              return (
-                                <tr key={i} style={{ borderBottom: `1px solid ${borderColor}11`, background: isFinisher ? `${augustaGreen}10` : "transparent" }}>
-                                  <td style={{ padding: "3px 4px", color: "#6a8a70", width: 16, fontSize: 8 }}>{i + 1}</td>
-                                  <td style={{ padding: "3px 4px", color: isFinisher ? "#e8e6e3" : "#8a9a90", fontWeight: isFinisher ? 600 : 400 }}>{a.g}</td>
-                                  <td style={{ padding: "3px 4px", color: "#5a7a60", fontSize: 8 }}>{a.o}</td>
-                                  <td style={{ padding: "3px 4px", textAlign: "right", color: "#8a9a90", fontWeight: 600 }}>${a.p}</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                      <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 8, color: "#4a6a50", justifyContent: "center" }}>
-                        <span>Pot: ${champ.pot.toLocaleString()}</span>
-                        <span>Golfers: {champ.field}</span>
-                        <span>Payout: 45/25/15/10/5%</span>
-                      </div>
+                      {auction.length > 0 && (
+                        <>
+                          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, color: "#5a7a60", marginBottom: 4 }}>FULL AUCTION ({auction.length} lots)</div>
+                          <div style={{ maxHeight: 200, overflowY: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 9 }}>
+                              <tbody>
+                                {[...auction].sort((a, b) => b.p - a.p).map((a, i) => {
+                                  const isFinisher = yr.results.some(r => golferNameNorm(r.golfer) === golferNameNorm(a.g) || golferNameNorm(a.g).startsWith(golferNameNorm(r.golfer).substring(0, 10)));
+                                  return (
+                                    <tr key={i} style={{ borderBottom: `1px solid ${borderColor}11`, background: isFinisher ? `${augustaGreen}10` : "transparent" }}>
+                                      <td style={{ padding: "3px 4px", color: "#6a8a70", width: 16, fontSize: 8 }}>{i + 1}</td>
+                                      <td style={{ padding: "3px 4px", color: isFinisher ? "#e8e6e3" : "#8a9a90", fontWeight: isFinisher ? 600 : 400 }}>{a.g}</td>
+                                      <td style={{ padding: "3px 4px", color: "#5a7a60", fontSize: 8 }}>{a.o}</td>
+                                      <td style={{ padding: "3px 4px", textAlign: "right", color: "#8a9a90", fontWeight: 600 }}>${a.p}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 8, color: "#4a6a50", justifyContent: "center" }}>
+                            {champ && <span>Pot: ${champ.pot.toLocaleString()}</span>}
+                            {!champ && <span>Pot: $1,720</span>}
+                            <span>Golfers: {auction.length}</span>
+                            <span>Payout: 45/25/15/10/5%</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
