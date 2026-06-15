@@ -286,7 +286,7 @@ function buildGameLog(manager) {
   return log.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
-function GameLog({ manager, ownerFor }) {
+function GameLog({ manager, ownerFor, pickFor }) {
   const log = buildGameLog(manager);
   return (
     <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 divide-y divide-slate-700/40">
@@ -296,12 +296,16 @@ function GameLog({ manager, ownerFor }) {
         log.map((g, i) => {
           const oppOwner =
             g.kind === "group" && ownerFor ? ownerFor(g.opponent) : null;
+          const pick = pickFor ? pickFor(g.team) : null;
           return (
           <div key={i} className="flex items-center gap-2 px-3 py-1.5 text-xs">
             <span className="w-12 shrink-0 text-slate-500 font-light">
               {fmtDay(g.date)}
             </span>
             <span className="w-5 text-center shrink-0">{flagFor(g.team)}</span>
+            {pick != null && (
+              <span className="shrink-0 text-slate-600 font-light">({pick})</span>
+            )}
             <span className="flex-1 min-w-0 truncate text-slate-300">
               {g.kind === "ko" ? (
                 <span className="text-cyan-300">{g.label}</span>
@@ -468,7 +472,7 @@ function ManagerRow({ manager, rank, ownerFor, pickFor }) {
             <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">
               Results so far
             </div>
-            <GameLog manager={manager} ownerFor={ownerFor} />
+            <GameLog manager={manager} ownerFor={ownerFor} pickFor={pickFor} />
           </div>
         </div>
       )}
