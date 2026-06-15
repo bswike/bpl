@@ -164,6 +164,9 @@ const fmtDay = (iso) =>
   });
 const fmtTime = (iso) =>
   new Date(iso).toLocaleString("en-US", { hour: "numeric", minute: "2-digit" });
+// Compact kickoff time for tight columns, e.g. "3:00 PM" -> "3:00p".
+const fmtTimeShort = (iso) =>
+  fmtTime(iso).replace(" AM", "a").replace(" PM", "p");
 // "Today" / "Tomorrow" / weekday for near dates, else a short date.
 const relDay = (iso) => {
   const d = new Date(iso);
@@ -585,8 +588,8 @@ function MatchRow({ m, ownerFor, pickFor }) {
   const awayPick = pickFor ? pickFor(m.away) : null;
   return (
     <div className="py-1.5 border-t border-slate-700/30 first:border-t-0">
-      <div className="flex items-center gap-2 text-xs">
-        <span className="w-12 shrink-0 text-right leading-tight">
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="w-9 shrink-0 text-right leading-tight text-[10px]">
           {finished ? (
             <span className="text-slate-600">FT</span>
           ) : live ? (
@@ -594,7 +597,9 @@ function MatchRow({ m, ownerFor, pickFor }) {
               {m.detail || "LIVE"}
             </span>
           ) : (
-            <span className="text-slate-500 font-light">{fmtTime(m.date)}</span>
+            <span className="text-slate-500 font-light">
+              {fmtTimeShort(m.date)}
+            </span>
           )}
         </span>
         <div className="flex-1 min-w-0 flex flex-col items-end">
@@ -617,7 +622,7 @@ function MatchRow({ m, ownerFor, pickFor }) {
             </span>
           )}
         </div>
-        <span className="w-12 shrink-0 text-center font-mono">
+        <span className="w-10 shrink-0 text-center font-mono">
           {scored ? (
             <span
               className={live ? "text-cyan-400 font-bold" : "text-slate-100 font-bold"}
@@ -649,7 +654,7 @@ function MatchRow({ m, ownerFor, pickFor }) {
           )}
         </div>
         {m.group && (
-          <span className="w-7 shrink-0 text-center text-[10px] text-slate-500 font-medium">
+          <span className="w-4 shrink-0 text-center text-[10px] text-slate-500 font-medium">
             {m.group}
           </span>
         )}
