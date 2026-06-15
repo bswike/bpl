@@ -93,6 +93,11 @@ const flagFor = (team) => {
   const n = normName(team);
   return FLAG_NORM[n] || FLAG_NORM[FLAG_ALIASES[n]] || "⚽";
 };
+// Canonical team key so a roster spelling and ESPN's spelling map together.
+const teamCanon = (team) => {
+  const n = normName(team);
+  return FLAG_ALIASES[n] || n;
+};
 
 const RESULT_STYLE = {
   W: { label: "W", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
@@ -132,13 +137,6 @@ const KO_ROUNDS = [
   ["champ", "Champion"],
 ];
 
-const fmtDate = (iso) =>
-  new Date(iso).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 const fmtDay = (iso) =>
   new Date(iso).toLocaleString("en-US", {
     month: "short",
@@ -146,6 +144,19 @@ const fmtDay = (iso) =>
   });
 const fmtTime = (iso) =>
   new Date(iso).toLocaleString("en-US", { hour: "numeric", minute: "2-digit" });
+// "Today" / "Tomorrow" / weekday for near dates, else a short date.
+const relDay = (iso) => {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const diff = Math.round((startOf(d) - startOf(now)) / 86400000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Tomorrow";
+  if (diff === -1) return "Yesterday";
+  if (diff > 1 && diff < 7) return d.toLocaleString("en-US", { weekday: "long" });
+  return d.toLocaleString("en-US", { month: "short", day: "numeric" });
+};
+const fmtRelative = (iso) => `${relDay(iso)}, ${fmtTime(iso)}`;
 
 function Leaderboard({ standings }) {
   const leaderTotal = standings.length ? standings[0].total : 0;
@@ -394,7 +405,7 @@ function ManagerCard({ manager, rank }) {
               {ng && (
                 <div className="pl-8 text-[11px] font-light text-slate-500">
                   Next: {ng.home ? "vs " : "@ "}
-                  {ng.opponent} · {fmtDate(ng.date)}
+                  {ng.opponent} · {fmtRelative(ng.date)}
                 </div>
               )}
             </li>
@@ -454,12 +465,14 @@ function ScoringRules({ koScoring }) {
   );
 }
 
-function MatchRow({ m }) {
+function MatchRow({ m, ownerFor }) {
   const finished = m.state === "post";
   const live = m.state === "in";
   const scored = finished || live;
   const homeWon = scored && m.homeScore > m.awayScore;
   const awayWon = scored && m.awayScore > m.homeScore;
+  const homeOwner = ownerFor(m.home);
+  const awayOwner = ownerFor(m.away);
   return (
     <div className="flex items-center gap-2 py-1.5 text-xs border-t border-slate-700/30 first:border-t-0">
       <span className="w-14 shrink-0 text-slate-500 font-light leading-tight">
@@ -475,14 +488,21 @@ function MatchRow({ m }) {
           </>
         )}
       </span>
-      <span
-        className={`flex-1 flex items-center justify-end gap-1.5 min-w-0 ${
-          homeWon ? "text-slate-100 font-semibold" : "text-slate-400"
-        }`}
-      >
-        <span className="truncate">{m.home}</span>
-        <span className="shrink-0">{flagFor(m.home)}</span>
-      </span>
+      <div className="flex-1 min-w-0 flex flex-col items-end">
+        <span
+          className={`flex items-center gap-1.5 min-w-0 max-w-full ${
+            homeWon ? "text-slate-100 font-semibold" : "text-slate-400"
+          }`}
+        >
+          <span className="truncate">{m.home}</span>
+          <span className="shrink-0">{flagFor(m.home)}</span>
+        </span>
+        {homeOwner && (
+          <span className="text-[10px] text-cyan-500/80 font-light truncate max-w-full">
+            {homeOwner}
+          </span>
+        )}
+      </div>
       <span className="w-12 shrink-0 text-center font-mono">
         {scored ? (
           <span className={live ? "text-cyan-400 font-bold" : "text-slate-200 font-bold"}>
@@ -492,24 +512,38 @@ function MatchRow({ m }) {
           <span className="text-slate-600">v</span>
         )}
       </span>
-      <span
-        className={`flex-1 flex items-center gap-1.5 min-w-0 ${
-          awayWon ? "text-slate-100 font-semibold" : "text-slate-400"
-        }`}
-      >
-        <span className="shrink-0">{flagFor(m.away)}</span>
-        <span className="truncate">{m.away}</span>
-      </span>
+      <div className="flex-1 min-w-0 flex flex-col items-start">
+        <span
+          className={`flex items-center gap-1.5 min-w-0 max-w-full ${
+            awayWon ? "text-slate-100 font-semibold" : "text-slate-400"
+          }`}
+        >
+          <span className="shrink-0">{flagFor(m.away)}</span>
+          <span className="truncate">{m.away}</span>
+        </span>
+        {awayOwner && (
+          <span className="text-[10px] text-cyan-500/80 font-light truncate max-w-full">
+            {awayOwner}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
-function ScheduleView({ schedule }) {
+function ScheduleView({ schedule, managers }) {
   if (!schedule || schedule.length === 0) {
     return (
       <p className="text-center text-slate-500 py-12">Schedule unavailable.</p>
     );
   }
+  const ownerMap = {};
+  (managers || []).forEach((m) => {
+    (m.teams || []).forEach((t) => {
+      ownerMap[teamCanon(t.team)] = m.name;
+    });
+  });
+  const ownerFor = (team) => ownerMap[teamCanon(team)] || null;
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {schedule.map((g) => (
@@ -527,7 +561,7 @@ function ScheduleView({ schedule }) {
           </div>
           <div>
             {g.matches.map((m, i) => (
-              <MatchRow key={i} m={m} />
+              <MatchRow key={i} m={m} ownerFor={ownerFor} />
             ))}
           </div>
         </div>
@@ -686,7 +720,7 @@ export default function Footie() {
                 </div>
               </div>
             ) : (
-              <ScheduleView schedule={data.schedule} />
+              <ScheduleView schedule={data.schedule} managers={data.managers} />
             )}
 
             {data.fetched && (
