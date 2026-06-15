@@ -175,15 +175,19 @@ function buildTeamResults(groupEvents, koEvents, koScoring) {
     const aWin = a.winner === true;
     const bWin = b.winner === true;
 
+    const live = comp.status?.type?.state === "in";
     const record = (self, other, won, lost) => {
       const t = ensure(canon(self.team.displayName));
       const result = !completed ? "P" : won ? "W" : lost ? "L" : "D";
       const entry = {
         opponent: other.team.abbreviation || other.team.displayName,
+        opponentFull: other.team.displayName,
+        home: self.homeAway === "home",
         result,
-        gf: completed ? Number(self.score) || 0 : null,
-        ga: completed ? Number(other.score) || 0 : null,
+        gf: completed || live ? Number(self.score) || 0 : null,
+        ga: completed || live ? Number(other.score) || 0 : null,
         date: e.date,
+        live,
         status: comp.status?.type?.shortDetail || "",
       };
       t.group.push(entry);
@@ -232,6 +236,40 @@ function buildTeamResults(groupEvents, koEvents, koScoring) {
   return map;
 }
 
+// Group-stage schedule grouped by group letter (A–L), each match distilled for the UI.
+function buildSchedule(groupEvents) {
+  const groups = {};
+  for (const e of groupEvents) {
+    const comp = e.competitions?.[0];
+    if (!comp) continue;
+    const note = comp.altGameNote || "";
+    const m = note.match(/Group\s+([A-Z])/i);
+    const letter = m ? m[1].toUpperCase() : "?";
+    const cs = comp.competitors || [];
+    if (cs.length < 2) continue;
+    const home = cs.find((c) => c.homeAway === "home") || cs[0];
+    const away = cs.find((c) => c.homeAway === "away") || cs[1];
+    const state = comp.status?.type?.state || "pre";
+    (groups[letter] = groups[letter] || []).push({
+      date: e.date,
+      state,
+      detail: comp.status?.type?.shortDetail || "",
+      home: home.team.displayName,
+      homeAbbr: home.team.abbreviation || "",
+      away: away.team.displayName,
+      awayAbbr: away.team.abbreviation || "",
+      homeScore: state !== "pre" ? Number(home.score) || 0 : null,
+      awayScore: state !== "pre" ? Number(away.score) || 0 : null,
+    });
+  }
+  return Object.keys(groups)
+    .sort()
+    .map((letter) => ({
+      group: letter,
+      matches: groups[letter].sort((a, b) => new Date(a.date) - new Date(b.date)),
+    }));
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -251,6 +289,7 @@ export default async function handler(req, res) {
 
     const { managers: roster, koScoring, stage } = parseSheet(sheetText);
     const teamResults = buildTeamResults(groupEvents, koEvents, koScoring);
+    const schedule = buildSchedule(groupEvents);
 
     const managers = roster.map((m) => {
       const teams = m.teams.map((teamName) => {
@@ -264,6 +303,17 @@ export default async function handler(req, res) {
           l: 0,
         };
         const played = tr.group.filter((g) => g.result !== "P").length;
+        const upcoming = tr.group
+          .filter((g) => g.result === "P")
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
+        const next = upcoming[0]
+          ? {
+              opponent: upcoming[0].opponentFull,
+              opponentAbbr: upcoming[0].opponent,
+              home: upcoming[0].home,
+              date: upcoming[0].date,
+            }
+          : null;
         return {
           team: teamName,
           group: tr.group,
@@ -276,6 +326,7 @@ export default async function handler(req, res) {
           l: tr.l,
           played,
           remaining: Math.max(0, 3 - played),
+          nextGame: next,
         };
       });
       const gsPoints = teams.reduce((s, t) => s + t.gsPoints, 0);
@@ -317,6 +368,7 @@ export default async function handler(req, res) {
       live: anyLive,
       managers,
       standings,
+      schedule,
       koScoring,
       fetched: new Date().toISOString(),
     });
