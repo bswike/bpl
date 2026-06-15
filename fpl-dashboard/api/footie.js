@@ -260,8 +260,45 @@ function extractOdds(comp) {
   return { home, draw, away, provider: o.provider?.name || null };
 }
 
+// Locked/closing odds for a finished game (scoreboard drops these post-match).
+async function fetchLockedOdds(eventId) {
+  try {
+    const url = `https://sports.core.api.espn.com/v2/sports/soccer/leagues/fifa.world/events/${eventId}/competitions/${eventId}/odds`;
+    const r = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (footie-pool)" },
+    });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const items = j.items || [];
+    const it = items.find((x) => x.provider?.id === "100") || items[0];
+    if (!it) return null;
+    const home = fmtMl(it.homeTeamOdds?.moneyLine);
+    const away = fmtMl(it.awayTeamOdds?.moneyLine);
+    const draw = fmtMl(it.drawOdds?.moneyLine);
+    if (!home && !away && !draw) return null;
+    return { home, draw, away, provider: it.provider?.name || null, locked: true };
+  } catch {
+    return null;
+  }
+}
+
+// Run async fn over items with bounded concurrency.
+async function mapLimit(items, limit, fn) {
+  let i = 0;
+  const workers = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (i < items.length) {
+        const idx = i++;
+        await fn(items[idx], idx);
+      }
+    }
+  );
+  await Promise.all(workers);
+}
+
 // Flat, date-sorted group-stage schedule; the UI groups it by day.
-function buildSchedule(groupEvents) {
+async function buildSchedule(groupEvents) {
   const matches = [];
   for (const e of groupEvents) {
     const comp = e.competitions?.[0];
@@ -274,7 +311,11 @@ function buildSchedule(groupEvents) {
     const home = cs.find((c) => c.homeAway === "home") || cs[0];
     const away = cs.find((c) => c.homeAway === "away") || cs[1];
     const state = comp.status?.type?.state || "pre";
+    // Scoreboard carries odds for upcoming + live; mark non-upcoming as locked.
+    let odds = extractOdds(comp);
+    if (odds && state !== "pre") odds.locked = true;
     matches.push({
+      id: e.id,
       date: e.date,
       state,
       detail: comp.status?.type?.shortDetail || "",
@@ -285,9 +326,16 @@ function buildSchedule(groupEvents) {
       awayAbbr: away.team.abbreviation || "",
       homeScore: state !== "pre" ? Number(home.score) || 0 : null,
       awayScore: state !== "pre" ? Number(away.score) || 0 : null,
-      odds: state === "pre" ? extractOdds(comp) : null,
+      odds,
     });
   }
+
+  // Finished games: fetch locked closing odds from the core odds endpoint.
+  const needOdds = matches.filter((m) => m.state === "post" && !m.odds && m.id);
+  await mapLimit(needOdds, 8, async (m) => {
+    m.odds = await fetchLockedOdds(m.id);
+  });
+
   return matches.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
@@ -310,7 +358,7 @@ export default async function handler(req, res) {
 
     const { managers: roster, koScoring, stage } = parseSheet(sheetText);
     const teamResults = buildTeamResults(groupEvents, koEvents, koScoring);
-    const schedule = buildSchedule(groupEvents);
+    const schedule = await buildSchedule(groupEvents);
 
     const managers = roster.map((m) => {
       const teams = m.teams.map((teamName) => {

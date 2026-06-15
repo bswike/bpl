@@ -7,6 +7,7 @@ import {
   Globe,
   CalendarDays,
   Users,
+  Lock,
 } from "lucide-react";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -93,9 +94,19 @@ const flagFor = (team) => {
   return FLAG_NORM[n] || FLAG_NORM[FLAG_ALIASES[n]] || "⚽";
 };
 // Canonical team key so a roster spelling and ESPN's spelling map together.
+// Maps each sheet spelling to ESPN's normalized form (mirrors the API).
+const TEAM_ALIASES = {
+  turkeye: "turkiye",
+  bosnia: "bosniaherzegovina",
+  caboverde: "capeverde",
+  columbia: "colombia",
+  drcongo: "congodr",
+  saudiaarabia: "saudiarabia",
+  usa: "unitedstates",
+};
 const teamCanon = (team) => {
   const n = normName(team);
-  return FLAG_ALIASES[n] || n;
+  return TEAM_ALIASES[n] || n;
 };
 
 const RESULT_STYLE = {
@@ -507,6 +518,9 @@ function OddsLine({ m }) {
   });
   return (
     <div className="flex items-center justify-center gap-3 mt-1 pl-12 text-[10px]">
+      {m.odds.locked && (
+        <Lock size={9} className="text-slate-600 shrink-0" title="Final odds" />
+      )}
       {items.map((o) => (
         <span
           key={o.key}
@@ -597,7 +611,32 @@ function MatchRow({ m, ownerFor }) {
   );
 }
 
+function DayCard({ dayKey, matches, ownerFor }) {
+  const dayMatches = [...matches].sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
+  );
+  return (
+    <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-700/60">
+        <h3 className="text-sm font-bold text-slate-100">
+          {dayHeading(dayKey)}
+        </h3>
+        <span className="text-[11px] text-slate-500">
+          {dayMatches.length} {dayMatches.length === 1 ? "match" : "matches"}
+        </span>
+      </div>
+      <div className="px-3">
+        {dayMatches.map((m, i) => (
+          <MatchRow key={i} m={m} ownerFor={ownerFor} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ScheduleView({ schedule, managers }) {
+  const [showPast, setShowPast] = useState(false);
+
   if (!schedule || schedule.length === 0) {
     return (
       <p className="text-center text-slate-500 py-12">Schedule unavailable.</p>
@@ -618,38 +657,60 @@ function ScheduleView({ schedule, managers }) {
   });
   const days = Object.keys(byDay).sort();
 
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(now.getDate()).padStart(2, "0")}`;
+  const pastDays = days.filter((d) => d < todayKey);
+  const upcomingDays = days.filter((d) => d >= todayKey);
+
   return (
     <div className="space-y-4">
       <p className="text-[11px] text-slate-600">
-        Moneyline odds (DraftKings) shown for upcoming matches · favorite
-        highlighted · letter = group.
+        Moneyline odds (DraftKings) · favorite highlighted · 🔒 = final odds ·
+        letter = group.
       </p>
-      {days.map((key) => {
-        const dayMatches = byDay[key].sort(
-          (a, b) => new Date(a.date) - new Date(b.date)
-        );
-        return (
-          <div
+
+      {pastDays.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowPast((s) => !s)}
+          className="inline-flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <ChevronDown
+            size={13}
+            className={`transition-transform ${showPast ? "rotate-180" : ""}`}
+          />
+          {showPast ? "Hide" : "Show"} previous matches ({pastDays.length}{" "}
+          {pastDays.length === 1 ? "day" : "days"})
+        </button>
+      )}
+
+      {showPast &&
+        pastDays.map((key) => (
+          <DayCard
             key={key}
-            className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden"
-          >
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-700/60">
-              <h3 className="text-sm font-bold text-slate-100">
-                {dayHeading(key)}
-              </h3>
-              <span className="text-[11px] text-slate-500">
-                {dayMatches.length}{" "}
-                {dayMatches.length === 1 ? "match" : "matches"}
-              </span>
-            </div>
-            <div className="px-3">
-              {dayMatches.map((m, i) => (
-                <MatchRow key={i} m={m} ownerFor={ownerFor} />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+            dayKey={key}
+            matches={byDay[key]}
+            ownerFor={ownerFor}
+          />
+        ))}
+
+      {upcomingDays.length === 0 ? (
+        <p className="text-center text-slate-500 py-8">
+          No upcoming matches.
+        </p>
+      ) : (
+        upcomingDays.map((key) => (
+          <DayCard
+            key={key}
+            dayKey={key}
+            matches={byDay[key]}
+            ownerFor={ownerFor}
+          />
+        ))
+      )}
     </div>
   );
 }
