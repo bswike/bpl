@@ -788,12 +788,6 @@ export default function Footie() {
             <h1 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2 leading-tight">
               <span>🏆</span>
               <span className="truncate">{data?.title || "World Cup Pool"}</span>
-              {data?.live && (
-                <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-rose-400 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded shrink-0">
-                  <span className="animate-pulse inline-block w-1.5 h-1.5 rounded-full bg-rose-400" />
-                  Live
-                </span>
-              )}
             </h1>
             <p className="text-[10px] text-slate-500 truncate">
               {data?.stage || "Group Stage"} · auto-updated from ESPN
