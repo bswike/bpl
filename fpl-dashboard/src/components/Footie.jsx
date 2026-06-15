@@ -339,7 +339,7 @@ function GameLog({ manager, ownerFor }) {
   );
 }
 
-function SquadTeams({ manager }) {
+function SquadTeams({ manager, pickFor }) {
   return (
     <ul className="space-y-2">
       {manager.teams.map((t) => {
@@ -348,6 +348,7 @@ function SquadTeams({ manager }) {
         );
         const hasResults = games.some((g) => g.result !== "P" || g.live);
         const ng = t.nextGame;
+        const pick = pickFor ? pickFor(t.team) : null;
         return (
           <li key={t.team} className="text-sm">
             <div className="flex items-center gap-2">
@@ -355,11 +356,16 @@ function SquadTeams({ manager }) {
                 {flagFor(t.team)}
               </span>
               <span
-                className={`flex-1 min-w-0 truncate ${
+                className={`flex-1 min-w-0 flex items-center gap-1.5 ${
                   hasResults ? "text-slate-200" : "text-slate-400"
                 }`}
               >
-                {t.team}
+                <span className="truncate min-w-0">{t.team}</span>
+                {pick != null && (
+                  <span className="shrink-0 text-slate-500 font-normal">
+                    ({pick})
+                  </span>
+                )}
               </span>
               <span className="flex items-center gap-0.5 shrink-0">
                 {games.map((g, i) => (
@@ -403,7 +409,7 @@ function SquadTeams({ manager }) {
   );
 }
 
-function ManagerRow({ manager, rank, ownerFor }) {
+function ManagerRow({ manager, rank, ownerFor, pickFor }) {
   const [open, setOpen] = useState(false);
   const total = (manager.gsPoints || 0) + (manager.koPoints || 0);
 
@@ -454,7 +460,7 @@ function ManagerRow({ manager, rank, ownerFor }) {
 
       {open && (
         <div className="px-3 pb-3 pt-1 border-t border-slate-700/40 space-y-3">
-          <SquadTeams manager={manager} />
+          <SquadTeams manager={manager} pickFor={pickFor} />
           <div>
             <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">
               Results so far
@@ -1007,6 +1013,9 @@ export default function Footie() {
                           manager={m}
                           rank={rankByName[m.name]}
                           ownerFor={makeOwnerFor(data.managers)}
+                          pickFor={(team) =>
+                            data.draftPicks?.[teamCanon(team)] ?? null
+                          }
                         />
                       ))}
                   </div>
