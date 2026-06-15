@@ -527,15 +527,28 @@ function OddsLine({ m }) {
     { key: "away", label: m.awayAbbr, ml: m.odds.away },
   ].filter((o) => o.ml);
   if (items.length === 0) return null;
+
   let favKey = null;
-  let best = -1;
-  items.forEach((o) => {
-    const p = mlProb(o.ml);
-    if (p > best) {
-      best = p;
-      favKey = o.key;
-    }
-  });
+  const scored = m.state === "post" || m.state === "in";
+  if (scored && m.homeScore != null && m.awayScore != null) {
+    // Highlight the outcome that actually happened (or is happening).
+    favKey =
+      m.homeScore > m.awayScore
+        ? "home"
+        : m.awayScore > m.homeScore
+        ? "away"
+        : "draw";
+  } else {
+    // Upcoming: highlight the betting favorite.
+    let best = -1;
+    items.forEach((o) => {
+      const p = mlProb(o.ml);
+      if (p > best) {
+        best = p;
+        favKey = o.key;
+      }
+    });
+  }
   return (
     <div className="flex items-center justify-center gap-3 mt-0.5 pl-12 text-[10px]">
       {m.odds.locked && (
