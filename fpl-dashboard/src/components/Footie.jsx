@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback, Fragment } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
-  Trophy,
   RefreshCw,
   ChevronLeft,
   ChevronDown,
@@ -188,95 +187,45 @@ const mlProb = (ml) => {
   return n > 0 ? 100 / (n + 100) : -n / (-n + 100);
 };
 
-function Leaderboard({ standings, managers }) {
-  const [openName, setOpenName] = useState(null);
-  const leaderTotal = standings.length ? standings[0].total : 0;
-  const byName = {};
+function TodayMatches({ schedule, managers }) {
+  const ownerMap = {};
   (managers || []).forEach((m) => {
-    byName[m.name] = m;
+    (m.teams || []).forEach((t) => {
+      ownerMap[teamCanon(t.team)] = m.name;
+    });
   });
+  const ownerFor = (team) => ownerMap[teamCanon(team)] || null;
+
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(now.getDate()).padStart(2, "0")}`;
+  const matches = (schedule || [])
+    .filter((m) => localDayKey(m.date) === todayKey)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
   return (
     <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700/60">
-        <Trophy size={16} className="text-cyan-400" />
+        <CalendarDays size={16} className="text-cyan-400" />
         <h2 className="text-sm font-bold uppercase tracking-wider text-slate-200">
-          Standings
+          Today's Matches
         </h2>
-        <span className="text-[11px] text-slate-600 font-normal normal-case ml-auto">
-          Tap a row for results
-        </span>
+        {matches.length > 0 && (
+          <span className="text-[11px] text-slate-500 font-normal normal-case ml-auto">
+            {matches.length} {matches.length === 1 ? "match" : "matches"}
+          </span>
+        )}
       </div>
-      <div className="overflow-x-auto overscroll-x-contain">
-        <table className="w-full text-sm min-w-[420px]">
-          <thead>
-            <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500">
-              <th className="py-2 px-4 w-10">#</th>
-              <th className="py-2 px-2">Manager</th>
-              <th className="py-2 px-2 text-right">GS</th>
-              <th className="py-2 px-2 text-right">KO</th>
-              <th className="py-2 px-4 text-right">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {standings.map((s, i) => {
-              const isLeader = s.total === leaderTotal && s.total > 0;
-              const open = openName === s.name;
-              const mgr = byName[s.name];
-              return (
-                <Fragment key={s.name}>
-                  <tr
-                    onClick={() => setOpenName(open ? null : s.name)}
-                    className="border-t border-slate-700/40 hover:bg-slate-700/20 cursor-pointer"
-                  >
-                    <td className="py-2.5 px-4">
-                      <span
-                        className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                          i === 0
-                            ? "bg-cyan-400 text-slate-900"
-                            : "bg-slate-700 text-slate-300"
-                        }`}
-                      >
-                        {i + 1}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-2 font-semibold text-slate-100">
-                      <span className="inline-flex items-center gap-1.5">
-                        <ChevronDown
-                          size={13}
-                          className={`text-slate-500 transition-transform ${
-                            open ? "rotate-180" : ""
-                          }`}
-                        />
-                        {s.name}
-                        {isLeader && (
-                          <span className="text-[10px] uppercase tracking-wide text-cyan-400">
-                            Lead
-                          </span>
-                        )}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-2 text-right font-mono text-slate-300">
-                      {s.gs}
-                    </td>
-                    <td className="py-2.5 px-2 text-right font-mono text-slate-400">
-                      {s.ko}
-                    </td>
-                    <td className="py-2.5 px-4 text-right font-mono font-bold text-cyan-400">
-                      {s.total}
-                    </td>
-                  </tr>
-                  {open && mgr && (
-                    <tr className="bg-slate-900/30">
-                      <td colSpan={5} className="px-4 pb-3 pt-1">
-                        <GameLog manager={mgr} />
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="px-3">
+        {matches.length === 0 ? (
+          <p className="text-sm text-slate-500 text-center py-6">
+            No matches today.
+          </p>
+        ) : (
+          matches.map((m, i) => <MatchRow key={i} m={m} ownerFor={ownerFor} />)
+        )}
       </div>
     </div>
   );
@@ -830,8 +779,8 @@ export default function Footie() {
 
             {view === "pool" ? (
               <div className="space-y-6">
-                <Leaderboard
-                  standings={data.standings}
+                <TodayMatches
+                  schedule={data.schedule}
                   managers={data.managers}
                 />
 
