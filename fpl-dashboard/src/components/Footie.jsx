@@ -64,6 +64,18 @@ const RESULT_STYLE = {
   P: { label: "—", cls: "bg-slate-700/40 text-slate-500 border-slate-600/40" },
 };
 
+function ResultPip({ result, title }) {
+  const rs = RESULT_STYLE[result] || RESULT_STYLE.P;
+  return (
+    <span
+      title={title}
+      className={`inline-flex items-center justify-center w-5 h-5 rounded border text-[10px] font-bold ${rs.cls}`}
+    >
+      {rs.label}
+    </span>
+  );
+}
+
 const KO_ROUNDS = [
   ["r32", "Round of 32"],
   ["r16", "Round of 16"],
@@ -156,7 +168,7 @@ function ManagerCard({ manager, rank }) {
         </div>
         <div className="text-right shrink-0">
           <div className="text-xl font-bold font-mono text-cyan-400 leading-none">
-            {manager.gsPoints}
+            {(manager.gsPoints || 0) + (manager.koPoints || 0)}
           </div>
           <div className="text-[10px] uppercase tracking-wide text-slate-500">
             pts
@@ -175,29 +187,45 @@ function ManagerCard({ manager, rank }) {
 
       <ul className="space-y-1.5">
         {manager.teams.map((t) => {
-          const rs = RESULT_STYLE[t.result] || RESULT_STYLE.P;
+          const played = (t.group || []).filter((g) => g.result !== "P");
+          const noResults = played.length === 0 && (t.ko || []).length === 0;
           return (
-            <li
-              key={t.team}
-              className="flex items-center gap-2 text-sm"
-            >
+            <li key={t.team} className="flex items-center gap-2 text-sm">
               <span className="text-base leading-none w-6 text-center shrink-0">
                 {flagFor(t.team)}
               </span>
               <span
                 className={`flex-1 min-w-0 truncate ${
-                  t.result === "P" ? "text-slate-500" : "text-slate-200"
+                  noResults ? "text-slate-500" : "text-slate-200"
                 }`}
               >
                 {t.team}
               </span>
-              <span
-                className={`inline-flex items-center justify-center w-6 h-5 rounded border text-[10px] font-bold ${rs.cls}`}
-              >
-                {rs.label}
+              <span className="flex items-center gap-0.5 shrink-0">
+                {played.map((g, i) => (
+                  <ResultPip
+                    key={`g${i}`}
+                    result={g.result}
+                    title={`${g.result} vs ${g.opponent}${
+                      g.gf != null ? ` (${g.gf}-${g.ga})` : ""
+                    }`}
+                  />
+                ))}
+                {(t.ko || []).map((k, i) => (
+                  <span
+                    key={`k${i}`}
+                    title={`${k.label} win vs ${k.opponent} (+${k.points})`}
+                    className="inline-flex items-center justify-center h-5 px-1 rounded border border-cyan-500/40 bg-cyan-500/15 text-cyan-300 text-[10px] font-bold"
+                  >
+                    +{k.points}
+                  </span>
+                ))}
+                {Array.from({ length: t.remaining || 0 }).map((_, i) => (
+                  <ResultPip key={`p${i}`} result="P" title="Upcoming" />
+                ))}
               </span>
               <span className="w-5 text-right font-mono text-xs text-slate-400">
-                {t.result === "P" ? "·" : t.points}
+                {noResults ? "·" : t.points}
               </span>
             </li>
           );
@@ -305,9 +333,15 @@ export default function Footie() {
             </Link>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
               <span>🏆</span> {data?.title || "World Cup Pool"}
+              {data?.live && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-rose-400 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded">
+                  <span className="animate-pulse inline-block w-1.5 h-1.5 rounded-full bg-rose-400" />
+                  Live
+                </span>
+              )}
             </h1>
             <p className="text-xs text-slate-500">
-              {data?.stage || "Group Stage"}
+              {data?.stage || "Group Stage"} · scores auto-updated from ESPN
             </p>
           </div>
           <button
