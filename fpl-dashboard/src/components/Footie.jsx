@@ -332,117 +332,130 @@ function GameLog({ manager }) {
   );
 }
 
-function ManagerCard({ manager, rank }) {
+function SquadTeams({ manager }) {
+  return (
+    <ul className="space-y-2">
+      {manager.teams.map((t) => {
+        const games = [...(t.group || [])].sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        );
+        const hasResults = games.some((g) => g.result !== "P" || g.live);
+        const ng = t.nextGame;
+        return (
+          <li key={t.team} className="text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-base leading-none w-6 text-center shrink-0">
+                {flagFor(t.team)}
+              </span>
+              <span
+                className={`flex-1 min-w-0 truncate ${
+                  hasResults ? "text-slate-200" : "text-slate-400"
+                }`}
+              >
+                {t.team}
+              </span>
+              <span className="flex items-center gap-0.5 shrink-0">
+                {games.map((g, i) => (
+                  <ResultPip
+                    key={`g${i}`}
+                    result={g.result}
+                    live={g.live}
+                    title={
+                      g.result === "P" && !g.live
+                        ? `Upcoming ${g.home ? "vs" : "@"} ${g.opponent}`
+                        : `${g.result} ${g.home ? "vs" : "@"} ${g.opponent}${
+                            g.gf != null ? ` (${g.gf}-${g.ga})` : ""
+                          }`
+                    }
+                  />
+                ))}
+                {(t.ko || []).map((k, i) => (
+                  <span
+                    key={`k${i}`}
+                    title={`${k.label} win vs ${k.opponent} (+${k.points})`}
+                    className="inline-flex items-center justify-center h-5 px-1 rounded border border-cyan-500/40 bg-cyan-500/15 text-cyan-300 text-[10px] font-bold"
+                  >
+                    +{k.points}
+                  </span>
+                ))}
+              </span>
+              <span className="w-5 text-right font-mono text-xs text-slate-400">
+                {hasResults ? t.points : "·"}
+              </span>
+            </div>
+            {ng && (
+              <div className="pl-8 text-[11px] font-light text-slate-500">
+                Next: {ng.home ? "vs " : "@ "}
+                {ng.opponent} · {fmtRelative(ng.date)}
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function ManagerRow({ manager, rank }) {
   const [open, setOpen] = useState(false);
   const total = (manager.gsPoints || 0) + (manager.koPoints || 0);
 
   return (
-    <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex flex-col">
-      <div className="flex items-center justify-between mb-3">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex items-center gap-2 min-w-0 group text-left"
-        >
-          {rank != null && (
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-700 text-slate-300 text-xs font-bold shrink-0">
-              {rank}
-            </span>
-          )}
-          <h3 className="font-bold text-slate-100 truncate group-hover:text-cyan-400 transition-colors">
-            {manager.name}
-          </h3>
-          <ChevronDown
-            size={14}
-            className={`text-slate-500 shrink-0 transition-transform ${
-              open ? "rotate-180" : ""
+    <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-700/20 transition-colors"
+      >
+        {rank != null && (
+          <span
+            className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${
+              rank === 1 ? "bg-cyan-400 text-slate-900" : "bg-slate-700 text-slate-300"
             }`}
-          />
-        </button>
+          >
+            {rank}
+          </span>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-slate-100 truncate leading-tight">
+            {manager.name}
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <span className="text-emerald-400">{manager.wins}W</span>
+            <span className="text-amber-400">{manager.draws}D</span>
+            <span className="text-rose-400">{manager.losses}L</span>
+            {manager.pending > 0 && (
+              <span className="text-slate-500">· {manager.pending} to play</span>
+            )}
+          </div>
+        </div>
         <div className="text-right shrink-0">
-          <div className="text-xl font-bold font-mono text-cyan-400 leading-none">
+          <div className="text-lg font-bold font-mono text-cyan-400 leading-none">
             {total}
           </div>
           <div className="text-[10px] uppercase tracking-wide text-slate-500">
             pts
           </div>
         </div>
-      </div>
-
-      <div className="flex items-center gap-2 text-[11px] text-slate-400 mb-3">
-        <span className="text-emerald-400">{manager.wins}W</span>
-        <span className="text-amber-400">{manager.draws}D</span>
-        <span className="text-rose-400">{manager.losses}L</span>
-        {manager.pending > 0 && (
-          <span className="text-slate-500">· {manager.pending} to play</span>
-        )}
-      </div>
+        <ChevronDown
+          size={16}
+          className={`text-slate-500 shrink-0 transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
 
       {open && (
-        <div className="mb-3">
-          <GameLog manager={manager} />
+        <div className="px-3 pb-3 pt-1 border-t border-slate-700/40 space-y-3">
+          <SquadTeams manager={manager} />
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">
+              Results so far
+            </div>
+            <GameLog manager={manager} />
+          </div>
         </div>
       )}
-
-      <ul className="space-y-2">
-        {manager.teams.map((t) => {
-          const games = [...(t.group || [])].sort(
-            (a, b) => new Date(a.date) - new Date(b.date)
-          );
-          const hasResults = games.some((g) => g.result !== "P" || g.live);
-          const ng = t.nextGame;
-          return (
-            <li key={t.team} className="text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-base leading-none w-6 text-center shrink-0">
-                  {flagFor(t.team)}
-                </span>
-                <span
-                  className={`flex-1 min-w-0 truncate ${
-                    hasResults ? "text-slate-200" : "text-slate-400"
-                  }`}
-                >
-                  {t.team}
-                </span>
-                <span className="flex items-center gap-0.5 shrink-0">
-                  {games.map((g, i) => (
-                    <ResultPip
-                      key={`g${i}`}
-                      result={g.result}
-                      live={g.live}
-                      title={
-                        g.result === "P" && !g.live
-                          ? `Upcoming ${g.home ? "vs" : "@"} ${g.opponent}`
-                          : `${g.result} ${g.home ? "vs" : "@"} ${g.opponent}${
-                              g.gf != null ? ` (${g.gf}-${g.ga})` : ""
-                            }`
-                      }
-                    />
-                  ))}
-                  {(t.ko || []).map((k, i) => (
-                    <span
-                      key={`k${i}`}
-                      title={`${k.label} win vs ${k.opponent} (+${k.points})`}
-                      className="inline-flex items-center justify-center h-5 px-1 rounded border border-cyan-500/40 bg-cyan-500/15 text-cyan-300 text-[10px] font-bold"
-                    >
-                      +{k.points}
-                    </span>
-                  ))}
-                </span>
-                <span className="w-5 text-right font-mono text-xs text-slate-400">
-                  {hasResults ? t.points : "·"}
-                </span>
-              </div>
-              {ng && (
-                <div className="pl-8 text-[11px] font-light text-slate-500">
-                  Next: {ng.home ? "vs " : "@ "}
-                  {ng.opponent} · {fmtRelative(ng.date)}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
     </div>
   );
 }
@@ -736,16 +749,22 @@ export default function Footie() {
                     Squads
                   </h2>
                   <p className="text-[11px] text-slate-600 mb-3">
-                    Tap a manager to see every result so far.
+                    Ranked first to last · tap a manager to see their squad &
+                    results.
                   </p>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {data.managers.map((m) => (
-                      <ManagerCard
-                        key={m.name}
-                        manager={m}
-                        rank={rankByName[m.name]}
-                      />
-                    ))}
+                  <div className="grid lg:grid-cols-2 gap-2">
+                    {[...data.managers]
+                      .sort(
+                        (a, b) =>
+                          (rankByName[a.name] || 99) - (rankByName[b.name] || 99)
+                      )
+                      .map((m) => (
+                        <ManagerRow
+                          key={m.name}
+                          manager={m}
+                          rank={rankByName[m.name]}
+                        />
+                      ))}
                   </div>
                 </div>
               </div>
