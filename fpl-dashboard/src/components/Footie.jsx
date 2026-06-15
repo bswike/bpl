@@ -208,14 +208,9 @@ const mlProb = (ml) => {
   return n > 0 ? 100 / (n + 100) : -n / (-n + 100);
 };
 
-function TodayMatches({ schedule, managers }) {
-  const ownerMap = {};
-  (managers || []).forEach((m) => {
-    (m.teams || []).forEach((t) => {
-      ownerMap[teamCanon(t.team)] = m.name;
-    });
-  });
-  const ownerFor = (team) => ownerMap[teamCanon(team)] || null;
+function TodayMatches({ schedule, managers, draftPicks }) {
+  const ownerFor = makeOwnerFor(managers);
+  const pickFor = (team) => draftPicks?.[teamCanon(team)] ?? null;
 
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
@@ -245,7 +240,9 @@ function TodayMatches({ schedule, managers }) {
             No matches today.
           </p>
         ) : (
-          matches.map((m, i) => <MatchRow key={i} m={m} ownerFor={ownerFor} />)
+          matches.map((m, i) => (
+            <MatchRow key={i} m={m} ownerFor={ownerFor} pickFor={pickFor} />
+          ))
         )}
       </div>
     </div>
@@ -570,7 +567,7 @@ function OddsLine({ m }) {
   );
 }
 
-function MatchRow({ m, ownerFor }) {
+function MatchRow({ m, ownerFor, pickFor }) {
   const finished = m.state === "post";
   const live = m.state === "in";
   const scored = finished || live;
@@ -578,6 +575,8 @@ function MatchRow({ m, ownerFor }) {
   const awayWon = scored && m.awayScore > m.homeScore;
   const homeOwner = ownerFor(m.home);
   const awayOwner = ownerFor(m.away);
+  const homePick = pickFor ? pickFor(m.home) : null;
+  const awayPick = pickFor ? pickFor(m.away) : null;
   return (
     <div className="py-1.5 border-t border-slate-700/30 first:border-t-0">
       <div className="flex items-center gap-2 text-xs">
@@ -598,7 +597,12 @@ function MatchRow({ m, ownerFor }) {
               homeWon ? "text-slate-100 font-semibold" : "text-slate-300"
             }`}
           >
-            <span className="truncate">{m.home}</span>
+            <span className="truncate">
+              {m.home}
+              {homePick != null && (
+                <span className="text-slate-500 font-normal"> ({homePick})</span>
+              )}
+            </span>
             <span className="shrink-0">{flagFor(m.home)}</span>
           </span>
           {homeOwner && (
@@ -625,7 +629,12 @@ function MatchRow({ m, ownerFor }) {
             }`}
           >
             <span className="shrink-0">{flagFor(m.away)}</span>
-            <span className="truncate">{m.away}</span>
+            <span className="truncate">
+              {m.away}
+              {awayPick != null && (
+                <span className="text-slate-500 font-normal"> ({awayPick})</span>
+              )}
+            </span>
           </span>
           {awayOwner && (
             <span className="text-[10px] text-cyan-500/80 font-light truncate max-w-full">
@@ -644,7 +653,7 @@ function MatchRow({ m, ownerFor }) {
   );
 }
 
-function DayCard({ dayKey, matches, ownerFor }) {
+function DayCard({ dayKey, matches, ownerFor, pickFor }) {
   const dayMatches = [...matches].sort(
     (a, b) => new Date(a.date) - new Date(b.date)
   );
@@ -660,14 +669,14 @@ function DayCard({ dayKey, matches, ownerFor }) {
       </div>
       <div className="px-3">
         {dayMatches.map((m, i) => (
-          <MatchRow key={i} m={m} ownerFor={ownerFor} />
+          <MatchRow key={i} m={m} ownerFor={ownerFor} pickFor={pickFor} />
         ))}
       </div>
     </div>
   );
 }
 
-function ScheduleView({ schedule, managers }) {
+function ScheduleView({ schedule, managers, draftPicks }) {
   const [showPast, setShowPast] = useState(false);
 
   if (!schedule || schedule.length === 0) {
@@ -675,13 +684,8 @@ function ScheduleView({ schedule, managers }) {
       <p className="text-center text-slate-500 py-12">Schedule unavailable.</p>
     );
   }
-  const ownerMap = {};
-  (managers || []).forEach((m) => {
-    (m.teams || []).forEach((t) => {
-      ownerMap[teamCanon(t.team)] = m.name;
-    });
-  });
-  const ownerFor = (team) => ownerMap[teamCanon(team)] || null;
+  const ownerFor = makeOwnerFor(managers);
+  const pickFor = (team) => draftPicks?.[teamCanon(team)] ?? null;
 
   const byDay = {};
   schedule.forEach((m) => {
@@ -727,6 +731,7 @@ function ScheduleView({ schedule, managers }) {
             dayKey={key}
             matches={byDay[key]}
             ownerFor={ownerFor}
+            pickFor={pickFor}
           />
         ))}
 
@@ -741,6 +746,7 @@ function ScheduleView({ schedule, managers }) {
             dayKey={key}
             matches={byDay[key]}
             ownerFor={ownerFor}
+            pickFor={pickFor}
           />
         ))
       )}
@@ -978,6 +984,7 @@ export default function Footie() {
                 <TodayMatches
                   schedule={data.schedule}
                   managers={data.managers}
+                  draftPicks={data.draftPicks}
                 />
 
                 <div>
@@ -1008,7 +1015,11 @@ export default function Footie() {
             ) : view === "groups" ? (
               <GroupsView groups={data.groups} managers={data.managers} />
             ) : view === "schedule" ? (
-              <ScheduleView schedule={data.schedule} managers={data.managers} />
+              <ScheduleView
+                schedule={data.schedule}
+                managers={data.managers}
+                draftPicks={data.draftPicks}
+              />
             ) : (
               <div className="max-w-xl">
                 <ScoringRules koScoring={data.koScoring} />

@@ -431,6 +431,17 @@ export default async function handler(req, res) {
     ]);
 
     const { managers: roster, koScoring, stage } = parseSheet(sheetText);
+
+    // Snake draft pick number per team (manager order == draft seat order).
+    const draftPicks = {};
+    const seats = roster.length;
+    roster.forEach((m, seat) => {
+      m.teams.forEach((teamName, round) => {
+        const posInRound = round % 2 === 0 ? seat : seats - 1 - seat;
+        draftPicks[canon(teamName)] = round * seats + posInRound + 1;
+      });
+    });
+
     const teamResults = buildTeamResults(groupEvents, koEvents, koScoring);
     const schedule = await buildSchedule(groupEvents);
     const groups = buildGroups(groupEvents);
@@ -514,6 +525,7 @@ export default async function handler(req, res) {
       standings,
       schedule,
       groups,
+      draftPicks,
       koScoring,
       fetched: new Date().toISOString(),
     });
