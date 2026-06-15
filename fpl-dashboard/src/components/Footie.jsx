@@ -597,12 +597,12 @@ function MatchRow({ m, ownerFor, pickFor }) {
               homeWon ? "text-slate-100 font-semibold" : "text-slate-300"
             }`}
           >
-            <span className="truncate">
-              {m.home}
-              {homePick != null && (
-                <span className="text-slate-500 font-normal"> ({homePick})</span>
-              )}
-            </span>
+            <span className="truncate min-w-0">{m.home}</span>
+            {homePick != null && (
+              <span className="shrink-0 text-slate-500 font-normal">
+                ({homePick})
+              </span>
+            )}
             <span className="shrink-0">{flagFor(m.home)}</span>
           </span>
           {homeOwner && (
@@ -629,12 +629,12 @@ function MatchRow({ m, ownerFor, pickFor }) {
             }`}
           >
             <span className="shrink-0">{flagFor(m.away)}</span>
-            <span className="truncate">
-              {m.away}
-              {awayPick != null && (
-                <span className="text-slate-500 font-normal"> ({awayPick})</span>
-              )}
-            </span>
+            <span className="truncate min-w-0">{m.away}</span>
+            {awayPick != null && (
+              <span className="shrink-0 text-slate-500 font-normal">
+                ({awayPick})
+              </span>
+            )}
           </span>
           {awayOwner && (
             <span className="text-[10px] text-cyan-500/80 font-light truncate max-w-full">
