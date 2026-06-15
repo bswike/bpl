@@ -108,6 +108,17 @@ const teamCanon = (team) => {
   return TEAM_ALIASES[n] || n;
 };
 
+// Build a team-name -> owning manager lookup from the roster data.
+function makeOwnerFor(managers) {
+  const map = {};
+  (managers || []).forEach((m) => {
+    (m.teams || []).forEach((t) => {
+      map[teamCanon(t.team)] = m.name;
+    });
+  });
+  return (team) => map[teamCanon(team)] || null;
+}
+
 const RESULT_STYLE = {
   W: { label: "W", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
   D: { label: "D", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
@@ -275,14 +286,17 @@ function buildGameLog(manager) {
   return log.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
-function GameLog({ manager }) {
+function GameLog({ manager, ownerFor }) {
   const log = buildGameLog(manager);
   return (
     <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 divide-y divide-slate-700/40">
       {log.length === 0 ? (
         <p className="text-xs text-slate-500 px-3 py-2">No games played yet.</p>
       ) : (
-        log.map((g, i) => (
+        log.map((g, i) => {
+          const oppOwner =
+            g.kind === "group" && ownerFor ? ownerFor(g.opponent) : null;
+          return (
           <div key={i} className="flex items-center gap-2 px-3 py-1.5 text-xs">
             <span className="w-12 shrink-0 text-slate-500 font-light">
               {fmtDay(g.date)}
@@ -295,6 +309,12 @@ function GameLog({ manager }) {
                 <>
                   {g.home ? "vs " : "@ "}
                   {g.opponent}
+                  {oppOwner && (
+                    <span className="text-cyan-500/80 font-light">
+                      {" "}
+                      · {oppOwner}
+                    </span>
+                  )}
                 </>
               )}
             </span>
@@ -315,7 +335,8 @@ function GameLog({ manager }) {
               </span>
             )}
           </div>
-        ))
+          );
+        })
       )}
     </div>
   );
@@ -385,7 +406,7 @@ function SquadTeams({ manager }) {
   );
 }
 
-function ManagerRow({ manager, rank }) {
+function ManagerRow({ manager, rank, ownerFor }) {
   const [open, setOpen] = useState(false);
   const total = (manager.gsPoints || 0) + (manager.koPoints || 0);
 
@@ -441,7 +462,7 @@ function ManagerRow({ manager, rank }) {
             <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">
               Results so far
             </div>
-            <GameLog manager={manager} />
+            <GameLog manager={manager} ownerFor={ownerFor} />
           </div>
         </div>
       )}
@@ -965,6 +986,7 @@ export default function Footie() {
                           key={m.name}
                           manager={m}
                           rank={rankByName[m.name]}
+                          ownerFor={makeOwnerFor(data.managers)}
                         />
                       ))}
                   </div>
