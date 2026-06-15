@@ -339,6 +339,80 @@ async function buildSchedule(groupEvents) {
   return matches.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
+// ESPN-style group tables computed from completed group matches.
+function buildGroups(groupEvents) {
+  const groups = {};
+  const ensure = (letter, c) => {
+    const g = (groups[letter] = groups[letter] || {});
+    const key = canon(c.team.displayName);
+    return (g[key] = g[key] || {
+      team: c.team.displayName,
+      abbr: c.team.abbreviation || "",
+      canon: key,
+      played: 0,
+      w: 0,
+      d: 0,
+      l: 0,
+      gf: 0,
+      ga: 0,
+      pts: 0,
+    });
+  };
+
+  for (const e of groupEvents) {
+    const comp = e.competitions?.[0];
+    if (!comp) continue;
+    const note = comp.altGameNote || "";
+    const m = note.match(/Group\s+([A-Z])/i);
+    const letter = m ? m[1].toUpperCase() : "?";
+    const cs = comp.competitors || [];
+    if (cs.length < 2) continue;
+    const a = cs[0];
+    const b = cs[1];
+    const ta = ensure(letter, a);
+    const tb = ensure(letter, b);
+    if (comp.status?.type?.state === "post") {
+      const as = Number(a.score) || 0;
+      const bs = Number(b.score) || 0;
+      ta.played++;
+      tb.played++;
+      ta.gf += as;
+      ta.ga += bs;
+      tb.gf += bs;
+      tb.ga += as;
+      if (a.winner === true) {
+        ta.w++;
+        ta.pts += 3;
+        tb.l++;
+      } else if (b.winner === true) {
+        tb.w++;
+        tb.pts += 3;
+        ta.l++;
+      } else {
+        ta.d++;
+        tb.d++;
+        ta.pts++;
+        tb.pts++;
+      }
+    }
+  }
+
+  return Object.keys(groups)
+    .sort()
+    .map((letter) => ({
+      group: letter,
+      teams: Object.values(groups[letter])
+        .map((t) => ({ ...t, gd: t.gf - t.ga }))
+        .sort(
+          (x, y) =>
+            y.pts - x.pts ||
+            y.gd - x.gd ||
+            y.gf - x.gf ||
+            x.team.localeCompare(y.team)
+        ),
+    }));
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -359,6 +433,7 @@ export default async function handler(req, res) {
     const { managers: roster, koScoring, stage } = parseSheet(sheetText);
     const teamResults = buildTeamResults(groupEvents, koEvents, koScoring);
     const schedule = await buildSchedule(groupEvents);
+    const groups = buildGroups(groupEvents);
 
     const managers = roster.map((m) => {
       const teams = m.teams.map((teamName) => {
@@ -438,6 +513,7 @@ export default async function handler(req, res) {
       managers,
       standings,
       schedule,
+      groups,
       koScoring,
       fetched: new Date().toISOString(),
     });

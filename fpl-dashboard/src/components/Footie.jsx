@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Users,
   Lock,
+  LayoutGrid,
 } from "lucide-react";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -713,9 +714,122 @@ function ScheduleView({ schedule, managers }) {
   );
 }
 
+function GroupTable({ group, ownerFor }) {
+  return (
+    <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-700/60">
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-cyan-400 text-slate-900 text-xs font-bold">
+          {group.group}
+        </span>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
+          Group {group.group}
+        </h3>
+      </div>
+      <div className="overflow-x-auto overscroll-x-contain">
+        <table className="w-full text-xs min-w-[360px]">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-wider text-slate-500">
+              <th className="text-left font-medium py-2 pl-3 pr-2">Team</th>
+              <th className="font-medium px-1.5 text-center">P</th>
+              <th className="font-medium px-1.5 text-center">W</th>
+              <th className="font-medium px-1.5 text-center">D</th>
+              <th className="font-medium px-1.5 text-center">L</th>
+              <th className="font-medium px-1.5 text-center">GF</th>
+              <th className="font-medium px-1.5 text-center">GA</th>
+              <th className="font-medium px-1.5 text-center">GD</th>
+              <th className="font-medium pl-1.5 pr-3 text-center">Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {group.teams.map((t, i) => {
+              const owner = ownerFor(t.team);
+              const advancing = i < 2;
+              return (
+                <tr
+                  key={t.canon}
+                  className={`border-t border-slate-700/40 ${
+                    advancing ? "bg-emerald-500/5" : ""
+                  }`}
+                >
+                  <td className="py-1.5 pl-3 pr-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className={`w-4 text-center text-[10px] font-mono shrink-0 ${
+                          advancing ? "text-emerald-400" : "text-slate-500"
+                        }`}
+                      >
+                        {i + 1}
+                      </span>
+                      <span className="shrink-0">{flagFor(t.team)}</span>
+                      <div className="min-w-0">
+                        <div className="text-slate-200 truncate leading-tight">
+                          {t.team}
+                        </div>
+                        {owner && (
+                          <div className="text-[10px] text-cyan-500/80 font-light truncate leading-tight">
+                            {owner}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-1.5 text-center text-slate-400">
+                    {t.played}
+                  </td>
+                  <td className="px-1.5 text-center text-slate-300">{t.w}</td>
+                  <td className="px-1.5 text-center text-slate-300">{t.d}</td>
+                  <td className="px-1.5 text-center text-slate-300">{t.l}</td>
+                  <td className="px-1.5 text-center text-slate-400">{t.gf}</td>
+                  <td className="px-1.5 text-center text-slate-400">{t.ga}</td>
+                  <td className="px-1.5 text-center text-slate-300">
+                    {t.gd > 0 ? `+${t.gd}` : t.gd}
+                  </td>
+                  <td className="pl-1.5 pr-3 text-center font-mono font-bold text-cyan-400">
+                    {t.pts}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function GroupsView({ groups, managers }) {
+  if (!groups || groups.length === 0) {
+    return (
+      <p className="text-center text-slate-500 py-12">Groups unavailable.</p>
+    );
+  }
+  const ownerMap = {};
+  (managers || []).forEach((m) => {
+    (m.teams || []).forEach((t) => {
+      ownerMap[teamCanon(t.team)] = m.name;
+    });
+  });
+  const ownerFor = (team) => ownerMap[teamCanon(team)] || null;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] text-slate-600">
+        <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/40 align-middle mr-1" />
+        Top 2 of each group advance · sorted by points, then goal difference.
+      </p>
+      <div className="grid lg:grid-cols-2 gap-4">
+        {groups.map((g) => (
+          <GroupTable key={g.group} group={g} ownerFor={ownerFor} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Tabs({ view, setView }) {
   const tabs = [
     { id: "pool", label: "Pool", icon: Users },
+    { id: "groups", label: "Groups", icon: LayoutGrid },
     { id: "schedule", label: "Schedule", icon: CalendarDays },
     { id: "scoring", label: "Scoring", icon: Globe },
   ];
@@ -856,6 +970,8 @@ export default function Footie() {
                   </div>
                 </div>
               </div>
+            ) : view === "groups" ? (
+              <GroupsView groups={data.groups} managers={data.managers} />
             ) : view === "schedule" ? (
               <ScheduleView schedule={data.schedule} managers={data.managers} />
             ) : (
