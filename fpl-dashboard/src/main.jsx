@@ -13,11 +13,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<App />} />
+        <Route path="/" element={<Footie />} />
+        <Route path="/footie" element={<Footie />} />
+        <Route path="/fpl" element={<App />} />
         <Route path="/calcutta" element={<Calcutta />} />
         <Route path="/golf" element={<GolfApp />} />
         <Route path="/masters" element={<MastersCalcutta />} />
-        <Route path="/footie" element={<Footie />} />
       </Routes>
     </BrowserRouter>
     <Analytics />

@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
 import {
   RefreshCw,
-  ChevronLeft,
   ChevronDown,
   Globe,
   CalendarDays,
@@ -395,7 +393,7 @@ function ManagerRow({ manager, rank }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-slate-700/20 transition-colors"
+        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-700/20 transition-colors"
       >
         {rank != null && (
           <span
@@ -517,7 +515,7 @@ function OddsLine({ m }) {
     }
   });
   return (
-    <div className="flex items-center justify-center gap-3 mt-1 pl-12 text-[10px]">
+    <div className="flex items-center justify-center gap-3 mt-0.5 pl-12 text-[10px]">
       {m.odds.locked && (
         <Lock size={9} className="text-slate-600 shrink-0" title="Final odds" />
       )}
@@ -546,7 +544,7 @@ function MatchRow({ m, ownerFor }) {
   const homeOwner = ownerFor(m.home);
   const awayOwner = ownerFor(m.away);
   return (
-    <div className="py-2 border-t border-slate-700/30 first:border-t-0">
+    <div className="py-1.5 border-t border-slate-700/30 first:border-t-0">
       <div className="flex items-center gap-2 text-xs">
         <span className="w-12 shrink-0 text-right leading-tight">
           {finished ? (
@@ -617,7 +615,7 @@ function DayCard({ dayKey, matches, ownerFor }) {
   );
   return (
     <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-700/60">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700/60">
         <h3 className="text-sm font-bold text-slate-100">
           {dayHeading(dayKey)}
         </h3>
@@ -666,7 +664,7 @@ function ScheduleView({ schedule, managers }) {
   const upcomingDays = days.filter((d) => d >= todayKey);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <p className="text-[11px] text-slate-600">
         Moneyline odds (DraftKings) · favorite highlighted · 🔒 = final odds ·
         letter = group.
@@ -722,7 +720,7 @@ function Tabs({ view, setView }) {
     { id: "scoring", label: "Scoring", icon: Globe },
   ];
   return (
-    <div className="inline-flex p-1 bg-slate-800/60 border border-slate-700/60 rounded-xl mb-6">
+    <div className="inline-flex p-1 bg-slate-800/60 border border-slate-700/60 rounded-xl mb-4">
       {tabs.map((t) => {
         const Icon = t.icon;
         const active = view === t.id;
@@ -785,40 +783,35 @@ export default function Footie() {
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-slate-900 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+        <div className="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-cyan-400 transition-colors mb-1"
-            >
-              <ChevronLeft size={14} /> Home
-            </Link>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
-              <span>🏆</span> {data?.title || "World Cup Pool"}
+            <h1 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2 leading-tight">
+              <span>🏆</span>
+              <span className="truncate">{data?.title || "World Cup Pool"}</span>
               {data?.live && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-rose-400 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded">
+                <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-rose-400 bg-rose-500/15 border border-rose-500/30 px-1.5 py-0.5 rounded shrink-0">
                   <span className="animate-pulse inline-block w-1.5 h-1.5 rounded-full bg-rose-400" />
                   Live
                 </span>
               )}
             </h1>
-            <p className="text-xs text-slate-500">
-              {data?.stage || "Group Stage"} · scores auto-updated from ESPN
+            <p className="text-[10px] text-slate-500 truncate">
+              {data?.stage || "Group Stage"} · auto-updated from ESPN
             </p>
           </div>
           <button
             type="button"
             onClick={() => load(true)}
             disabled={refreshing}
-            className="inline-flex items-center gap-1.5 text-sm bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-lg transition-colors disabled:opacity-60 shrink-0"
+            className="inline-flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-60 shrink-0"
           >
-            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+            <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6">
+      <main className="max-w-5xl mx-auto px-4 py-4">
         {loading ? (
           <div className="py-24">
             <LoadingSpinner size="lg" message="Loading pool..." />
@@ -839,7 +832,7 @@ export default function Footie() {
             <Tabs view={view} setView={setView} />
 
             {view === "pool" ? (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <TodayMatches
                   schedule={data.schedule}
                   managers={data.managers}
