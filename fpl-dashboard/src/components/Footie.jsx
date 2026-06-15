@@ -158,6 +158,36 @@ const relDay = (iso) => {
 };
 const fmtRelative = (iso) => `${relDay(iso)}, ${fmtTime(iso)}`;
 
+const localDayKey = (iso) => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+};
+const dayDiffFromToday = (d) => {
+  const now = new Date();
+  const a = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const b = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((a - b) / 86400000);
+};
+// "Today" / "Tomorrow" / weekday this week, else "Monday 6/21".
+const dayHeading = (key) => {
+  const [y, m, dd] = key.split("-").map(Number);
+  const d = new Date(y, m - 1, dd);
+  const diff = dayDiffFromToday(d);
+  const wd = d.toLocaleString("en-US", { weekday: "long" });
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Tomorrow";
+  if (diff >= 2 && diff <= 6) return wd;
+  return `${wd} ${d.getMonth() + 1}/${d.getDate()}`;
+};
+// American moneyline -> implied win probability (for favorite highlighting).
+const mlProb = (ml) => {
+  const n = parseInt(ml, 10);
+  if (Number.isNaN(n)) return 0;
+  return n > 0 ? 100 / (n + 100) : -n / (-n + 100);
+};
+
 function Leaderboard({ standings, managers }) {
   const [openName, setOpenName] = useState(null);
   const leaderTotal = standings.length ? standings[0].total : 0;
@@ -509,6 +539,41 @@ function ScoringRules({ koScoring }) {
   );
 }
 
+function OddsLine({ m }) {
+  if (!m.odds) return null;
+  const items = [
+    { key: "home", label: m.homeAbbr, ml: m.odds.home },
+    { key: "draw", label: "Draw", ml: m.odds.draw },
+    { key: "away", label: m.awayAbbr, ml: m.odds.away },
+  ].filter((o) => o.ml);
+  if (items.length === 0) return null;
+  let favKey = null;
+  let best = -1;
+  items.forEach((o) => {
+    const p = mlProb(o.ml);
+    if (p > best) {
+      best = p;
+      favKey = o.key;
+    }
+  });
+  return (
+    <div className="flex items-center justify-center gap-3 mt-1 pl-12 text-[10px]">
+      {items.map((o) => (
+        <span
+          key={o.key}
+          className={
+            o.key === favKey
+              ? "text-cyan-300 font-semibold"
+              : "text-slate-500"
+          }
+        >
+          {o.label} <span className="font-mono">{o.ml}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function MatchRow({ m, ownerFor }) {
   const finished = m.state === "post";
   const live = m.state === "in";
@@ -518,59 +583,67 @@ function MatchRow({ m, ownerFor }) {
   const homeOwner = ownerFor(m.home);
   const awayOwner = ownerFor(m.away);
   return (
-    <div className="flex items-center gap-2 py-1.5 text-xs border-t border-slate-700/30 first:border-t-0">
-      <span className="w-14 shrink-0 text-slate-500 font-light leading-tight">
-        {finished ? (
-          <span className="text-slate-600">FT</span>
-        ) : live ? (
-          <span className="text-cyan-400 font-medium">{m.detail || "LIVE"}</span>
-        ) : (
-          <>
-            {fmtDay(m.date)}
-            <br />
-            {fmtTime(m.date)}
-          </>
-        )}
-      </span>
-      <div className="flex-1 min-w-0 flex flex-col items-end">
-        <span
-          className={`flex items-center gap-1.5 min-w-0 max-w-full ${
-            homeWon ? "text-slate-100 font-semibold" : "text-slate-400"
-          }`}
-        >
-          <span className="truncate">{m.home}</span>
-          <span className="shrink-0">{flagFor(m.home)}</span>
+    <div className="py-2 border-t border-slate-700/30 first:border-t-0">
+      <div className="flex items-center gap-2 text-xs">
+        <span className="w-12 shrink-0 text-right leading-tight">
+          {finished ? (
+            <span className="text-slate-600">FT</span>
+          ) : live ? (
+            <span className="text-cyan-400 font-medium">
+              {m.detail || "LIVE"}
+            </span>
+          ) : (
+            <span className="text-slate-500 font-light">{fmtTime(m.date)}</span>
+          )}
         </span>
-        {homeOwner && (
-          <span className="text-[10px] text-cyan-500/80 font-light truncate max-w-full">
-            {homeOwner}
+        <div className="flex-1 min-w-0 flex flex-col items-end">
+          <span
+            className={`flex items-center gap-1.5 min-w-0 max-w-full ${
+              homeWon ? "text-slate-100 font-semibold" : "text-slate-300"
+            }`}
+          >
+            <span className="truncate">{m.home}</span>
+            <span className="shrink-0">{flagFor(m.home)}</span>
+          </span>
+          {homeOwner && (
+            <span className="text-[10px] text-cyan-500/80 font-light truncate max-w-full">
+              {homeOwner}
+            </span>
+          )}
+        </div>
+        <span className="w-12 shrink-0 text-center font-mono">
+          {scored ? (
+            <span
+              className={live ? "text-cyan-400 font-bold" : "text-slate-100 font-bold"}
+            >
+              {m.homeScore}–{m.awayScore}
+            </span>
+          ) : (
+            <span className="text-slate-600">v</span>
+          )}
+        </span>
+        <div className="flex-1 min-w-0 flex flex-col items-start">
+          <span
+            className={`flex items-center gap-1.5 min-w-0 max-w-full ${
+              awayWon ? "text-slate-100 font-semibold" : "text-slate-300"
+            }`}
+          >
+            <span className="shrink-0">{flagFor(m.away)}</span>
+            <span className="truncate">{m.away}</span>
+          </span>
+          {awayOwner && (
+            <span className="text-[10px] text-cyan-500/80 font-light truncate max-w-full">
+              {awayOwner}
+            </span>
+          )}
+        </div>
+        {m.group && (
+          <span className="w-7 shrink-0 text-center text-[10px] text-slate-500 font-medium">
+            {m.group}
           </span>
         )}
       </div>
-      <span className="w-12 shrink-0 text-center font-mono">
-        {scored ? (
-          <span className={live ? "text-cyan-400 font-bold" : "text-slate-200 font-bold"}>
-            {m.homeScore}–{m.awayScore}
-          </span>
-        ) : (
-          <span className="text-slate-600">v</span>
-        )}
-      </span>
-      <div className="flex-1 min-w-0 flex flex-col items-start">
-        <span
-          className={`flex items-center gap-1.5 min-w-0 max-w-full ${
-            awayWon ? "text-slate-100 font-semibold" : "text-slate-400"
-          }`}
-        >
-          <span className="shrink-0">{flagFor(m.away)}</span>
-          <span className="truncate">{m.away}</span>
-        </span>
-        {awayOwner && (
-          <span className="text-[10px] text-cyan-500/80 font-light truncate max-w-full">
-            {awayOwner}
-          </span>
-        )}
-      </div>
+      <OddsLine m={m} />
     </div>
   );
 }
@@ -588,28 +661,46 @@ function ScheduleView({ schedule, managers }) {
     });
   });
   const ownerFor = (team) => ownerMap[teamCanon(team)] || null;
+
+  const byDay = {};
+  schedule.forEach((m) => {
+    const k = localDayKey(m.date);
+    (byDay[k] = byDay[k] || []).push(m);
+  });
+  const days = Object.keys(byDay).sort();
+
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {schedule.map((g) => (
-        <div
-          key={g.group}
-          className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-cyan-400 text-slate-900 text-xs font-bold">
-              {g.group}
-            </span>
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
-              Group {g.group}
-            </h3>
+    <div className="space-y-4">
+      <p className="text-[11px] text-slate-600">
+        Moneyline odds (DraftKings) shown for upcoming matches · favorite
+        highlighted · letter = group.
+      </p>
+      {days.map((key) => {
+        const dayMatches = byDay[key].sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        );
+        return (
+          <div
+            key={key}
+            className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden"
+          >
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-700/60">
+              <h3 className="text-sm font-bold text-slate-100">
+                {dayHeading(key)}
+              </h3>
+              <span className="text-[11px] text-slate-500">
+                {dayMatches.length}{" "}
+                {dayMatches.length === 1 ? "match" : "matches"}
+              </span>
+            </div>
+            <div className="px-3">
+              {dayMatches.map((m, i) => (
+                <MatchRow key={i} m={m} ownerFor={ownerFor} />
+              ))}
+            </div>
           </div>
-          <div>
-            {g.matches.map((m, i) => (
-              <MatchRow key={i} m={m} ownerFor={ownerFor} />
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

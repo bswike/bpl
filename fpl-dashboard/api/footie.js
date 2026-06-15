@@ -236,38 +236,59 @@ function buildTeamResults(groupEvents, koEvents, koScoring) {
   return map;
 }
 
-// Group-stage schedule grouped by group letter (A–L), each match distilled for the UI.
+// Normalize an American moneyline to a signed string (e.g. 340 -> "+340").
+function fmtMl(v) {
+  if (v == null || v === "") return null;
+  const s = String(v).trim();
+  if (s.startsWith("+") || s.startsWith("-")) return s;
+  const n = Number(s);
+  if (Number.isNaN(n)) return null;
+  return n > 0 ? `+${n}` : `${n}`;
+}
+
+// Pull moneyline (home / draw / away) from the scoreboard odds block, if present.
+function extractOdds(comp) {
+  const o = (comp.odds || []).find(Boolean);
+  if (!o) return null;
+  const ml = o.moneyline;
+  const pick = (side) =>
+    fmtMl(side?.close?.odds ?? side?.open?.odds ?? side?.moneyLine);
+  const home = ml ? pick(ml.home) : null;
+  const away = ml ? pick(ml.away) : null;
+  const draw = (ml && pick(ml.draw)) || fmtMl(o.drawOdds?.moneyLine);
+  if (!home && !away && !draw) return null;
+  return { home, draw, away, provider: o.provider?.name || null };
+}
+
+// Flat, date-sorted group-stage schedule; the UI groups it by day.
 function buildSchedule(groupEvents) {
-  const groups = {};
+  const matches = [];
   for (const e of groupEvents) {
     const comp = e.competitions?.[0];
     if (!comp) continue;
     const note = comp.altGameNote || "";
-    const m = note.match(/Group\s+([A-Z])/i);
-    const letter = m ? m[1].toUpperCase() : "?";
+    const gm = note.match(/Group\s+([A-Z])/i);
+    const letter = gm ? gm[1].toUpperCase() : "";
     const cs = comp.competitors || [];
     if (cs.length < 2) continue;
     const home = cs.find((c) => c.homeAway === "home") || cs[0];
     const away = cs.find((c) => c.homeAway === "away") || cs[1];
     const state = comp.status?.type?.state || "pre";
-    (groups[letter] = groups[letter] || []).push({
+    matches.push({
       date: e.date,
       state,
       detail: comp.status?.type?.shortDetail || "",
+      group: letter,
       home: home.team.displayName,
       homeAbbr: home.team.abbreviation || "",
       away: away.team.displayName,
       awayAbbr: away.team.abbreviation || "",
       homeScore: state !== "pre" ? Number(home.score) || 0 : null,
       awayScore: state !== "pre" ? Number(away.score) || 0 : null,
+      odds: state === "pre" ? extractOdds(comp) : null,
     });
   }
-  return Object.keys(groups)
-    .sort()
-    .map((letter) => ({
-      group: letter,
-      matches: groups[letter].sort((a, b) => new Date(a.date) - new Date(b.date)),
-    }));
+  return matches.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
 export default async function handler(req, res) {
