@@ -296,16 +296,14 @@ function GameLog({ manager, ownerFor, pickFor }) {
         log.map((g, i) => {
           const oppOwner =
             g.kind === "group" && ownerFor ? ownerFor(g.opponent) : null;
-          const pick = pickFor ? pickFor(g.team) : null;
+          const oppPick =
+            g.kind === "group" && pickFor ? pickFor(g.opponent) : null;
           return (
           <div key={i} className="flex items-center gap-2 px-3 py-1.5 text-xs">
             <span className="w-12 shrink-0 text-slate-500 font-light">
               {fmtDay(g.date)}
             </span>
             <span className="w-5 text-center shrink-0">{flagFor(g.team)}</span>
-            {pick != null && (
-              <span className="shrink-0 text-slate-600 font-light">({pick})</span>
-            )}
             <span className="flex-1 min-w-0 truncate text-slate-300">
               {g.kind === "ko" ? (
                 <span className="text-cyan-300">{g.label}</span>
@@ -313,6 +311,12 @@ function GameLog({ manager, ownerFor, pickFor }) {
                 <>
                   {g.home ? "vs " : "@ "}
                   {g.opponent}
+                  {oppPick != null && (
+                    <span className="text-slate-600 font-light">
+                      {" "}
+                      ({oppPick})
+                    </span>
+                  )}
                   {oppOwner && (
                     <span className="text-cyan-500/80 font-light">
                       {" "}
