@@ -204,13 +204,6 @@ const dayHeading = (key) => {
   if (diff >= 2 && diff <= 6) return wd;
   return `${wd} ${d.getMonth() + 1}/${d.getDate()}`;
 };
-// American moneyline -> implied win probability (for favorite highlighting).
-const mlProb = (ml) => {
-  const n = parseInt(ml, 10);
-  if (Number.isNaN(n)) return 0;
-  return n > 0 ? 100 / (n + 100) : -n / (-n + 100);
-};
-
 function TodayMatches({ schedule, managers, draftPicks }) {
   const ownerFor = makeOwnerFor(managers);
   const pickFor = (team) => draftPicks?.[teamCanon(team)] ?? null;
@@ -542,26 +535,17 @@ function OddsLine({ m }) {
   ].filter((o) => o.ml);
   if (items.length === 0) return null;
 
+  // Only highlight once a match is live/finished, marking the actual outcome.
+  // Upcoming matches show odds with no highlight.
   let favKey = null;
   const scored = m.state === "post" || m.state === "in";
   if (scored && m.homeScore != null && m.awayScore != null) {
-    // Highlight the outcome that actually happened (or is happening).
     favKey =
       m.homeScore > m.awayScore
         ? "home"
         : m.awayScore > m.homeScore
         ? "away"
         : "draw";
-  } else {
-    // Upcoming: highlight the betting favorite.
-    let best = -1;
-    items.forEach((o) => {
-      const p = mlProb(o.ml);
-      if (p > best) {
-        best = p;
-        favKey = o.key;
-      }
-    });
   }
   return (
     <div className="flex items-center justify-center gap-3 mt-0.5 pl-12 text-[10px]">
