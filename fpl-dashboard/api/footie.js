@@ -962,25 +962,29 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
     return `${aAbbr} & ${bAbbr} draw`;
   };
 
-  // Points-only check of what winning this match does for the group title.
+  // Points-only check of what a given result does for the group title.
+  // res: 0 = win, 1 = draw, 2 = loss (from this team's perspective).
   // Tie-aware: if a rival can finish level on points, the winner is a goal-
   // difference call (which the nominal-scoreline sim can't settle), so we say
   // so rather than falsely promising top spot. Final matchday only (1 game left).
-  const winTopSeed = (i, slot) => {
+  const seedFor = (i, slot, res) => {
     const canonT = slot === "a" ? rem[i].a : rem[i].b;
     if (remCount[canonT] !== 1) return { kind: "na" };
     const grp = rem[i].group;
     const oppCanon = slot === "a" ? rem[i].b : rem[i].a;
-    const tWin = base[canonT].pts + 3;
+    const tPts = base[canonT].pts + (res === 0 ? 3 : res === 1 ? 1 : 0);
     let above = 0;
     const tie = [];
     for (const u of groupTeams[grp]) {
       if (u === canonT) continue;
-      // If T wins, its opponent can't take points from this game.
+      // The opponent's points are pinned by this result; everyone else can
+      // still win their own remaining match.
       const uMax =
-        u === oppCanon ? base[u].pts : base[u].pts + 3 * (remCount[u] || 0);
-      if (uMax > tWin) above++;
-      else if (uMax === tWin) tie.push(abbrOf[u] || u);
+        u === oppCanon
+          ? base[u].pts + (res === 0 ? 0 : res === 1 ? 1 : 3)
+          : base[u].pts + 3 * (remCount[u] || 0);
+      if (uMax > tPts) above++;
+      else if (uMax === tPts) tie.push(abbrOf[u] || u);
     }
     if (above === 0 && tie.length === 0) return { kind: "guarantee" };
     if (above === 0) return { kind: "tie", tie };
@@ -1051,7 +1055,9 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
       ...cls.Draw.tiers,
       ...cls.Lose.tiers,
     ]);
-    const winTop = winTopSeed(i, slot);
+    const sWin = seedFor(i, slot, 0);
+    const sDraw = seedFor(i, slot, 1);
+    const sLoss = seedFor(i, slot, 2);
 
     let need;
     let tone;
@@ -1059,10 +1065,14 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
     const eliminated = st === "out";
     if (clinched) {
       tone = "good";
-      if (winTop.kind === "guarantee") {
+      if (sLoss.kind === "guarantee") {
+        need = "Group already won";
+      } else if (sDraw.kind === "guarantee") {
+        need = "Win or draw to win the group";
+      } else if (sWin.kind === "guarantee") {
         need = "Win to win the group";
-      } else if (winTop.kind === "tie") {
-        need = `Through — top spot on GD vs ${winTop.tie.join("/")}`;
+      } else if (sWin.kind === "tie") {
+        need = `Through — top spot on GD vs ${sWin.tie.join("/")}`;
       } else if (allTiers.has("1st")) {
         need = "Through — 1st still in reach";
       } else {
@@ -1085,20 +1095,25 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
       tone = "warn";
     }
 
-    // Override the "Win" line when the group title is a goal-difference call,
-    // so the breakdown doesn't claim a win guarantees top spot.
-    let winLine = lineFor("Win");
-    if (winLine && safe("Win")) {
-      if (winTop.kind === "guarantee") winLine = "Win → win the group";
-      else if (winTop.kind === "tie")
-        winLine =
-          winTop.tie.length === 1
-            ? `Win → 1st or 2nd, decided on GD vs ${winTop.tie[0]}`
-            : `Win → top spot decided on goal difference`;
-    }
+    // Override the result lines with the points-based group-title verdict so
+    // the breakdown is accurate about top spot (incl. goal-difference ties).
+    const seedLine = (label, c, s) => {
+      let l = lineFor(label);
+      if (!l || !safe(label)) return l;
+      if (s.kind === "guarantee") return `${label} → win the group`;
+      if (s.kind === "tie")
+        return s.tie.length === 1
+          ? `${label} → 1st or 2nd, decided on GD vs ${s.tie[0]}`
+          : `${label} → top spot decided on goal difference`;
+      return l;
+    };
     const detail = eliminated
       ? []
-      : [winLine, lineFor("Draw"), lineFor("Lose")].filter(Boolean);
+      : [
+          seedLine("Win", cls.Win, sWin),
+          seedLine("Draw", cls.Draw, sDraw),
+          seedLine("Lose", cls.Lose, sLoss),
+        ].filter(Boolean);
 
     const varies = !(
       setsEqual(cls.Win.tiers, cls.Draw.tiers) &&
