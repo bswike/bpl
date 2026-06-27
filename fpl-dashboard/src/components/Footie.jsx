@@ -872,20 +872,25 @@ function GroupTable({ group, ownerFor, pickFor }) {
           <tbody>
             {group.teams.map((t, i) => {
               const owner = ownerFor(t.team);
-              const advancing = t.advance === "W" || t.advance === "RU";
-              const thirdQ = t.advance === "3Q";
               const out = t.eliminated;
+              // Top 2 advance; a 3rd-place team is green only once clinched,
+              // amber while still on the bubble.
+              const advancing = t.pos === 1 || t.pos === 2;
+              const thirdIn = t.pos === 3 && t.status === "in";
+              const thirdBubble = t.pos === 3 && t.status === "bubble";
+              const green = !out && (advancing || thirdIn);
+              const amber = !out && thirdBubble;
               const pick = pickFor ? pickFor(t.team) : null;
               return (
                 <tr
                   key={t.canon}
                   className={`border-t border-slate-700/40 ${
-                    advancing
-                      ? "bg-emerald-500/5"
-                      : thirdQ
-                      ? "bg-amber-500/5"
-                      : out
+                    out
                       ? "bg-rose-500/5"
+                      : green
+                      ? "bg-emerald-500/5"
+                      : amber
+                      ? "bg-amber-500/5"
                       : ""
                   }`}
                 >
@@ -893,12 +898,12 @@ function GroupTable({ group, ownerFor, pickFor }) {
                     <div className="flex items-center gap-2 min-w-0">
                       <span
                         className={`w-4 text-center text-[10px] font-mono shrink-0 ${
-                          advancing
-                            ? "text-emerald-400"
-                            : thirdQ
-                            ? "text-amber-400"
-                            : out
+                          out
                             ? "text-rose-400/70"
+                            : green
+                            ? "text-emerald-400"
+                            : amber
+                            ? "text-amber-400"
                             : "text-slate-500"
                         }`}
                       >
@@ -921,23 +926,17 @@ function GroupTable({ group, ownerFor, pickFor }) {
                               ({pick})
                             </span>
                           )}
-                          {t.advance ? (
-                            <span
-                              className={`shrink-0 text-[8px] font-bold px-1 py-px rounded ${
-                                advancing
-                                  ? "bg-emerald-500/20 text-emerald-300"
-                                  : "bg-amber-500/20 text-amber-300"
-                              }`}
-                            >
-                              {t.advance === "W"
-                                ? "1st"
-                                : t.advance === "RU"
-                                ? "2nd"
-                                : "3rd ✓"}
-                            </span>
-                          ) : out ? (
+                          {out ? (
                             <span className="shrink-0 text-[8px] font-bold px-1 py-px rounded bg-rose-500/20 text-rose-300">
                               OUT
+                            </span>
+                          ) : green ? (
+                            <span className="shrink-0 text-[8px] font-bold px-1 py-px rounded bg-emerald-500/20 text-emerald-300">
+                              {t.pos === 1 ? "1st" : t.pos === 2 ? "2nd" : "3rd ✓"}
+                            </span>
+                          ) : amber ? (
+                            <span className="shrink-0 text-[8px] font-bold px-1 py-px rounded bg-amber-500/20 text-amber-300">
+                              3rd
                             </span>
                           ) : null}
                         </div>
