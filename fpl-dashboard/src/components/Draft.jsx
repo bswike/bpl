@@ -237,7 +237,7 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPi
       </span>
       {known ? (
         <span
-          className={`shrink-0 text-[10px] leading-none ${
+          className={`flex-1 min-w-0 truncate text-[11px] leading-none ${
             isWinner
               ? locked
                 ? "text-emerald-100 font-bold"
@@ -246,7 +246,7 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPi
           }`}
           title={slot.team}
         >
-          {slot.abbr || slot.team}
+          {slot.team}
         </span>
       ) : (
         <span
@@ -258,7 +258,6 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPi
       )}
       {correct === true && <Check className="w-3 h-3 text-emerald-400 shrink-0" />}
       {correct === false && <X className="w-3 h-3 text-rose-400 shrink-0" />}
-      <span className="flex-1" />
       {score != null && (
         <span
           className={`shrink-0 font-mono text-[10px] leading-none ${
@@ -393,7 +392,7 @@ function BracketGrid({ data, picks, editable, onPick }) {
         <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
           ← swipe sideways for all rounds →
         </div>
-        <div className="flex" style={{ minWidth: 980 }}>
+        <div className="flex" style={{ minWidth: 1200 }}>
           {BR_COLS.map((col, ci) => {
             const order = BR_ORDER[col.key];
             const next = BR_COLS[ci + 1];
@@ -401,7 +400,7 @@ function BracketGrid({ data, picks, editable, onPick }) {
               <div key={col.key} className="flex shrink-0">
                 <div
                   className="flex flex-col shrink-0"
-                  style={{ width: ci === 0 ? 150 : 132 }}
+                  style={{ width: ci === 0 ? 188 : 172 }}
                 >
                   <div className="text-center text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1 h-4">
                     {col.label}
@@ -430,7 +429,7 @@ function BracketGrid({ data, picks, editable, onPick }) {
           })}
 
           {/* Champion + Third place, stacked at the end of the tree */}
-          <div className="flex flex-col shrink-0 pl-2" style={{ width: 158 }}>
+          <div className="flex flex-col shrink-0 pl-2" style={{ width: 180 }}>
             <div className="text-center text-[9px] uppercase tracking-wider text-amber-400/80 font-semibold mb-1 h-4">
               Champion
             </div>
