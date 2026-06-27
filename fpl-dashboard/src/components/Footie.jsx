@@ -1410,13 +1410,27 @@ const BR_COLS = [
   { key: "final", label: "Final" },
 ];
 
-const fmtKoDate = (ymd) => {
+const koDayParts = (ymd) => {
   const [y, mo, d] = (ymd || "").split("-").map(Number);
-  if (!y) return "";
-  return new Date(y, mo - 1, d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  if (!y) return null;
+  const date = new Date(y, mo - 1, d);
+  return { date, diff: dayDiffFromToday(date), md: `${mo}/${d}` };
+};
+// Relative day for a bracket card: "Today", "Tomorrow 6/28", "Friday", "Sat 7/4".
+const koDayLabel = (ymd) => {
+  const p = koDayParts(ymd);
+  if (!p) return "";
+  const { date, diff, md } = p;
+  if (diff === 0) return "Today";
+  if (diff === 1) return `Tomorrow ${md}`;
+  if (diff === -1) return "Yesterday";
+  if (diff >= 2 && diff <= 6)
+    return date.toLocaleString("en-US", { weekday: "long" });
+  return `${date.toLocaleString("en-US", { weekday: "short" })} ${md}`;
+};
+const koIsToday = (ymd) => {
+  const p = koDayParts(ymd);
+  return !!p && p.diff === 0;
 };
 
 // Show the World Cup host-city name instead of the stadium.
@@ -1496,15 +1510,26 @@ function BracketMatch({ m, ownerFor, pickFor, colHeight, count }) {
   const aOwner = m.away.team && ownerFor ? ownerFor(m.away.team) : null;
   const hPick = m.home.team && pickFor ? pickFor(m.home.team) : null;
   const aPick = m.away.team && pickFor ? pickFor(m.away.team) : null;
+  const isToday = koIsToday(m.date);
   return (
     <div
       style={{ minHeight: colHeight ? colHeight / count : undefined }}
       className="flex items-center"
     >
-      <div className="w-full rounded-md border border-slate-700/60 bg-slate-800/50 overflow-hidden">
+      <div
+        className={`w-full rounded-md border overflow-hidden ${
+          isToday
+            ? "border-white/60 bg-slate-800/70 ring-1 ring-white/20"
+            : "border-slate-700/60 bg-slate-800/50"
+        }`}
+      >
         <div className="flex items-center justify-between px-1.5 py-[2px] bg-slate-900/50 border-b border-slate-700/40">
-          <span className="text-[8px] text-slate-500 font-medium truncate">
-            {fmtKoDate(m.date)} · {shortCity(m.city)}
+          <span
+            className={`text-[8px] truncate ${
+              isToday ? "text-white font-bold" : "text-slate-500 font-medium"
+            }`}
+          >
+            {koDayLabel(m.date)} · {shortCity(m.city)}
           </span>
           {live ? (
             <span className="text-[8px] text-cyan-400 font-bold shrink-0 ml-1">
