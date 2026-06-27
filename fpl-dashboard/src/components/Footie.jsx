@@ -345,7 +345,38 @@ function GameLog({ manager, ownerFor, pickFor }) {
   );
 }
 
-function SquadTeams({ manager, pickFor }) {
+const ORDINAL = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
+
+function PlaceBadge({ place }) {
+  if (!place || !place.pos) return null;
+  const adv = place.advance === "W" || place.advance === "RU";
+  const thirdQ = place.advance === "3Q";
+  const cls = place.eliminated
+    ? "bg-rose-500/15 text-rose-300"
+    : adv
+    ? "bg-emerald-500/20 text-emerald-300"
+    : thirdQ
+    ? "bg-amber-500/20 text-amber-300"
+    : "bg-slate-700/60 text-slate-400";
+  const title = place.eliminated
+    ? "Eliminated"
+    : adv
+    ? "Advancing"
+    : thirdQ
+    ? "Advancing (best third)"
+    : "In contention";
+  return (
+    <span
+      title={title}
+      className={`shrink-0 text-[9px] font-bold px-1 py-px rounded ${cls}`}
+    >
+      {place.group}·{ORDINAL[place.pos]}
+      {place.eliminated ? " OUT" : ""}
+    </span>
+  );
+}
+
+function SquadTeams({ manager, pickFor, placeFor }) {
   return (
     <ul className="space-y-2">
       {manager.teams.map((t) => {
@@ -355,6 +386,7 @@ function SquadTeams({ manager, pickFor }) {
         const hasResults = games.some((g) => g.result !== "P" || g.live);
         const ng = t.nextGame;
         const pick = pickFor ? pickFor(t.team) : null;
+        const place = placeFor ? placeFor(t.team) : null;
         return (
           <li key={t.team} className="text-sm">
             <div className="flex items-center gap-2">
@@ -366,12 +398,19 @@ function SquadTeams({ manager, pickFor }) {
                   hasResults ? "text-slate-200" : "text-slate-400"
                 }`}
               >
-                <span className="truncate min-w-0">{t.team}</span>
+                <span
+                  className={`truncate min-w-0 ${
+                    place?.eliminated ? "line-through text-slate-500" : ""
+                  }`}
+                >
+                  {t.team}
+                </span>
                 {pick != null && (
                   <span className="shrink-0 text-slate-500 font-normal">
                     ({pick})
                   </span>
                 )}
+                <PlaceBadge place={place} />
               </span>
               <span className="flex items-center gap-0.5 shrink-0">
                 {games.map((g, i) => (
@@ -415,7 +454,7 @@ function SquadTeams({ manager, pickFor }) {
   );
 }
 
-function ManagerRow({ manager, rank, ownerFor, pickFor }) {
+function ManagerRow({ manager, rank, ownerFor, pickFor, placeFor }) {
   const [open, setOpen] = useState(false);
   const total = (manager.gsPoints || 0) + (manager.koPoints || 0);
 
@@ -466,7 +505,7 @@ function ManagerRow({ manager, rank, ownerFor, pickFor }) {
 
       {open && (
         <div className="px-3 pb-3 pt-1 border-t border-slate-700/40 space-y-3">
-          <SquadTeams manager={manager} pickFor={pickFor} />
+          <SquadTeams manager={manager} pickFor={pickFor} placeFor={placeFor} />
           <div>
             <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">
               Results so far
@@ -759,7 +798,7 @@ function ScheduleView({ schedule, managers, draftPicks }) {
   );
 }
 
-function GroupTable({ group, ownerFor }) {
+function GroupTable({ group, ownerFor, pickFor }) {
   return (
     <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-700/60">
@@ -790,6 +829,8 @@ function GroupTable({ group, ownerFor }) {
               const owner = ownerFor(t.team);
               const advancing = t.advance === "W" || t.advance === "RU";
               const thirdQ = t.advance === "3Q";
+              const out = t.eliminated;
+              const pick = pickFor ? pickFor(t.team) : null;
               return (
                 <tr
                   key={t.canon}
@@ -798,6 +839,8 @@ function GroupTable({ group, ownerFor }) {
                       ? "bg-emerald-500/5"
                       : thirdQ
                       ? "bg-amber-500/5"
+                      : out
+                      ? "bg-rose-500/5"
                       : ""
                   }`}
                 >
@@ -809,16 +852,31 @@ function GroupTable({ group, ownerFor }) {
                             ? "text-emerald-400"
                             : thirdQ
                             ? "text-amber-400"
+                            : out
+                            ? "text-rose-400/70"
                             : "text-slate-500"
                         }`}
                       >
                         {i + 1}
                       </span>
-                      <span className="shrink-0">{flagFor(t.team)}</span>
+                      <span className={`shrink-0 ${out ? "opacity-60" : ""}`}>
+                        {flagFor(t.team)}
+                      </span>
                       <div className="min-w-0">
                         <div className="text-slate-200 truncate leading-tight flex items-center gap-1">
-                          <span className="truncate">{t.team}</span>
-                          {t.advance && (
+                          <span
+                            className={`truncate ${
+                              out ? "line-through text-slate-500" : ""
+                            }`}
+                          >
+                            {t.team}
+                          </span>
+                          {pick != null && (
+                            <span className="shrink-0 text-[10px] text-slate-500 font-normal">
+                              ({pick})
+                            </span>
+                          )}
+                          {t.advance ? (
                             <span
                               className={`shrink-0 text-[8px] font-bold px-1 py-px rounded ${
                                 advancing
@@ -832,7 +890,11 @@ function GroupTable({ group, ownerFor }) {
                                 ? "2nd"
                                 : "3rd ✓"}
                             </span>
-                          )}
+                          ) : out ? (
+                            <span className="shrink-0 text-[8px] font-bold px-1 py-px rounded bg-rose-500/20 text-rose-300">
+                              OUT
+                            </span>
+                          ) : null}
                         </div>
                         {owner && (
                           <div className="text-[10px] text-cyan-500/80 font-light truncate leading-tight">
@@ -939,7 +1001,7 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
   );
 }
 
-function GroupsView({ groups, managers, thirdPlace }) {
+function GroupsView({ groups, managers, thirdPlace, draftPicks }) {
   if (!groups || groups.length === 0) {
     return (
       <p className="text-center text-slate-500 py-12">Groups unavailable.</p>
@@ -952,6 +1014,7 @@ function GroupsView({ groups, managers, thirdPlace }) {
     });
   });
   const ownerFor = (team) => ownerMap[teamCanon(team)] || null;
+  const pickFor = (team) => draftPicks?.[teamCanon(team)] ?? null;
 
   return (
     <div className="space-y-3">
@@ -968,7 +1031,12 @@ function GroupsView({ groups, managers, thirdPlace }) {
       </div>
       <div className="grid lg:grid-cols-2 gap-4">
         {groups.map((g) => (
-          <GroupTable key={g.group} group={g} ownerFor={ownerFor} />
+          <GroupTable
+            key={g.group}
+            group={g}
+            ownerFor={ownerFor}
+            pickFor={pickFor}
+          />
         ))}
       </div>
       <ThirdPlaceRace ranking={thirdPlace?.ranking} ownerFor={ownerFor} />
@@ -1292,6 +1360,20 @@ export default function Footie() {
     });
   }
 
+  const placeByCanon = {};
+  (data?.groups || []).forEach((g) => {
+    g.teams.forEach((t) => {
+      placeByCanon[t.canon] = {
+        group: g.group,
+        pos: t.pos,
+        advance: t.advance,
+        eliminated: t.eliminated,
+        complete: g.complete,
+      };
+    });
+  });
+  const placeFor = (team) => placeByCanon[teamCanon(team)] || null;
+
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-slate-900 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
@@ -1368,6 +1450,7 @@ export default function Footie() {
                           pickFor={(team) =>
                             data.draftPicks?.[teamCanon(team)] ?? null
                           }
+                          placeFor={placeFor}
                         />
                       ))}
                   </div>
@@ -1378,6 +1461,7 @@ export default function Footie() {
                 groups={data.groups}
                 managers={data.managers}
                 thirdPlace={data.thirdPlace}
+                draftPicks={data.draftPicks}
               />
             ) : view === "bracket" ? (
               <BracketView

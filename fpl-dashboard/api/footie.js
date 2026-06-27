@@ -702,12 +702,19 @@ export default async function handler(req, res) {
     // Who advances: top 2 per group + the best 8 third-placed teams.
     const thirdInfo = computeThirdPlace(groups);
     const qualifyingThirds = new Set(thirdInfo.qualifierGroups);
+    const allGroupsComplete = groups.every((g) => g.complete);
     groups.forEach((g) => {
       g.teams.forEach((t) => {
         if (t.pos === 1) t.advance = "W";
         else if (t.pos === 2) t.advance = "RU";
         else if (t.pos === 3 && qualifyingThirds.has(g.group)) t.advance = "3Q";
         else t.advance = null;
+        // Officially out: 4th once their group is done (can't be top 2 or a best
+        // third); a non-qualifying 3rd only once every group has finished.
+        if (t.advance) t.eliminated = false;
+        else if (t.pos === 4 && g.complete) t.eliminated = true;
+        else if (t.pos === 3 && allGroupsComplete) t.eliminated = true;
+        else t.eliminated = false;
       });
     });
     const bracket = buildBracket(groups, koEvents, thirdInfo);
