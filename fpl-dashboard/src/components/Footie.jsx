@@ -673,29 +673,29 @@ const STAKE_TONE = {
   neutral: "text-slate-400",
 };
 
-const probTone = (p) =>
-  p == null
-    ? "text-slate-500"
-    : p >= 0.8
-    ? "text-emerald-400"
+const probPill = (p) =>
+  p >= 0.8
+    ? "bg-emerald-500/15 text-emerald-300"
     : p >= 0.35
-    ? "text-amber-400"
-    : "text-rose-400/80";
+    ? "bg-amber-500/15 text-amber-300"
+    : "bg-rose-500/15 text-rose-300";
 
 function StakeTeamRow({ abbr, note }) {
   const pct = note.prob == null ? null : Math.round(note.prob * 100);
   return (
     <div className="flex items-center gap-1.5 text-[10px] leading-tight py-0.5">
       <span className="text-slate-300 font-semibold w-9 shrink-0">{abbr}</span>
-      <span className={STAKE_TONE[note.tone] || STAKE_TONE.neutral}>
+      <span className={`min-w-0 ${STAKE_TONE[note.tone] || STAKE_TONE.neutral}`}>
         {note.need}
       </span>
-      {pct != null && (
+      {pct != null && !note.eliminated && (
         <span
-          className={`ml-auto shrink-0 font-mono ${probTone(note.prob)}`}
-          title="Chance to advance (from Vegas odds)"
+          className={`ml-auto shrink-0 px-1 py-px rounded font-mono ${probPill(
+            note.prob
+          )}`}
+          title="Model's chance this team reaches the knockout round, from live Vegas odds"
         >
-          {pct}%
+          {pct}% to advance
         </span>
       )}
     </div>
