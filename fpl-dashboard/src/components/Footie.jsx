@@ -349,37 +349,35 @@ const ORDINAL = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
 
 function PlaceBadge({ place }) {
   if (!place || !place.pos) return null;
-  const out = place.eliminated;
-  // Top 2 advance; a 3rd-place team turns green only once it has clinched a
-  // best-third spot, amber while still on the bubble.
-  const advancing = place.pos === 1 || place.pos === 2;
-  const thirdIn = place.pos === 3 && place.status === "in";
-  const thirdBubble = place.pos === 3 && place.status === "bubble";
-  const green = !out && (advancing || thirdIn);
-  const amber = !out && thirdBubble;
+  // Colour by clinch status, not current position: leading a group after two
+  // games isn't safe if a final-day loss could drop the team to 3rd or worse.
+  const out = place.status === "out" || place.eliminated;
+  const green = place.status === "in";
+  const amber = !out && !green;
+  const locked = place.posBest != null && place.posBest === place.posWorst;
+  const range =
+    place.posBest == null
+      ? ORDINAL[place.pos]
+      : locked
+      ? ORDINAL[place.posBest]
+      : `${ORDINAL[place.posBest]}–${ORDINAL[place.posWorst]}`;
   const cls = out
     ? "bg-rose-500/15 text-rose-300"
     : green
     ? "bg-emerald-500/20 text-emerald-300"
-    : amber
-    ? "bg-amber-500/20 text-amber-300"
-    : "bg-slate-700/60 text-slate-400";
+    : "bg-amber-500/20 text-amber-300";
   const title = out
     ? "Eliminated"
     : green
-    ? thirdIn
-      ? "Clinched (best third)"
-      : "Advancing"
-    : amber
-    ? "On the bubble (3rd place)"
-    : "In contention";
+    ? "Knockout spot clinched"
+    : `Can still finish ${range}`;
   return (
     <span
       title={title}
-      className={`shrink-0 text-[9px] font-bold px-1 py-px rounded ${cls}`}
+      className={`shrink-0 text-[9px] font-bold px-1 py-px rounded whitespace-nowrap ${cls}`}
     >
-      {place.group}·{ORDINAL[place.pos]}
-      {out ? " OUT" : ""}
+      {place.group}·{out ? "OUT" : range}
+      {green ? " ✓" : ""}
     </span>
   );
 }
@@ -662,6 +660,80 @@ function OddsLine({ m }) {
   );
 }
 
+const STAKES_STYLE = {
+  high: {
+    dot: "bg-emerald-400",
+    label: "text-emerald-300",
+    box: "border-emerald-500/40 bg-emerald-500/[0.06]",
+  },
+  medium: {
+    dot: "bg-amber-400",
+    label: "text-amber-300",
+    box: "border-amber-500/40 bg-amber-500/[0.06]",
+  },
+  low: {
+    dot: "bg-slate-500",
+    label: "text-slate-400",
+    box: "border-slate-700/50 bg-slate-800/30",
+  },
+  dead: {
+    dot: "bg-slate-600",
+    label: "text-slate-500",
+    box: "border-slate-700/40 bg-slate-800/20",
+  },
+};
+
+const STAKE_TONE = {
+  good: "text-emerald-400",
+  warn: "text-amber-400",
+  bad: "text-rose-400/80",
+  neutral: "text-slate-400",
+};
+
+function StakesLine({ m }) {
+  const s = m.stakes;
+  if (!s) return null;
+  const st = STAKES_STYLE[s.level] || STAKES_STYLE.low;
+  const hNote = s.notes?.[teamCanon(m.home)];
+  const aNote = s.notes?.[teamCanon(m.away)];
+  return (
+    <div className={`mt-1 ml-11 mr-0.5 rounded-md border px-2 py-1 ${st.box}`}>
+      <div className="flex items-center gap-1.5">
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${st.dot}`} />
+        <span
+          className={`text-[10px] font-semibold uppercase tracking-wide ${st.label}`}
+        >
+          {s.headline}
+        </span>
+      </div>
+      {(hNote || aNote) && (
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5 pl-3">
+          {hNote && (
+            <span className="text-[10px] leading-tight">
+              <span className="text-slate-300 font-semibold">
+                {m.homeAbbr || m.home}
+              </span>{" "}
+              <span className={STAKE_TONE[hNote.tone] || STAKE_TONE.neutral}>
+                {hNote.text}
+              </span>
+            </span>
+          )}
+          {aNote && (
+            <span className="text-[10px] leading-tight">
+              <span className="text-slate-300 font-semibold">
+                {m.awayAbbr || m.away}
+              </span>{" "}
+              <span className={STAKE_TONE[aNote.tone] || STAKE_TONE.neutral}>
+                {aNote.text}
+              </span>
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MatchRow({ m, ownerFor, pickFor }) {
   const finished = m.state === "post";
   const live = m.state === "in";
@@ -746,6 +818,7 @@ function MatchRow({ m, ownerFor, pickFor }) {
         )}
       </div>
       <OddsLine m={m} />
+      <StakesLine m={m} />
     </div>
   );
 }
@@ -880,15 +953,25 @@ function GroupTable({ group, ownerFor, pickFor }) {
           <tbody>
             {group.teams.map((t, i) => {
               const owner = ownerFor(t.team);
-              const out = t.eliminated;
-              // Top 2 advance; a 3rd-place team is green only once clinched,
-              // amber while still on the bubble.
-              const advancing = t.pos === 1 || t.pos === 2;
-              const thirdIn = t.pos === 3 && t.status === "in";
-              const thirdBubble = t.pos === 3 && t.status === "bubble";
-              const green = !out && (advancing || thirdIn);
-              const amber = !out && thirdBubble;
+              // Colour by clinch status, not current position: a team sitting
+              // 1st after 2 games that could still drop out is amber, not green.
+              const out = t.status === "out";
+              const green = t.status === "in";
+              const amber = !out && !green;
               const pick = pickFor ? pickFor(t.team) : null;
+              // What can still happen to this team's finishing position?
+              const locked = t.posBest != null && t.posBest === t.posWorst;
+              const range =
+                t.posBest == null
+                  ? ORDINAL[t.pos]
+                  : locked
+                  ? ORDINAL[t.posBest]
+                  : `${ORDINAL[t.posBest]}–${ORDINAL[t.posWorst]}`;
+              const badgeText = out
+                ? "OUT"
+                : green
+                ? `${range} ✓`
+                : range;
               return (
                 <tr
                   key={t.canon}
@@ -934,19 +1017,24 @@ function GroupTable({ group, ownerFor, pickFor }) {
                               ({pick})
                             </span>
                           )}
-                          {out ? (
-                            <span className="shrink-0 text-[8px] font-bold px-1 py-px rounded bg-rose-500/20 text-rose-300">
-                              OUT
-                            </span>
-                          ) : green ? (
-                            <span className="shrink-0 text-[8px] font-bold px-1 py-px rounded bg-emerald-500/20 text-emerald-300">
-                              {t.pos === 1 ? "1st" : t.pos === 2 ? "2nd" : "3rd ✓"}
-                            </span>
-                          ) : amber ? (
-                            <span className="shrink-0 text-[8px] font-bold px-1 py-px rounded bg-amber-500/20 text-amber-300">
-                              3rd
-                            </span>
-                          ) : null}
+                          <span
+                            className={`shrink-0 text-[8px] font-bold px-1 py-px rounded whitespace-nowrap ${
+                              out
+                                ? "bg-rose-500/20 text-rose-300"
+                                : green
+                                ? "bg-emerald-500/20 text-emerald-300"
+                                : "bg-amber-500/20 text-amber-300"
+                            }`}
+                            title={
+                              out
+                                ? "Eliminated"
+                                : green
+                                ? "Knockout spot clinched"
+                                : `Can still finish ${badgeText}`
+                            }
+                          >
+                            {badgeText}
+                          </span>
                         </div>
                         {owner && (
                           <div className="text-[10px] text-cyan-500/80 font-light truncate leading-tight">
@@ -1066,6 +1154,16 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
                       {remaining} to play
                     </span>
                   )}
+                  {t.posBest != null &&
+                    t.posWorst != null &&
+                    t.posBest !== t.posWorst && (
+                      <span
+                        className="shrink-0 text-[8px] font-semibold px-1 py-px rounded bg-slate-600/40 text-slate-300 whitespace-nowrap"
+                        title={`Can still finish ${ORDINAL[t.posBest]}–${ORDINAL[t.posWorst]} in the group`}
+                      >
+                        {ORDINAL[t.posBest]}–{ORDINAL[t.posWorst]}
+                      </span>
+                    )}
                 </div>
                 {owner && (
                   <div className="text-[10px] text-cyan-500/80 font-light truncate leading-tight">
@@ -1115,13 +1213,22 @@ function GroupsView({ groups, managers, thirdPlace, draftPicks }) {
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
         <span>
           <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/40 align-middle mr-1" />
-          Top 2 advance
+          Knockout spot clinched (✓)
         </span>
         <span>
           <span className="inline-block w-2 h-2 rounded-sm bg-amber-500/40 align-middle mr-1" />
-          Best 8 third-placed teams advance
+          Still in the balance
         </span>
-        <span>· FIFA tiebreakers: pts → GD → goals → head-to-head</span>
+        <span>
+          <span className="inline-block w-2 h-2 rounded-sm bg-rose-500/40 align-middle mr-1" />
+          Eliminated
+        </span>
+        <span className="basis-full text-slate-600">
+          Badge shows the range a team can still finish — e.g.{" "}
+          <span className="text-amber-300/80 font-medium">1st–3rd</span> means
+          they lead now but could slip to third. Top 2 advance + best 8 thirds;
+          tiebreakers: pts → GD → goals → head-to-head.
+        </span>
       </div>
       <div className="grid lg:grid-cols-2 gap-4">
         {groups.map((g) => (
@@ -1479,6 +1586,8 @@ export default function Footie() {
         advance: t.advance,
         eliminated: t.eliminated,
         status: t.status,
+        posBest: t.posBest,
+        posWorst: t.posWorst,
         complete: g.complete,
       };
     });

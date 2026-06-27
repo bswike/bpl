@@ -572,6 +572,9 @@ function computeThirdPlace(groups) {
 //   "out"    – advances in NO scenario (officially eliminated)
 //   "bubble" – still alive but not yet decided
 // "Advances" means finishing top 2 of its group OR among the best 8 thirds.
+// Also returns the best/worst finishing position still reachable per team, so the
+// UI can show that e.g. a current group leader could still slip to 3rd.
+// Returns { [canon]: { status, posBest, posWorst } }.
 function computeTeamStatus(groups, groupEvents) {
   const base = {};
   const groupTeams = {};
@@ -600,13 +603,21 @@ function computeTeamStatus(groups, groupEvents) {
   const R = rem.length;
   // Cap the search; this matters most near the end when R is small anyway.
   if (Math.pow(3, R) > 20000) {
-    allCanon.forEach((c) => (status[c] = "bubble"));
+    allCanon.forEach(
+      (c) => (status[c] = { status: "bubble", posBest: null, posWorst: null })
+    );
     return status;
   }
 
   const letters = Object.keys(groupTeams);
   const inCount = {};
-  allCanon.forEach((c) => (inCount[c] = 0));
+  const posMin = {};
+  const posMax = {};
+  allCanon.forEach((c) => {
+    inCount[c] = 0;
+    posMin[c] = 99;
+    posMax[c] = 0;
+  });
   let total = 0;
   const idx = new Array(R).fill(0);
   const step = () => {
@@ -660,6 +671,11 @@ function computeTeamStatus(groups, groupEvents) {
       advanced.add(arr[0].c);
       advanced.add(arr[1].c);
       if (arr[2]) thirds.push(arr[2]);
+      arr.forEach((row, k) => {
+        const p = k + 1;
+        if (p < posMin[row.c]) posMin[row.c] = p;
+        if (p > posMax[row.c]) posMax[row.c] = p;
+      });
     }
     thirds.sort(
       (x, y) =>
@@ -673,10 +689,206 @@ function computeTeamStatus(groups, groupEvents) {
   } while (step());
 
   for (const c of allCanon) {
-    status[c] =
-      inCount[c] === total ? "in" : inCount[c] === 0 ? "out" : "bubble";
+    status[c] = {
+      status: inCount[c] === total ? "in" : inCount[c] === 0 ? "out" : "bubble",
+      posBest: posMin[c] === 99 ? null : posMin[c],
+      posWorst: posMax[c] === 0 ? null : posMax[c],
+    };
   }
   return status;
+}
+
+const setsEqual = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
+
+// For one team in one match: given the final outcomes (1st / 2nd / 3Q / out)
+// reachable when this team WINS, DRAWS or LOSES the match, describe the stakes.
+//   tone: good (advancing/seeding) | warn (must-win/bubble) | bad (eliminated)
+//   qual: this match can swing the team between advancing and going out
+//   seed: this match can change the team's seeding while still advancing
+function describeStake(winSet, drawSet, loseSet) {
+  const all = new Set([...winSet, ...drawSet, ...loseSet]);
+  const unchanged = setsEqual(winSet, drawSet) && setsEqual(drawSet, loseSet);
+  const onlyOut = [...all].every((t) => t === "out");
+  const neverOut = !winSet.has("out") && !drawSet.has("out") && !loseSet.has("out");
+
+  if (onlyOut)
+    return { tone: "bad", text: "Eliminated", qual: false, seed: false, unchanged: true };
+
+  if (neverOut) {
+    // Already through — does this match still decide the seeding?
+    const win1 = winSet.has("1st");
+    const lose1 = loseSet.has("1st");
+    const can1st = win1 || drawSet.has("1st") || lose1;
+    if (can1st && win1 && !lose1)
+      return { tone: "good", text: "Win to top the group", qual: false, seed: true, unchanged };
+    if (!unchanged)
+      return { tone: "good", text: "Through — playing for seeding", qual: false, seed: true, unchanged };
+    return { tone: "good", text: "Through to the last 32", qual: false, seed: false, unchanged };
+  }
+
+  // Knockout place is still live for this team.
+  if (!winSet.has("out") && !drawSet.has("out") && loseSet.has("out"))
+    return { tone: "warn", text: "Avoid defeat to advance", qual: true, seed: false, unchanged };
+  if (!winSet.has("out"))
+    return { tone: "warn", text: "Win to advance", qual: true, seed: false, unchanged };
+  if (winSet.has("out"))
+    return { tone: "warn", text: "Win and need help elsewhere", qual: true, seed: false, unchanged };
+  return { tone: "warn", text: "Knockout place on the line", qual: true, seed: false, unchanged };
+}
+
+// Work out what each remaining/live group match actually decides, by replaying
+// every win/draw/loss permutation of the outstanding group games and recording,
+// per match, the final fates each team can still reach. Returns a map keyed by
+// ESPN event id so the schedule can surface "why this match matters".
+function computeMatchStakes(groups, groupEvents) {
+  const base = {};
+  const groupTeams = {};
+  groups.forEach((g) => {
+    groupTeams[g.group] = [];
+    g.teams.forEach((t) => {
+      base[t.canon] = { team: t.team, pts: t.pts, gf: t.gf, ga: t.ga };
+      groupTeams[g.group].push(t.canon);
+    });
+  });
+
+  const rem = [];
+  for (const e of groupEvents) {
+    const comp = e.competitions?.[0];
+    if (!comp || comp.status?.type?.state === "post") continue;
+    const gm = (comp.altGameNote || "").match(/Group\s+([A-Z])/i);
+    const cs = comp.competitors || [];
+    if (cs.length < 2 || !gm) continue;
+    const a = canon(cs[0].team.displayName);
+    const b = canon(cs[1].team.displayName);
+    if (base[a] && base[b])
+      rem.push({ id: e.id, group: gm[1].toUpperCase(), a, b });
+  }
+
+  const out = {};
+  const R = rem.length;
+  if (R === 0 || Math.pow(3, R) > 20000) return out;
+
+  const letters = Object.keys(groupTeams);
+  const buckets = rem.map(() => ({
+    aWin: new Set(),
+    aDraw: new Set(),
+    aLose: new Set(),
+    bWin: new Set(),
+    bDraw: new Set(),
+    bLose: new Set(),
+  }));
+
+  const idx = new Array(R).fill(0);
+  const step = () => {
+    for (let i = 0; i < R; i++) {
+      if (idx[i] < 2) {
+        idx[i]++;
+        return true;
+      }
+      idx[i] = 0;
+    }
+    return false;
+  };
+
+  do {
+    const s = {};
+    for (const c in base) s[c] = { pts: base[c].pts, gf: base[c].gf, ga: base[c].ga };
+    for (let i = 0; i < R; i++) {
+      const { a, b } = rem[i];
+      const o = idx[i]; // 0 = a win, 1 = draw, 2 = b win
+      if (o === 0) {
+        s[a].pts += 3;
+        s[a].gf += 1;
+        s[b].ga += 1;
+      } else if (o === 2) {
+        s[b].pts += 3;
+        s[b].gf += 1;
+        s[a].ga += 1;
+      } else {
+        s[a].pts += 1;
+        s[b].pts += 1;
+      }
+    }
+
+    // Final placing of every team in this exact scenario.
+    const tier = {};
+    const thirds = [];
+    for (const L of letters) {
+      const arr = groupTeams[L]
+        .map((c) => ({ c, pts: s[c].pts, gd: s[c].gf - s[c].ga, gf: s[c].gf }))
+        .sort(
+          (x, y) =>
+            y.pts - x.pts ||
+            y.gd - x.gd ||
+            y.gf - x.gf ||
+            base[x.c].team.localeCompare(base[y.c].team)
+        );
+      tier[arr[0].c] = "1st";
+      tier[arr[1].c] = "2nd";
+      if (arr[2]) {
+        tier[arr[2].c] = "out"; // provisional until best-thirds resolved
+        thirds.push(arr[2]);
+      }
+      if (arr[3]) tier[arr[3].c] = "out";
+    }
+    thirds
+      .sort(
+        (x, y) =>
+          y.pts - x.pts ||
+          y.gd - x.gd ||
+          y.gf - x.gf ||
+          base[x.c].team.localeCompare(base[y.c].team)
+      )
+      .slice(0, 8)
+      .forEach((t) => (tier[t.c] = "3Q"));
+
+    for (let i = 0; i < R; i++) {
+      const { a, b } = rem[i];
+      const o = idx[i];
+      const bk = buckets[i];
+      if (o === 0) {
+        bk.aWin.add(tier[a]);
+        bk.bLose.add(tier[b]);
+      } else if (o === 1) {
+        bk.aDraw.add(tier[a]);
+        bk.bDraw.add(tier[b]);
+      } else {
+        bk.aLose.add(tier[a]);
+        bk.bWin.add(tier[b]);
+      }
+    }
+  } while (step());
+
+  rem.forEach((m, i) => {
+    const bk = buckets[i];
+    const aStake = describeStake(bk.aWin, bk.aDraw, bk.aLose);
+    const bStake = describeStake(bk.bWin, bk.bDraw, bk.bLose);
+    const level =
+      aStake.qual || bStake.qual
+        ? "high"
+        : aStake.seed || bStake.seed
+        ? "medium"
+        : aStake.unchanged && bStake.unchanged
+        ? "dead"
+        : "low";
+    const headline =
+      level === "high"
+        ? `Group ${m.group} · knockout place on the line`
+        : level === "medium"
+        ? `Group ${m.group} · jockeying for seeding`
+        : level === "dead"
+        ? `Group ${m.group} · both teams already settled`
+        : `Group ${m.group} · little left to decide`;
+    out[m.id] = {
+      level,
+      headline,
+      notes: {
+        [m.a]: { tone: aStake.tone, text: aStake.text },
+        [m.b]: { tone: bStake.tone, text: bStake.text },
+      },
+    };
+  });
+  return out;
 }
 
 function buildBracket(groups, koEvents, thirdInfo) {
@@ -815,6 +1027,12 @@ export default async function handler(req, res) {
     // Clinched / eliminated / bubble for every team (group + best-third math).
     const teamStatus = computeTeamStatus(groups, groupEvents);
 
+    // What each upcoming/live group match still decides (1st/2nd, bubble, dead).
+    const matchStakes = computeMatchStakes(groups, groupEvents);
+    schedule.forEach((m) => {
+      if (matchStakes[m.id]) m.stakes = matchStakes[m.id];
+    });
+
     // Who advances: top 2 per group + the best 8 third-placed teams.
     const thirdInfo = computeThirdPlace(groups);
     const qualifyingThirds = new Set(thirdInfo.qualifierGroups);
@@ -824,12 +1042,18 @@ export default async function handler(req, res) {
         else if (t.pos === 2) t.advance = "RU";
         else if (t.pos === 3 && qualifyingThirds.has(g.group)) t.advance = "3Q";
         else t.advance = null;
-        t.status = teamStatus[t.canon] || "bubble";
+        const o = teamStatus[t.canon];
+        t.status = o?.status || "bubble";
+        t.posBest = o?.posBest ?? null;
+        t.posWorst = o?.posWorst ?? null;
         t.eliminated = t.status === "out";
       });
     });
     thirdInfo.ranking.forEach((t) => {
-      t.status = teamStatus[t.canon] || "bubble";
+      const o = teamStatus[t.canon];
+      t.status = o?.status || "bubble";
+      t.posBest = o?.posBest ?? null;
+      t.posWorst = o?.posWorst ?? null;
     });
     const bracket = buildBracket(groups, koEvents, thirdInfo);
 
@@ -869,7 +1093,7 @@ export default async function handler(req, res) {
           played,
           remaining: Math.max(0, 3 - played),
           nextGame: next,
-          status: teamStatus[canon(teamName)] || "bubble",
+          status: teamStatus[canon(teamName)]?.status || "bubble",
         };
       });
       const gsPoints = teams.reduce((s, t) => s + t.gsPoints, 0);
