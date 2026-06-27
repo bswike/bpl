@@ -349,21 +349,29 @@ const ORDINAL = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
 
 function PlaceBadge({ place }) {
   if (!place || !place.pos) return null;
-  const adv = place.advance === "W" || place.advance === "RU";
-  const thirdQ = place.advance === "3Q";
-  const cls = place.eliminated
+  const out = place.eliminated;
+  // Top 2 advance; a 3rd-place team turns green only once it has clinched a
+  // best-third spot, amber while still on the bubble.
+  const advancing = place.pos === 1 || place.pos === 2;
+  const thirdIn = place.pos === 3 && place.status === "in";
+  const thirdBubble = place.pos === 3 && place.status === "bubble";
+  const green = !out && (advancing || thirdIn);
+  const amber = !out && thirdBubble;
+  const cls = out
     ? "bg-rose-500/15 text-rose-300"
-    : adv
+    : green
     ? "bg-emerald-500/20 text-emerald-300"
-    : thirdQ
+    : amber
     ? "bg-amber-500/20 text-amber-300"
     : "bg-slate-700/60 text-slate-400";
-  const title = place.eliminated
+  const title = out
     ? "Eliminated"
-    : adv
-    ? "Advancing"
-    : thirdQ
-    ? "Advancing (best third)"
+    : green
+    ? thirdIn
+      ? "Clinched (best third)"
+      : "Advancing"
+    : amber
+    ? "On the bubble (3rd place)"
     : "In contention";
   return (
     <span
@@ -371,7 +379,7 @@ function PlaceBadge({ place }) {
       className={`shrink-0 text-[9px] font-bold px-1 py-px rounded ${cls}`}
     >
       {place.group}·{ORDINAL[place.pos]}
-      {place.eliminated ? " OUT" : ""}
+      {out ? " OUT" : ""}
     </span>
   );
 }
@@ -1470,6 +1478,7 @@ export default function Footie() {
         pos: t.pos,
         advance: t.advance,
         eliminated: t.eliminated,
+        status: t.status,
         complete: g.complete,
       };
     });
