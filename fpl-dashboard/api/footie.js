@@ -832,6 +832,19 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
     g.teams.forEach((t) => (abbrOf[t.canon] = t.abbr || t.team))
   );
 
+  // Teams that are done playing but still on the bubble: their fate is settled
+  // by the remaining matches in OTHER groups (the best-third cut-off). Track
+  // each one's advance probability conditioned on every remaining outcome so we
+  // can show them scenarios too. mOut[i][o] = total weight of outcome o in match i.
+  const condCanons = Object.keys(base).filter(
+    (c) =>
+      (remCount[c] || 0) === 0 &&
+      (teamStatus[c]?.status || "bubble") === "bubble"
+  );
+  const condAdv = {};
+  condCanons.forEach((c) => (condAdv[c] = rem.map(() => [0, 0, 0])));
+  const mOut = rem.map(() => [0, 0, 0]);
+
   const letters = Object.keys(groupTeams);
   const mkGrid = () => [
     [0, 0, 0],
@@ -918,6 +931,12 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
       .forEach((t) => (tier[t.c] = "3Q"));
 
     for (const c in base) if (tier[c] !== "out") teamAdv[c] += sp;
+
+    for (let i = 0; i < R; i++) mOut[i][idx[i]] += sp;
+    for (const c of condCanons) {
+      if (tier[c] === "out") continue;
+      for (let i = 0; i < R; i++) condAdv[c][i][idx[i]] += sp;
+    }
 
     for (let i = 0; i < R; i++) {
       const { a, b } = rem[i];
@@ -1100,10 +1119,48 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
     };
   });
 
+  // Scenarios for the done-and-dusted bubble teams (decided by other groups).
+  const outcomeShort = (i, o) =>
+    o === 0 ? `${rem[i].aAbbr} win` : o === 2 ? `${rem[i].bAbbr} win` : "draw";
+  const bubbleScenarios = {};
+  for (const c of condCanons) {
+    const prob = totalProb > 0 ? teamAdv[c] / totalProb : null;
+    const swings = [];
+    for (let i = 0; i < R; i++) {
+      const co = [0, 1, 2]
+        .filter((o) => mOut[i][o] > EPS)
+        .map((o) => ({ o, p: condAdv[c][i][o] / mOut[i][o] }));
+      if (co.length < 2) continue;
+      const best = co.reduce((x, y) => (y.p > x.p ? y : x));
+      const worst = co.reduce((x, y) => (y.p < x.p ? y : x));
+      const spread = best.p - worst.p;
+      if (spread < 0.04) continue;
+      swings.push({ i, best, worst, spread });
+    }
+    swings.sort((x, y) => y.spread - x.spread);
+    const detail = swings
+      .slice(0, 3)
+      .map(
+        ({ i, best, worst }) =>
+          `${rem[i].aAbbr} v ${rem[i].bAbbr}: ${outcomeShort(i, best.o)} → ${fmtPct(
+            best.p
+          )} · ${outcomeShort(i, worst.o)} → ${fmtPct(worst.p)}`
+      );
+    let need;
+    if (prob == null) need = "Needs results elsewhere";
+    else if (prob >= 0.85) need = "In the box seat — just needs results to hold";
+    else if (prob >= 0.5) need = "On the bubble — leaning through";
+    else if (prob >= 0.15) need = "On the bubble — leaning out";
+    else need = "Long shot — needs plenty of help elsewhere";
+    if (detail.length === 0)
+      detail.push("Comes down to goal-difference tie-breaks among the thirds.");
+    bubbleScenarios[c] = { prob, need, detail };
+  }
+
   const advanceProb = {};
   if (totalProb > 0)
     for (const c in teamAdv) advanceProb[c] = teamAdv[c] / totalProb;
-  return { stakes: out, advanceProb };
+  return { stakes: out, advanceProb, bubbleScenarios };
 }
 
 function buildBracket(groups, koEvents, thirdInfo) {
@@ -1244,11 +1301,11 @@ export default async function handler(req, res) {
 
     // What each upcoming/live group match still decides (1st/2nd, bubble, dead),
     // plus an odds-weighted chance-to-advance for every team.
-    const { stakes: matchStakes, advanceProb } = computeMatchStakes(
-      groups,
-      groupEvents,
-      teamStatus
-    );
+    const {
+      stakes: matchStakes,
+      advanceProb,
+      bubbleScenarios,
+    } = computeMatchStakes(groups, groupEvents, teamStatus);
     schedule.forEach((m) => {
       if (matchStakes[m.id]) m.stakes = matchStakes[m.id];
     });
@@ -1288,7 +1345,7 @@ export default async function handler(req, res) {
       t.posBest = o?.posBest ?? null;
       t.posWorst = o?.posWorst ?? null;
       t.prob = probFor(t.canon, t.status);
-      const sb = stakesByCanon[t.canon];
+      const sb = stakesByCanon[t.canon] || bubbleScenarios?.[t.canon];
       if (sb) {
         t.need = sb.need;
         t.detail = sb.detail;
