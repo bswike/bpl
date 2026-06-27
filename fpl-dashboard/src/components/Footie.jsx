@@ -1426,6 +1426,13 @@ const koIsToday = (ymd) => {
   const p = koDayParts(ymd);
   return !!p && p.diff === 0;
 };
+// "3:00 PM ET" -> "3p", "4:30 PM ET" -> "4:30p".
+const koTimeShort = (t) => {
+  const m = String(t || "").match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return "";
+  const min = m[2] === "00" ? "" : `:${m[2]}`;
+  return `${m[1]}${min}${m[3].toUpperCase() === "PM" ? "p" : "a"}`;
+};
 
 // Show the World Cup host-city name instead of the stadium.
 const CITY_SHORT = {
@@ -1519,11 +1526,16 @@ function BracketMatch({ m, ownerFor, pickFor, colHeight, count }) {
       >
         <div className="flex items-center justify-between px-1.5 py-[2px] bg-slate-900/50 border-b border-slate-700/40">
           <span
+            title={`${koDayLabel(m.date)} · ${m.time || ""} · ${m.venue || ""}${
+              m.venue ? ", " : ""
+            }${m.city || ""}`}
             className={`text-[8px] truncate ${
               isToday ? "text-white font-bold" : "text-slate-500 font-medium"
             }`}
           >
-            {koDayLabel(m.date)} · {shortCity(m.city)}
+            {[koDayLabel(m.date), koTimeShort(m.time), shortCity(m.city)]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
           {live ? (
             <span className="text-[8px] text-cyan-400 font-bold shrink-0 ml-1">
