@@ -429,12 +429,15 @@ function BracketGrid({ data, picks, editable, onPick }) {
             );
           })}
 
-          {/* Champion */}
-          <div className="flex flex-col shrink-0 pl-2" style={{ width: 150 }}>
+          {/* Champion + Third place, stacked at the end of the tree */}
+          <div className="flex flex-col shrink-0 pl-2" style={{ width: 158 }}>
             <div className="text-center text-[9px] uppercase tracking-wider text-amber-400/80 font-semibold mb-1 h-4">
               Champion
             </div>
-            <div className="flex items-center" style={{ height: COL_H }}>
+            <div
+              className="flex flex-col justify-center gap-5"
+              style={{ height: COL_H }}
+            >
               <div
                 className={`w-full rounded-lg border px-2 py-3 text-center ${
                   champion
@@ -458,22 +461,21 @@ function BracketGrid({ data, picks, editable, onPick }) {
                   {champion ? champion.team : "TBD"}
                 </div>
               </div>
+
+              <div>
+                <div className="text-center text-[9px] uppercase tracking-wider text-orange-400/80 font-semibold mb-1">
+                  🥉 Third Place
+                </div>
+                <DraftMatch
+                  m={matchOf(103)}
+                  editable={editable}
+                  onPick={onPick}
+                  count={1}
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Third-place match */}
-      <div className="max-w-xs">
-        <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1">
-          Third-Place Match
-        </div>
-        <DraftMatch
-          m={matchOf(103)}
-          editable={editable}
-          onPick={onPick}
-          count={1}
-        />
       </div>
     </div>
   );
