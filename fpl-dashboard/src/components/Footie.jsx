@@ -970,6 +970,26 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
         <span className="text-amber-300">● Bubble</span>
         <span className="text-rose-300">● Out</span>
       </div>
+      <div className="flex items-center gap-2 px-3 py-1 text-[9px] uppercase tracking-wider text-slate-500 border-b border-slate-700/40">
+        <span className="w-5 text-center shrink-0" title="Third-place rank">
+          #
+        </span>
+        <span className="w-5 text-center shrink-0" />
+        <span className="w-4 text-center shrink-0" title="Group">
+          Grp
+        </span>
+        <span className="flex-1 min-w-0">Team / Owner</span>
+        <span className="w-7 text-right shrink-0" title="Points">
+          Pts
+        </span>
+        <span className="w-8 text-right shrink-0" title="Goal difference">
+          GD
+        </span>
+        <span className="w-7 text-right shrink-0" title="Goals for">
+          GF
+        </span>
+        <span className="w-[58px] text-center shrink-0">Status</span>
+      </div>
       <div className="divide-y divide-slate-700/40">
         {ranking.map((t) => {
           const owner = ownerFor(t.team);
@@ -1002,10 +1022,12 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
               >
                 {t.rank}
               </span>
-              <span className={`shrink-0 ${isOut ? "opacity-60" : ""}`}>
+              <span
+                className={`w-5 text-center shrink-0 ${isOut ? "opacity-60" : ""}`}
+              >
                 {flagFor(t.team)}
               </span>
-              <span className="text-[9px] text-slate-500 font-mono shrink-0">
+              <span className="w-4 text-center text-[9px] text-slate-500 font-mono shrink-0">
                 {t.group}
               </span>
               <div className="flex-1 min-w-0">
@@ -1025,8 +1047,8 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
                   </div>
                 )}
               </div>
-              <span className="shrink-0 font-mono text-slate-400 text-[11px]">
-                {t.pts}p
+              <span className="w-7 text-right shrink-0 font-mono text-slate-300 text-[11px] font-bold">
+                {t.pts}
               </span>
               <span className="shrink-0 font-mono text-slate-500 text-[11px] w-8 text-right">
                 {t.gd > 0 ? `+${t.gd}` : t.gd}
