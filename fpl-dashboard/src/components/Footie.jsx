@@ -751,12 +751,16 @@ function StakesLine({ m }) {
     <div className="mt-1 ml-11 mr-0.5">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400 hover:text-cyan-300 transition-colors"
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+          open
+            ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-200"
+            : "border-slate-600/70 bg-slate-700/40 text-slate-200 hover:bg-slate-600/50 hover:border-cyan-500/40 hover:text-cyan-200"
+        }`}
       >
         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
         What's at stake
         <ChevronDown
-          size={11}
+          size={12}
           className={`transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
