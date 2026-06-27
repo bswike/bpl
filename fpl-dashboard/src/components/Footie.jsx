@@ -1102,6 +1102,7 @@ function GroupTable({ group, ownerFor, pickFor }) {
 }
 
 function ThirdPlaceRace({ ranking, ownerFor }) {
+  const [open, setOpen] = useState(null);
   if (!ranking || ranking.length === 0) return null;
   return (
     <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden">
@@ -1111,7 +1112,7 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
           Bubble Boys
         </h3>
         <span className="text-[10px] text-slate-500">
-          best 8 thirds advance · live 4th-place chasers included
+          best 8 thirds advance · tap a team for what they need
         </span>
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1 px-4 py-1.5 text-[10px] border-b border-slate-700/40">
@@ -1139,6 +1140,7 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
           GF
         </span>
         <span className="w-[58px] text-center shrink-0">Status</span>
+        <span className="w-3 shrink-0" />
       </div>
       <div className="divide-y divide-slate-700/40">
         {ranking.map((t) => {
@@ -1147,6 +1149,9 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
           const status = t.status || (t.rank <= 8 ? "bubble" : "out");
           const isIn = status === "in";
           const isOut = status === "out";
+          const isOpen = open === t.canon;
+          const scenarios = t.detail || [];
+          const expandable = !!t.need || scenarios.length > 0;
           const rowCls = isIn
             ? "bg-emerald-500/5"
             : isOut
@@ -1163,9 +1168,14 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
             ? { cls: "bg-rose-500/20 text-rose-300", text: "OUT" }
             : { cls: "bg-amber-500/20 text-amber-300", text: "BUBBLE" };
           return (
+            <div key={t.canon}>
             <div
-              key={t.canon}
-              className={`flex items-center gap-2 px-3 py-1.5 text-xs ${rowCls}`}
+              onClick={() =>
+                expandable && setOpen((o) => (o === t.canon ? null : t.canon))
+              }
+              className={`flex items-center gap-2 px-3 py-1.5 text-xs ${rowCls} ${
+                expandable ? "cursor-pointer hover:bg-slate-700/30" : ""
+              }`}
             >
               <span
                 className={`w-5 text-center font-mono text-[11px] shrink-0 ${numCls}`}
@@ -1239,6 +1249,40 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
                   </span>
                 )}
               </div>
+              <span className="w-3 shrink-0 flex justify-center text-slate-500">
+                {expandable && (
+                  <ChevronDown
+                    size={12}
+                    className={`transition-transform ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                )}
+              </span>
+            </div>
+            {isOpen && expandable && (
+              <div className={`px-3 py-2 ${rowCls}`}>
+                {t.need && (
+                  <div className="text-[11px] text-slate-200 font-medium mb-1 pl-7">
+                    {t.need}
+                  </div>
+                )}
+                {scenarios.length > 0 && (
+                  <ul className="space-y-0.5 pl-7">
+                    {scenarios.map((l, i) => (
+                      <li key={i} className="text-[10px] text-slate-400">
+                        {l}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {scenarios.length === 0 && !t.need && (
+                  <div className="text-[10px] text-slate-500 pl-7">
+                    No remaining games — fate decided by other groups.
+                  </div>
+                )}
+              </div>
+            )}
             </div>
           );
         })}

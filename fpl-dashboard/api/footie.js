@@ -1252,6 +1252,15 @@ export default async function handler(req, res) {
     schedule.forEach((m) => {
       if (matchStakes[m.id]) m.stakes = matchStakes[m.id];
     });
+    // Per-team scenario lookup so e.g. the Bubble Boys table can show what a
+    // team needs to advance (first remaining match a team appears in).
+    const stakesByCanon = {};
+    for (const mid in matchStakes) {
+      const teams = matchStakes[mid].teams || {};
+      for (const c in teams) {
+        if (!stakesByCanon[c]) stakesByCanon[c] = teams[c];
+      }
+    }
     const probFor = (canonKey, statusVal) =>
       advanceProb[canonKey] ??
       (statusVal === "in" ? 1 : statusVal === "out" ? 0 : null);
@@ -1279,6 +1288,11 @@ export default async function handler(req, res) {
       t.posBest = o?.posBest ?? null;
       t.posWorst = o?.posWorst ?? null;
       t.prob = probFor(t.canon, t.status);
+      const sb = stakesByCanon[t.canon];
+      if (sb) {
+        t.need = sb.need;
+        t.detail = sb.detail;
+      }
     });
     const bracket = buildBracket(groups, koEvents, thirdInfo);
 
