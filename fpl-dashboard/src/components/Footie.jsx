@@ -1137,29 +1137,44 @@ const fmtKoDate = (ymd) => {
   });
 };
 
-function BracketSlot({ slot, score, pens, isWinner, decided, live }) {
+function BracketSlot({ slot, score, pens, isWinner, decided, live, owner, pick }) {
   const known = !!slot.team;
+  const hasMeta = owner || pick != null;
   return (
     <div
-      className={`flex items-center gap-1 px-1.5 h-[26px] ${
+      className={`flex items-center gap-1 px-1.5 h-[24px] ${
         decided && !isWinner ? "opacity-45" : ""
       }`}
     >
       <span className="text-[11px] leading-none shrink-0">
         {known ? flagFor(slot.team) : "·"}
       </span>
-      <span
-        className={`flex-1 min-w-0 truncate text-[10px] leading-none ${
-          known
-            ? isWinner
-              ? "text-slate-50 font-bold"
-              : "text-slate-300"
-            : "text-slate-500 italic"
-        }`}
-        title={known ? slot.team : slot.label}
-      >
-        {known ? slot.abbr || slot.team : slot.label}
-      </span>
+      {known ? (
+        <>
+          <span
+            className={`shrink-0 text-[10px] leading-none ${
+              isWinner ? "text-slate-50 font-bold" : "text-slate-200 font-semibold"
+            }`}
+            title={slot.team}
+          >
+            {slot.abbr || slot.team}
+          </span>
+          {hasMeta && (
+            <span className="flex-1 min-w-0 truncate text-[8px] leading-none text-cyan-500/70 font-light">
+              {owner || "—"}
+              {pick != null && <span className="text-slate-600"> #{pick}</span>}
+            </span>
+          )}
+          {!hasMeta && <span className="flex-1" />}
+        </>
+      ) : (
+        <span
+          className="flex-1 min-w-0 truncate text-[10px] leading-none text-slate-500 italic"
+          title={slot.label}
+        >
+          {slot.label}
+        </span>
+      )}
       {score != null && (
         <span
           className={`shrink-0 font-mono text-[10px] leading-none ${
@@ -1186,18 +1201,10 @@ function BracketMatch({ m, ownerFor, pickFor, colHeight, count }) {
   const decided = post && !!m.winnerCanon;
   const hWin = m.winnerCanon && m.home.canon === m.winnerCanon;
   const aWin = m.winnerCanon && m.away.canon === m.winnerCanon;
-  const ownerLine = (slot) => {
-    if (!slot.team) return null;
-    const o = ownerFor ? ownerFor(slot.team) : null;
-    const p = pickFor ? pickFor(slot.team) : null;
-    if (!o && p == null) return null;
-    return (
-      <span className="truncate">
-        {o || "—"}
-        {p != null && <span className="text-slate-600"> · #{p}</span>}
-      </span>
-    );
-  };
+  const hOwner = m.home.team && ownerFor ? ownerFor(m.home.team) : null;
+  const aOwner = m.away.team && ownerFor ? ownerFor(m.away.team) : null;
+  const hPick = m.home.team && pickFor ? pickFor(m.home.team) : null;
+  const aPick = m.away.team && pickFor ? pickFor(m.away.team) : null;
   return (
     <div
       style={{ minHeight: colHeight ? colHeight / count : undefined }}
@@ -1225,6 +1232,8 @@ function BracketMatch({ m, ownerFor, pickFor, colHeight, count }) {
           isWinner={hWin}
           decided={decided}
           live={live}
+          owner={hOwner}
+          pick={hPick}
         />
         <div className="border-t border-slate-700/40" />
         <BracketSlot
@@ -1234,11 +1243,9 @@ function BracketMatch({ m, ownerFor, pickFor, colHeight, count }) {
           isWinner={aWin}
           decided={decided}
           live={live}
+          owner={aOwner}
+          pick={aPick}
         />
-        <div className="flex flex-col gap-[1px] px-1.5 pb-[2px] pt-[1px] text-[8px] text-cyan-500/70 font-light leading-tight">
-          {ownerLine(m.home)}
-          {ownerLine(m.away)}
-        </div>
       </div>
     </div>
   );
@@ -1262,7 +1269,7 @@ function BracketView({ bracket, managers, draftPicks }) {
   const pickFor = (team) => draftPicks?.[teamCanon(team)] ?? null;
 
   const third = byNo[103];
-  const COL_H = 1520;
+  const COL_H = 1040;
 
   return (
     <div className="space-y-3">
