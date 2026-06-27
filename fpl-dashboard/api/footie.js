@@ -714,47 +714,51 @@ function computeTeamStatus(groups, groupEvents) {
 
 const setsEqual = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
 
-// For one team in one match: given the final outcomes (1st / 2nd / 3Q / out)
-// reachable when this team WINS, DRAWS or LOSES the match, describe the stakes.
-//   tone: good (advancing/seeding) | warn (must-win/bubble) | bad (eliminated)
-//   qual: this match can swing the team between advancing and going out
-//   seed: this match can change the team's seeding while still advancing
-function describeStake(winSet, drawSet, loseSet) {
-  const all = new Set([...winSet, ...drawSet, ...loseSet]);
-  const unchanged = setsEqual(winSet, drawSet) && setsEqual(drawSet, loseSet);
-  const onlyOut = [...all].every((t) => t === "out");
-  const neverOut = !winSet.has("out") && !drawSet.has("out") && !loseSet.has("out");
-
-  if (onlyOut)
-    return { tone: "bad", text: "Eliminated", qual: false, seed: false, unchanged: true };
-
-  if (neverOut) {
-    // Already through — does this match still decide the seeding?
-    const win1 = winSet.has("1st");
-    const lose1 = loseSet.has("1st");
-    const can1st = win1 || drawSet.has("1st") || lose1;
-    if (can1st && win1 && !lose1)
-      return { tone: "good", text: "Win to top the group", qual: false, seed: true, unchanged };
-    if (!unchanged)
-      return { tone: "good", text: "Through — playing for seeding", qual: false, seed: true, unchanged };
-    return { tone: "good", text: "Through to the last 32", qual: false, seed: false, unchanged };
-  }
-
-  // Knockout place is still live for this team.
-  if (!winSet.has("out") && !drawSet.has("out") && loseSet.has("out"))
-    return { tone: "warn", text: "Avoid defeat to advance", qual: true, seed: false, unchanged };
-  if (!winSet.has("out"))
-    return { tone: "warn", text: "Win to advance", qual: true, seed: false, unchanged };
-  if (winSet.has("out"))
-    return { tone: "warn", text: "Win and need help elsewhere", qual: true, seed: false, unchanged };
-  return { tone: "warn", text: "Knockout place on the line", qual: true, seed: false, unchanged };
+// American moneyline -> implied probability (ignores vig until normalised).
+function mlImplied(ml) {
+  if (ml == null || ml === "") return null;
+  const n = Number(String(ml).replace("+", ""));
+  if (Number.isNaN(n)) return null;
+  return n > 0 ? 100 / (n + 100) : -n / (-n + 100);
 }
 
-// Work out what each remaining/live group match actually decides, by replaying
-// every win/draw/loss permutation of the outstanding group games and recording,
-// per match, the final fates each team can still reach. Returns a map keyed by
-// ESPN event id so the schedule can surface "why this match matters".
-function computeMatchStakes(groups, groupEvents) {
+// Vegas win/draw/loss probabilities for a fixture (vig removed), or null.
+function winProbs(comp) {
+  const od = extractOdds(comp);
+  if (!od) return null;
+  const h = mlImplied(od.home);
+  const a = mlImplied(od.away);
+  if (h == null || a == null) return null;
+  const d = mlImplied(od.draw) || 0;
+  const sum = h + d + a;
+  if (sum <= 0) return null;
+  return { home: h / sum, draw: d / sum, away: a / sum };
+}
+
+const joinOr = (arr) =>
+  arr.length <= 1
+    ? arr[0] || ""
+    : `${arr.slice(0, -1).join(", ")} or ${arr[arr.length - 1]}`;
+
+// Plain-language finishing outcome from the set of tiers a result can yield.
+function tierText(set) {
+  const t = [...set].filter((x) => x !== "out");
+  const h1 = t.includes("1st");
+  const h2 = t.includes("2nd");
+  const h3 = t.includes("3Q");
+  if (h1 && !h2 && !h3) return "win the group";
+  if (h2 && !h1 && !h3) return "go through 2nd";
+  if ((h1 || h2) && !h3) return "go through (top 2)";
+  if (h3 && !h1 && !h2) return "go through (best third)";
+  return "go through";
+}
+
+// Work out what each remaining/live group match decides. Replays every
+// win/draw/loss permutation of the outstanding group games, weighting each by
+// its Vegas-implied probability, and records per team: the odds of advancing,
+// the result(s) they need, and concise scenario lines (incl. the deciding
+// other match in their group). Returns a map keyed by ESPN event id.
+function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
   const base = {};
   const groupTeams = {};
   groups.forEach((g) => {
@@ -774,23 +778,58 @@ function computeMatchStakes(groups, groupEvents) {
     if (cs.length < 2 || !gm) continue;
     const a = canon(cs[0].team.displayName);
     const b = canon(cs[1].team.displayName);
-    if (base[a] && base[b])
-      rem.push({ id: e.id, group: gm[1].toUpperCase(), a, b });
+    if (!base[a] || !base[b]) continue;
+    // Outcome probabilities aligned to [a wins, draw, b wins].
+    const wp = winProbs(comp);
+    let p = [1 / 3, 1 / 3, 1 / 3];
+    if (wp) {
+      const cs0Home = cs[0].homeAway === "home";
+      p = cs0Home ? [wp.home, wp.draw, wp.away] : [wp.away, wp.draw, wp.home];
+    }
+    rem.push({
+      id: e.id,
+      group: gm[1].toUpperCase(),
+      a,
+      b,
+      aAbbr: cs[0].team.abbreviation || base[a].team,
+      bAbbr: cs[1].team.abbreviation || base[b].team,
+      p,
+    });
   }
 
   const out = {};
   const R = rem.length;
   if (R === 0 || Math.pow(3, R) > 20000) return out;
 
+  // The single other remaining match in the same group (drives dependencies).
+  const other = rem.map((m, i) => {
+    const js = rem
+      .map((x, k) => k)
+      .filter((k) => k !== i && rem[k].group === m.group);
+    return js.length === 1 ? js[0] : -1;
+  });
+
   const letters = Object.keys(groupTeams);
-  const buckets = rem.map(() => ({
-    aWin: new Set(),
-    aDraw: new Set(),
-    aLose: new Set(),
-    bWin: new Set(),
-    bDraw: new Set(),
-    bLose: new Set(),
-  }));
+  const mkGrid = () => [
+    [0, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+  ];
+  const mkSide = () => ({
+    tot: mkGrid(),
+    adv: mkGrid(),
+    tiers: [new Set(), new Set(), new Set()],
+  });
+  const stat = rem.map(() => ({ a: mkSide(), b: mkSide() }));
+
+  const interest = new Set();
+  rem.forEach((m) => {
+    interest.add(m.a);
+    interest.add(m.b);
+  });
+  const teamAdv = {};
+  interest.forEach((c) => (teamAdv[c] = 0));
+  let totalProb = 0;
 
   const idx = new Array(R).fill(0);
   const step = () => {
@@ -805,6 +844,10 @@ function computeMatchStakes(groups, groupEvents) {
   };
 
   do {
+    let sp = 1;
+    for (let i = 0; i < R; i++) sp *= rem[i].p[idx[i]];
+    totalProb += sp;
+
     const s = {};
     for (const c in base) s[c] = { pts: base[c].pts, gf: base[c].gf, ga: base[c].ga };
     for (let i = 0; i < R; i++) {
@@ -824,7 +867,6 @@ function computeMatchStakes(groups, groupEvents) {
       }
     }
 
-    // Final placing of every team in this exact scenario.
     const tier = {};
     const thirds = [];
     for (const L of letters) {
@@ -840,7 +882,7 @@ function computeMatchStakes(groups, groupEvents) {
       tier[arr[0].c] = "1st";
       tier[arr[1].c] = "2nd";
       if (arr[2]) {
-        tier[arr[2].c] = "out"; // provisional until best-thirds resolved
+        tier[arr[2].c] = "out";
         thirds.push(arr[2]);
       }
       if (arr[3]) tier[arr[3].c] = "out";
@@ -856,50 +898,148 @@ function computeMatchStakes(groups, groupEvents) {
       .slice(0, 8)
       .forEach((t) => (tier[t.c] = "3Q"));
 
+    for (const c of interest) if (tier[c] !== "out") teamAdv[c] += sp;
+
     for (let i = 0; i < R; i++) {
       const { a, b } = rem[i];
-      const o = idx[i];
-      const bk = buckets[i];
-      if (o === 0) {
-        bk.aWin.add(tier[a]);
-        bk.bLose.add(tier[b]);
-      } else if (o === 1) {
-        bk.aDraw.add(tier[a]);
-        bk.bDraw.add(tier[b]);
-      } else {
-        bk.aLose.add(tier[a]);
-        bk.bWin.add(tier[b]);
-      }
+      const oi = idx[i];
+      const oj = other[i] >= 0 ? idx[other[i]] : 0;
+      const sa = stat[i].a;
+      const sb = stat[i].b;
+      sa.tot[oi][oj] += sp;
+      sb.tot[oi][oj] += sp;
+      if (tier[a] !== "out") sa.adv[oi][oj] += sp;
+      if (tier[b] !== "out") sb.adv[oi][oj] += sp;
+      sa.tiers[oi].add(tier[a]);
+      sb.tiers[oi].add(tier[b]);
     }
   } while (step());
 
+  const EPS = 1e-9;
+  // For match j, describe one of its 3 outcomes in plain language.
+  const describeOj = (j, oj) => {
+    const { aAbbr, bAbbr } = rem[j];
+    if (oj === 0) return `${aAbbr} beat ${bAbbr}`;
+    if (oj === 2) return `${bAbbr} beat ${aAbbr}`;
+    return `${aAbbr} & ${bAbbr} draw`;
+  };
+
+  const buildTeam = (i, slot) => {
+    const m = rem[i];
+    const canonT = slot === "a" ? m.a : m.b;
+    const side = stat[i][slot];
+    const st = teamStatus[canonT]?.status || "bubble";
+    const prob = totalProb > 0 ? teamAdv[canonT] / totalProb : null;
+    // Map each label to this team's own-result index in the grid.
+    const order =
+      slot === "a"
+        ? [["Win", 0], ["Draw", 1], ["Lose", 2]]
+        : [["Win", 2], ["Draw", 1], ["Lose", 0]];
+
+    const cls = {};
+    for (const [label, oi] of order) {
+      let totR = 0;
+      let advR = 0;
+      for (let oj = 0; oj < 3; oj++) {
+        totR += side.tot[oi][oj];
+        advR += side.adv[oi][oj];
+      }
+      cls[label] = { oi, totR, advR, tiers: side.tiers[oi] };
+    }
+
+    const lineFor = (label) => {
+      const c = cls[label];
+      if (c.totR <= EPS) return null;
+      if (c.advR >= c.totR - EPS) return `${label} → ${tierText(c.tiers)}`;
+      if (c.advR <= EPS) return `${label} → out`;
+      const oi = c.oi;
+      if (other[i] >= 0) {
+        const full = [];
+        let anyPartial = false;
+        for (let oj = 0; oj < 3; oj++) {
+          const tt = side.tot[oi][oj];
+          const aa = side.adv[oi][oj];
+          if (tt <= EPS) continue;
+          if (aa >= tt - EPS) full.push(oj);
+          else if (aa > EPS) anyPartial = true;
+        }
+        if (full.length > 0 && full.length < 3) {
+          const cond = joinOr(full.map((oj) => describeOj(other[i], oj)));
+          if (!anyPartial) return `${label} → through if ${cond}`;
+          const pct = Math.round((100 * c.advR) / c.totR);
+          return `${label} → through if ${cond} (else needs other groups, ~${pct}%)`;
+        }
+      }
+      const pct = Math.round((100 * c.advR) / c.totR);
+      return `${label} → ~${pct}% (needs other results)`;
+    };
+
+    const safe = (label) => cls[label].advR >= cls[label].totR - EPS;
+    const canAdv = (label) => cls[label].advR > EPS;
+    const allTiers = new Set([
+      ...cls.Win.tiers,
+      ...cls.Draw.tiers,
+      ...cls.Lose.tiers,
+    ]);
+
+    let need;
+    let tone;
+    const clinched = st === "in";
+    const eliminated = st === "out";
+    if (clinched) {
+      const can1 = allTiers.has("1st");
+      const win1 = cls.Win.tiers.has("1st");
+      const lose1 = cls.Lose.tiers.has("1st");
+      if (can1 && win1 && !lose1) {
+        need = "Win to top the group";
+        tone = "good";
+      } else if (
+        can1 &&
+        !(win1 && lose1 && cls.Draw.tiers.has("1st"))
+      ) {
+        need = "Through — top spot still in play";
+        tone = "good";
+      } else {
+        need = "Through to the last 32";
+        tone = "good";
+      }
+    } else if (eliminated) {
+      need = "Eliminated";
+      tone = "bad";
+    } else if (safe("Win") && safe("Draw")) {
+      need = "Win or draw to advance";
+      tone = "good";
+    } else if (safe("Win")) {
+      need = "Must win to advance";
+      tone = "warn";
+    } else if (canAdv("Win")) {
+      need = "Win and need other results";
+      tone = "warn";
+    } else {
+      need = "Long shot — win and need help";
+      tone = "warn";
+    }
+
+    const detail = eliminated
+      ? []
+      : ["Win", "Draw", "Lose"].map(lineFor).filter(Boolean);
+
+    const varies = !(
+      setsEqual(cls.Win.tiers, cls.Draw.tiers) &&
+      setsEqual(cls.Draw.tiers, cls.Lose.tiers)
+    );
+
+    return { obj: { prob, need, tone, detail, clinched, eliminated }, varies, st };
+  };
+
   rem.forEach((m, i) => {
-    const bk = buckets[i];
-    const aStake = describeStake(bk.aWin, bk.aDraw, bk.aLose);
-    const bStake = describeStake(bk.bWin, bk.bDraw, bk.bLose);
-    const level =
-      aStake.qual || bStake.qual
-        ? "high"
-        : aStake.seed || bStake.seed
-        ? "medium"
-        : aStake.unchanged && bStake.unchanged
-        ? "dead"
-        : "low";
-    const headline =
-      level === "high"
-        ? `Group ${m.group} · knockout place on the line`
-        : level === "medium"
-        ? `Group ${m.group} · jockeying for seeding`
-        : level === "dead"
-        ? `Group ${m.group} · both teams already settled`
-        : `Group ${m.group} · little left to decide`;
+    const a = buildTeam(i, "a");
+    const b = buildTeam(i, "b");
+    const anyBubble = a.st === "bubble" || b.st === "bubble";
+    const level = anyBubble ? "high" : a.varies || b.varies ? "medium" : "dead";
     out[m.id] = {
       level,
-      headline,
-      notes: {
-        [m.a]: { tone: aStake.tone, text: aStake.text },
-        [m.b]: { tone: bStake.tone, text: bStake.text },
-      },
+      teams: { [m.a]: a.obj, [m.b]: b.obj },
     };
   });
   return out;
@@ -1042,7 +1182,7 @@ export default async function handler(req, res) {
     const teamStatus = computeTeamStatus(groups, groupEvents);
 
     // What each upcoming/live group match still decides (1st/2nd, bubble, dead).
-    const matchStakes = computeMatchStakes(groups, groupEvents);
+    const matchStakes = computeMatchStakes(groups, groupEvents, teamStatus);
     schedule.forEach((m) => {
       if (matchStakes[m.id]) m.stakes = matchStakes[m.id];
     });

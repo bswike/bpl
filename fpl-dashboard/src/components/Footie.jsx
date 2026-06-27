@@ -660,27 +660,10 @@ function OddsLine({ m }) {
   );
 }
 
-const STAKES_STYLE = {
-  high: {
-    dot: "bg-emerald-400",
-    label: "text-emerald-300",
-    box: "border-emerald-500/40 bg-emerald-500/[0.06]",
-  },
-  medium: {
-    dot: "bg-amber-400",
-    label: "text-amber-300",
-    box: "border-amber-500/40 bg-amber-500/[0.06]",
-  },
-  low: {
-    dot: "bg-slate-500",
-    label: "text-slate-400",
-    box: "border-slate-700/50 bg-slate-800/30",
-  },
-  dead: {
-    dot: "bg-slate-600",
-    label: "text-slate-500",
-    box: "border-slate-700/40 bg-slate-800/20",
-  },
+const STAKE_ACCENT = {
+  high: "border-l-emerald-500/60",
+  medium: "border-l-amber-500/50",
+  dead: "border-l-slate-600/50",
 };
 
 const STAKE_TONE = {
@@ -690,43 +673,82 @@ const STAKE_TONE = {
   neutral: "text-slate-400",
 };
 
+const probTone = (p) =>
+  p == null
+    ? "text-slate-500"
+    : p >= 0.8
+    ? "text-emerald-400"
+    : p >= 0.35
+    ? "text-amber-400"
+    : "text-rose-400/80";
+
+function StakeTeamRow({ abbr, note }) {
+  const pct = note.prob == null ? null : Math.round(note.prob * 100);
+  return (
+    <div className="flex items-center gap-1.5 text-[10px] leading-tight py-0.5">
+      <span className="text-slate-300 font-semibold w-9 shrink-0">{abbr}</span>
+      <span className={STAKE_TONE[note.tone] || STAKE_TONE.neutral}>
+        {note.need}
+      </span>
+      {pct != null && (
+        <span
+          className={`ml-auto shrink-0 font-mono ${probTone(note.prob)}`}
+          title="Chance to advance (from Vegas odds)"
+        >
+          {pct}%
+        </span>
+      )}
+    </div>
+  );
+}
+
+function StakeDetail({ abbr, lines }) {
+  if (!lines || lines.length === 0) return null;
+  return (
+    <div className="text-[10px] leading-tight">
+      <span className="text-slate-400 font-semibold">{abbr}</span>
+      <ul className="mt-0.5 space-y-0.5">
+        {lines.map((l, i) => (
+          <li key={i} className="text-slate-400 pl-2">
+            {l}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function StakesLine({ m }) {
   const s = m.stakes;
-  if (!s) return null;
-  const st = STAKES_STYLE[s.level] || STAKES_STYLE.low;
-  const hNote = s.notes?.[teamCanon(m.home)];
-  const aNote = s.notes?.[teamCanon(m.away)];
+  const [open, setOpen] = useState(false);
+  if (!s || !s.teams) return null;
+  const hNote = s.teams[teamCanon(m.home)];
+  const aNote = s.teams[teamCanon(m.away)];
+  if (!hNote && !aNote) return null;
+  const accent = STAKE_ACCENT[s.level] || STAKE_ACCENT.dead;
+  const hasDetail =
+    (hNote?.detail?.length || 0) + (aNote?.detail?.length || 0) > 0;
   return (
-    <div className={`mt-1 ml-11 mr-0.5 rounded-md border px-2 py-1 ${st.box}`}>
-      <div className="flex items-center gap-1.5">
-        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${st.dot}`} />
-        <span
-          className={`text-[10px] font-semibold uppercase tracking-wide ${st.label}`}
+    <div
+      className={`mt-1 ml-11 mr-0.5 rounded-md bg-slate-900/40 border border-slate-700/40 border-l-2 ${accent} px-2 py-1`}
+    >
+      {hNote && <StakeTeamRow abbr={m.homeAbbr || m.home} note={hNote} />}
+      {aNote && <StakeTeamRow abbr={m.awayAbbr || m.away} note={aNote} />}
+      {hasDetail && (
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="mt-0.5 text-[9px] uppercase tracking-wider text-cyan-500/80 hover:text-cyan-300"
         >
-          {s.headline}
-        </span>
-      </div>
-      {(hNote || aNote) && (
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5 pl-3">
-          {hNote && (
-            <span className="text-[10px] leading-tight">
-              <span className="text-slate-300 font-semibold">
-                {m.homeAbbr || m.home}
-              </span>{" "}
-              <span className={STAKE_TONE[hNote.tone] || STAKE_TONE.neutral}>
-                {hNote.text}
-              </span>
-            </span>
+          {open ? "Hide scenarios" : "See scenarios"}
+        </button>
+      )}
+      {open && (
+        <div className="mt-1 pt-1 border-t border-slate-700/40 space-y-1.5">
+          {hNote?.detail?.length > 0 && (
+            <StakeDetail abbr={m.homeAbbr || m.home} lines={hNote.detail} />
           )}
-          {aNote && (
-            <span className="text-[10px] leading-tight">
-              <span className="text-slate-300 font-semibold">
-                {m.awayAbbr || m.away}
-              </span>{" "}
-              <span className={STAKE_TONE[aNote.tone] || STAKE_TONE.neutral}>
-                {aNote.text}
-              </span>
-            </span>
+          {aNote?.detail?.length > 0 && (
+            <StakeDetail abbr={m.awayAbbr || m.away} lines={aNote.detail} />
           )}
         </div>
       )}
