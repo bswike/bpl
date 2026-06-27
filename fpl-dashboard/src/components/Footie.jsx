@@ -1191,8 +1191,8 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
                 {t.group}
               </span>
               <div className="flex-1 min-w-0">
-                <div className="text-slate-200 truncate leading-tight flex items-center gap-1.5">
-                  <span className={`truncate ${isOut ? "line-through text-slate-500" : ""}`}>
+                <div className="text-slate-200 leading-tight flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                  <span className={isOut ? "line-through text-slate-500" : ""}>
                     {t.team}
                   </span>
                   {t.pos === 4 && (
