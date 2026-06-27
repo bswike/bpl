@@ -535,15 +535,18 @@ function slotLabel(slot) {
 
 // Rank the 12 third-placed teams (FIFA: points, GD, goals, then alphabetical),
 // take the best 8 and use the Annex C table to assign each to a group winner.
-function computeThirdPlace(groups) {
+// The display ranking also folds in still-alive current 4th-place teams: while
+// their group is unfinished they can still climb into the third-place picture,
+// so they belong in the race.
+const thirdSort = (a, b) =>
+  b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.team.localeCompare(b.team);
+
+function computeThirdPlace(groups, teamStatus = {}) {
   const thirds = groups
     .filter((g) => g.teams[2])
     .map((g) => ({ ...g.teams[2], group: g.group }));
-  thirds.sort(
-    (a, b) =>
-      b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.team.localeCompare(b.team)
-  );
-  thirds.forEach((t, i) => (t.rank = i + 1));
+  thirds.sort(thirdSort);
+  // Annex C / bracket projection uses the actual current 3rd of each group.
   const qualifiers = thirds.slice(0, 8);
   const combo = qualifiers
     .map((t) => t.group)
@@ -557,8 +560,19 @@ function computeThirdPlace(groups) {
       winnerToThird[w] = assignment[i];
     });
   }
+
+  // Current 4th-place teams that are not yet eliminated and whose group still
+  // has games left — they're chasing that group's third-place spot (or higher).
+  const challengers = groups
+    .filter((g) => !g.complete && g.teams[3])
+    .map((g) => ({ ...g.teams[3], group: g.group }))
+    .filter((t) => (teamStatus[t.canon]?.status || "bubble") !== "out");
+
+  const ranking = [...thirds, ...challengers].sort(thirdSort);
+  ranking.forEach((t, i) => (t.rank = i + 1));
+
   return {
-    ranking: thirds,
+    ranking,
     qualifierGroups: qualifiers.map((t) => t.group),
     combo,
     winnerToThird,
@@ -1034,7 +1048,7 @@ export default async function handler(req, res) {
     });
 
     // Who advances: top 2 per group + the best 8 third-placed teams.
-    const thirdInfo = computeThirdPlace(groups);
+    const thirdInfo = computeThirdPlace(groups, teamStatus);
     const qualifyingThirds = new Set(thirdInfo.qualifierGroups);
     groups.forEach((g) => {
       g.teams.forEach((t) => {

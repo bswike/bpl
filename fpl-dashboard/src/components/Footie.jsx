@@ -1077,7 +1077,9 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
           Third-Place Race
         </h3>
-        <span className="text-[10px] text-slate-500">best 8 of 12 advance</span>
+        <span className="text-[10px] text-slate-500">
+          best 8 thirds advance · live 4th-place chasers included
+        </span>
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1 px-4 py-1.5 text-[10px] border-b border-slate-700/40">
         <span className="text-emerald-300">● Clinched</span>
@@ -1149,6 +1151,14 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
                   <span className={`truncate ${isOut ? "line-through text-slate-500" : ""}`}>
                     {t.team}
                   </span>
+                  {t.pos === 4 && (
+                    <span
+                      className="shrink-0 text-[8px] font-semibold px-1 py-px rounded bg-slate-600/40 text-slate-300 whitespace-nowrap"
+                      title="Currently 4th — chasing the third-place spot"
+                    >
+                      4th now
+                    </span>
+                  )}
                   {remaining > 0 && (
                     <span className="shrink-0 text-[8px] font-semibold px-1 py-px rounded bg-cyan-500/15 text-cyan-300">
                       {remaining} to play
