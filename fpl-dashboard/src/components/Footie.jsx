@@ -1439,7 +1439,9 @@ const CITY_SHORT = {
   "New York/New Jersey": "NY/NJ",
   "San Francisco Bay Area": "SF Bay Area",
   "Mexico City": "Mexico City",
-  "Kansas City": "Kansas City",
+  "Kansas City": "KC",
+  "Los Angeles": "LA",
+  Atlanta: "ATL",
 };
 const shortCity = (city) => CITY_SHORT[city] || city;
 
