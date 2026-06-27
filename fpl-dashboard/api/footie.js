@@ -566,6 +566,119 @@ function computeThirdPlace(groups) {
   };
 }
 
+// Determine each third-placed team's fate by brute-forcing every possible
+// outcome (win/draw/loss) of the remaining group matches:
+//   "in"     – advances in EVERY remaining scenario (clinched)
+//   "out"    – advances in NO scenario (officially eliminated)
+//   "bubble" – still alive but not yet decided
+// "Advances" here means finishing top 2 of its group OR among the best 8 thirds.
+function computeThirdStatus(groups, groupEvents) {
+  const base = {};
+  const groupTeams = {};
+  groups.forEach((g) => {
+    groupTeams[g.group] = [];
+    g.teams.forEach((t) => {
+      base[t.canon] = { team: t.team, pts: t.pts, gf: t.gf, ga: t.ga };
+      groupTeams[g.group].push(t.canon);
+    });
+  });
+
+  const rem = [];
+  for (const e of groupEvents) {
+    const comp = e.competitions?.[0];
+    if (!comp || comp.status?.type?.state === "post") continue;
+    const m = (comp.altGameNote || "").match(/Group\s+([A-Z])/i);
+    const cs = comp.competitors || [];
+    if (cs.length < 2 || !m) continue;
+    const a = canon(cs[0].team.displayName);
+    const b = canon(cs[1].team.displayName);
+    if (base[a] && base[b]) rem.push({ a, b });
+  }
+
+  const listed = groups.map((g) => g.teams[2]?.canon).filter(Boolean);
+  const status = {};
+  const R = rem.length;
+  // Cap the search; this matters most near the end when R is small anyway.
+  if (Math.pow(3, R) > 20000) {
+    listed.forEach((c) => (status[c] = "bubble"));
+    return status;
+  }
+
+  const letters = Object.keys(groupTeams);
+  const inCount = {};
+  listed.forEach((c) => (inCount[c] = 0));
+  let total = 0;
+  const idx = new Array(R).fill(0);
+  const step = () => {
+    for (let i = 0; i < R; i++) {
+      if (idx[i] < 2) {
+        idx[i]++;
+        return true;
+      }
+      idx[i] = 0;
+    }
+    return false;
+  };
+
+  do {
+    total++;
+    const s = {};
+    for (const c in base) s[c] = { pts: base[c].pts, gf: base[c].gf, ga: base[c].ga };
+    for (let i = 0; i < R; i++) {
+      const { a, b } = rem[i];
+      const o = idx[i]; // 0 = a win, 1 = draw, 2 = b win (nominal 1-0 scoreline)
+      if (o === 0) {
+        s[a].pts += 3;
+        s[a].gf += 1;
+        s[b].ga += 1;
+      } else if (o === 2) {
+        s[b].pts += 3;
+        s[b].gf += 1;
+        s[a].ga += 1;
+      } else {
+        s[a].pts += 1;
+        s[b].pts += 1;
+      }
+    }
+    const advanced = new Set();
+    const thirds = [];
+    for (const L of letters) {
+      const arr = groupTeams[L]
+        .map((c) => ({
+          c,
+          pts: s[c].pts,
+          gd: s[c].gf - s[c].ga,
+          gf: s[c].gf,
+        }))
+        .sort(
+          (x, y) =>
+            y.pts - x.pts ||
+            y.gd - x.gd ||
+            y.gf - x.gf ||
+            base[x.c].team.localeCompare(base[y.c].team)
+        );
+      advanced.add(arr[0].c);
+      advanced.add(arr[1].c);
+      if (arr[2]) thirds.push(arr[2]);
+    }
+    thirds.sort(
+      (x, y) =>
+        y.pts - x.pts ||
+        y.gd - x.gd ||
+        y.gf - x.gf ||
+        base[x.c].team.localeCompare(base[y.c].team)
+    );
+    const top8 = new Set(thirds.slice(0, 8).map((t) => t.c));
+    for (const c of listed) if (advanced.has(c) || top8.has(c)) inCount[c]++;
+  } while (step());
+
+  for (const c of listed) {
+    status[c] =
+      inCount[c] === total ? "in" : inCount[c] === 0 ? "out" : "bubble";
+  }
+  return status;
+}
+
 function buildBracket(groups, koEvents, thirdInfo) {
   const groupBy = {};
   groups.forEach((g) => (groupBy[g.group] = g));
@@ -718,6 +831,12 @@ export default async function handler(req, res) {
       });
     });
     const bracket = buildBracket(groups, koEvents, thirdInfo);
+
+    // Clinched / eliminated / bubble for each third-placed team.
+    const thirdStatus = computeThirdStatus(groups, groupEvents);
+    thirdInfo.ranking.forEach((t) => {
+      t.status = thirdStatus[t.canon] || "bubble";
+    });
 
     const managers = roster.map((m) => {
       const teams = m.teams.map((teamName) => {

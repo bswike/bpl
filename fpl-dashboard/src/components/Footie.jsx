@@ -932,39 +932,61 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
   if (!ranking || ranking.length === 0) return null;
   return (
     <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-700/60">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-700/60 flex-wrap">
         <Trophy size={14} className="text-amber-400" />
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
           Third-Place Race
         </h3>
         <span className="text-[10px] text-slate-500">best 8 of 12 advance</span>
       </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 px-4 py-1.5 text-[10px] border-b border-slate-700/40">
+        <span className="text-emerald-300">● Clinched</span>
+        <span className="text-amber-300">● Bubble</span>
+        <span className="text-rose-300">● Out</span>
+      </div>
       <div className="divide-y divide-slate-700/40">
         {ranking.map((t) => {
           const owner = ownerFor(t.team);
-          const inThree = t.rank <= 8;
           const remaining = Math.max(0, 3 - (t.played || 0));
+          const status = t.status || (t.rank <= 8 ? "bubble" : "out");
+          const isIn = status === "in";
+          const isOut = status === "out";
+          const rowCls = isIn
+            ? "bg-emerald-500/5"
+            : isOut
+            ? "opacity-50"
+            : "bg-amber-500/5";
+          const numCls = isIn
+            ? "text-emerald-400 font-bold"
+            : isOut
+            ? "text-slate-600"
+            : "text-amber-400 font-bold";
+          const badge = isIn
+            ? { cls: "bg-emerald-500/20 text-emerald-300", text: "CLINCHED" }
+            : isOut
+            ? { cls: "bg-rose-500/20 text-rose-300", text: "OUT" }
+            : { cls: "bg-amber-500/20 text-amber-300", text: "BUBBLE" };
           return (
             <div
               key={t.canon}
-              className={`flex items-center gap-2 px-3 py-1.5 text-xs ${
-                inThree ? "bg-amber-500/5" : "opacity-60"
-              }`}
+              className={`flex items-center gap-2 px-3 py-1.5 text-xs ${rowCls}`}
             >
               <span
-                className={`w-5 text-center font-mono text-[11px] shrink-0 ${
-                  inThree ? "text-amber-400 font-bold" : "text-slate-500"
-                }`}
+                className={`w-5 text-center font-mono text-[11px] shrink-0 ${numCls}`}
               >
                 {t.rank}
               </span>
-              <span className="shrink-0">{flagFor(t.team)}</span>
+              <span className={`shrink-0 ${isOut ? "opacity-60" : ""}`}>
+                {flagFor(t.team)}
+              </span>
               <span className="text-[9px] text-slate-500 font-mono shrink-0">
                 {t.group}
               </span>
               <div className="flex-1 min-w-0">
                 <div className="text-slate-200 truncate leading-tight flex items-center gap-1.5">
-                  <span className="truncate">{t.team}</span>
+                  <span className={`truncate ${isOut ? "line-through text-slate-500" : ""}`}>
+                    {t.team}
+                  </span>
                   {remaining > 0 && (
                     <span className="shrink-0 text-[8px] font-semibold px-1 py-px rounded bg-cyan-500/15 text-cyan-300">
                       {remaining} to play
@@ -986,13 +1008,11 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
               <span className="shrink-0 font-mono text-slate-500 text-[11px] w-7 text-right">
                 {t.gf}
               </span>
-              {inThree ? (
-                <span className="shrink-0 text-[8px] font-bold px-1 py-px rounded bg-amber-500/20 text-amber-300">
-                  IN
-                </span>
-              ) : (
-                <span className="shrink-0 w-[18px]" />
-              )}
+              <span
+                className={`shrink-0 text-[8px] font-bold px-1 py-px rounded w-[58px] text-center ${badge.cls}`}
+              >
+                {badge.text}
+              </span>
             </div>
           );
         })}
