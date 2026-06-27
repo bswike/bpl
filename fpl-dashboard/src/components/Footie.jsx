@@ -1108,7 +1108,7 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
       <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-700/60 flex-wrap">
         <Trophy size={14} className="text-amber-400" />
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
-          Third-Place Race
+          Bubble Boys
         </h3>
         <span className="text-[10px] text-slate-500">
           best 8 thirds advance · live 4th-place chasers included
@@ -1118,6 +1118,7 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
         <span className="text-emerald-300">● Clinched</span>
         <span className="text-amber-300">● Bubble</span>
         <span className="text-rose-300">● Out</span>
+        <span className="text-slate-500">% = chance to advance (live odds)</span>
       </div>
       <div className="flex items-center gap-2 px-3 py-1 text-[9px] uppercase tracking-wider text-slate-500 border-b border-slate-700/40">
         <span className="w-5 text-center shrink-0" title="Third-place rank">
@@ -1223,11 +1224,21 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
               <span className="shrink-0 font-mono text-slate-500 text-[11px] w-7 text-right">
                 {t.gf}
               </span>
-              <span
-                className={`shrink-0 text-[8px] font-bold px-1 py-px rounded w-[58px] text-center ${badge.cls}`}
-              >
-                {badge.text}
-              </span>
+              <div className="w-[58px] shrink-0 flex flex-col items-center gap-0.5">
+                <span
+                  className={`text-[8px] font-bold px-1 py-px rounded w-full text-center ${badge.cls}`}
+                >
+                  {badge.text}
+                </span>
+                {!isIn && !isOut && t.prob != null && (
+                  <span
+                    className="text-[9px] font-mono text-amber-300"
+                    title="Chance to advance (live odds)"
+                  >
+                    {fmtPct(t.prob)}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
@@ -1253,6 +1264,7 @@ function GroupsView({ groups, managers, thirdPlace, draftPicks }) {
 
   return (
     <div className="space-y-3">
+      <ThirdPlaceRace ranking={thirdPlace?.ranking} ownerFor={ownerFor} />
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
         <span>
           <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/40 align-middle mr-1" />
@@ -1283,7 +1295,6 @@ function GroupsView({ groups, managers, thirdPlace, draftPicks }) {
           />
         ))}
       </div>
-      <ThirdPlaceRace ranking={thirdPlace?.ranking} ownerFor={ownerFor} />
     </div>
   );
 }

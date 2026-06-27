@@ -811,7 +811,8 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
 
   const out = {};
   const R = rem.length;
-  if (R === 0 || Math.pow(3, R) > 20000) return out;
+  if (R === 0 || Math.pow(3, R) > 20000)
+    return { stakes: out, advanceProb: {} };
 
   // The single other remaining match in the same group (drives dependencies).
   const other = rem.map((m, i) => {
@@ -834,13 +835,9 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
   });
   const stat = rem.map(() => ({ a: mkSide(), b: mkSide() }));
 
-  const interest = new Set();
-  rem.forEach((m) => {
-    interest.add(m.a);
-    interest.add(m.b);
-  });
+  // Odds-weighted P(advance) for every team (not just those playing today).
   const teamAdv = {};
-  interest.forEach((c) => (teamAdv[c] = 0));
+  for (const c in base) teamAdv[c] = 0;
   let totalProb = 0;
 
   const idx = new Array(R).fill(0);
@@ -910,7 +907,7 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
       .slice(0, 8)
       .forEach((t) => (tier[t.c] = "3Q"));
 
-    for (const c of interest) if (tier[c] !== "out") teamAdv[c] += sp;
+    for (const c in base) if (tier[c] !== "out") teamAdv[c] += sp;
 
     for (let i = 0; i < R; i++) {
       const { a, b } = rem[i];
@@ -1061,7 +1058,11 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
       teams: { [m.a]: a.obj, [m.b]: b.obj },
     };
   });
-  return out;
+
+  const advanceProb = {};
+  if (totalProb > 0)
+    for (const c in teamAdv) advanceProb[c] = teamAdv[c] / totalProb;
+  return { stakes: out, advanceProb };
 }
 
 function buildBracket(groups, koEvents, thirdInfo) {
@@ -1200,11 +1201,19 @@ export default async function handler(req, res) {
     // Clinched / eliminated / bubble for every team (group + best-third math).
     const teamStatus = computeTeamStatus(groups, groupEvents);
 
-    // What each upcoming/live group match still decides (1st/2nd, bubble, dead).
-    const matchStakes = computeMatchStakes(groups, groupEvents, teamStatus);
+    // What each upcoming/live group match still decides (1st/2nd, bubble, dead),
+    // plus an odds-weighted chance-to-advance for every team.
+    const { stakes: matchStakes, advanceProb } = computeMatchStakes(
+      groups,
+      groupEvents,
+      teamStatus
+    );
     schedule.forEach((m) => {
       if (matchStakes[m.id]) m.stakes = matchStakes[m.id];
     });
+    const probFor = (canonKey, statusVal) =>
+      advanceProb[canonKey] ??
+      (statusVal === "in" ? 1 : statusVal === "out" ? 0 : null);
 
     // Who advances: top 2 per group + the best 8 third-placed teams.
     const thirdInfo = computeThirdPlace(groups, teamStatus);
@@ -1220,6 +1229,7 @@ export default async function handler(req, res) {
         t.posBest = o?.posBest ?? null;
         t.posWorst = o?.posWorst ?? null;
         t.eliminated = t.status === "out";
+        t.prob = probFor(t.canon, t.status);
       });
     });
     thirdInfo.ranking.forEach((t) => {
@@ -1227,6 +1237,7 @@ export default async function handler(req, res) {
       t.status = o?.status || "bubble";
       t.posBest = o?.posBest ?? null;
       t.posWorst = o?.posWorst ?? null;
+      t.prob = probFor(t.canon, t.status);
     });
     const bracket = buildBracket(groups, koEvents, thirdInfo);
 
