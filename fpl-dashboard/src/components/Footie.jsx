@@ -1723,7 +1723,7 @@ export default function Footie() {
   // anything is live, slower otherwise, and pause when the tab is hidden.
   const isLive = !!data?.live;
   useEffect(() => {
-    const everyMs = isLive ? 20000 : 90000;
+    const everyMs = isLive ? 15000 : 90000;
     const id = setInterval(() => {
       if (!document.hidden) load(true);
     }, everyMs);

@@ -1545,7 +1545,7 @@ export default async function handler(req, res) {
     const anyLive = [...groupEvents, ...koEvents].some(
       (e) => e.competitions?.[0]?.status?.type?.state === "in"
     );
-    const cacheTime = anyLive ? 30 : 120;
+    const cacheTime = anyLive ? 15 : 120;
     res.setHeader(
       "Cache-Control",
       `s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}`
