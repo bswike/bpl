@@ -994,6 +994,15 @@ function GroupTable({ group, ownerFor, pickFor }) {
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
           Group {group.group}
         </h3>
+        {group.live && (
+          <span
+            className="ml-auto inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-rose-300"
+            title="Table includes an in-progress match — provisional"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+            Live
+          </span>
+        )}
       </div>
       <div className="overflow-x-auto overscroll-x-contain">
         <table className="w-full text-xs min-w-[360px]">
@@ -1128,7 +1137,7 @@ function GroupTable({ group, ownerFor, pickFor }) {
   );
 }
 
-function ThirdPlaceRace({ ranking, ownerFor }) {
+function ThirdPlaceRace({ ranking, ownerFor, live }) {
   const [open, setOpen] = useState(null);
   if (!ranking || ranking.length === 0) return null;
   return (
@@ -1138,6 +1147,15 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
         <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
           Bubble Boys
         </h3>
+        {live && (
+          <span
+            className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-rose-300"
+            title="Standings and odds include in-progress matches"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+            Live
+          </span>
+        )}
         <span className="text-[10px] text-slate-500">
           best 8 thirds advance · anyone who could slip into the race · tap for
           details
@@ -1334,9 +1352,14 @@ function GroupsView({ groups, managers, thirdPlace, draftPicks }) {
   const ownerFor = (team) => ownerMap[teamCanon(team)] || null;
   const pickFor = (team) => draftPicks?.[teamCanon(team)] ?? null;
 
+  const anyLive = groups.some((g) => g.live);
   return (
     <div className="space-y-3">
-      <ThirdPlaceRace ranking={thirdPlace?.ranking} ownerFor={ownerFor} />
+      <ThirdPlaceRace
+        ranking={thirdPlace?.ranking}
+        ownerFor={ownerFor}
+        live={anyLive}
+      />
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
         <span>
           <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/40 align-middle mr-1" />
@@ -1695,6 +1718,24 @@ export default function Footie() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Keep scores, standings and odds fresh while games are on. Poll fast when
+  // anything is live, slower otherwise, and pause when the tab is hidden.
+  const isLive = !!data?.live;
+  useEffect(() => {
+    const everyMs = isLive ? 20000 : 90000;
+    const id = setInterval(() => {
+      if (!document.hidden) load(true);
+    }, everyMs);
+    const onVisible = () => {
+      if (!document.hidden) load(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [isLive, load]);
 
   const rankByName = {};
   if (data?.standings) {

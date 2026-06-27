@@ -412,6 +412,7 @@ function buildGroups(groupEvents) {
       gf: 0,
       ga: 0,
       pts: 0,
+      live: false,
     });
   };
 
@@ -425,22 +426,31 @@ function buildGroups(groupEvents) {
     if (cs.length < 2) continue;
     const a = cs[0];
     const b = cs[1];
+    const state = comp.status?.type?.state;
     const ta = ensure(letter, a);
     const tb = ensure(letter, b);
-    if (comp.status?.type?.state === "post") {
+    // Count finished matches and in-progress ones (the latter provisionally, so
+    // the table reflects the live picture "as it stands"). Finished games still
+    // count toward `played`, which is what decides whether a group is complete.
+    if (state === "post" || state === "in") {
       const as = Number(a.score) || 0;
       const bs = Number(b.score) || 0;
-      ta.played++;
-      tb.played++;
+      if (state === "post") {
+        ta.played++;
+        tb.played++;
+      } else {
+        ta.live = true;
+        tb.live = true;
+      }
       ta.gf += as;
       ta.ga += bs;
       tb.gf += bs;
       tb.ga += as;
-      if (a.winner === true) {
+      if (as > bs) {
         ta.w++;
         ta.pts += 3;
         tb.l++;
-      } else if (b.winner === true) {
+      } else if (bs > as) {
         tb.w++;
         tb.pts += 3;
         ta.l++;
@@ -467,7 +477,8 @@ function buildGroups(groupEvents) {
         matchesByGroup[letter] || []
       ).map((t, idx) => ({ ...t, pos: idx + 1 }));
       const complete = teams.every((t) => t.played >= 3);
-      return { group: letter, teams, complete };
+      const live = teams.some((t) => t.live);
+      return { group: letter, teams, complete, live };
     });
 }
 
@@ -588,6 +599,38 @@ function computeThirdPlace(groups, teamStatus = {}) {
   };
 }
 
+// Confirmed (finished-match-only) points/goals per team. The display tables can
+// fold in live in-progress scores, but the projection maths must run off
+// settled results and treat in-progress games as still-to-be-played.
+function confirmedStats(groups, groupEvents) {
+  const base = {};
+  groups.forEach((g) =>
+    g.teams.forEach((t) => (base[t.canon] = { pts: 0, gf: 0, ga: 0 }))
+  );
+  for (const e of groupEvents) {
+    const comp = e.competitions?.[0];
+    if (!comp || comp.status?.type?.state !== "post") continue;
+    const cs = comp.competitors || [];
+    if (cs.length < 2) continue;
+    const a = canon(cs[0].team.displayName);
+    const b = canon(cs[1].team.displayName);
+    if (!base[a] || !base[b]) continue;
+    const sa = Number(cs[0].score) || 0;
+    const sb = Number(cs[1].score) || 0;
+    base[a].gf += sa;
+    base[a].ga += sb;
+    base[b].gf += sb;
+    base[b].ga += sa;
+    if (sa > sb) base[a].pts += 3;
+    else if (sb > sa) base[b].pts += 3;
+    else {
+      base[a].pts += 1;
+      base[b].pts += 1;
+    }
+  }
+  return base;
+}
+
 // Determine every team's fate by brute-forcing all possible outcomes
 // (win/draw/loss) of the remaining group matches:
 //   "in"     – advances in EVERY remaining scenario (clinched)
@@ -598,12 +641,14 @@ function computeThirdPlace(groups, teamStatus = {}) {
 // UI can show that e.g. a current group leader could still slip to 3rd.
 // Returns { [canon]: { status, posBest, posWorst } }.
 function computeTeamStatus(groups, groupEvents) {
+  const confirmed = confirmedStats(groups, groupEvents);
   const base = {};
   const groupTeams = {};
   groups.forEach((g) => {
     groupTeams[g.group] = [];
     g.teams.forEach((t) => {
-      base[t.canon] = { team: t.team, pts: t.pts, gf: t.gf, ga: t.ga };
+      const c = confirmed[t.canon] || { pts: 0, gf: 0, ga: 0 };
+      base[t.canon] = { team: t.team, pts: c.pts, gf: c.gf, ga: c.ga };
       groupTeams[g.group].push(t.canon);
     });
   });
@@ -743,6 +788,54 @@ function winProbs(comp) {
   return { home: h / sum, draw: d / sum, away: a / sum };
 }
 
+// Minutes elapsed in a live match, parsed from ESPN's clock/labels.
+function liveMinute(comp) {
+  const st = comp.status || {};
+  const dc = st.displayClock || st.type?.shortDetail || "";
+  const sd = (st.type?.shortDetail || "").toLowerCase();
+  if (sd.includes("half") || sd === "ht") return 45;
+  const m = String(dc).match(/(\d+)/);
+  if (m) return Math.min(95, Number(m[1]));
+  if (typeof st.clock === "number" && st.clock > 0)
+    return Math.min(95, st.clock / 60);
+  return 45; // unknown but live: assume roughly halfway
+}
+
+// Blend pre-match [a, draw, b] probabilities with the live scoreline. As the
+// clock runs down we trust the current score more (a small Poisson model for
+// the remaining goals), so advancement odds drift toward what's on the pitch.
+function liveProbs(preP, sA, sB, minute) {
+  const remFrac = Math.max(0, Math.min(1, (90 - minute) / 90));
+  const elapsed = 1 - remFrac;
+  const BASE = 1.35; // avg goals per team across a full match
+  const pa = preP[0];
+  const pb = preP[2];
+  const denom = pa + pb || 1;
+  const lamA = BASE * remFrac * ((2 * pa) / denom);
+  const lamB = BASE * remFrac * ((2 * pb) / denom);
+  const fact = [1, 1, 2, 6, 24, 120, 720, 5040, 40320];
+  const poi = (lam, k) => (Math.exp(-lam) * Math.pow(lam, k)) / fact[k];
+  let pA = 0;
+  let pD = 0;
+  let pB = 0;
+  for (let ga = 0; ga <= 8; ga++) {
+    for (let gb = 0; gb <= 8; gb++) {
+      const w = poi(lamA, ga) * poi(lamB, gb);
+      const fa = sA + ga;
+      const fb = sB + gb;
+      if (fa > fb) pA += w;
+      else if (fb > fa) pB += w;
+      else pD += w;
+    }
+  }
+  const ps = pA + pD + pB || 1;
+  const live = [pA / ps, pD / ps, pB / ps];
+  // Early on lean on Vegas; late on lean on the scoreline.
+  const out = [0, 1, 2].map((i) => (1 - elapsed) * preP[i] + elapsed * live[i]);
+  const s = out[0] + out[1] + out[2] || 1;
+  return [out[0] / s, out[1] / s, out[2] / s];
+}
+
 const joinOr = (arr) =>
   arr.length <= 1
     ? arr[0] || ""
@@ -779,12 +872,14 @@ function tierText(set) {
 // the result(s) they need, and concise scenario lines (incl. the deciding
 // other match in their group). Returns a map keyed by ESPN event id.
 function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
+  const confirmed = confirmedStats(groups, groupEvents);
   const base = {};
   const groupTeams = {};
   groups.forEach((g) => {
     groupTeams[g.group] = [];
     g.teams.forEach((t) => {
-      base[t.canon] = { team: t.team, pts: t.pts, gf: t.gf, ga: t.ga };
+      const c = confirmed[t.canon] || { pts: 0, gf: 0, ga: 0 };
+      base[t.canon] = { team: t.team, pts: c.pts, gf: c.gf, ga: c.ga };
       groupTeams[g.group].push(t.canon);
     });
   });
@@ -805,6 +900,12 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
     if (wp) {
       const cs0Home = cs[0].homeAway === "home";
       p = cs0Home ? [wp.home, wp.draw, wp.away] : [wp.away, wp.draw, wp.home];
+    }
+    // For an in-progress match, fold the live scoreline + clock into the odds.
+    if (comp.status?.type?.state === "in") {
+      const sA = Number(cs[0].score) || 0;
+      const sB = Number(cs[1].score) || 0;
+      p = liveProbs(p, sA, sB, liveMinute(comp));
     }
     rem.push({
       id: e.id,
