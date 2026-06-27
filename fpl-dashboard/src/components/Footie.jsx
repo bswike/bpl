@@ -1416,17 +1416,11 @@ const koDayParts = (ymd) => {
   const date = new Date(y, mo - 1, d);
   return { date, diff: dayDiffFromToday(date), md: `${mo}/${d}` };
 };
-// Relative day for a bracket card: "Today", "Tomorrow 6/28", "Friday", "Sat 7/4".
+// Day for a bracket card: short weekday + date, e.g. "Sun 6/28".
 const koDayLabel = (ymd) => {
   const p = koDayParts(ymd);
   if (!p) return "";
-  const { date, diff, md } = p;
-  if (diff === 0) return "Today";
-  if (diff === 1) return `Tomorrow ${md}`;
-  if (diff === -1) return "Yesterday";
-  if (diff >= 2 && diff <= 6)
-    return date.toLocaleString("en-US", { weekday: "long" });
-  return `${date.toLocaleString("en-US", { weekday: "short" })} ${md}`;
+  return `${p.date.toLocaleString("en-US", { weekday: "short" })} ${p.md}`;
 };
 const koIsToday = (ymd) => {
   const p = koDayParts(ymd);
