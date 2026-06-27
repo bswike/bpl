@@ -1438,10 +1438,11 @@ const koTimeShort = (t) => {
 const CITY_SHORT = {
   "New York/New Jersey": "NY/NJ",
   "San Francisco Bay Area": "SF Bay Area",
-  "Mexico City": "Mexico City",
+  "Mexico City": "Mexico",
   "Kansas City": "KC",
   "Los Angeles": "LA",
   Atlanta: "ATL",
+  Philadelphia: "Philly",
 };
 const shortCity = (city) => CITY_SHORT[city] || city;
 
