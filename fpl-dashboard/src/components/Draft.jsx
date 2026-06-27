@@ -1,166 +1,178 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   GitBranch,
   Trophy,
   Save,
   RotateCcw,
-  ChevronRight,
   X,
-  ClipboardList,
   Eye,
   Loader2,
   Users,
+  RefreshCw,
+  Check,
+  Wand2,
 } from "lucide-react";
+import LoadingSpinner from "./LoadingSpinner";
 
-// ----- bracket model -------------------------------------------------------
-// 6 levels of slots: [32, 16, 8, 4, 2, 1]. Level 0 holds the entrant names
-// (editable). Each higher level is filled by picking a winner of the match
-// below it. Third-place is contested by the two semifinal losers.
-const SIZES = [32, 16, 8, 4, 2, 1];
-const COLS = [
-  { lvl: 0, label: "Round of 32" },
-  { lvl: 1, label: "Round of 16" },
-  { lvl: 2, label: "Quarterfinals" },
-  { lvl: 3, label: "Semifinals" },
-  { lvl: 4, label: "Final" },
+// ---------------------------------------------------------------------------
+// Shared helpers (mirrors Footie.jsx so the bracket looks identical).
+// ---------------------------------------------------------------------------
+const FLAGS = {
+  France: "🇫🇷", Uruguay: "🇺🇾", Switzerland: "🇨🇭", Scotland: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+  Czechia: "🇨🇿", Haiti: "🇭🇹", Spain: "🇪🇸", Japan: "🇯🇵", Turkeye: "🇹🇷",
+  Türkiye: "🇹🇷", Bosnia: "🇧🇦", "Bosnia-Herzegovina": "🇧🇦", Algeria: "🇩🇿",
+  "Cabo Verde": "🇨🇻", "Cape Verde": "🇨🇻", England: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", Norway: "🇳🇴",
+  Ecuador: "🇪🇨", Australia: "🇦🇺", Panama: "🇵🇦", Curacao: "🇨🇼", Curaçao: "🇨🇼",
+  Brazil: "🇧🇷", Mexico: "🇲🇽", Canada: "🇨🇦", Paraguay: "🇵🇾", Iran: "🇮🇷",
+  Iraq: "🇮🇶", Argentina: "🇦🇷", Belgium: "🇧🇪", Croatia: "🇭🇷",
+  "South Korea": "🇰🇷", Tunisia: "🇹🇳", Jordan: "🇯🇴", Portugal: "🇵🇹",
+  Columbia: "🇨🇴", Colombia: "🇨🇴", Senegal: "🇸🇳", Sweden: "🇸🇪",
+  "South Africa": "🇿🇦", "DR Congo": "🇨🇩", "Congo DR": "🇨🇩", Germany: "🇩🇪",
+  Morocco: "🇲🇦", Austria: "🇦🇹", Ghana: "🇬🇭", "Saudia Arabia": "🇸🇦",
+  "Saudi Arabia": "🇸🇦", Qatar: "🇶🇦", USA: "🇺🇸", "United States": "🇺🇸",
+  Netherlands: "🇳🇱", "Ivory Coast": "🇨🇮", Egypt: "🇪🇬", Uzbekistan: "🇺🇿",
+  "New Zealand": "🇳🇿",
+};
+const normName = (s) =>
+  (s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+const FLAG_ALIASES = {
+  capeverde: "caboverde", turkiye: "turkeye", colombia: "columbia",
+  congodr: "drcongo", unitedstates: "usa", bosniaherzegovina: "bosnia",
+};
+const FLAG_NORM = {};
+Object.entries(FLAGS).forEach(([k, v]) => {
+  FLAG_NORM[normName(k)] = v;
+});
+const flagFor = (team) => {
+  const n = normName(team);
+  return FLAG_NORM[n] || FLAG_NORM[FLAG_ALIASES[n]] || "⚽";
+};
+
+const dayDiffFromToday = (d) => {
+  const now = new Date();
+  const a = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const b = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((a - b) / 86400000);
+};
+const koDayParts = (ymd) => {
+  const [y, mo, d] = (ymd || "").split("-").map(Number);
+  if (!y) return null;
+  const date = new Date(y, mo - 1, d);
+  return { date, diff: dayDiffFromToday(date), md: `${mo}/${d}` };
+};
+const koDayLabel = (ymd) => {
+  const p = koDayParts(ymd);
+  if (!p) return "";
+  return `${p.date.toLocaleString("en-US", { weekday: "short" })} ${p.md}`;
+};
+const koIsToday = (ymd) => {
+  const p = koDayParts(ymd);
+  return !!p && p.diff === 0;
+};
+const koTimeShort = (t) => {
+  const m = String(t || "").match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return "";
+  const min = m[2] === "00" ? "" : `:${m[2]}`;
+  return `${m[1]}${min}${m[3].toUpperCase() === "PM" ? "p" : "a"}`;
+};
+const CITY_SHORT = {
+  "New York/New Jersey": "NY/NJ", "San Francisco Bay Area": "SF Bay Area",
+  "Mexico City": "Mexico", "Kansas City": "KC", "Los Angeles": "LA",
+  Atlanta: "ATL", Philadelphia: "Philly",
+};
+const shortCity = (city) => CITY_SHORT[city] || city;
+
+// Vertical match order per round so the connector tree lines up.
+const BR_ORDER = {
+  r32: [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87],
+  r16: [89, 90, 93, 94, 91, 92, 95, 96],
+  qf: [97, 98, 99, 100],
+  sf: [101, 102],
+  final: [104],
+};
+const BR_COLS = [
+  { key: "r32", label: "Round of 32" },
+  { key: "r16", label: "Round of 16" },
+  { key: "qf", label: "Quarters" },
+  { key: "sf", label: "Semis" },
+  { key: "final", label: "Final" },
 ];
 
-function emptyRounds() {
-  return SIZES.map((s) => Array(s).fill(null));
-}
+// Winner/loser feeds for matches 89-104 (R32 = 73-88 come straight from groups).
+const FEEDS = {
+  89: { a: { mw: 74 }, b: { mw: 77 } },
+  90: { a: { mw: 73 }, b: { mw: 75 } },
+  91: { a: { mw: 76 }, b: { mw: 78 } },
+  92: { a: { mw: 79 }, b: { mw: 80 } },
+  93: { a: { mw: 83 }, b: { mw: 84 } },
+  94: { a: { mw: 81 }, b: { mw: 82 } },
+  95: { a: { mw: 86 }, b: { mw: 88 } },
+  96: { a: { mw: 85 }, b: { mw: 87 } },
+  97: { a: { mw: 89 }, b: { mw: 90 } },
+  98: { a: { mw: 93 }, b: { mw: 94 } },
+  99: { a: { mw: 91 }, b: { mw: 92 } },
+  100: { a: { mw: 95 }, b: { mw: 96 } },
+  101: { a: { mw: 97 }, b: { mw: 98 } },
+  102: { a: { mw: 99 }, b: { mw: 100 } },
+  103: { a: { ml: 101 }, b: { ml: 102 } }, // third place: SF losers
+  104: { a: { mw: 101 }, b: { mw: 102 } },
+};
+const KO_NUMS = Array.from({ length: 32 }, (_, i) => 73 + i); // 73..104
 
-// Keep higher rounds consistent: a slot must be one of its two children, else
-// it (and anything it fed) is cleared. Runs bottom-up so changes cascade.
-function sanitize(rounds) {
-  const r = rounds.map((a) => a.slice());
-  for (let lvl = 1; lvl <= 5; lvl++) {
-    for (let m = 0; m < r[lvl].length; m++) {
-      const occ = r[lvl][m];
-      if (occ == null) continue;
-      const a = r[lvl - 1][2 * m];
-      const b = r[lvl - 1][2 * m + 1];
-      if (occ !== a && occ !== b) r[lvl][m] = null;
-    }
-  }
-  return r;
-}
-
-function thirdContenders(rounds) {
-  const loser = (a, b, w) => {
-    if (a == null || b == null || w == null) return null;
-    return w === a ? b : a;
+// Resolve the bracket: R32 teams come from the live API standings; every other
+// match's two contestants come from the user's picks propagating up the tree.
+// Returns sanitized picks (downstream picks that became impossible are dropped).
+function resolveBracket(data, rawPicks) {
+  const byNo = {};
+  (data?.bracket || []).forEach((m) => (byNo[m.no] = m));
+  const teamObj = (slot) =>
+    slot && slot.canon ? { team: slot.team, canon: slot.canon, abbr: slot.abbr } : null;
+  const comp = {};
+  const win = {};
+  const lose = {};
+  const picks = {};
+  const fromFeed = (f) => {
+    if (!f) return null;
+    if (f.mw != null) return win[f.mw] || null;
+    if (f.ml != null) return lose[f.ml] || null;
+    return null;
   };
-  return [
-    loser(rounds[3][0], rounds[3][1], rounds[4][0]),
-    loser(rounds[3][2], rounds[3][3], rounds[4][1]),
-  ];
-}
-
-// ----- one slot row --------------------------------------------------------
-function Slot({ level, idx, name, isWinner, editable, onPick, onRename }) {
-  const canAdvance = level < 5 && !!name;
-  const base =
-    "flex items-center gap-1 px-1.5 h-[26px] transition-colors " +
-    (isWinner
-      ? "bg-emerald-500/15"
-      : name
-      ? "hover:bg-slate-700/40"
-      : "");
-
-  if (editable && level === 0) {
-    return (
-      <div className={base}>
-        <input
-          value={name || ""}
-          onChange={(e) => onRename(idx, e.target.value)}
-          placeholder={`Seed ${idx + 1}`}
-          className="flex-1 min-w-0 bg-transparent text-[11px] leading-none text-slate-100 placeholder:text-slate-600 outline-none focus:text-white"
-        />
-        <button
-          type="button"
-          disabled={!canAdvance}
-          onClick={() => canAdvance && onPick(level, idx)}
-          title={canAdvance ? "Advance" : ""}
-          className={`shrink-0 rounded p-0.5 ${
-            isWinner
-              ? "text-emerald-300"
-              : canAdvance
-              ? "text-slate-500 hover:text-cyan-300"
-              : "text-slate-700 cursor-default"
-          }`}
-        >
-          <ChevronRight className="w-3 h-3" />
-        </button>
-      </div>
-    );
+  for (const no of KO_NUMS) {
+    let home, away;
+    if (no <= 88) {
+      const m = byNo[no];
+      home = m ? teamObj(m.home) : null;
+      away = m ? teamObj(m.away) : null;
+    } else {
+      const f = FEEDS[no];
+      home = fromFeed(f?.a);
+      away = fromFeed(f?.b);
+    }
+    comp[no] = { home, away };
+    const p = rawPicks?.[no];
+    let eff = null;
+    if (p && (home?.canon === p || away?.canon === p)) {
+      eff = p;
+      picks[no] = p;
+    }
+    win[no] = eff ? (home?.canon === eff ? home : away) : null;
+    lose[no] = eff ? (home?.canon === eff ? away : home) : null;
   }
-
-  return (
-    <button
-      type="button"
-      disabled={!canAdvance || !editable}
-      onClick={() => editable && canAdvance && onPick(level, idx)}
-      className={`${base} w-full text-left ${
-        editable && canAdvance ? "cursor-pointer" : "cursor-default"
-      }`}
-    >
-      <span
-        className={`flex-1 min-w-0 truncate text-[11px] leading-none ${
-          isWinner
-            ? "text-emerald-200 font-bold"
-            : name
-            ? "text-slate-200 font-medium"
-            : "text-slate-600 italic"
-        }`}
-      >
-        {name || "—"}
-      </span>
-      {isWinner && (
-        <ChevronRight className="w-3 h-3 shrink-0 text-emerald-300" />
-      )}
-    </button>
-  );
+  return { byNo, comp, win, lose, picks, champion: win[104] || null };
 }
 
-function MatchCard({ level, m, rounds, editable, onPick, onRename }) {
-  const top = rounds[level][2 * m];
-  const bot = rounds[level][2 * m + 1];
-  const winner = rounds[level + 1] ? rounds[level + 1][m] : null;
-  return (
-    <div className="flex items-center">
-      <div className="w-full rounded-md border border-slate-700/60 bg-slate-800/50 overflow-hidden">
-        <Slot
-          level={level}
-          idx={2 * m}
-          name={top}
-          isWinner={winner != null && winner === top}
-          editable={editable}
-          onPick={onPick}
-          onRename={onRename}
-        />
-        <div className="border-t border-slate-700/40" />
-        <Slot
-          level={level}
-          idx={2 * m + 1}
-          name={bot}
-          isWinner={winner != null && winner === bot}
-          editable={editable}
-          onPick={onPick}
-          onRename={onRename}
-        />
-      </div>
-    </div>
-  );
-}
-
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
 function Connectors({ count, colH }) {
   return (
     <div className="flex flex-col shrink-0" style={{ width: 12 }}>
       <div className="h-4 mb-1" />
-      <div
-        className="flex flex-col justify-around"
-        style={{ height: colH }}
-      >
+      <div className="flex flex-col justify-around" style={{ height: colH }}>
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="flex items-center" style={{ flex: 1 }}>
             <div
@@ -181,79 +193,244 @@ function Connectors({ count, colH }) {
   );
 }
 
-// ----- the bracket canvas (shared build + read-only) -----------------------
-function BracketCanvas({ rounds, editable, onPick, onRename }) {
-  const colH = editable ? 1320 : 1140;
-  const champion = rounds[5][0];
-  const [la, lb] = thirdContenders(rounds);
-  const thirdWin = rounds.__third || null;
+function MatchSlot({ no, slot, sideCanon, winCanon, meta, editable, onPick }) {
+  const known = !!(slot && slot.canon);
+  const picked = !!winCanon && sideCanon === winCanon;
+  const score =
+    known && (no <= 88 || meta.matchesReality) && meta.scoreByCanon[sideCanon] != null
+      ? meta.scoreByCanon[sideCanon]
+      : null;
+  const correct =
+    picked && meta.realWinner && meta.matchesReality
+      ? meta.realWinner === sideCanon
+      : null;
+  const live = meta.state === "in";
+  return (
+    <button
+      type="button"
+      disabled={!editable || !known}
+      onClick={() => editable && known && onPick(no, sideCanon)}
+      className={`flex items-center gap-1 px-1.5 h-[26px] w-full text-left transition-colors ${
+        picked ? "bg-cyan-500/15" : known ? "hover:bg-slate-700/40" : ""
+      } ${editable && known ? "cursor-pointer" : "cursor-default"}`}
+    >
+      <span className="text-[11px] leading-none shrink-0">
+        {known ? flagFor(slot.team) : "·"}
+      </span>
+      {known ? (
+        <span
+          className={`shrink-0 text-[10px] leading-none ${
+            picked ? "text-cyan-100 font-bold" : "text-slate-200 font-semibold"
+          }`}
+          title={slot.team}
+        >
+          {slot.abbr || slot.team}
+        </span>
+      ) : (
+        <span
+          className="flex-1 min-w-0 truncate text-[10px] leading-none text-slate-500 italic"
+          title={slot?.label}
+        >
+          {slot?.label || "TBD"}
+        </span>
+      )}
+      {correct === true && <Check className="w-3 h-3 text-emerald-400 shrink-0" />}
+      {correct === false && <X className="w-3 h-3 text-rose-400 shrink-0" />}
+      <span className="flex-1" />
+      {score != null && (
+        <span
+          className={`shrink-0 font-mono text-[10px] leading-none ${
+            live ? "text-cyan-300 font-bold" : "text-slate-400"
+          }`}
+        >
+          {score}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function DraftMatch({ m, editable, onPick, colHeight, count }) {
+  const { no, home, away, winCanon, meta } = m;
+  const live = meta.state === "in";
+  const isToday = koIsToday(meta.date);
+  return (
+    <div
+      style={{ minHeight: colHeight ? colHeight / count : undefined }}
+      className="flex items-center"
+    >
+      <div
+        className={`w-full rounded-md border overflow-hidden ${
+          isToday
+            ? "border-white/50 bg-slate-800/70 ring-1 ring-white/20"
+            : "border-slate-700/60 bg-slate-800/50"
+        }`}
+      >
+        <div className="flex items-center justify-between px-1.5 py-[2px] bg-slate-900/50 border-b border-slate-700/40">
+          <span
+            title={`${koDayLabel(meta.date)} · ${meta.time || ""} · ${
+              meta.city || ""
+            }`}
+            className={`text-[8px] truncate ${
+              isToday ? "text-white font-bold" : "text-slate-500 font-medium"
+            }`}
+          >
+            {[koDayLabel(meta.date), koTimeShort(meta.time), shortCity(meta.city)]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+          {live ? (
+            <span className="text-[8px] text-cyan-400 font-bold shrink-0 ml-1">
+              {meta.detail || "LIVE"}
+            </span>
+          ) : (
+            <span className="text-[8px] text-slate-600 shrink-0 ml-1">M{no}</span>
+          )}
+        </div>
+        <MatchSlot
+          no={no}
+          slot={home}
+          sideCanon={home?.canon || null}
+          winCanon={winCanon}
+          meta={meta}
+          editable={editable}
+          onPick={onPick}
+        />
+        <div className="border-t border-slate-700/40" />
+        <MatchSlot
+          no={no}
+          slot={away}
+          sideCanon={away?.canon || null}
+          winCanon={winCanon}
+          meta={meta}
+          editable={editable}
+          onPick={onPick}
+        />
+      </div>
+    </div>
+  );
+}
+
+function BracketGrid({ data, picks, editable, onPick }) {
+  const resolved = useMemo(() => resolveBracket(data, picks), [data, picks]);
+
+  const matchOf = (no) => {
+    const c = resolved.comp[no] || {};
+    const api = resolved.byNo[no] || {};
+    const apiH = api.home?.canon;
+    const apiA = api.away?.canon;
+    const scoreByCanon = {};
+    if (api.state && api.state !== "pre") {
+      if (apiH) scoreByCanon[apiH] = api.homeScore;
+      if (apiA) scoreByCanon[apiA] = api.awayScore;
+    }
+    const disp = [c.home?.canon, c.away?.canon].filter(Boolean);
+    const matchesReality = !!(
+      apiH &&
+      apiA &&
+      disp.includes(apiH) &&
+      disp.includes(apiA)
+    );
+    return {
+      no,
+      home: c.home,
+      away: c.away,
+      winCanon: resolved.win[no]?.canon || null,
+      meta: {
+        date: api.date,
+        time: api.time,
+        city: api.city,
+        venue: api.venue,
+        state: api.state,
+        detail: api.detail,
+        realWinner: api.winnerCanon || null,
+        scoreByCanon,
+        matchesReality,
+      },
+    };
+  };
+
+  if (!data?.bracket?.length) {
+    return (
+      <p className="text-center text-slate-500 py-12">
+        Bracket unavailable right now.
+      </p>
+    );
+  }
+
+  const champion = resolved.champion;
+  const COL_H = 1040;
 
   return (
-    <div className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2">
-      <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
-        ← swipe sideways for all rounds →
-      </div>
-      <div className="flex" style={{ minWidth: 980 }}>
-        {COLS.map((col, ci) => {
-          const matches = SIZES[col.lvl] / 2;
-          const next = COLS[ci + 1];
-          return (
-            <div key={col.lvl} className="flex shrink-0">
+    <div className="space-y-3">
+      <div className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2">
+        <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
+          ← swipe sideways for all rounds →
+        </div>
+        <div className="flex" style={{ minWidth: 980 }}>
+          {BR_COLS.map((col, ci) => {
+            const order = BR_ORDER[col.key];
+            const next = BR_COLS[ci + 1];
+            return (
+              <div key={col.key} className="flex shrink-0">
+                <div
+                  className="flex flex-col shrink-0"
+                  style={{ width: ci === 0 ? 150 : 132 }}
+                >
+                  <div className="text-center text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1 h-4">
+                    {col.label}
+                  </div>
+                  <div
+                    className="flex flex-col justify-around px-1"
+                    style={{ height: COL_H }}
+                  >
+                    {order.map((no) => (
+                      <DraftMatch
+                        key={no}
+                        m={matchOf(no)}
+                        editable={editable}
+                        onPick={onPick}
+                        colHeight={COL_H}
+                        count={order.length}
+                      />
+                    ))}
+                  </div>
+                </div>
+                {next && (
+                  <Connectors count={BR_ORDER[next.key].length} colH={COL_H} />
+                )}
+              </div>
+            );
+          })}
+
+          {/* Champion */}
+          <div className="flex flex-col shrink-0 pl-2" style={{ width: 150 }}>
+            <div className="text-center text-[9px] uppercase tracking-wider text-amber-400/80 font-semibold mb-1 h-4">
+              Champion
+            </div>
+            <div className="flex items-center" style={{ height: COL_H }}>
               <div
-                className="flex flex-col shrink-0"
-                style={{ width: ci === 0 ? 156 : 132 }}
+                className={`w-full rounded-lg border px-2 py-3 text-center ${
+                  champion
+                    ? "border-amber-400/50 bg-amber-400/10"
+                    : "border-slate-700/60 bg-slate-800/40"
+                }`}
               >
-                <div className="text-center text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1 h-4">
-                  {col.label}
+                <Trophy
+                  className={`w-4 h-4 mx-auto mb-1 ${
+                    champion ? "text-amber-300" : "text-slate-600"
+                  }`}
+                />
+                <div className="text-lg leading-none mb-0.5">
+                  {champion ? flagFor(champion.team) : ""}
                 </div>
                 <div
-                  className="flex flex-col justify-around px-1"
-                  style={{ height: colH }}
+                  className={`text-xs font-bold break-words ${
+                    champion ? "text-amber-200" : "text-slate-600 italic"
+                  }`}
                 >
-                  {Array.from({ length: matches }).map((_, m) => (
-                    <MatchCard
-                      key={m}
-                      level={col.lvl}
-                      m={m}
-                      rounds={rounds}
-                      editable={editable}
-                      onPick={onPick}
-                      onRename={onRename}
-                    />
-                  ))}
+                  {champion ? champion.team : "TBD"}
                 </div>
-              </div>
-              {next && (
-                <Connectors count={SIZES[next.lvl] / 2} colH={colH} />
-              )}
-            </div>
-          );
-        })}
-
-        {/* Champion column */}
-        <div className="flex flex-col shrink-0 pl-2" style={{ width: 150 }}>
-          <div className="text-center text-[9px] uppercase tracking-wider text-amber-400/80 font-semibold mb-1 h-4">
-            Champion
-          </div>
-          <div className="flex items-center" style={{ height: colH }}>
-            <div
-              className={`w-full rounded-lg border px-2 py-3 text-center ${
-                champion
-                  ? "border-amber-400/50 bg-amber-400/10"
-                  : "border-slate-700/60 bg-slate-800/40"
-              }`}
-            >
-              <Trophy
-                className={`w-4 h-4 mx-auto mb-1 ${
-                  champion ? "text-amber-300" : "text-slate-600"
-                }`}
-              />
-              <div
-                className={`text-xs font-bold break-words ${
-                  champion ? "text-amber-200" : "text-slate-600 italic"
-                }`}
-              >
-                {champion || "TBD"}
               </div>
             </div>
           </div>
@@ -261,132 +438,69 @@ function BracketCanvas({ rounds, editable, onPick, onRename }) {
       </div>
 
       {/* Third-place match */}
-      <div className="max-w-xs mt-1">
+      <div className="max-w-xs">
         <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1">
           Third-Place Match
         </div>
-        <div className="rounded-md border border-slate-700/60 bg-slate-800/50 overflow-hidden">
-          {[la, lb].map((nm, i) => {
-            const isWin = thirdWin != null && nm != null && thirdWin === nm;
-            const can = editable && !!nm;
-            return (
-              <div key={i}>
-                {i === 1 && <div className="border-t border-slate-700/40" />}
-                <button
-                  type="button"
-                  disabled={!can}
-                  onClick={() => can && onPick("third", nm)}
-                  className={`flex items-center gap-1 px-1.5 h-[26px] w-full text-left transition-colors ${
-                    isWin ? "bg-emerald-500/15" : can ? "hover:bg-slate-700/40" : ""
-                  } ${can ? "cursor-pointer" : "cursor-default"}`}
-                >
-                  <span
-                    className={`flex-1 min-w-0 truncate text-[11px] leading-none ${
-                      isWin
-                        ? "text-emerald-200 font-bold"
-                        : nm
-                        ? "text-slate-200 font-medium"
-                        : "text-slate-600 italic"
-                    }`}
-                  >
-                    {nm || "—"}
-                  </span>
-                  {isWin && (
-                    <Trophy className="w-3 h-3 shrink-0 text-emerald-300" />
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+        <DraftMatch
+          m={matchOf(103)}
+          editable={editable}
+          onPick={onPick}
+          count={1}
+        />
       </div>
     </div>
   );
 }
 
-// ----- build tab -----------------------------------------------------------
-function BuildTab({ onSaved }) {
-  const [rounds, setRounds] = useState(emptyRounds);
-  const [third, setThird] = useState(null);
+// ---------------------------------------------------------------------------
+// "My Bracket" (pick) tab
+// ---------------------------------------------------------------------------
+function PickTab({ data, onSaved }) {
+  const [picks, setPicks] = useState({});
   const [title, setTitle] = useState("");
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulk, setBulk] = useState("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
 
-  // expose third pick to the canvas via a non-enumerable prop on rounds copy
-  const roundsForCanvas = rounds.slice();
-  roundsForCanvas.__third = third;
-
-  const applyRounds = useCallback((next, nextThird) => {
-    const clean = sanitize(next);
-    setRounds(clean);
-    const [la, lb] = thirdContenders(clean);
-    const tw = nextThird !== undefined ? nextThird : third;
-    setThird(tw === la || tw === lb ? tw : null);
-  }, [third]);
-
   const onPick = useCallback(
-    (level, idx) => {
-      if (level === "third") {
-        setThird((cur) => (cur === idx ? null : idx));
-        return;
-      }
-      setRounds((cur) => {
-        const next = cur.map((a) => a.slice());
-        const team = next[level][idx];
-        if (!team) return cur;
-        const m = Math.floor(idx / 2);
-        next[level + 1][m] = next[level + 1][m] === team ? null : team;
-        const clean = sanitize(next);
-        const [la, lb] = thirdContenders(clean);
-        setThird((tw) => (tw === la || tw === lb ? tw : null));
-        return clean;
+    (no, canon) => {
+      setPicks((prev) => {
+        const next = { ...prev };
+        if (next[no] === canon) delete next[no];
+        else next[no] = canon;
+        // Re-resolve to drop any downstream picks that are now impossible.
+        return resolveBracket(data, next).picks;
       });
     },
-    []
+    [data]
   );
 
-  const onRename = useCallback((idx, value) => {
-    setRounds((cur) => {
-      const next = cur.map((a) => a.slice());
-      next[0][idx] = value.trim() ? value : null;
-      const clean = sanitize(next);
-      const [la, lb] = thirdContenders(clean);
-      setThird((tw) => (tw === la || tw === lb ? tw : null));
-      return clean;
+  const fillResults = () => {
+    setPicks((prev) => {
+      const next = { ...prev };
+      (data?.bracket || []).forEach((m) => {
+        if (m.state === "post" && m.winnerCanon) next[m.no] = m.winnerCanon;
+      });
+      return resolveBracket(data, next).picks;
     });
-  }, []);
-
-  const applyBulk = () => {
-    const names = bulk
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .slice(0, 32);
-    const next = emptyRounds();
-    names.forEach((n, i) => (next[0][i] = n));
-    applyRounds(next, null);
-    setBulkOpen(false);
   };
 
   const reset = () => {
-    if (!confirm("Clear the entire bracket?")) return;
-    setRounds(emptyRounds());
-    setThird(null);
-    setBulk("");
+    if (!confirm("Clear all of your picks?")) return;
+    setPicks({});
     setMsg(null);
   };
 
-  const filled = rounds[0].filter(Boolean).length;
+  const resolved = useMemo(() => resolveBracket(data, picks), [data, picks]);
+  const made = Object.keys(resolved.picks).length;
 
   const save = async () => {
     if (!title.trim()) {
-      setMsg({ type: "err", text: "Add a name for your bracket first." });
+      setMsg({ type: "err", text: "Add your name first." });
       return;
     }
-    if (filled < 2) {
-      setMsg({ type: "err", text: "Add at least a couple of entrants." });
+    if (made < 1) {
+      setMsg({ type: "err", text: "Make at least one pick." });
       return;
     }
     setSaving(true);
@@ -397,7 +511,8 @@ function BuildTab({ onSaved }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: title.trim(),
-          bracket: { rounds, third: { winner: third } },
+          picks: resolved.picks,
+          champion: resolved.champion?.team || null,
         }),
       });
       const json = await res.json();
@@ -417,17 +532,18 @@ function BuildTab({ onSaved }) {
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Bracket name (e.g. Joe's picks)"
+          placeholder="Your name (e.g. Joe)"
           maxLength={60}
-          className="flex-1 min-w-[180px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
+          className="flex-1 min-w-[160px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
         />
         <button
           type="button"
-          onClick={() => setBulkOpen((o) => !o)}
+          onClick={fillResults}
+          title="Pre-fill the winners of games that have already finished"
           className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700/60"
         >
-          <ClipboardList className="w-3.5 h-3.5" />
-          Paste names
+          <Wand2 className="w-3.5 h-3.5" />
+          Fill results so far
         </button>
         <button
           type="button"
@@ -464,47 +580,23 @@ function BuildTab({ onSaved }) {
         </div>
       )}
 
-      {bulkOpen && (
-        <div className="rounded-xl border border-slate-700 bg-slate-800/40 p-3 space-y-2">
-          <p className="text-[11px] text-slate-400">
-            One entrant per line (up to 32). This fills the Round of 32 from the
-            top down and clears existing picks.
-          </p>
-          <textarea
-            value={bulk}
-            onChange={(e) => setBulk(e.target.value)}
-            rows={6}
-            placeholder={"Team 1\nTeam 2\nTeam 3\n..."}
-            className="w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 outline-none focus:border-cyan-500/60"
-          />
-          <button
-            type="button"
-            onClick={applyBulk}
-            className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-100 hover:bg-slate-600"
-          >
-            Apply names
-          </button>
-        </div>
-      )}
-
       <p className="text-[11px] text-slate-500">
-        Type entrants into the Round of 32, then tap the{" "}
-        <ChevronRight className="inline w-3 h-3" /> (or any later-round name) to
-        advance a winner all the way to the final. {filled}/32 entrants added.
+        Tap a team to advance them. Picks carry all the way to the final
+        ({made}/32 matches picked). Teams &amp; live scores update from ESPN; a{" "}
+        <Check className="inline w-3 h-3 text-emerald-400" />/
+        <X className="inline w-3 h-3 text-rose-400" /> shows whether your pick
+        matched the actual result.
       </p>
 
-      <BracketCanvas
-        rounds={roundsForCanvas}
-        editable
-        onPick={onPick}
-        onRename={onRename}
-      />
+      <BracketGrid data={data} picks={picks} editable onPick={onPick} />
     </div>
   );
 }
 
-// ----- saved tab -----------------------------------------------------------
-function SavedTab({ refreshKey }) {
+// ---------------------------------------------------------------------------
+// Saved brackets tab
+// ---------------------------------------------------------------------------
+function SavedTab({ data, refreshKey }) {
   const [list, setList] = useState(null);
   const [err, setErr] = useState(null);
   const [openId, setOpenId] = useState(null);
@@ -561,7 +653,7 @@ function SavedTab({ refreshKey }) {
       )}
       {list.length === 0 ? (
         <p className="text-center text-slate-500 py-12 text-sm">
-          No brackets saved yet. Build one and hit save.
+          No brackets saved yet. Fill one out and hit save.
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -581,7 +673,9 @@ function SavedTab({ refreshKey }) {
               <div className="mt-1 flex items-center gap-1.5 text-xs">
                 <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                 <span className="text-amber-200 truncate">
-                  {b.champion || "No champion picked"}
+                  {b.champion
+                    ? `${flagFor(b.champion)} ${b.champion}`
+                    : "No champion picked"}
                 </span>
               </div>
               {b.createdAt && (
@@ -603,7 +697,8 @@ function SavedTab({ refreshKey }) {
               </h3>
               {openData?.champion && (
                 <p className="text-[11px] text-amber-300 flex items-center gap-1">
-                  <Trophy className="w-3 h-3" /> {openData.champion}
+                  <Trophy className="w-3 h-3" /> {flagFor(openData.champion)}{" "}
+                  {openData.champion}
                 </p>
               )}
             </div>
@@ -624,7 +719,12 @@ function SavedTab({ refreshKey }) {
                 <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
               </div>
             ) : (
-              <ReadOnlyBracket data={openData} />
+              <BracketGrid
+                data={data}
+                picks={openData.picks || {}}
+                editable={false}
+                onPick={() => {}}
+              />
             )}
           </div>
         </div>
@@ -633,18 +733,50 @@ function SavedTab({ refreshKey }) {
   );
 }
 
-function ReadOnlyBracket({ data }) {
-  const rounds = (data.bracket?.rounds || emptyRounds()).slice();
-  rounds.__third = data.bracket?.third?.winner ?? null;
-  return (
-    <BracketCanvas rounds={rounds} editable={false} onPick={() => {}} onRename={() => {}} />
-  );
-}
-
-// ----- page shell ----------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Page shell
+// ---------------------------------------------------------------------------
 export default function Draft() {
-  const [view, setView] = useState("build");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [view, setView] = useState("pick");
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
+    try {
+      const res = await fetch("/api/footie");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to load bracket.");
+      setData(json);
+      setError(null);
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const isLive = !!data?.live;
+  useEffect(() => {
+    const everyMs = isLive ? 15000 : 90000;
+    const id = setInterval(() => {
+      if (!document.hidden) load(true);
+    }, everyMs);
+    const onVisible = () => {
+      if (!document.hidden) load(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [isLive, load]);
 
   const handleSaved = () => {
     setRefreshKey((k) => k + 1);
@@ -652,7 +784,7 @@ export default function Draft() {
   };
 
   const tabs = [
-    { id: "build", label: "Build", icon: GitBranch },
+    { id: "pick", label: "My Bracket", icon: GitBranch },
     { id: "saved", label: "Saved Brackets", icon: Users },
   ];
 
@@ -666,9 +798,19 @@ export default function Draft() {
               Draft Order Bracket
             </h1>
             <p className="text-[11px] text-slate-500 leading-tight">
-              Fill it out, pick winners through, and save it.
+              Pick the World Cup knockout, save it, compare with everyone else.
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => load(false)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-700/60 shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {isLive && (
+              <span className="text-cyan-400 font-semibold">Live</span>
+            )}
+          </button>
         </div>
       </header>
 
@@ -695,10 +837,25 @@ export default function Draft() {
           })}
         </div>
 
-        {view === "build" ? (
-          <BuildTab onSaved={handleSaved} />
+        {loading ? (
+          <div className="py-24">
+            <LoadingSpinner size="lg" message="Loading bracket..." />
+          </div>
+        ) : error ? (
+          <div className="max-w-md mx-auto bg-rose-500/10 border border-rose-500/30 rounded-2xl p-8 text-center">
+            <p className="text-rose-300 mb-4">{error}</p>
+            <button
+              type="button"
+              onClick={() => load(false)}
+              className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
+            >
+              Try again
+            </button>
+          </div>
+        ) : view === "pick" ? (
+          <PickTab data={data} onSaved={handleSaved} />
         ) : (
-          <SavedTab refreshKey={refreshKey} />
+          <SavedTab data={data} refreshKey={refreshKey} />
         )}
       </main>
     </div>

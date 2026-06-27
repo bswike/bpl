@@ -15,30 +15,22 @@ function makeId() {
 }
 
 // Light validation / normalization of an incoming bracket payload.
+// A bracket is a set of match picks: { "<matchNo>": "<teamCanon>" } for the
+// World Cup knockout matches (73-104), plus a champion display name.
 function normalizeBracket(body) {
   const name = String(body?.name || "").trim().slice(0, 60);
-  const b = body?.bracket || {};
-  const rounds = Array.isArray(b.rounds) ? b.rounds : null;
-  // rounds must be [32,16,8,4,2,1] arrays of strings/null
-  const SIZES = [32, 16, 8, 4, 2, 1];
-  if (!rounds || rounds.length !== 6) return null;
-  const clean = SIZES.map((size, lvl) => {
-    const arr = Array.isArray(rounds[lvl]) ? rounds[lvl] : [];
-    const out = [];
-    for (let i = 0; i < size; i++) {
-      const v = arr[i];
-      out.push(v == null ? null : String(v).trim().slice(0, 40) || null);
-    }
-    return out;
-  });
-  const third = {
-    winner:
-      b.third?.winner == null
-        ? null
-        : String(b.third.winner).trim().slice(0, 40) || null,
-  };
-  const champion = clean[5][0] || null;
-  return { name, bracket: { rounds: clean, third }, champion };
+  const rawPicks = body?.picks && typeof body.picks === "object" ? body.picks : {};
+  const picks = {};
+  for (const [k, v] of Object.entries(rawPicks)) {
+    const no = Number(k);
+    if (!Number.isInteger(no) || no < 73 || no > 104) continue;
+    if (v == null) continue;
+    const canon = String(v).trim().slice(0, 40);
+    if (canon) picks[no] = canon;
+  }
+  const champion =
+    body?.champion == null ? null : String(body.champion).trim().slice(0, 40) || null;
+  return { name, picks, champion };
 }
 
 async function readJsonBody(req) {
@@ -83,7 +75,7 @@ export default async function handler(req, res) {
         id,
         name: norm.name,
         champion: norm.champion,
-        bracket: norm.bracket,
+        picks: norm.picks,
         createdAt: new Date().toISOString(),
       };
       await put(`${PREFIX}${id}.json`, JSON.stringify(record), {
