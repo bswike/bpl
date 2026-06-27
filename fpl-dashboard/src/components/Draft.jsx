@@ -10,7 +10,6 @@ import {
   Users,
   RefreshCw,
   Check,
-  Wand2,
 } from "lucide-react";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -124,8 +123,10 @@ const FEEDS = {
 const KO_NUMS = Array.from({ length: 32 }, (_, i) => 73 + i); // 73..104
 
 // Resolve the bracket: R32 teams come from the live API standings; every other
-// match's two contestants come from the user's picks propagating up the tree.
-// Returns sanitized picks (downstream picks that became impossible are dropped).
+// match's two contestants come from whoever has advanced up the tree.
+// Finished games (real ESPN winner) advance automatically and lock; undecided
+// games advance the user's pick. The user's own pick is still recorded so the
+// UI can flag whether it matched the actual result, and so it persists on save.
 function resolveBracket(data, rawPicks) {
   const byNo = {};
   (data?.bracket || []).forEach((m) => (byNo[m.no] = m));
@@ -134,6 +135,7 @@ function resolveBracket(data, rawPicks) {
   const comp = {};
   const win = {};
   const lose = {};
+  const locked = {}; // match decided by a real ESPN result
   const picks = {};
   const fromFeed = (f) => {
     if (!f) return null;
@@ -153,16 +155,23 @@ function resolveBracket(data, rawPicks) {
       away = fromFeed(f?.b);
     }
     comp[no] = { home, away };
+
+    const isHere = (c) => c && (home?.canon === c || away?.canon === c);
+    const real = byNo[no]?.winnerCanon || null;
     const p = rawPicks?.[no];
+    if (isHere(p)) picks[no] = p; // remember the user's pick when still valid
+
     let eff = null;
-    if (p && (home?.canon === p || away?.canon === p)) {
+    if (isHere(real)) {
+      eff = real; // finished game: reality wins and locks
+      locked[no] = true;
+    } else if (isHere(p)) {
       eff = p;
-      picks[no] = p;
     }
     win[no] = eff ? (home?.canon === eff ? home : away) : null;
     lose[no] = eff ? (home?.canon === eff ? away : home) : null;
   }
-  return { byNo, comp, win, lose, picks, champion: win[104] || null };
+  return { byNo, comp, win, lose, locked, picks, champion: win[104] || null };
 }
 
 // ---------------------------------------------------------------------------
@@ -193,26 +202,35 @@ function Connectors({ count, colH }) {
   );
 }
 
-function MatchSlot({ no, slot, sideCanon, winCanon, meta, editable, onPick }) {
+function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPick }) {
   const known = !!(slot && slot.canon);
-  const picked = !!winCanon && sideCanon === winCanon;
+  const isWinner = !!winCanon && sideCanon === winCanon;
   const score =
     known && (no <= 88 || meta.matchesReality) && meta.scoreByCanon[sideCanon] != null
       ? meta.scoreByCanon[sideCanon]
       : null;
+  // Did the user pick this team, and does reality agree? (only once decided)
+  const isUserPick = !!meta.userPick && meta.userPick === sideCanon;
   const correct =
-    picked && meta.realWinner && meta.matchesReality
-      ? meta.realWinner === sideCanon
-      : null;
+    isUserPick && locked ? meta.realWinner === sideCanon : null;
   const live = meta.state === "in";
+  const clickable = editable && known && !locked;
   return (
     <button
       type="button"
-      disabled={!editable || !known}
-      onClick={() => editable && known && onPick(no, sideCanon)}
+      disabled={!clickable}
+      onClick={() => clickable && onPick(no, sideCanon)}
       className={`flex items-center gap-1 px-1.5 h-[26px] w-full text-left transition-colors ${
-        picked ? "bg-cyan-500/15" : known ? "hover:bg-slate-700/40" : ""
-      } ${editable && known ? "cursor-pointer" : "cursor-default"}`}
+        isWinner
+          ? locked
+            ? "bg-emerald-500/15"
+            : "bg-cyan-500/15"
+          : known
+          ? clickable
+            ? "hover:bg-slate-700/40"
+            : "opacity-60"
+          : ""
+      } ${clickable ? "cursor-pointer" : "cursor-default"}`}
     >
       <span className="text-[11px] leading-none shrink-0">
         {known ? flagFor(slot.team) : "·"}
@@ -220,7 +238,11 @@ function MatchSlot({ no, slot, sideCanon, winCanon, meta, editable, onPick }) {
       {known ? (
         <span
           className={`shrink-0 text-[10px] leading-none ${
-            picked ? "text-cyan-100 font-bold" : "text-slate-200 font-semibold"
+            isWinner
+              ? locked
+                ? "text-emerald-100 font-bold"
+                : "text-cyan-100 font-bold"
+              : "text-slate-200 font-semibold"
           }`}
           title={slot.team}
         >
@@ -251,7 +273,7 @@ function MatchSlot({ no, slot, sideCanon, winCanon, meta, editable, onPick }) {
 }
 
 function DraftMatch({ m, editable, onPick, colHeight, count }) {
-  const { no, home, away, winCanon, meta } = m;
+  const { no, home, away, winCanon, locked, meta } = m;
   const live = meta.state === "in";
   const isToday = koIsToday(meta.date);
   return (
@@ -292,6 +314,7 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
           slot={home}
           sideCanon={home?.canon || null}
           winCanon={winCanon}
+          locked={locked}
           meta={meta}
           editable={editable}
           onPick={onPick}
@@ -302,6 +325,7 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
           slot={away}
           sideCanon={away?.canon || null}
           winCanon={winCanon}
+          locked={locked}
           meta={meta}
           editable={editable}
           onPick={onPick}
@@ -336,6 +360,7 @@ function BracketGrid({ data, picks, editable, onPick }) {
       home: c.home,
       away: c.away,
       winCanon: resolved.win[no]?.canon || null,
+      locked: !!resolved.locked[no],
       meta: {
         date: api.date,
         time: api.time,
@@ -344,6 +369,7 @@ function BracketGrid({ data, picks, editable, onPick }) {
         state: api.state,
         detail: api.detail,
         realWinner: api.winnerCanon || null,
+        userPick: resolved.picks[no] || null,
         scoreByCanon,
         matchesReality,
       },
@@ -475,16 +501,6 @@ function PickTab({ data, onSaved }) {
     [data]
   );
 
-  const fillResults = () => {
-    setPicks((prev) => {
-      const next = { ...prev };
-      (data?.bracket || []).forEach((m) => {
-        if (m.state === "post" && m.winnerCanon) next[m.no] = m.winnerCanon;
-      });
-      return resolveBracket(data, next).picks;
-    });
-  };
-
   const reset = () => {
     if (!confirm("Clear all of your picks?")) return;
     setPicks({});
@@ -538,15 +554,6 @@ function PickTab({ data, onSaved }) {
         />
         <button
           type="button"
-          onClick={fillResults}
-          title="Pre-fill the winners of games that have already finished"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700/60"
-        >
-          <Wand2 className="w-3.5 h-3.5" />
-          Fill results so far
-        </button>
-        <button
-          type="button"
           onClick={reset}
           className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700/60"
         >
@@ -581,8 +588,9 @@ function PickTab({ data, onSaved }) {
       )}
 
       <p className="text-[11px] text-slate-500">
-        Tap a team to advance them. Picks carry all the way to the final
-        ({made}/32 matches picked). Teams &amp; live scores update from ESPN; a{" "}
+        Tap a team to advance them all the way to the final
+        ({made}/32 matches picked). Finished games fill in and lock
+        automatically from the live ESPN feed; a{" "}
         <Check className="inline w-3 h-3 text-emerald-400" />/
         <X className="inline w-3 h-3 text-rose-400" /> shows whether your pick
         matched the actual result.
