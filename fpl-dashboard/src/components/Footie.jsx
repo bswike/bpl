@@ -1139,7 +1139,8 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
           Bubble Boys
         </h3>
         <span className="text-[10px] text-slate-500">
-          best 8 thirds advance · tap a team for what they need
+          best 8 thirds advance · anyone who could slip into the race · tap for
+          details
         </span>
       </div>
       <div className="flex flex-wrap gap-x-3 gap-y-1 px-4 py-1.5 text-[10px] border-b border-slate-700/40">
@@ -1222,12 +1223,12 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
                   <span className={isOut ? "line-through text-slate-500" : ""}>
                     {t.team}
                   </span>
-                  {t.pos === 4 && (
+                  {t.pos !== 3 && ORDINAL[t.pos] && (
                     <span
                       className="shrink-0 text-[8px] font-semibold px-1 py-px rounded bg-slate-600/40 text-slate-300 whitespace-nowrap"
-                      title="Currently 4th — chasing the third-place spot"
+                      title={`Currently ${ORDINAL[t.pos]} — could still land in the third-place race`}
                     >
-                      4th now
+                      {ORDINAL[t.pos]} now
                     </span>
                   )}
                   {remaining > 0 && (

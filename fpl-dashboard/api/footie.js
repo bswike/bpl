@@ -561,12 +561,20 @@ function computeThirdPlace(groups, teamStatus = {}) {
     });
   }
 
-  // Current 4th-place teams that are not yet eliminated and whose group still
-  // has games left — they're chasing that group's third-place spot (or higher).
-  const challengers = groups
-    .filter((g) => !g.complete && g.teams[3])
-    .map((g) => ({ ...g.teams[3], group: g.group }))
-    .filter((t) => (teamStatus[t.canon]?.status || "bubble") !== "out");
+  // In groups still in progress, the top 2 isn't settled — any team that's on
+  // the bubble (not yet clinched, not eliminated) could slip into the
+  // third-place race, so include them too (e.g. a current 2nd that could drop
+  // to 3rd). The current 3rd of every group is already in `thirds`.
+  const challengers = [];
+  groups
+    .filter((g) => !g.complete)
+    .forEach((g) => {
+      g.teams.forEach((t, idx) => {
+        if (idx === 2) return;
+        if ((teamStatus[t.canon]?.status || "bubble") === "bubble")
+          challengers.push({ ...t, group: g.group });
+      });
+    });
 
   const ranking = [...thirds, ...challengers].sort(thirdSort);
   ranking.forEach((t, i) => (t.rank = i + 1));
