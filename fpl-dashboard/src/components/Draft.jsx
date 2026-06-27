@@ -100,6 +100,10 @@ const BR_COLS = [
   { key: "sf", label: "Semis" },
   { key: "final", label: "Final" },
 ];
+// Vertical gap between match cards per round. Later rounds have fewer matches,
+// so we cluster them tightly (small, gently growing gaps) instead of spreading
+// them across the full height — keeps it feeling compact like an app.
+const ROUND_GAP = { r32: 6, r16: 16, qf: 34, sf: 70, final: 0 };
 
 // Winner/loser feeds for matches 89-104 (R32 = 73-88 come straight from groups).
 const FEEDS = {
@@ -177,31 +181,6 @@ function resolveBracket(data, rawPicks) {
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
-function Connectors({ count, colH }) {
-  return (
-    <div className="flex flex-col shrink-0" style={{ width: 12 }}>
-      <div className="h-4 mb-1" />
-      <div className="flex flex-col justify-around" style={{ height: colH }}>
-        {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="flex items-center" style={{ flex: 1 }}>
-            <div
-              className="w-full"
-              style={{
-                height: "50%",
-                borderRight: "1px solid #334155",
-                borderTop: "1px solid #334155",
-                borderBottom: "1px solid #334155",
-                borderTopRightRadius: 3,
-                borderBottomRightRadius: 3,
-              }}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPick }) {
   const known = !!(slot && slot.canon);
   const isWinner = !!winCanon && sideCanon === winCanon;
@@ -384,7 +363,6 @@ function BracketGrid({ data, picks, editable, onPick }) {
   }
 
   const champion = resolved.champion;
-  const COL_H = 1040;
 
   return (
     <div className="space-y-3">
@@ -392,51 +370,42 @@ function BracketGrid({ data, picks, editable, onPick }) {
         <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
           ← swipe sideways for all rounds →
         </div>
-        <div className="flex" style={{ minWidth: 1200 }}>
+        <div className="flex items-stretch" style={{ minWidth: 1120 }}>
           {BR_COLS.map((col, ci) => {
             const order = BR_ORDER[col.key];
-            const next = BR_COLS[ci + 1];
             return (
-              <div key={col.key} className="flex shrink-0">
-                <div
-                  className="flex flex-col shrink-0"
-                  style={{ width: ci === 0 ? 188 : 172 }}
-                >
-                  <div className="text-center text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1 h-4">
-                    {col.label}
-                  </div>
-                  <div
-                    className="flex flex-col justify-around px-1"
-                    style={{ height: COL_H }}
-                  >
-                    {order.map((no) => (
-                      <DraftMatch
-                        key={no}
-                        m={matchOf(no)}
-                        editable={editable}
-                        onPick={onPick}
-                        colHeight={COL_H}
-                        count={order.length}
-                      />
-                    ))}
-                  </div>
+              <div
+                key={col.key}
+                className="flex flex-col shrink-0 pr-2"
+                style={{ width: ci === 0 ? 188 : 172 }}
+              >
+                <div className="text-center text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1 h-4">
+                  {col.label}
                 </div>
-                {next && (
-                  <Connectors count={BR_ORDER[next.key].length} colH={COL_H} />
-                )}
+                <div
+                  className="flex-1 flex flex-col justify-center px-1"
+                  style={{ gap: ROUND_GAP[col.key] }}
+                >
+                  {order.map((no) => (
+                    <DraftMatch
+                      key={no}
+                      m={matchOf(no)}
+                      editable={editable}
+                      onPick={onPick}
+                      count={1}
+                    />
+                  ))}
+                </div>
               </div>
             );
           })}
 
           {/* Champion + Third place, stacked at the end of the tree */}
-          <div className="flex flex-col shrink-0 pl-2" style={{ width: 180 }}>
+          <div className="flex flex-col shrink-0 pl-1" style={{ width: 180 }}>
             <div className="text-center text-[9px] uppercase tracking-wider text-amber-400/80 font-semibold mb-1 h-4">
               Champion
             </div>
-            <div
-              className="flex flex-col justify-center gap-5"
-              style={{ height: COL_H }}
-            >
+            <div className="flex-1 flex flex-col justify-center gap-5">
               <div
                 className={`w-full rounded-lg border px-2 py-3 text-center ${
                   champion
