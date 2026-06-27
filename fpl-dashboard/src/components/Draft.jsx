@@ -417,7 +417,7 @@ function BuildTab({ onSaved }) {
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Bracket name (e.g. Mike's picks)"
+          placeholder="Bracket name (e.g. Joe's picks)"
           maxLength={60}
           className="flex-1 min-w-[180px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
         />
