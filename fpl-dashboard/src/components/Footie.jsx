@@ -486,6 +486,32 @@ function ManagerRow({ manager, rank, ownerFor, pickFor, placeFor }) {
               <span className="text-slate-500">· {manager.pending} to play</span>
             )}
           </div>
+          <div className="flex items-center gap-1 text-[10px] mt-0.5 flex-wrap">
+            {manager.advanced > 0 && (
+              <span
+                title="Teams that have clinched a knockout spot"
+                className="px-1 py-px rounded bg-emerald-500/15 text-emerald-300 font-semibold"
+              >
+                {manager.advanced} thru
+              </span>
+            )}
+            {manager.bubble > 0 && (
+              <span
+                title="Teams still in contention"
+                className="px-1 py-px rounded bg-amber-500/15 text-amber-300 font-semibold"
+              >
+                {manager.bubble} bubble
+              </span>
+            )}
+            {manager.eliminated > 0 && (
+              <span
+                title="Teams officially eliminated"
+                className="px-1 py-px rounded bg-rose-500/15 text-rose-300 font-semibold"
+              >
+                {manager.eliminated} out
+              </span>
+            )}
+          </div>
         </div>
         <div className="text-right shrink-0">
           <div className="text-lg font-bold font-mono text-cyan-400 leading-none">

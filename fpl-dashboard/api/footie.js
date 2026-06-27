@@ -566,13 +566,13 @@ function computeThirdPlace(groups) {
   };
 }
 
-// Determine each third-placed team's fate by brute-forcing every possible
-// outcome (win/draw/loss) of the remaining group matches:
+// Determine every team's fate by brute-forcing all possible outcomes
+// (win/draw/loss) of the remaining group matches:
 //   "in"     – advances in EVERY remaining scenario (clinched)
 //   "out"    – advances in NO scenario (officially eliminated)
 //   "bubble" – still alive but not yet decided
-// "Advances" here means finishing top 2 of its group OR among the best 8 thirds.
-function computeThirdStatus(groups, groupEvents) {
+// "Advances" means finishing top 2 of its group OR among the best 8 thirds.
+function computeTeamStatus(groups, groupEvents) {
   const base = {};
   const groupTeams = {};
   groups.forEach((g) => {
@@ -595,18 +595,18 @@ function computeThirdStatus(groups, groupEvents) {
     if (base[a] && base[b]) rem.push({ a, b });
   }
 
-  const listed = groups.map((g) => g.teams[2]?.canon).filter(Boolean);
+  const allCanon = Object.keys(base);
   const status = {};
   const R = rem.length;
   // Cap the search; this matters most near the end when R is small anyway.
   if (Math.pow(3, R) > 20000) {
-    listed.forEach((c) => (status[c] = "bubble"));
+    allCanon.forEach((c) => (status[c] = "bubble"));
     return status;
   }
 
   const letters = Object.keys(groupTeams);
   const inCount = {};
-  listed.forEach((c) => (inCount[c] = 0));
+  allCanon.forEach((c) => (inCount[c] = 0));
   let total = 0;
   const idx = new Array(R).fill(0);
   const step = () => {
@@ -669,10 +669,10 @@ function computeThirdStatus(groups, groupEvents) {
         base[x.c].team.localeCompare(base[y.c].team)
     );
     const top8 = new Set(thirds.slice(0, 8).map((t) => t.c));
-    for (const c of listed) if (advanced.has(c) || top8.has(c)) inCount[c]++;
+    for (const c of allCanon) if (advanced.has(c) || top8.has(c)) inCount[c]++;
   } while (step());
 
-  for (const c of listed) {
+  for (const c of allCanon) {
     status[c] =
       inCount[c] === total ? "in" : inCount[c] === 0 ? "out" : "bubble";
   }
@@ -812,31 +812,26 @@ export default async function handler(req, res) {
     const schedule = await buildSchedule(groupEvents);
     const groups = buildGroups(groupEvents);
 
+    // Clinched / eliminated / bubble for every team (group + best-third math).
+    const teamStatus = computeTeamStatus(groups, groupEvents);
+
     // Who advances: top 2 per group + the best 8 third-placed teams.
     const thirdInfo = computeThirdPlace(groups);
     const qualifyingThirds = new Set(thirdInfo.qualifierGroups);
-    const allGroupsComplete = groups.every((g) => g.complete);
     groups.forEach((g) => {
       g.teams.forEach((t) => {
         if (t.pos === 1) t.advance = "W";
         else if (t.pos === 2) t.advance = "RU";
         else if (t.pos === 3 && qualifyingThirds.has(g.group)) t.advance = "3Q";
         else t.advance = null;
-        // Officially out: 4th once their group is done (can't be top 2 or a best
-        // third); a non-qualifying 3rd only once every group has finished.
-        if (t.advance) t.eliminated = false;
-        else if (t.pos === 4 && g.complete) t.eliminated = true;
-        else if (t.pos === 3 && allGroupsComplete) t.eliminated = true;
-        else t.eliminated = false;
+        t.status = teamStatus[t.canon] || "bubble";
+        t.eliminated = t.status === "out";
       });
     });
-    const bracket = buildBracket(groups, koEvents, thirdInfo);
-
-    // Clinched / eliminated / bubble for each third-placed team.
-    const thirdStatus = computeThirdStatus(groups, groupEvents);
     thirdInfo.ranking.forEach((t) => {
-      t.status = thirdStatus[t.canon] || "bubble";
+      t.status = teamStatus[t.canon] || "bubble";
     });
+    const bracket = buildBracket(groups, koEvents, thirdInfo);
 
     const managers = roster.map((m) => {
       const teams = m.teams.map((teamName) => {
@@ -874,6 +869,7 @@ export default async function handler(req, res) {
           played,
           remaining: Math.max(0, 3 - played),
           nextGame: next,
+          status: teamStatus[canon(teamName)] || "bubble",
         };
       });
       const gsPoints = teams.reduce((s, t) => s + t.gsPoints, 0);
@@ -887,6 +883,9 @@ export default async function handler(req, res) {
         draws: teams.reduce((s, t) => s + t.d, 0),
         losses: teams.reduce((s, t) => s + t.l, 0),
         pending: teams.reduce((s, t) => s + t.remaining, 0),
+        advanced: teams.filter((t) => t.status === "in").length,
+        bubble: teams.filter((t) => t.status === "bubble").length,
+        eliminated: teams.filter((t) => t.status === "out").length,
       };
     });
 
