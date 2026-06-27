@@ -680,22 +680,33 @@ const probPill = (p) =>
     ? "bg-amber-500/15 text-amber-300"
     : "bg-rose-500/15 text-rose-300";
 
+// Keep precision for long shots: 0.3% rather than rounding to 0%.
+const fmtPct = (p) => {
+  const v = p * 100;
+  if (v <= 0) return "0%";
+  if (v < 0.1) return "<0.1%";
+  if (v < 10) {
+    const s = v.toFixed(1);
+    return `${s.endsWith(".0") ? s.slice(0, -2) : s}%`;
+  }
+  return `${Math.round(v)}%`;
+};
+
 function StakeTeamRow({ abbr, note }) {
-  const pct = note.prob == null ? null : Math.round(note.prob * 100);
   return (
     <div className="flex items-center gap-1.5 text-[10px] leading-tight py-0.5">
       <span className="text-slate-300 font-semibold w-9 shrink-0">{abbr}</span>
       <span className={`min-w-0 ${STAKE_TONE[note.tone] || STAKE_TONE.neutral}`}>
         {note.need}
       </span>
-      {pct != null && !note.eliminated && (
+      {note.prob != null && !note.eliminated && (
         <span
           className={`ml-auto shrink-0 px-1 py-px rounded font-mono ${probPill(
             note.prob
           )}`}
           title="Model's chance this team reaches the knockout round, from live Vegas odds"
         >
-          {pct}% to advance
+          {fmtPct(note.prob)} to advance
         </span>
       )}
     </div>

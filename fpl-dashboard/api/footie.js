@@ -740,6 +740,18 @@ const joinOr = (arr) =>
     ? arr[0] || ""
     : `${arr.slice(0, -1).join(", ")} or ${arr[arr.length - 1]}`;
 
+// Percentage that keeps precision for long shots (0.3% instead of 0%).
+const fmtPct = (p) => {
+  const v = p * 100;
+  if (v <= 0) return "0%";
+  if (v < 0.1) return "<0.1%";
+  if (v < 10) {
+    const s = v.toFixed(1);
+    return `${s.endsWith(".0") ? s.slice(0, -2) : s}%`;
+  }
+  return `${Math.round(v)}%`;
+};
+
 // Plain-language finishing outcome from the set of tiers a result can yield.
 function tierText(set) {
   const t = [...set].filter((x) => x !== "out");
@@ -953,25 +965,32 @@ function computeMatchStakes(groups, groupEvents, teamStatus = {}) {
       if (c.advR >= c.totR - EPS) return `${label} → ${tierText(c.tiers)}`;
       if (c.advR <= EPS) return `${label} → out`;
       const oi = c.oi;
+      const pct = fmtPct(c.advR / c.totR);
       if (other[i] >= 0) {
         const full = [];
-        let anyPartial = false;
+        const nonZero = [];
         for (let oj = 0; oj < 3; oj++) {
           const tt = side.tot[oi][oj];
           const aa = side.adv[oi][oj];
           if (tt <= EPS) continue;
+          if (aa > EPS) nonZero.push(oj);
           if (aa >= tt - EPS) full.push(oj);
-          else if (aa > EPS) anyPartial = true;
         }
-        if (full.length > 0 && full.length < 3) {
-          const cond = joinOr(full.map((oj) => describeOj(other[i], oj)));
-          if (!anyPartial) return `${label} → through if ${cond}`;
-          const pct = Math.round((100 * c.advR) / c.totR);
-          return `${label} → through if ${cond} (else needs other groups, ~${pct}%)`;
+        const fullSet = new Set(full);
+        const cleanlyDecided =
+          nonZero.length > 0 &&
+          nonZero.length < 3 &&
+          nonZero.every((oj) => fullSet.has(oj));
+        if (cleanlyDecided) {
+          const cond = joinOr(nonZero.map((oj) => describeOj(other[i], oj)));
+          return `${label} → through if ${cond}`;
+        }
+        if (nonZero.length > 0 && nonZero.length < 3) {
+          const cond = joinOr(nonZero.map((oj) => describeOj(other[i], oj)));
+          return `${label} → ${pct}: needs ${cond} + other groups`;
         }
       }
-      const pct = Math.round((100 * c.advR) / c.totR);
-      return `${label} → ~${pct}% (needs other results)`;
+      return `${label} → ${pct} (needs other results)`;
     };
 
     const safe = (label) => cls[label].advR >= cls[label].totR - EPS;
