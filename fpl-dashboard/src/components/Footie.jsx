@@ -881,6 +881,7 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
         {ranking.map((t) => {
           const owner = ownerFor(t.team);
           const inThree = t.rank <= 8;
+          const remaining = Math.max(0, 3 - (t.played || 0));
           return (
             <div
               key={t.canon}
@@ -900,8 +901,13 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
                 {t.group}
               </span>
               <div className="flex-1 min-w-0">
-                <div className="text-slate-200 truncate leading-tight">
-                  {t.team}
+                <div className="text-slate-200 truncate leading-tight flex items-center gap-1.5">
+                  <span className="truncate">{t.team}</span>
+                  {remaining > 0 && (
+                    <span className="shrink-0 text-[8px] font-semibold px-1 py-px rounded bg-cyan-500/15 text-cyan-300">
+                      {remaining} to play
+                    </span>
+                  )}
                 </div>
                 {owner && (
                   <div className="text-[10px] text-cyan-500/80 font-light truncate leading-tight">
@@ -918,10 +924,12 @@ function ThirdPlaceRace({ ranking, ownerFor }) {
               <span className="shrink-0 font-mono text-slate-500 text-[11px] w-7 text-right">
                 {t.gf}
               </span>
-              {inThree && (
+              {inThree ? (
                 <span className="shrink-0 text-[8px] font-bold px-1 py-px rounded bg-amber-500/20 text-amber-300">
                   IN
                 </span>
+              ) : (
+                <span className="shrink-0 w-[18px]" />
               )}
             </div>
           );
