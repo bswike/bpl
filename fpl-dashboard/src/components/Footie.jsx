@@ -666,6 +666,12 @@ const STAKE_ACCENT = {
   dead: "border-l-slate-600/50",
 };
 
+const STAKE_DOT = {
+  high: "bg-emerald-400",
+  medium: "bg-amber-400",
+  dead: "bg-slate-500",
+};
+
 const STAKE_TONE = {
   good: "text-emerald-400",
   warn: "text-amber-400",
@@ -732,34 +738,51 @@ function StakeDetail({ abbr, lines }) {
 function StakesLine({ m }) {
   const s = m.stakes;
   const [open, setOpen] = useState(false);
+  const [showScen, setShowScen] = useState(false);
   if (!s || !s.teams) return null;
   const hNote = s.teams[teamCanon(m.home)];
   const aNote = s.teams[teamCanon(m.away)];
   if (!hNote && !aNote) return null;
   const accent = STAKE_ACCENT[s.level] || STAKE_ACCENT.dead;
+  const dot = STAKE_DOT[s.level] || STAKE_DOT.dead;
   const hasDetail =
     (hNote?.detail?.length || 0) + (aNote?.detail?.length || 0) > 0;
   return (
-    <div
-      className={`mt-1 ml-11 mr-0.5 rounded-md bg-slate-900/40 border border-slate-700/40 border-l-2 ${accent} px-2 py-1`}
-    >
-      {hNote && <StakeTeamRow abbr={m.homeAbbr || m.home} note={hNote} />}
-      {aNote && <StakeTeamRow abbr={m.awayAbbr || m.away} note={aNote} />}
-      {hasDetail && (
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="mt-0.5 text-[9px] uppercase tracking-wider text-cyan-500/80 hover:text-cyan-300"
-        >
-          {open ? "Hide scenarios" : "See scenarios"}
-        </button>
-      )}
+    <div className="mt-1 ml-11 mr-0.5">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-slate-400 hover:text-cyan-300 transition-colors"
+      >
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
+        What's at stake
+        <ChevronDown
+          size={11}
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
       {open && (
-        <div className="mt-1 pt-1 border-t border-slate-700/40 space-y-1.5">
-          {hNote?.detail?.length > 0 && (
-            <StakeDetail abbr={m.homeAbbr || m.home} lines={hNote.detail} />
+        <div
+          className={`mt-1 rounded-md bg-slate-900/40 border border-slate-700/40 border-l-2 ${accent} px-2 py-1`}
+        >
+          {hNote && <StakeTeamRow abbr={m.homeAbbr || m.home} note={hNote} />}
+          {aNote && <StakeTeamRow abbr={m.awayAbbr || m.away} note={aNote} />}
+          {hasDetail && (
+            <button
+              onClick={() => setShowScen((o) => !o)}
+              className="mt-0.5 text-[9px] uppercase tracking-wider text-cyan-500/80 hover:text-cyan-300"
+            >
+              {showScen ? "Hide scenarios" : "See scenarios"}
+            </button>
           )}
-          {aNote?.detail?.length > 0 && (
-            <StakeDetail abbr={m.awayAbbr || m.away} lines={aNote.detail} />
+          {showScen && (
+            <div className="mt-1 pt-1 border-t border-slate-700/40 space-y-1.5">
+              {hNote?.detail?.length > 0 && (
+                <StakeDetail abbr={m.homeAbbr || m.home} lines={hNote.detail} />
+              )}
+              {aNote?.detail?.length > 0 && (
+                <StakeDetail abbr={m.awayAbbr || m.away} lines={aNote.detail} />
+              )}
+            </div>
           )}
         </div>
       )}
