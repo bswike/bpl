@@ -2,6 +2,8 @@
 // - Draft rosters + knockout scoring values come from the Google Sheet (the pool config).
 // - All match RESULTS come live from ESPN's FIFA World Cup feed and points are computed here.
 
+import { ANNEX_C, THIRD_WINNER_ORDER } from "./_annexC.js";
+
 const SHEET_ID = "1tR5l3b8yPN9xQdfJkSIsgjN7z2gR6Myp9KqWmP4-_6w";
 const GID = "0";
 const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
@@ -339,9 +341,63 @@ async function buildSchedule(groupEvents) {
   return matches.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
+// Re-order teams tied on points/GD/goals using the head-to-head mini-table
+// (FIFA group tiebreaker 4–6: points, then GD, then goals among the tied teams).
+function breakH2H(block, matches) {
+  const set = new Set(block.map((t) => t.canon));
+  const st = {};
+  block.forEach((t) => (st[t.canon] = { pts: 0, gd: 0, gf: 0 }));
+  for (const m of matches) {
+    if (!set.has(m.a) || !set.has(m.b)) continue;
+    st[m.a].gf += m.sa;
+    st[m.a].gd += m.sa - m.sb;
+    st[m.b].gf += m.sb;
+    st[m.b].gd += m.sb - m.sa;
+    if (m.sa > m.sb) st[m.a].pts += 3;
+    else if (m.sb > m.sa) st[m.b].pts += 3;
+    else {
+      st[m.a].pts++;
+      st[m.b].pts++;
+    }
+  }
+  return [...block].sort(
+    (x, y) =>
+      st[y.canon].pts - st[x.canon].pts ||
+      st[y.canon].gd - st[x.canon].gd ||
+      st[y.canon].gf - st[x.canon].gf ||
+      x.team.localeCompare(y.team)
+  );
+}
+
+// FIFA ranking: points, GD, goals scored, then head-to-head among tied teams,
+// then alphabetical (a stand-in for fair-play / drawing of lots, which we can't compute).
+function rankTeams(teams, matches) {
+  const base = [...teams].sort(
+    (x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf
+  );
+  const out = [];
+  let i = 0;
+  while (i < base.length) {
+    let j = i + 1;
+    while (
+      j < base.length &&
+      base[j].pts === base[i].pts &&
+      base[j].gd === base[i].gd &&
+      base[j].gf === base[i].gf
+    )
+      j++;
+    const block = base.slice(i, j);
+    if (block.length > 1) out.push(...breakH2H(block, matches));
+    else out.push(block[0]);
+    i = j;
+  }
+  return out;
+}
+
 // ESPN-style group tables computed from completed group matches.
 function buildGroups(groupEvents) {
   const groups = {};
+  const matchesByGroup = {};
   const ensure = (letter, c) => {
     const g = (groups[letter] = groups[letter] || {});
     const key = canon(c.team.displayName);
@@ -394,23 +450,220 @@ function buildGroups(groupEvents) {
         ta.pts++;
         tb.pts++;
       }
+      (matchesByGroup[letter] = matchesByGroup[letter] || []).push({
+        a: ta.canon,
+        b: tb.canon,
+        sa: as,
+        sb: bs,
+      });
     }
   }
 
   return Object.keys(groups)
     .sort()
-    .map((letter) => ({
-      group: letter,
-      teams: Object.values(groups[letter])
-        .map((t) => ({ ...t, gd: t.gf - t.ga }))
-        .sort(
-          (x, y) =>
-            y.pts - x.pts ||
-            y.gd - x.gd ||
-            y.gf - x.gf ||
-            x.team.localeCompare(y.team)
-        ),
-    }));
+    .map((letter) => {
+      const teams = rankTeams(
+        Object.values(groups[letter]).map((t) => ({ ...t, gd: t.gf - t.ga })),
+        matchesByGroup[letter] || []
+      ).map((t, idx) => ({ ...t, pos: idx + 1 }));
+      const complete = teams.every((t) => t.played >= 3);
+      return { group: letter, teams, complete };
+    });
+}
+
+// ---- Knockout bracket ----
+// Official FIFA 2026 schedule (matches 73–104). Times shown in U.S. Eastern.
+// Slot feeds: w = group winner, r = group runner-up, t = best-third pool,
+//             mw = winner of match #, ml = loser of match # (3rd-place game).
+const KO_TEMPLATE = [
+  // Round of 32
+  { no: 73, round: "r32", date: "2026-06-28", time: "3:00 PM ET", venue: "SoFi Stadium", city: "Los Angeles", a: { r: "A" }, b: { r: "B" } },
+  { no: 76, round: "r32", date: "2026-06-29", time: "1:00 PM ET", venue: "NRG Stadium", city: "Houston", a: { w: "C" }, b: { r: "F" } },
+  { no: 74, round: "r32", date: "2026-06-29", time: "4:30 PM ET", venue: "Gillette Stadium", city: "Boston", a: { w: "E" }, b: { t: ["A", "B", "C", "D", "F"] } },
+  { no: 75, round: "r32", date: "2026-06-29", time: "9:00 PM ET", venue: "Estadio BBVA", city: "Monterrey", a: { w: "F" }, b: { r: "C" } },
+  { no: 78, round: "r32", date: "2026-06-30", time: "1:00 PM ET", venue: "AT&T Stadium", city: "Dallas", a: { r: "E" }, b: { r: "I" } },
+  { no: 77, round: "r32", date: "2026-06-30", time: "5:00 PM ET", venue: "MetLife Stadium", city: "New York/New Jersey", a: { w: "I" }, b: { t: ["C", "D", "F", "G", "H"] } },
+  { no: 79, round: "r32", date: "2026-06-30", time: "9:00 PM ET", venue: "Estadio Azteca", city: "Mexico City", a: { w: "A" }, b: { t: ["C", "E", "F", "H", "I"] } },
+  { no: 80, round: "r32", date: "2026-07-01", time: "12:00 PM ET", venue: "Mercedes-Benz Stadium", city: "Atlanta", a: { w: "L" }, b: { t: ["E", "H", "I", "J", "K"] } },
+  { no: 82, round: "r32", date: "2026-07-01", time: "4:00 PM ET", venue: "Lumen Field", city: "Seattle", a: { w: "G" }, b: { t: ["A", "E", "H", "I", "J"] } },
+  { no: 81, round: "r32", date: "2026-07-01", time: "8:00 PM ET", venue: "Levi's Stadium", city: "San Francisco Bay Area", a: { w: "D" }, b: { t: ["B", "E", "F", "I", "J"] } },
+  { no: 84, round: "r32", date: "2026-07-02", time: "3:00 PM ET", venue: "SoFi Stadium", city: "Los Angeles", a: { w: "H" }, b: { r: "J" } },
+  { no: 83, round: "r32", date: "2026-07-02", time: "7:00 PM ET", venue: "BMO Field", city: "Toronto", a: { r: "K" }, b: { r: "L" } },
+  { no: 85, round: "r32", date: "2026-07-02", time: "11:00 PM ET", venue: "BC Place", city: "Vancouver", a: { w: "B" }, b: { t: ["E", "F", "G", "I", "J"] } },
+  { no: 88, round: "r32", date: "2026-07-03", time: "2:00 PM ET", venue: "AT&T Stadium", city: "Dallas", a: { r: "D" }, b: { r: "G" } },
+  { no: 86, round: "r32", date: "2026-07-03", time: "6:00 PM ET", venue: "Hard Rock Stadium", city: "Miami", a: { w: "J" }, b: { r: "H" } },
+  { no: 87, round: "r32", date: "2026-07-03", time: "9:30 PM ET", venue: "Arrowhead Stadium", city: "Kansas City", a: { w: "K" }, b: { t: ["D", "E", "I", "J", "L"] } },
+  // Round of 16
+  { no: 90, round: "r16", date: "2026-07-04", time: "1:00 PM ET", venue: "NRG Stadium", city: "Houston", a: { mw: 73 }, b: { mw: 75 } },
+  { no: 89, round: "r16", date: "2026-07-04", time: "5:00 PM ET", venue: "Lincoln Financial Field", city: "Philadelphia", a: { mw: 74 }, b: { mw: 77 } },
+  { no: 91, round: "r16", date: "2026-07-05", time: "4:00 PM ET", venue: "MetLife Stadium", city: "New York/New Jersey", a: { mw: 76 }, b: { mw: 78 } },
+  { no: 92, round: "r16", date: "2026-07-05", time: "8:00 PM ET", venue: "Estadio Azteca", city: "Mexico City", a: { mw: 79 }, b: { mw: 80 } },
+  { no: 93, round: "r16", date: "2026-07-06", time: "3:00 PM ET", venue: "AT&T Stadium", city: "Dallas", a: { mw: 83 }, b: { mw: 84 } },
+  { no: 94, round: "r16", date: "2026-07-06", time: "8:00 PM ET", venue: "Lumen Field", city: "Seattle", a: { mw: 81 }, b: { mw: 82 } },
+  { no: 95, round: "r16", date: "2026-07-07", time: "12:00 PM ET", venue: "Mercedes-Benz Stadium", city: "Atlanta", a: { mw: 86 }, b: { mw: 88 } },
+  { no: 96, round: "r16", date: "2026-07-07", time: "4:00 PM ET", venue: "BC Place", city: "Vancouver", a: { mw: 85 }, b: { mw: 87 } },
+  // Quarterfinals
+  { no: 97, round: "qf", date: "2026-07-09", time: "4:00 PM ET", venue: "Gillette Stadium", city: "Boston", a: { mw: 89 }, b: { mw: 90 } },
+  { no: 98, round: "qf", date: "2026-07-10", time: "3:00 PM ET", venue: "SoFi Stadium", city: "Los Angeles", a: { mw: 93 }, b: { mw: 94 } },
+  { no: 99, round: "qf", date: "2026-07-11", time: "5:00 PM ET", venue: "Hard Rock Stadium", city: "Miami", a: { mw: 91 }, b: { mw: 92 } },
+  { no: 100, round: "qf", date: "2026-07-11", time: "9:00 PM ET", venue: "Arrowhead Stadium", city: "Kansas City", a: { mw: 95 }, b: { mw: 96 } },
+  // Semifinals
+  { no: 101, round: "sf", date: "2026-07-14", time: "3:00 PM ET", venue: "AT&T Stadium", city: "Dallas", a: { mw: 97 }, b: { mw: 98 } },
+  { no: 102, round: "sf", date: "2026-07-15", time: "3:00 PM ET", venue: "Mercedes-Benz Stadium", city: "Atlanta", a: { mw: 99 }, b: { mw: 100 } },
+  // Third place + Final
+  { no: 103, round: "third", date: "2026-07-18", time: "5:00 PM ET", venue: "Hard Rock Stadium", city: "Miami", a: { ml: 101 }, b: { ml: 102 } },
+  { no: 104, round: "final", date: "2026-07-19", time: "3:00 PM ET", venue: "MetLife Stadium", city: "New York/New Jersey", a: { mw: 101 }, b: { mw: 102 } },
+];
+
+const ROUND_LABELS = {
+  r32: "Round of 32",
+  r16: "Round of 16",
+  qf: "Quarterfinal",
+  sf: "Semifinal",
+  third: "Third-Place Match",
+  final: "Final",
+};
+
+function slotLabel(slot) {
+  if (slot.w) return `Winner ${slot.w}`;
+  if (slot.r) return `Runner-up ${slot.r}`;
+  if (slot.t) return `3rd ${slot.t.join("/")}`;
+  if (slot.mw) return `Winner M${slot.mw}`;
+  if (slot.ml) return `Loser M${slot.ml}`;
+  return "";
+}
+
+// Rank the 12 third-placed teams (FIFA: points, GD, goals, then alphabetical),
+// take the best 8 and use the Annex C table to assign each to a group winner.
+function computeThirdPlace(groups) {
+  const thirds = groups
+    .filter((g) => g.teams[2])
+    .map((g) => ({ ...g.teams[2], group: g.group }));
+  thirds.sort(
+    (a, b) =>
+      b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.team.localeCompare(b.team)
+  );
+  thirds.forEach((t, i) => (t.rank = i + 1));
+  const qualifiers = thirds.slice(0, 8);
+  const combo = qualifiers
+    .map((t) => t.group)
+    .sort()
+    .join("");
+  // winner group -> third-place group letter assigned to face them
+  const assignment = ANNEX_C[combo];
+  const winnerToThird = {};
+  if (assignment && assignment.length === THIRD_WINNER_ORDER.length) {
+    THIRD_WINNER_ORDER.forEach((w, i) => {
+      winnerToThird[w] = assignment[i];
+    });
+  }
+  return {
+    ranking: thirds,
+    qualifierGroups: qualifiers.map((t) => t.group),
+    combo,
+    winnerToThird,
+    locked: thirds.length >= 12 && groups.every((g) => g.complete),
+  };
+}
+
+function buildBracket(groups, koEvents, thirdInfo) {
+  const groupBy = {};
+  groups.forEach((g) => (groupBy[g.group] = g));
+  const teamAt = (letter, pos) => {
+    const g = groupBy[letter];
+    const t = g && g.teams[pos];
+    return t ? { team: t.team, canon: t.canon, abbr: t.abbr } : null;
+  };
+
+  // Index played knockout games by the (sorted) pair of team canon names.
+  const koByPair = {};
+  for (const e of koEvents) {
+    const comp = e.competitions?.[0];
+    const cs = comp?.competitors || [];
+    if (cs.length < 2) continue;
+    const k = [canon(cs[0].team.displayName), canon(cs[1].team.displayName)]
+      .sort()
+      .join("|");
+    koByPair[k] = { comp, cs };
+  }
+
+  const resolved = {};
+  const resolveSlot = (slot, winnerGroupForThird) => {
+    if (slot.w) return teamAt(slot.w, 0);
+    if (slot.r) return teamAt(slot.r, 1);
+    if (slot.t) {
+      const tg = thirdInfo.winnerToThird[winnerGroupForThird];
+      return tg ? teamAt(tg, 2) : null;
+    }
+    if (slot.mw) return resolved[slot.mw]?.winner || null;
+    if (slot.ml) return resolved[slot.ml]?.loser || null;
+    return null;
+  };
+
+  const out = [];
+  for (const m of KO_TEMPLATE) {
+    const home = resolveSlot(m.a, m.a.w);
+    const away = resolveSlot(m.b, m.a.w);
+
+    let homeScore = null;
+    let awayScore = null;
+    let state = "pre";
+    let detail = "";
+    let winner = null;
+    let loser = null;
+    let homePens = null;
+    let awayPens = null;
+
+    if (home && away) {
+      const hit = koByPair[[home.canon, away.canon].sort().join("|")];
+      if (hit) {
+        const { comp, cs } = hit;
+        state = comp.status?.type?.state || "pre";
+        detail = comp.status?.type?.shortDetail || "";
+        const hc = cs.find((c) => canon(c.team.displayName) === home.canon);
+        const ac = cs.find((c) => canon(c.team.displayName) === away.canon);
+        if (state !== "pre") {
+          homeScore = Number(hc?.score) || 0;
+          awayScore = Number(ac?.score) || 0;
+          if (hc?.shootoutScore != null) homePens = Number(hc.shootoutScore);
+          if (ac?.shootoutScore != null) awayPens = Number(ac.shootoutScore);
+        }
+        if (state === "post") {
+          const w = cs.find((c) => c.winner === true);
+          if (w) {
+            const wc = canon(w.team.displayName);
+            winner = wc === home.canon ? home : away;
+            loser = wc === home.canon ? away : home;
+          }
+        }
+      }
+    }
+
+    resolved[m.no] = { winner, loser };
+    out.push({
+      no: m.no,
+      round: m.round,
+      roundLabel: ROUND_LABELS[m.round],
+      date: m.date,
+      time: m.time,
+      venue: m.venue,
+      city: m.city,
+      home: home
+        ? { ...home, label: slotLabel(m.a) }
+        : { team: null, canon: null, abbr: null, label: slotLabel(m.a) },
+      away: away
+        ? { ...away, label: slotLabel(m.b) }
+        : { team: null, canon: null, abbr: null, label: slotLabel(m.b) },
+      homeScore,
+      awayScore,
+      homePens,
+      awayPens,
+      state,
+      detail,
+      winnerCanon: winner?.canon || null,
+    });
+  }
+  return out;
 }
 
 export default async function handler(req, res) {
@@ -445,6 +698,19 @@ export default async function handler(req, res) {
     const teamResults = buildTeamResults(groupEvents, koEvents, koScoring);
     const schedule = await buildSchedule(groupEvents);
     const groups = buildGroups(groupEvents);
+
+    // Who advances: top 2 per group + the best 8 third-placed teams.
+    const thirdInfo = computeThirdPlace(groups);
+    const qualifyingThirds = new Set(thirdInfo.qualifierGroups);
+    groups.forEach((g) => {
+      g.teams.forEach((t) => {
+        if (t.pos === 1) t.advance = "W";
+        else if (t.pos === 2) t.advance = "RU";
+        else if (t.pos === 3 && qualifyingThirds.has(g.group)) t.advance = "3Q";
+        else t.advance = null;
+      });
+    });
+    const bracket = buildBracket(groups, koEvents, thirdInfo);
 
     const managers = roster.map((m) => {
       const teams = m.teams.map((teamName) => {
@@ -525,6 +791,12 @@ export default async function handler(req, res) {
       standings,
       schedule,
       groups,
+      bracket,
+      thirdPlace: {
+        ranking: thirdInfo.ranking,
+        qualifierGroups: thirdInfo.qualifierGroups,
+        locked: thirdInfo.locked,
+      },
       draftPicks,
       koScoring,
       fetched: new Date().toISOString(),

@@ -7,6 +7,8 @@ import {
   Users,
   Lock,
   LayoutGrid,
+  GitBranch,
+  Trophy,
 } from "lucide-react";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -786,27 +788,51 @@ function GroupTable({ group, ownerFor }) {
           <tbody>
             {group.teams.map((t, i) => {
               const owner = ownerFor(t.team);
-              const advancing = i < 2;
+              const advancing = t.advance === "W" || t.advance === "RU";
+              const thirdQ = t.advance === "3Q";
               return (
                 <tr
                   key={t.canon}
                   className={`border-t border-slate-700/40 ${
-                    advancing ? "bg-emerald-500/5" : ""
+                    advancing
+                      ? "bg-emerald-500/5"
+                      : thirdQ
+                      ? "bg-amber-500/5"
+                      : ""
                   }`}
                 >
                   <td className="py-1.5 pl-3 pr-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <span
                         className={`w-4 text-center text-[10px] font-mono shrink-0 ${
-                          advancing ? "text-emerald-400" : "text-slate-500"
+                          advancing
+                            ? "text-emerald-400"
+                            : thirdQ
+                            ? "text-amber-400"
+                            : "text-slate-500"
                         }`}
                       >
                         {i + 1}
                       </span>
                       <span className="shrink-0">{flagFor(t.team)}</span>
                       <div className="min-w-0">
-                        <div className="text-slate-200 truncate leading-tight">
-                          {t.team}
+                        <div className="text-slate-200 truncate leading-tight flex items-center gap-1">
+                          <span className="truncate">{t.team}</span>
+                          {t.advance && (
+                            <span
+                              className={`shrink-0 text-[8px] font-bold px-1 py-px rounded ${
+                                advancing
+                                  ? "bg-emerald-500/20 text-emerald-300"
+                                  : "bg-amber-500/20 text-amber-300"
+                              }`}
+                            >
+                              {t.advance === "W"
+                                ? "1st"
+                                : t.advance === "RU"
+                                ? "2nd"
+                                : "3rd ✓"}
+                            </span>
+                          )}
                         </div>
                         {owner && (
                           <div className="text-[10px] text-cyan-500/80 font-light truncate leading-tight">
@@ -840,7 +866,72 @@ function GroupTable({ group, ownerFor }) {
   );
 }
 
-function GroupsView({ groups, managers }) {
+function ThirdPlaceRace({ ranking, ownerFor }) {
+  if (!ranking || ranking.length === 0) return null;
+  return (
+    <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-700/60">
+        <Trophy size={14} className="text-amber-400" />
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300">
+          Third-Place Race
+        </h3>
+        <span className="text-[10px] text-slate-500">best 8 of 12 advance</span>
+      </div>
+      <div className="divide-y divide-slate-700/40">
+        {ranking.map((t) => {
+          const owner = ownerFor(t.team);
+          const inThree = t.rank <= 8;
+          return (
+            <div
+              key={t.canon}
+              className={`flex items-center gap-2 px-3 py-1.5 text-xs ${
+                inThree ? "bg-amber-500/5" : "opacity-60"
+              }`}
+            >
+              <span
+                className={`w-5 text-center font-mono text-[11px] shrink-0 ${
+                  inThree ? "text-amber-400 font-bold" : "text-slate-500"
+                }`}
+              >
+                {t.rank}
+              </span>
+              <span className="shrink-0">{flagFor(t.team)}</span>
+              <span className="text-[9px] text-slate-500 font-mono shrink-0">
+                {t.group}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="text-slate-200 truncate leading-tight">
+                  {t.team}
+                </div>
+                {owner && (
+                  <div className="text-[10px] text-cyan-500/80 font-light truncate leading-tight">
+                    {owner}
+                  </div>
+                )}
+              </div>
+              <span className="shrink-0 font-mono text-slate-400 text-[11px]">
+                {t.pts}p
+              </span>
+              <span className="shrink-0 font-mono text-slate-500 text-[11px] w-8 text-right">
+                {t.gd > 0 ? `+${t.gd}` : t.gd}
+              </span>
+              <span className="shrink-0 font-mono text-slate-500 text-[11px] w-7 text-right">
+                {t.gf}
+              </span>
+              {inThree && (
+                <span className="shrink-0 text-[8px] font-bold px-1 py-px rounded bg-amber-500/20 text-amber-300">
+                  IN
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function GroupsView({ groups, managers, thirdPlace }) {
   if (!groups || groups.length === 0) {
     return (
       <p className="text-center text-slate-500 py-12">Groups unavailable.</p>
@@ -856,15 +947,270 @@ function GroupsView({ groups, managers }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-slate-600">
-        <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/40 align-middle mr-1" />
-        Top 2 of each group advance · sorted by points, then goal difference.
-      </p>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
+        <span>
+          <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/40 align-middle mr-1" />
+          Top 2 advance
+        </span>
+        <span>
+          <span className="inline-block w-2 h-2 rounded-sm bg-amber-500/40 align-middle mr-1" />
+          Best 8 third-placed teams advance
+        </span>
+        <span>· FIFA tiebreakers: pts → GD → goals → head-to-head</span>
+      </div>
       <div className="grid lg:grid-cols-2 gap-4">
         {groups.map((g) => (
           <GroupTable key={g.group} group={g} ownerFor={ownerFor} />
         ))}
       </div>
+      <ThirdPlaceRace ranking={thirdPlace?.ranking} ownerFor={ownerFor} />
+    </div>
+  );
+}
+
+// Vertical match order per round so the connector tree lines up correctly.
+const BR_ORDER = {
+  r32: [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87],
+  r16: [89, 90, 93, 94, 91, 92, 95, 96],
+  qf: [97, 98, 99, 100],
+  sf: [101, 102],
+  final: [104],
+};
+const BR_COLS = [
+  { key: "r32", label: "Round of 32" },
+  { key: "r16", label: "Round of 16" },
+  { key: "qf", label: "Quarters" },
+  { key: "sf", label: "Semis" },
+  { key: "final", label: "Final" },
+];
+
+const fmtKoDate = (ymd) => {
+  const [y, mo, d] = (ymd || "").split("-").map(Number);
+  if (!y) return "";
+  return new Date(y, mo - 1, d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+};
+
+function BracketSlot({ slot, score, pens, isWinner, decided, live }) {
+  const known = !!slot.team;
+  return (
+    <div
+      className={`flex items-center gap-1 px-1.5 h-[26px] ${
+        decided && !isWinner ? "opacity-45" : ""
+      }`}
+    >
+      <span className="text-[11px] leading-none shrink-0">
+        {known ? flagFor(slot.team) : "·"}
+      </span>
+      <span
+        className={`flex-1 min-w-0 truncate text-[10px] leading-none ${
+          known
+            ? isWinner
+              ? "text-slate-50 font-bold"
+              : "text-slate-300"
+            : "text-slate-500 italic"
+        }`}
+        title={known ? slot.team : slot.label}
+      >
+        {known ? slot.abbr || slot.team : slot.label}
+      </span>
+      {score != null && (
+        <span
+          className={`shrink-0 font-mono text-[10px] leading-none ${
+            live
+              ? "text-cyan-300 font-bold"
+              : isWinner
+              ? "text-slate-50 font-bold"
+              : "text-slate-400"
+          }`}
+        >
+          {score}
+          {pens != null && (
+            <span className="text-[8px] text-slate-500"> ({pens})</span>
+          )}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function BracketMatch({ m, ownerFor, pickFor, colHeight, count }) {
+  const live = m.state === "in";
+  const post = m.state === "post";
+  const decided = post && !!m.winnerCanon;
+  const hWin = m.winnerCanon && m.home.canon === m.winnerCanon;
+  const aWin = m.winnerCanon && m.away.canon === m.winnerCanon;
+  const ownerLine = (slot) => {
+    if (!slot.team) return null;
+    const o = ownerFor ? ownerFor(slot.team) : null;
+    const p = pickFor ? pickFor(slot.team) : null;
+    if (!o && p == null) return null;
+    return (
+      <span className="truncate">
+        {o || "—"}
+        {p != null && <span className="text-slate-600"> · #{p}</span>}
+      </span>
+    );
+  };
+  return (
+    <div
+      style={{ minHeight: colHeight ? colHeight / count : undefined }}
+      className="flex items-center"
+    >
+      <div className="w-full rounded-md border border-slate-700/60 bg-slate-800/50 overflow-hidden">
+        <div className="flex items-center justify-between px-1.5 py-[2px] bg-slate-900/50 border-b border-slate-700/40">
+          <span className="text-[8px] text-slate-500 font-medium truncate">
+            {fmtKoDate(m.date)} · {m.venue}
+          </span>
+          {live ? (
+            <span className="text-[8px] text-cyan-400 font-bold shrink-0 ml-1">
+              {m.detail || "LIVE"}
+            </span>
+          ) : (
+            <span className="text-[8px] text-slate-600 shrink-0 ml-1">
+              M{m.no}
+            </span>
+          )}
+        </div>
+        <BracketSlot
+          slot={m.home}
+          score={m.state !== "pre" ? m.homeScore : null}
+          pens={m.homePens}
+          isWinner={hWin}
+          decided={decided}
+          live={live}
+        />
+        <div className="border-t border-slate-700/40" />
+        <BracketSlot
+          slot={m.away}
+          score={m.state !== "pre" ? m.awayScore : null}
+          pens={m.awayPens}
+          isWinner={aWin}
+          decided={decided}
+          live={live}
+        />
+        <div className="flex flex-col gap-[1px] px-1.5 pb-[2px] pt-[1px] text-[8px] text-cyan-500/70 font-light leading-tight">
+          {ownerLine(m.home)}
+          {ownerLine(m.away)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BracketView({ bracket, managers, draftPicks }) {
+  if (!bracket || bracket.length === 0) {
+    return (
+      <p className="text-center text-slate-500 py-12">Bracket unavailable.</p>
+    );
+  }
+  const byNo = {};
+  bracket.forEach((m) => (byNo[m.no] = m));
+  const ownerMap = {};
+  (managers || []).forEach((m) => {
+    (m.teams || []).forEach((t) => {
+      ownerMap[teamCanon(t.team)] = m.name;
+    });
+  });
+  const ownerFor = (team) => ownerMap[teamCanon(team)] || null;
+  const pickFor = (team) => draftPicks?.[teamCanon(team)] ?? null;
+
+  const third = byNo[103];
+  const COL_H = 1520;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+          Knockout Bracket
+        </h2>
+        <p className="text-[10px] text-slate-600">
+          Projected from current standings · updates live as games finish.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2">
+        <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
+          ← swipe sideways for all rounds →
+        </div>
+        <div className="flex" style={{ minWidth: 900 }}>
+          {BR_COLS.map((col, ci) => {
+            const order = BR_ORDER[col.key];
+            const next = BR_COLS[ci + 1];
+            return (
+              <div key={col.key} className="flex shrink-0">
+                <div
+                  className="flex flex-col shrink-0"
+                  style={{ width: ci === 0 ? 150 : 132 }}
+                >
+                  <div className="text-center text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1 h-4">
+                    {col.label}
+                  </div>
+                  <div
+                    className="flex flex-col justify-around px-1"
+                    style={{ height: COL_H }}
+                  >
+                    {order.map((no) =>
+                      byNo[no] ? (
+                        <BracketMatch
+                          key={no}
+                          m={byNo[no]}
+                          ownerFor={ownerFor}
+                          pickFor={pickFor}
+                          colHeight={COL_H}
+                          count={order.length}
+                        />
+                      ) : null
+                    )}
+                  </div>
+                </div>
+                {next && (
+                  <div className="flex flex-col shrink-0" style={{ width: 12 }}>
+                    <div className="h-4 mb-1" />
+                    <div
+                      className="flex flex-col justify-around"
+                      style={{ height: COL_H }}
+                    >
+                      {Array.from({ length: BR_ORDER[next.key].length }).map(
+                        (_, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center"
+                            style={{ flex: 1 }}
+                          >
+                            <div
+                              className="w-full"
+                              style={{
+                                height: "50%",
+                                borderRight: "1px solid #334155",
+                                borderTop: "1px solid #334155",
+                                borderBottom: "1px solid #334155",
+                                borderTopRightRadius: 3,
+                                borderBottomRightRadius: 3,
+                              }}
+                            />
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {third && (
+        <div className="max-w-xs">
+          <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1">
+            Third-Place Match
+          </div>
+          <BracketMatch m={third} ownerFor={ownerFor} pickFor={pickFor} count={1} />
+        </div>
+      )}
     </div>
   );
 }
@@ -873,11 +1219,12 @@ function Tabs({ view, setView }) {
   const tabs = [
     { id: "pool", label: "Pool", icon: Users },
     { id: "groups", label: "Groups", icon: LayoutGrid },
+    { id: "bracket", label: "Bracket", icon: GitBranch },
     { id: "schedule", label: "Schedule", icon: CalendarDays },
     { id: "scoring", label: "Scoring", icon: Globe },
   ];
   return (
-    <div className="inline-flex p-1 bg-slate-800/60 border border-slate-700/60 rounded-xl mb-4">
+    <div className="inline-flex p-1 bg-slate-800/60 border border-slate-700/60 rounded-xl mb-4 max-w-full overflow-x-auto">
       {tabs.map((t) => {
         const Icon = t.icon;
         const active = view === t.id;
@@ -886,7 +1233,7 @@ function Tabs({ view, setView }) {
             key={t.id}
             type="button"
             onClick={() => setView(t.id)}
-            className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shrink-0 whitespace-nowrap ${
               active
                 ? "bg-cyan-400 text-slate-900"
                 : "text-slate-400 hover:text-slate-200"
@@ -1019,7 +1366,17 @@ export default function Footie() {
                 </div>
               </div>
             ) : view === "groups" ? (
-              <GroupsView groups={data.groups} managers={data.managers} />
+              <GroupsView
+                groups={data.groups}
+                managers={data.managers}
+                thirdPlace={data.thirdPlace}
+              />
+            ) : view === "bracket" ? (
+              <BracketView
+                bracket={data.bracket}
+                managers={data.managers}
+                draftPicks={data.draftPicks}
+              />
             ) : view === "schedule" ? (
               <ScheduleView
                 schedule={data.schedule}
