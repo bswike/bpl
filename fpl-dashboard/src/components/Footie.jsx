@@ -1156,6 +1156,15 @@ const fmtKoDate = (ymd) => {
   });
 };
 
+// Show the World Cup host-city name instead of the stadium.
+const CITY_SHORT = {
+  "New York/New Jersey": "NY/NJ",
+  "San Francisco Bay Area": "SF Bay Area",
+  "Mexico City": "Mexico City",
+  "Kansas City": "Kansas City",
+};
+const shortCity = (city) => CITY_SHORT[city] || city;
+
 function BracketSlot({ slot, score, pens, isWinner, decided, live, owner, pick }) {
   const known = !!slot.team;
   const hasMeta = owner || pick != null;
@@ -1232,7 +1241,7 @@ function BracketMatch({ m, ownerFor, pickFor, colHeight, count }) {
       <div className="w-full rounded-md border border-slate-700/60 bg-slate-800/50 overflow-hidden">
         <div className="flex items-center justify-between px-1.5 py-[2px] bg-slate-900/50 border-b border-slate-700/40">
           <span className="text-[8px] text-slate-500 font-medium truncate">
-            {fmtKoDate(m.date)} · {m.venue}
+            {fmtKoDate(m.date)} · {shortCity(m.city)}
           </span>
           {live ? (
             <span className="text-[8px] text-cyan-400 font-bold shrink-0 ml-1">
