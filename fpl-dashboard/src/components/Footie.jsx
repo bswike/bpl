@@ -456,6 +456,7 @@ function SquadTeams({ manager, pickFor, placeFor }) {
 
 function ManagerRow({ manager, rank, ownerFor, pickFor, placeFor }) {
   const [open, setOpen] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const total = (manager.gsPoints || 0) + (manager.koPoints || 0);
 
   return (
@@ -533,10 +534,28 @@ function ManagerRow({ manager, rank, ownerFor, pickFor, placeFor }) {
         <div className="px-3 pb-3 pt-1 border-t border-slate-700/40 space-y-3">
           <SquadTeams manager={manager} pickFor={pickFor} placeFor={placeFor} />
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1">
-              Results so far
-            </div>
-            <GameLog manager={manager} ownerFor={ownerFor} pickFor={pickFor} />
+            <button
+              type="button"
+              onClick={() => setShowResults((s) => !s)}
+              className="w-full flex items-center justify-between text-[10px] uppercase tracking-wide text-slate-500 hover:text-slate-300 transition-colors py-1"
+            >
+              <span>Results so far</span>
+              <ChevronDown
+                size={13}
+                className={`transition-transform ${
+                  showResults ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {showResults && (
+              <div className="mt-1">
+                <GameLog
+                  manager={manager}
+                  ownerFor={ownerFor}
+                  pickFor={pickFor}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
