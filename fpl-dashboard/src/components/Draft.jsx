@@ -13,6 +13,7 @@ import {
   Trash2,
   Plus,
   Lock,
+  AlertTriangle,
 } from "lucide-react";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -554,6 +555,11 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
 
   const resolved = useMemo(() => resolveBracket(data, picks), [data, picks]);
   const made = Object.keys(resolved.picks).length;
+  const remaining = useMemo(
+    () => KO_NUMS.filter((no) => !resolved.win[no]).length,
+    [resolved]
+  );
+  const complete = remaining === 0;
 
   const save = async () => {
     if (!title.trim()) {
@@ -567,6 +573,14 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
     if (made < 1) {
       setMsg({ type: "err", text: "Make at least one pick." });
       return;
+    }
+    if (!complete) {
+      const ok = window.confirm(
+        `Heads up — your bracket is incomplete. ${remaining} match${
+          remaining === 1 ? "" : "es"
+        } still ${remaining === 1 ? "needs" : "need"} a pick. Submit it anyway?`
+      );
+      if (!ok) return;
     }
     setSaving(true);
     setMsg(null);
@@ -665,6 +679,21 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
           {msg.text}
         </div>
       )}
+
+      <div>
+        {complete ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300">
+            <Check className="w-3 h-3" />
+            Complete bracket
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-300">
+            <AlertTriangle className="w-3 h-3" />
+            Incomplete — {remaining} match{remaining === 1 ? "" : "es"} left to
+            pick
+          </span>
+        )}
+      </div>
 
       <p className="text-[11px] text-slate-500">
         Tap a team to advance them all the way to the final
@@ -862,6 +891,17 @@ function SavedTab({ data, refreshKey, onEdit }) {
                   <span className="truncate">{b.name}</span>
                 </div>
                 <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-500">
+                  {b.complete ? (
+                    <span className="inline-flex items-center gap-0.5 text-emerald-400/90">
+                      <Check className="w-3 h-3" />
+                      Complete
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-0.5 text-amber-400/90">
+                      <AlertTriangle className="w-3 h-3" />
+                      Incomplete
+                    </span>
+                  )}
                   <span>TB {b.goals ?? 0} gls</span>
                   {!b.locked && b.champion && (
                     <span className="text-amber-200/80 truncate">
