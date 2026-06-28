@@ -631,7 +631,7 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Your name (e.g. Joe)"
           maxLength={60}
-          className="flex-1 min-w-[140px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
+          className="flex-1 min-w-[120px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
         />
         <input
           value={pw}
@@ -640,7 +640,7 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
           placeholder="Create bracket password"
           maxLength={60}
           autoComplete="off"
-          className="flex-1 min-w-[140px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
+          className="flex-1 min-w-[150px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
         />
         <button
           type="button"
@@ -731,7 +731,7 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
                 placeholder="Create bracket password"
                 maxLength={60}
                 autoComplete="off"
-                className="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
+                className="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
               />
               <button
                 type="button"
