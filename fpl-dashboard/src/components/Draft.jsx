@@ -7,7 +7,6 @@ import {
   X,
   Eye,
   Loader2,
-  Users,
   RefreshCw,
   Check,
   Pencil,
@@ -713,6 +712,21 @@ function SavedTab({ data, refreshKey, onEdit }) {
     load();
   }, [load, refreshKey]);
 
+  // Keep standings fresh while this tab is open.
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!document.hidden) load();
+    }, 60000);
+    const onVisible = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [load]);
+
   const open = async (id) => {
     setOpenId(id);
     setLoadingOne(true);
@@ -802,79 +816,97 @@ function SavedTab({ data, refreshKey, onEdit }) {
           </span>
         </div>
       )}
+      <div className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-[10px] leading-relaxed text-slate-400">
+        <span className="font-semibold text-slate-300">Scoring per correct pick:</span>{" "}
+        R32 <span className="text-slate-200">1</span> · R16{" "}
+        <span className="text-slate-200">2</span> · QF{" "}
+        <span className="text-slate-200">3</span> · SF{" "}
+        <span className="text-slate-200">4</span> · Final{" "}
+        <span className="text-slate-200">5</span> pts. Tiebreaker = total goals
+        scored by all the teams you picked. The Sun 6/28 play-in game doesn't
+        count.
+      </div>
       {list.length === 0 ? (
         <p className="text-center text-slate-500 py-12 text-sm">
-          No brackets saved yet. Fill one out and hit save.
+          No brackets submitted yet. Fill one out and hit save.
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {list.map((b) => (
+        <div className="space-y-1.5">
+          {list.map((b, i) => (
             <div
               key={b.id}
-              className="rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3"
+              className="rounded-xl border border-slate-700/60 bg-slate-800/50 px-3 py-2.5 flex items-center gap-2.5"
             >
+              <div
+                className={`shrink-0 w-7 text-center font-bold tabular-nums ${
+                  i === 0
+                    ? "text-amber-300"
+                    : i === 1
+                    ? "text-slate-200"
+                    : i === 2
+                    ? "text-orange-300"
+                    : "text-slate-500"
+                }`}
+              >
+                {i + 1}
+              </div>
               <button
                 type="button"
                 onClick={() => open(b.id)}
-                className="w-full text-left"
+                className="flex-1 min-w-0 text-left"
               >
                 <div className="font-semibold text-slate-100 truncate flex items-center gap-1.5">
                   {b.locked && (
-                    <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <Lock className="w-3 h-3 text-amber-400 shrink-0" />
                   )}
                   <span className="truncate">{b.name}</span>
                 </div>
-                <div className="mt-1 flex items-center gap-1.5 text-xs">
-                  {b.locked ? (
-                    <span className="text-slate-500 truncate">
-                      Locked until {REVEAL_LABEL}
+                <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-500">
+                  <span>TB {b.goals ?? 0} gls</span>
+                  {!b.locked && b.champion && (
+                    <span className="text-amber-200/80 truncate">
+                      {flagFor(b.champion)} {b.champion}
                     </span>
-                  ) : (
-                    <>
-                      <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span className="text-amber-200 truncate">
-                        {b.champion
-                          ? `${flagFor(b.champion)} ${b.champion}`
-                          : "No champion picked"}
-                      </span>
-                    </>
                   )}
                 </div>
-                {b.createdAt && (
-                  <div className="mt-1 text-[10px] text-slate-500">
-                    {new Date(b.createdAt).toLocaleString()}
-                  </div>
-                )}
               </button>
-              <div className="mt-2 flex items-center gap-1.5 border-t border-slate-700/40 pt-2">
+              <div className="shrink-0 text-right">
+                <div className="font-bold text-cyan-300 tabular-nums leading-none">
+                  {b.points ?? 0}
+                </div>
+                <div className="text-[9px] uppercase tracking-wider text-slate-500">
+                  pts
+                </div>
+              </div>
+              <div className="shrink-0 flex items-center gap-1 border-l border-slate-700/40 pl-2">
                 <button
                   type="button"
                   onClick={() => open(b.id)}
-                  className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800/60 px-2 py-1 text-[11px] font-medium text-slate-300 hover:bg-slate-700/60"
+                  title="View bracket"
+                  className="inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-800/60 p-1.5 text-slate-300 hover:bg-slate-700/60"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  View
                 </button>
                 <button
                   type="button"
                   onClick={() => onEdit?.(b.id)}
-                  className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800/60 px-2 py-1 text-[11px] font-medium text-cyan-300 hover:bg-slate-700/60"
+                  title="Edit bracket"
+                  className="inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-800/60 p-1.5 text-cyan-300 hover:bg-slate-700/60"
                 >
                   <Pencil className="w-3.5 h-3.5" />
-                  Edit
                 </button>
                 <button
                   type="button"
                   onClick={() => remove(b.id, b.name)}
                   disabled={deleting === b.id}
-                  className="ml-auto inline-flex items-center gap-1 rounded-md border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[11px] font-medium text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"
+                  title="Delete bracket"
+                  className="inline-flex items-center justify-center rounded-md border border-rose-500/40 bg-rose-500/10 p-1.5 text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"
                 >
                   {deleting === b.id ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Trash2 className="w-3.5 h-3.5" />
                   )}
-                  Delete
                 </button>
               </div>
             </div>
@@ -1039,7 +1071,7 @@ export default function Draft() {
 
   const tabs = [
     { id: "pick", label: "My Bracket", icon: GitBranch },
-    { id: "saved", label: "Saved Brackets", icon: Users },
+    { id: "saved", label: "Standings", icon: Trophy },
   ];
 
   return (

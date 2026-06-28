@@ -42,6 +42,61 @@ function verifyAuth(password, auth) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+// --- Standings scoring -----------------------------------------------------
+// Points awarded for correctly picking the winner of a knockout match.
+const ROUND_POINTS = { r32: 1, r16: 2, qf: 3, sf: 4, final: 5 };
+// The Sunday 6/28 game is treated like a play-in and does NOT count (the league
+// officially starts at Monday 1pm). Third place (round "third") never counts.
+const EXCLUDED_DATES = new Set(["2026-06-28"]);
+
+async function fetchFootie(req) {
+  try {
+    const proto = req.headers?.["x-forwarded-proto"] || "https";
+    const host = req.headers?.host;
+    if (!host) return null;
+    const r = await fetch(`${proto}://${host}/api/footie`, { cache: "no-store" });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
+// Total goals scored by each team across counted knockout games (tiebreaker).
+function goalsByTeamFrom(footie) {
+  const goals = {};
+  for (const m of footie?.bracket || []) {
+    if (EXCLUDED_DATES.has(m.date)) continue;
+    if (!m.state || m.state === "pre") continue;
+    const h = m.home?.canon;
+    const a = m.away?.canon;
+    if (h && m.homeScore != null) goals[h] = (goals[h] || 0) + Number(m.homeScore || 0);
+    if (a && m.awayScore != null) goals[a] = (goals[a] || 0) + Number(m.awayScore || 0);
+  }
+  return goals;
+}
+
+function scorePicks(picks, byNo, goalsByTeam) {
+  const breakdown = { r32: 0, r16: 0, qf: 0, sf: 0, final: 0 };
+  let points = 0;
+  let correct = 0;
+  for (const [k, pick] of Object.entries(picks || {})) {
+    const m = byNo[Number(k)];
+    if (!m || EXCLUDED_DATES.has(m.date)) continue;
+    const pts = ROUND_POINTS[m.round];
+    if (!pts) continue; // third-place / unknown rounds don't count
+    if (m.winnerCanon && pick === m.winnerCanon) {
+      points += pts;
+      breakdown[m.round] += pts;
+      correct += 1;
+    }
+  }
+  // Tiebreaker: total goals by every distinct team you selected.
+  let goals = 0;
+  for (const t of new Set(Object.values(picks || {}))) goals += goalsByTeam[t] || 0;
+  return { points, correct, breakdown, goals };
+}
+
 function passwordFrom(req, body) {
   const h = req.headers?.["x-draft-password"];
   if (h != null && h !== "") return String(h);
@@ -179,18 +234,29 @@ export default async function handler(req, res) {
         return res.status(200).json({ ...pub, revealed, revealAt: REVEAL_ISO });
       }
 
-      const { blobs } = await list({ prefix: PREFIX, limit: MAX_LIST });
+      const [{ blobs }, footie] = await Promise.all([
+        list({ prefix: PREFIX, limit: MAX_LIST }),
+        fetchFootie(req),
+      ]);
+      const byNo = {};
+      (footie?.bracket || []).forEach((m) => (byNo[m.no] = m));
+      const goalsByTeam = goalsByTeamFrom(footie);
       const records = await Promise.all(
         blobs.map(async (b) => {
           try {
             const r = await fetch(b.url, { cache: "no-store" });
             const j = await r.json();
+            const sc = scorePicks(j.picks || {}, byNo, goalsByTeam);
             return {
               id: j.id,
               name: j.name,
               champion: revealed ? j.champion || null : null,
               locked: !revealed,
               createdAt: j.createdAt || b.uploadedAt,
+              points: sc.points,
+              correct: sc.correct,
+              goals: sc.goals,
+              breakdown: sc.breakdown,
             };
           } catch {
             return null;
@@ -199,7 +265,12 @@ export default async function handler(req, res) {
       );
       const summaries = records
         .filter(Boolean)
-        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+        .sort(
+          (a, b) =>
+            b.points - a.points ||
+            b.goals - a.goals ||
+            String(a.name).localeCompare(String(b.name))
+        );
       res.setHeader("Cache-Control", "no-store");
       return res
         .status(200)
