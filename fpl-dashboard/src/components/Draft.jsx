@@ -13,6 +13,7 @@ import {
   Pencil,
   Trash2,
   Plus,
+  Lock,
 } from "lucide-react";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -124,6 +125,25 @@ const FEEDS = {
   104: { a: { mw: 101 }, b: { mw: 102 } },
 };
 const KO_NUMS = Array.from({ length: 32 }, (_, i) => 73 + i); // 73..104
+
+// Remember each bracket's password on this device so you don't retype it.
+const pwKey = (id) => `draftpw:${id}`;
+const getStoredPw = (id) => {
+  try {
+    return localStorage.getItem(pwKey(id)) || "";
+  } catch {
+    return "";
+  }
+};
+const setStoredPw = (id, pw) => {
+  try {
+    if (pw) localStorage.setItem(pwKey(id), pw);
+    else localStorage.removeItem(pwKey(id));
+  } catch {
+    /* ignore */
+  }
+};
+const REVEAL_LABEL = "Monday, Jun 29 · 1:00 PM EDT";
 
 // Resolve the bracket: R32 teams come from the live API standings; every other
 // match's two contestants come from whoever has advanced up the tree.
@@ -489,6 +509,7 @@ function BracketGrid({ data, picks, editable, onPick }) {
 function PickTab({ data, onSaved, editTarget, onClearEdit }) {
   const [picks, setPicks] = useState({});
   const [title, setTitle] = useState("");
+  const [pw, setPw] = useState("");
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -498,6 +519,7 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
     if (editTarget) {
       setPicks(editTarget.picks ? { ...editTarget.picks } : {});
       setTitle(editTarget.name || "");
+      setPw(editTarget.password || "");
       setEditId(editTarget.id || null);
       setMsg(null);
     }
@@ -519,6 +541,7 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
   const newBracket = () => {
     setPicks({});
     setTitle("");
+    setPw("");
     setEditId(null);
     setMsg(null);
     onClearEdit?.();
@@ -538,6 +561,10 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
       setMsg({ type: "err", text: "Add your name first." });
       return;
     }
+    if (!pw.trim()) {
+      setMsg({ type: "err", text: "Set a password for your bracket." });
+      return;
+    }
     if (made < 1) {
       setMsg({ type: "err", text: "Make at least one pick." });
       return;
@@ -551,12 +578,14 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
         body: JSON.stringify({
           id: editId || undefined,
           name: title.trim(),
+          password: pw,
           picks: resolved.picks,
           champion: resolved.champion?.team || null,
         }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Save failed.");
+      setStoredPw(json.id, pw);
       setMsg({ type: "ok", text: editId ? "Updated!" : "Saved!" });
       onSaved?.(json.id);
     } catch (e) {
@@ -592,7 +621,16 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Your name (e.g. Joe)"
           maxLength={60}
-          className="flex-1 min-w-[160px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
+          className="flex-1 min-w-[140px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
+        />
+        <input
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          type="password"
+          placeholder="Bracket password"
+          maxLength={60}
+          autoComplete="off"
+          className="flex-1 min-w-[140px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
         />
         <button
           type="button"
@@ -631,8 +669,9 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
 
       <p className="text-[11px] text-slate-500">
         Tap a team to advance them all the way to the final
-        ({made}/32 matches picked). Finished games fill in and lock
-        automatically from the live ESPN feed; a{" "}
+        ({made}/32 matches picked). Set a password to protect your bracket — it
+        stays private until the reveal ({REVEAL_LABEL}). Finished games fill in
+        and lock automatically from ESPN; a{" "}
         <Check className="inline w-3 h-3 text-emerald-400" />/
         <X className="inline w-3 h-3 text-rose-400" /> shows whether your pick
         matched the actual result.
@@ -648,9 +687,11 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
 // ---------------------------------------------------------------------------
 function SavedTab({ data, refreshKey, onEdit }) {
   const [list, setList] = useState(null);
+  const [revealed, setRevealed] = useState(true);
   const [err, setErr] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [openData, setOpenData] = useState(null);
+  const [openErr, setOpenErr] = useState(null);
   const [loadingOne, setLoadingOne] = useState(false);
   const [deleting, setDeleting] = useState(null);
 
@@ -661,6 +702,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to load.");
       setList(json.brackets || []);
+      setRevealed(json.revealed !== false);
     } catch (e) {
       setErr(String(e.message || e));
       setList([]);
@@ -675,13 +717,35 @@ function SavedTab({ data, refreshKey, onEdit }) {
     setOpenId(id);
     setLoadingOne(true);
     setOpenData(null);
+    setOpenErr(null);
     try {
-      const res = await fetch(`/api/draft?id=${encodeURIComponent(id)}`);
+      let pwd = getStoredPw(id);
+      let res = await fetch(`/api/draft?id=${encodeURIComponent(id)}`, {
+        headers: pwd ? { "x-draft-password": pwd } : {},
+      });
+      if (res.status === 403) {
+        pwd =
+          window.prompt(
+            "This bracket is locked until the reveal. Enter its password to view:"
+          ) || "";
+        if (!pwd) {
+          setOpenId(null);
+          return;
+        }
+        res = await fetch(`/api/draft?id=${encodeURIComponent(id)}`, {
+          headers: { "x-draft-password": pwd },
+        });
+      }
       const json = await res.json();
+      if (res.status === 403) {
+        setOpenErr("Wrong password for this bracket.");
+        return;
+      }
       if (!res.ok) throw new Error(json.error || "Failed.");
+      setStoredPw(id, pwd);
       setOpenData(json);
-    } catch {
-      setOpenData(null);
+    } catch (e) {
+      setOpenErr(String(e.message || e));
     } finally {
       setLoadingOne(false);
     }
@@ -689,16 +753,23 @@ function SavedTab({ data, refreshKey, onEdit }) {
 
   const remove = async (id, name) => {
     if (!confirm(`Delete "${name}"? This can't be undone.`)) return;
+    let pwd = getStoredPw(id);
+    if (!pwd) {
+      pwd = window.prompt("Enter this bracket's password to delete it:") || "";
+      if (!pwd) return;
+    }
     setDeleting(id);
     setErr(null);
     try {
       const res = await fetch(`/api/draft?id=${encodeURIComponent(id)}`, {
         method: "DELETE",
+        headers: { "x-draft-password": pwd },
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || "Delete failed.");
       }
+      setStoredPw(id, "");
       setList((cur) => (cur || []).filter((x) => x.id !== id));
     } catch (e) {
       setErr(String(e.message || e));
@@ -722,6 +793,15 @@ function SavedTab({ data, refreshKey, onEdit }) {
           {err}
         </div>
       )}
+      {!revealed && (
+        <div className="text-xs rounded-lg px-3 py-2 border border-amber-500/40 bg-amber-500/10 text-amber-200 flex items-start gap-2">
+          <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+          <span>
+            Brackets stay private until the reveal ({REVEAL_LABEL}). You can only
+            open the ones you have the password for.
+          </span>
+        </div>
+      )}
       {list.length === 0 ? (
         <p className="text-center text-slate-500 py-12 text-sm">
           No brackets saved yet. Fill one out and hit save.
@@ -738,16 +818,27 @@ function SavedTab({ data, refreshKey, onEdit }) {
                 onClick={() => open(b.id)}
                 className="w-full text-left"
               >
-                <div className="font-semibold text-slate-100 truncate">
-                  {b.name}
+                <div className="font-semibold text-slate-100 truncate flex items-center gap-1.5">
+                  {b.locked && (
+                    <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  )}
+                  <span className="truncate">{b.name}</span>
                 </div>
                 <div className="mt-1 flex items-center gap-1.5 text-xs">
-                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span className="text-amber-200 truncate">
-                    {b.champion
-                      ? `${flagFor(b.champion)} ${b.champion}`
-                      : "No champion picked"}
-                  </span>
+                  {b.locked ? (
+                    <span className="text-slate-500 truncate">
+                      Locked until {REVEAL_LABEL}
+                    </span>
+                  ) : (
+                    <>
+                      <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="text-amber-200 truncate">
+                        {b.champion
+                          ? `${flagFor(b.champion)} ${b.champion}`
+                          : "No champion picked"}
+                      </span>
+                    </>
+                  )}
                 </div>
                 {b.createdAt && (
                   <div className="mt-1 text-[10px] text-slate-500">
@@ -832,7 +923,19 @@ function SavedTab({ data, refreshKey, onEdit }) {
             </div>
           </div>
           <div className="flex-1 overflow-auto px-4 py-4">
-            {loadingOne || !openData ? (
+            {openErr ? (
+              <div className="py-16 flex flex-col items-center gap-2 text-center">
+                <Lock className="w-6 h-6 text-amber-400" />
+                <p className="text-sm text-rose-300">{openErr}</p>
+                <button
+                  type="button"
+                  onClick={() => open(openId)}
+                  className="mt-1 inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-700/60"
+                >
+                  Try password again
+                </button>
+              </div>
+            ) : loadingOne || !openData ? (
               <div className="py-16 flex justify-center">
                 <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
               </div>
@@ -904,14 +1007,28 @@ export default function Draft() {
   };
 
   const startEdit = useCallback(async (id) => {
+    // Editing always needs the bracket's password (to authorize the save).
+    let pwd = getStoredPw(id);
+    if (!pwd) {
+      pwd = window.prompt("Enter this bracket's password to edit it:") || "";
+      if (!pwd) return;
+    }
     try {
-      const res = await fetch(`/api/draft?id=${encodeURIComponent(id)}`);
+      const res = await fetch(`/api/draft?id=${encodeURIComponent(id)}`, {
+        headers: { "x-draft-password": pwd },
+      });
       const j = await res.json();
+      if (res.status === 403) {
+        alert("Wrong password for this bracket.");
+        return;
+      }
       if (!res.ok) throw new Error(j.error || "Failed to load.");
+      setStoredPw(id, pwd);
       setEditTarget({
         id: j.id,
         name: j.name,
         picks: j.picks || {},
+        password: pwd,
         nonce: Date.now(),
       });
       setView("pick");

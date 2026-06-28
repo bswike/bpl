@@ -1,14 +1,23 @@
 // api/draft.js  (ESM)
-// Persists user-built draft brackets as JSON in Vercel Blob.
-//   POST   /api/draft            -> save a bracket (pass id to overwrite), { id }
-//   GET    /api/draft            -> list all saved brackets (summaries)
-//   GET    /api/draft?id=<id>    -> fetch one full bracket
-//   DELETE /api/draft?id=<id>    -> delete one saved bracket
+// Persists user-built draft brackets as JSON in Vercel Blob, each protected by
+// its OWN password. Before the reveal time (Mon 1:00 PM EDT) a bracket can only
+// be viewed/edited by someone who knows its password; after the reveal time the
+// picks become publicly viewable (edits/deletes still need the password).
+//   POST   /api/draft            -> create (needs password) or edit (needs id+password)
+//   GET    /api/draft            -> list summaries (champion hidden until reveal)
+//   GET    /api/draft?id=<id>    -> fetch one (password via x-draft-password until reveal)
+//   DELETE /api/draft?id=<id>    -> delete one (password via x-draft-password)
 import { put, list, del } from "@vercel/blob";
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 const PREFIX = "drafts/";
 const MAX_LIST = 200;
 const ID_RE = /^[a-z0-9]{1,40}$/;
+
+// Reveal: Monday June 29, 2026 at 1:00 PM EDT (= 17:00 UTC).
+const REVEAL_AT = Date.UTC(2026, 5, 29, 17, 0, 0);
+const REVEAL_ISO = new Date(REVEAL_AT).toISOString();
+const isRevealed = () => Date.now() >= REVEAL_AT;
 
 function makeId() {
   return (
@@ -16,9 +25,30 @@ function makeId() {
   ).toLowerCase();
 }
 
-// Light validation / normalization of an incoming bracket payload.
-// A bracket is a set of match picks: { "<matchNo>": "<teamCanon>" } for the
-// World Cup knockout matches (73-104), plus a champion display name.
+function makeAuth(password) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(String(password), salt, 32).toString("hex");
+  return { salt, hash };
+}
+
+// Legacy brackets saved before passwords existed have no `auth` — treat them as
+// unprotected so the owner can open them and re-save to set a password.
+function verifyAuth(password, auth) {
+  if (!auth || !auth.salt || !auth.hash) return true;
+  if (password == null || password === "") return false;
+  const hash = scryptSync(String(password), auth.salt, 32).toString("hex");
+  const a = Buffer.from(hash, "hex");
+  const b = Buffer.from(auth.hash, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function passwordFrom(req, body) {
+  const h = req.headers?.["x-draft-password"];
+  if (h != null && h !== "") return String(h);
+  if (body?.password != null) return String(body.password);
+  return "";
+}
+
 function normalizeBracket(body) {
   const name = String(body?.name || "").trim().slice(0, 60);
   const rawPicks = body?.picks && typeof body.picks === "object" ? body.picks : {};
@@ -54,10 +84,30 @@ async function readJsonBody(req) {
   }
 }
 
+async function loadRecord(id) {
+  const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1 });
+  const blob = blobs.find((b) => b.pathname === `${PREFIX}${id}.json`);
+  if (!blob) return null;
+  const r = await fetch(blob.url, { cache: "no-store" });
+  return await r.json();
+}
+
+async function writeRecord(record) {
+  await put(`${PREFIX}${record.id}.json`, JSON.stringify(record), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  });
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, x-draft-password"
+  );
   if (req.method === "OPTIONS") return res.status(200).end();
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
@@ -69,56 +119,66 @@ export default async function handler(req, res) {
       const body = await readJsonBody(req);
       if (!body) return res.status(400).json({ error: "Invalid JSON body." });
       const norm = normalizeBracket(body);
-      if (!norm) return res.status(400).json({ error: "Invalid bracket shape." });
       if (!norm.name) return res.status(400).json({ error: "A name is required." });
+      const password = passwordFrom(req, body);
 
-      // Overwrite an existing bracket when a valid id is supplied (editing),
-      // otherwise create a new one.
       const editing = body?.id && ID_RE.test(String(body.id));
-      const id = editing ? String(body.id) : makeId();
-      const record = {
-        id,
-        name: norm.name,
-        champion: norm.champion,
-        picks: norm.picks,
-        createdAt: new Date().toISOString(),
-      };
-      await put(`${PREFIX}${id}.json`, JSON.stringify(record), {
-        access: "public",
-        addRandomSuffix: false,
-        allowOverwrite: true,
-        contentType: "application/json",
-      });
-      res.setHeader("Cache-Control", "no-store");
-      return res.status(200).json({ id });
-    }
-
-    if (req.method === "DELETE") {
-      const id = req.query?.id ? String(req.query.id) : null;
-      if (!id || !ID_RE.test(id)) {
-        return res.status(400).json({ error: "A valid id is required." });
+      let record;
+      if (editing) {
+        const existing = await loadRecord(String(body.id));
+        if (!existing) return res.status(404).json({ error: "Not found." });
+        if (!verifyAuth(password, existing.auth)) {
+          return res.status(403).json({ error: "Wrong password for this bracket." });
+        }
+        record = {
+          ...existing,
+          name: norm.name,
+          champion: norm.champion,
+          picks: norm.picks,
+          // Set/keep a password: adopt the supplied one (lets legacy brackets
+          // get protected), otherwise keep the existing auth.
+          auth: password ? makeAuth(password) : existing.auth || null,
+          updatedAt: new Date().toISOString(),
+        };
+      } else {
+        if (!password) {
+          return res.status(400).json({ error: "A password is required." });
+        }
+        record = {
+          id: makeId(),
+          name: norm.name,
+          champion: norm.champion,
+          picks: norm.picks,
+          auth: makeAuth(password),
+          createdAt: new Date().toISOString(),
+        };
       }
-      const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1 });
-      const blob = blobs.find((b) => b.pathname === `${PREFIX}${id}.json`);
-      if (blob) await del(blob.url);
+      await writeRecord(record);
       res.setHeader("Cache-Control", "no-store");
-      return res.status(200).json({ deleted: true });
+      return res.status(200).json({ id: record.id });
     }
 
     if (req.method === "GET") {
+      const revealed = isRevealed();
       const id = req.query?.id ? String(req.query.id) : null;
 
       if (id) {
-        const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1 });
-        const blob = blobs.find((b) => b.pathname === `${PREFIX}${id}.json`);
-        if (!blob) return res.status(404).json({ error: "Not found." });
-        const r = await fetch(blob.url, { cache: "no-store" });
-        const json = await r.json();
+        const rec = await loadRecord(id);
+        if (!rec) return res.status(404).json({ error: "Not found." });
+        if (!revealed) {
+          const password = passwordFrom(req, null);
+          if (!verifyAuth(password, rec.auth)) {
+            return res
+              .status(403)
+              .json({ error: "This bracket is locked until the reveal.", locked: true });
+          }
+        }
+        const { auth, ...pub } = rec; // never expose the password hash
+        void auth;
         res.setHeader("Cache-Control", "no-store");
-        return res.status(200).json(json);
+        return res.status(200).json({ ...pub, revealed, revealAt: REVEAL_ISO });
       }
 
-      // List summaries (no full rounds) for the gallery.
       const { blobs } = await list({ prefix: PREFIX, limit: MAX_LIST });
       const records = await Promise.all(
         blobs.map(async (b) => {
@@ -128,7 +188,8 @@ export default async function handler(req, res) {
             return {
               id: j.id,
               name: j.name,
-              champion: j.champion || null,
+              champion: revealed ? j.champion || null : null,
+              locked: !revealed,
               createdAt: j.createdAt || b.uploadedAt,
             };
           } catch {
@@ -140,7 +201,30 @@ export default async function handler(req, res) {
         .filter(Boolean)
         .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
       res.setHeader("Cache-Control", "no-store");
-      return res.status(200).json({ brackets: summaries });
+      return res
+        .status(200)
+        .json({ brackets: summaries, revealed, revealAt: REVEAL_ISO });
+    }
+
+    if (req.method === "DELETE") {
+      const id = req.query?.id ? String(req.query.id) : null;
+      if (!id || !ID_RE.test(id)) {
+        return res.status(400).json({ error: "A valid id is required." });
+      }
+      const rec = await loadRecord(id);
+      if (!rec) {
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(200).json({ deleted: true });
+      }
+      const password = passwordFrom(req, null);
+      if (!verifyAuth(password, rec.auth)) {
+        return res.status(403).json({ error: "Wrong password for this bracket." });
+      }
+      const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1 });
+      const blob = blobs.find((b) => b.pathname === `${PREFIX}${id}.json`);
+      if (blob) await del(blob.url);
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).json({ deleted: true });
     }
 
     return res.status(405).json({ error: "Method not allowed." });
