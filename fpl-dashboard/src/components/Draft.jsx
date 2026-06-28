@@ -10,6 +10,9 @@ import {
   Users,
   RefreshCw,
   Check,
+  Pencil,
+  Trash2,
+  Plus,
 } from "lucide-react";
 import LoadingSpinner from "./LoadingSpinner";
 
@@ -483,11 +486,22 @@ function BracketGrid({ data, picks, editable, onPick }) {
 // ---------------------------------------------------------------------------
 // "My Bracket" (pick) tab
 // ---------------------------------------------------------------------------
-function PickTab({ data, onSaved }) {
+function PickTab({ data, onSaved, editTarget, onClearEdit }) {
   const [picks, setPicks] = useState({});
   const [title, setTitle] = useState("");
+  const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
+
+  // Load a saved bracket in for editing whenever one is selected.
+  useEffect(() => {
+    if (editTarget) {
+      setPicks(editTarget.picks ? { ...editTarget.picks } : {});
+      setTitle(editTarget.name || "");
+      setEditId(editTarget.id || null);
+      setMsg(null);
+    }
+  }, [editTarget]);
 
   const onPick = useCallback(
     (no, canon) => {
@@ -501,6 +515,14 @@ function PickTab({ data, onSaved }) {
     },
     [data]
   );
+
+  const newBracket = () => {
+    setPicks({});
+    setTitle("");
+    setEditId(null);
+    setMsg(null);
+    onClearEdit?.();
+  };
 
   const reset = () => {
     if (!confirm("Clear all of your picks?")) return;
@@ -527,6 +549,7 @@ function PickTab({ data, onSaved }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: editId || undefined,
           name: title.trim(),
           picks: resolved.picks,
           champion: resolved.champion?.team || null,
@@ -534,7 +557,7 @@ function PickTab({ data, onSaved }) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Save failed.");
-      setMsg({ type: "ok", text: "Saved!" });
+      setMsg({ type: "ok", text: editId ? "Updated!" : "Saved!" });
       onSaved?.(json.id);
     } catch (e) {
       setMsg({ type: "err", text: String(e.message || e) });
@@ -545,6 +568,24 @@ function PickTab({ data, onSaved }) {
 
   return (
     <div className="space-y-4">
+      {editId && (
+        <div className="flex items-center justify-between gap-2 text-xs rounded-lg px-3 py-2 border border-cyan-500/40 bg-cyan-500/10 text-cyan-200">
+          <span className="flex items-center gap-1.5 min-w-0">
+            <Pencil className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">
+              Editing <span className="font-semibold">{title || "this bracket"}</span>
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={newBracket}
+            className="inline-flex items-center gap-1 rounded-md border border-cyan-500/40 px-2 py-1 font-medium hover:bg-cyan-500/20 shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            New bracket
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <input
           value={title}
@@ -572,7 +613,7 @@ function PickTab({ data, onSaved }) {
           ) : (
             <Save className="w-3.5 h-3.5" />
           )}
-          Save bracket
+          {editId ? "Update bracket" : "Save bracket"}
         </button>
       </div>
 
@@ -605,12 +646,13 @@ function PickTab({ data, onSaved }) {
 // ---------------------------------------------------------------------------
 // Saved brackets tab
 // ---------------------------------------------------------------------------
-function SavedTab({ data, refreshKey }) {
+function SavedTab({ data, refreshKey, onEdit }) {
   const [list, setList] = useState(null);
   const [err, setErr] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [openData, setOpenData] = useState(null);
   const [loadingOne, setLoadingOne] = useState(false);
+  const [deleting, setDeleting] = useState(null);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -645,6 +687,26 @@ function SavedTab({ data, refreshKey }) {
     }
   };
 
+  const remove = async (id, name) => {
+    if (!confirm(`Delete "${name}"? This can't be undone.`)) return;
+    setDeleting(id);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/draft?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || "Delete failed.");
+      }
+      setList((cur) => (cur || []).filter((x) => x.id !== id));
+    } catch (e) {
+      setErr(String(e.message || e));
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   if (list === null) {
     return (
       <div className="py-16 flex justify-center">
@@ -667,32 +729,64 @@ function SavedTab({ data, refreshKey }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {list.map((b) => (
-            <button
+            <div
               key={b.id}
-              type="button"
-              onClick={() => open(b.id)}
-              className="text-left rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3 hover:border-cyan-500/50 hover:bg-slate-800/80 transition-colors"
+              className="rounded-xl border border-slate-700/60 bg-slate-800/50 px-4 py-3"
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-slate-100 truncate">
+              <button
+                type="button"
+                onClick={() => open(b.id)}
+                className="w-full text-left"
+              >
+                <div className="font-semibold text-slate-100 truncate">
                   {b.name}
-                </span>
-                <Eye className="w-4 h-4 shrink-0 text-slate-500" />
-              </div>
-              <div className="mt-1 flex items-center gap-1.5 text-xs">
-                <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="text-amber-200 truncate">
-                  {b.champion
-                    ? `${flagFor(b.champion)} ${b.champion}`
-                    : "No champion picked"}
-                </span>
-              </div>
-              {b.createdAt && (
-                <div className="mt-1 text-[10px] text-slate-500">
-                  {new Date(b.createdAt).toLocaleString()}
                 </div>
-              )}
-            </button>
+                <div className="mt-1 flex items-center gap-1.5 text-xs">
+                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="text-amber-200 truncate">
+                    {b.champion
+                      ? `${flagFor(b.champion)} ${b.champion}`
+                      : "No champion picked"}
+                  </span>
+                </div>
+                {b.createdAt && (
+                  <div className="mt-1 text-[10px] text-slate-500">
+                    {new Date(b.createdAt).toLocaleString()}
+                  </div>
+                )}
+              </button>
+              <div className="mt-2 flex items-center gap-1.5 border-t border-slate-700/40 pt-2">
+                <button
+                  type="button"
+                  onClick={() => open(b.id)}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800/60 px-2 py-1 text-[11px] font-medium text-slate-300 hover:bg-slate-700/60"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onEdit?.(b.id)}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800/60 px-2 py-1 text-[11px] font-medium text-cyan-300 hover:bg-slate-700/60"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(b.id, b.name)}
+                  disabled={deleting === b.id}
+                  className="ml-auto inline-flex items-center gap-1 rounded-md border border-rose-500/40 bg-rose-500/10 px-2 py-1 text-[11px] font-medium text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"
+                >
+                  {deleting === b.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5" />
+                  )}
+                  Delete
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -711,16 +805,31 @@ function SavedTab({ data, refreshKey }) {
                 </p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setOpenId(null);
-                setOpenData(null);
-              }}
-              className="rounded-lg border border-slate-700 bg-slate-800 p-1.5 text-slate-300 hover:bg-slate-700"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const id = openId;
+                  setOpenId(null);
+                  setOpenData(null);
+                  onEdit?.(id);
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1.5 text-xs font-medium text-cyan-200 hover:bg-cyan-500/20"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenId(null);
+                  setOpenData(null);
+                }}
+                className="rounded-lg border border-slate-700 bg-slate-800 p-1.5 text-slate-300 hover:bg-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-auto px-4 py-4">
             {loadingOne || !openData ? (
@@ -751,6 +860,7 @@ export default function Draft() {
   const [error, setError] = useState(null);
   const [view, setView] = useState("pick");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [editTarget, setEditTarget] = useState(null);
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -789,8 +899,26 @@ export default function Draft() {
 
   const handleSaved = () => {
     setRefreshKey((k) => k + 1);
+    setEditTarget(null);
     setView("saved");
   };
+
+  const startEdit = useCallback(async (id) => {
+    try {
+      const res = await fetch(`/api/draft?id=${encodeURIComponent(id)}`);
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Failed to load.");
+      setEditTarget({
+        id: j.id,
+        name: j.name,
+        picks: j.picks || {},
+        nonce: Date.now(),
+      });
+      setView("pick");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const tabs = [
     { id: "pick", label: "My Bracket", icon: GitBranch },
@@ -862,9 +990,14 @@ export default function Draft() {
             </button>
           </div>
         ) : view === "pick" ? (
-          <PickTab data={data} onSaved={handleSaved} />
+          <PickTab
+            data={data}
+            onSaved={handleSaved}
+            editTarget={editTarget}
+            onClearEdit={() => setEditTarget(null)}
+          />
         ) : (
-          <SavedTab data={data} refreshKey={refreshKey} />
+          <SavedTab data={data} refreshKey={refreshKey} onEdit={startEdit} />
         )}
       </main>
     </div>

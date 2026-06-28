@@ -1,12 +1,14 @@
 // api/draft.js  (ESM)
 // Persists user-built draft brackets as JSON in Vercel Blob.
-//   POST /api/draft           -> save a bracket, returns { id }
-//   GET  /api/draft           -> list all saved brackets (summaries)
-//   GET  /api/draft?id=<id>   -> fetch one full bracket
-import { put, list } from "@vercel/blob";
+//   POST   /api/draft            -> save a bracket (pass id to overwrite), { id }
+//   GET    /api/draft            -> list all saved brackets (summaries)
+//   GET    /api/draft?id=<id>    -> fetch one full bracket
+//   DELETE /api/draft?id=<id>    -> delete one saved bracket
+import { put, list, del } from "@vercel/blob";
 
 const PREFIX = "drafts/";
 const MAX_LIST = 200;
+const ID_RE = /^[a-z0-9]{1,40}$/;
 
 function makeId() {
   return (
@@ -54,7 +56,7 @@ async function readJsonBody(req) {
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
@@ -70,7 +72,10 @@ export default async function handler(req, res) {
       if (!norm) return res.status(400).json({ error: "Invalid bracket shape." });
       if (!norm.name) return res.status(400).json({ error: "A name is required." });
 
-      const id = makeId();
+      // Overwrite an existing bracket when a valid id is supplied (editing),
+      // otherwise create a new one.
+      const editing = body?.id && ID_RE.test(String(body.id));
+      const id = editing ? String(body.id) : makeId();
       const record = {
         id,
         name: norm.name,
@@ -86,6 +91,18 @@ export default async function handler(req, res) {
       });
       res.setHeader("Cache-Control", "no-store");
       return res.status(200).json({ id });
+    }
+
+    if (req.method === "DELETE") {
+      const id = req.query?.id ? String(req.query.id) : null;
+      if (!id || !ID_RE.test(id)) {
+        return res.status(400).json({ error: "A valid id is required." });
+      }
+      const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1 });
+      const blob = blobs.find((b) => b.pathname === `${PREFIX}${id}.json`);
+      if (blob) await del(blob.url);
+      res.setHeader("Cache-Control", "no-store");
+      return res.status(200).json({ deleted: true });
     }
 
     if (req.method === "GET") {
