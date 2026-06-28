@@ -788,7 +788,10 @@ function SavedTab({ data, refreshKey, onEdit }) {
     if (!confirm(`Delete "${name}"? This can't be undone.`)) return;
     let pwd = getStoredPw(id);
     if (!pwd) {
-      pwd = window.prompt("Enter this bracket's password to delete it:") || "";
+      pwd =
+        window.prompt(
+          "Enter this bracket's password (or the admin password) to delete it:"
+        ) || "";
       if (!pwd) return;
     }
     setDeleting(id);

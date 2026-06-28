@@ -19,6 +19,9 @@ const REVEAL_AT = Date.UTC(2026, 5, 29, 17, 0, 0);
 const REVEAL_ISO = new Date(REVEAL_AT).toISOString();
 const isRevealed = () => Date.now() >= REVEAL_AT;
 
+// Master password that can delete any bracket.
+const ADMIN_PASSWORD = process.env.DRAFT_ADMIN_PASSWORD || "admin123";
+
 function makeId() {
   return (
     Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
@@ -290,7 +293,8 @@ export default async function handler(req, res) {
         return res.status(200).json({ deleted: true });
       }
       const password = passwordFrom(req, null);
-      if (!verifyAuth(password, rec.auth)) {
+      const isAdmin = password && password === ADMIN_PASSWORD;
+      if (!isAdmin && !verifyAuth(password, rec.auth)) {
         return res.status(403).json({ error: "Wrong password for this bracket." });
       }
       const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, limit: 1 });
