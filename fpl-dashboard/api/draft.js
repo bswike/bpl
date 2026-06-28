@@ -79,25 +79,45 @@ function goalsByTeamFrom(footie) {
   return goals;
 }
 
-function scorePicks(picks, byNo, goalsByTeam) {
+// Teams knocked out of the real tournament (losers of any decided match).
+function eliminatedFrom(footie) {
+  const out = new Set();
+  for (const m of footie?.bracket || []) {
+    if (!m.winnerCanon) continue;
+    const h = m.home?.canon;
+    const a = m.away?.canon;
+    if (h && h !== m.winnerCanon) out.add(h);
+    if (a && a !== m.winnerCanon) out.add(a);
+  }
+  return out;
+}
+
+function scorePicks(picks, byNo, goalsByTeam, eliminated) {
   const breakdown = { r32: 0, r16: 0, qf: 0, sf: 0, final: 0 };
   let points = 0;
   let correct = 0;
+  let potential = 0; // points still reachable from undecided matches
   for (const [k, pick] of Object.entries(picks || {})) {
     const m = byNo[Number(k)];
     if (!m || EXCLUDED_DATES.has(m.date)) continue;
     const pts = ROUND_POINTS[m.round];
     if (!pts) continue; // third-place / unknown rounds don't count
-    if (m.winnerCanon && pick === m.winnerCanon) {
-      points += pts;
-      breakdown[m.round] += pts;
-      correct += 1;
+    if (m.winnerCanon) {
+      if (pick === m.winnerCanon) {
+        points += pts;
+        breakdown[m.round] += pts;
+        correct += 1;
+      }
+      // decided + wrong: those points are gone forever
+    } else if (!eliminated || !eliminated.has(pick)) {
+      // undecided and the picked team is still alive -> still winnable
+      potential += pts;
     }
   }
   // Tiebreaker: total goals by every distinct team you selected.
   let goals = 0;
   for (const t of new Set(Object.values(picks || {}))) goals += goalsByTeam[t] || 0;
-  return { points, correct, breakdown, goals };
+  return { points, correct, breakdown, goals, max: points + potential };
 }
 
 function passwordFrom(req, body) {
@@ -244,12 +264,13 @@ export default async function handler(req, res) {
       const byNo = {};
       (footie?.bracket || []).forEach((m) => (byNo[m.no] = m));
       const goalsByTeam = goalsByTeamFrom(footie);
+      const eliminated = eliminatedFrom(footie);
       const records = await Promise.all(
         blobs.map(async (b) => {
           try {
             const r = await fetch(b.url, { cache: "no-store" });
             const j = await r.json();
-            const sc = scorePicks(j.picks || {}, byNo, goalsByTeam);
+            const sc = scorePicks(j.picks || {}, byNo, goalsByTeam, eliminated);
             return {
               id: j.id,
               name: j.name,
@@ -259,6 +280,7 @@ export default async function handler(req, res) {
               points: sc.points,
               correct: sc.correct,
               goals: sc.goals,
+              max: sc.max,
               breakdown: sc.breakdown,
               // 31 pickable matches (73-102 + final 104); third place excluded.
               complete: Object.keys(j.picks || {}).length >= 31,
