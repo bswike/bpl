@@ -828,114 +828,146 @@ function SavedTab({ data, refreshKey, onEdit }) {
           </span>
         </div>
       )}
-      <div className="rounded-lg border border-slate-700/60 bg-slate-800/40 px-3 py-2 text-[10px] leading-relaxed text-slate-400">
-        <span className="font-semibold text-slate-300">Scoring per correct pick:</span>{" "}
-        R32 <span className="text-slate-200">1</span> · R16{" "}
-        <span className="text-slate-200">2</span> · QF{" "}
-        <span className="text-slate-200">3</span> · SF{" "}
-        <span className="text-slate-200">4</span> · Final{" "}
-        <span className="text-slate-200">5</span> pts. Tiebreaker = total goals
-        scored by all the teams you picked. The Sun 6/28 play-in game doesn't
-        count.
-      </div>
-      {list.length === 0 ? (
-        <p className="text-center text-slate-500 py-12 text-sm">
-          No brackets submitted yet. Fill one out and hit save.
-        </p>
-      ) : (
-        <div className="space-y-1.5">
-          {list.map((b, i) => (
-            <div
-              key={b.id}
-              className="rounded-xl border border-slate-700/60 bg-slate-800/50 px-3 py-2.5 flex items-center gap-2.5"
-            >
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/60 bg-gradient-to-r from-slate-800 to-slate-800/20">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-amber-400" />
+            <h2 className="text-sm font-bold tracking-tight text-slate-100">
+              Leaderboard
+            </h2>
+          </div>
+          <span className="text-[11px] font-medium text-slate-400">
+            {list.length} {list.length === 1 ? "entry" : "entries"}
+          </span>
+        </div>
+
+        {list.length === 0 ? (
+          <p className="text-center text-slate-500 py-12 text-sm">
+            No brackets submitted yet. Fill one out and hit save.
+          </p>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 px-3 sm:px-4 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-700/40 bg-slate-900/40">
+              <span className="w-6 text-center shrink-0">Rk</span>
+              <span className="flex-1 min-w-0">Entry</span>
+              <span className="hidden sm:block w-10 text-right shrink-0">Gls</span>
+              <span className="w-9 text-right shrink-0">Pts</span>
+              <span className="w-[88px] shrink-0" />
+            </div>
+
+            {list.map((b, i) => (
               <div
-                className={`shrink-0 w-7 text-center font-bold tabular-nums ${
-                  i === 0
-                    ? "text-amber-300"
-                    : i === 1
-                    ? "text-slate-200"
-                    : i === 2
-                    ? "text-orange-300"
-                    : "text-slate-500"
-                }`}
+                key={b.id}
+                className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 transition-colors hover:bg-slate-700/20 ${
+                  i % 2 ? "bg-slate-800/20" : ""
+                } ${i < list.length - 1 ? "border-b border-slate-700/30" : ""}`}
               >
-                {i + 1}
-              </div>
-              <button
-                type="button"
-                onClick={() => open(b.id)}
-                className="flex-1 min-w-0 text-left"
-              >
-                <div className="font-semibold text-slate-100 truncate flex items-center gap-1.5">
-                  {b.locked && (
-                    <Lock className="w-3 h-3 text-amber-400 shrink-0" />
-                  )}
-                  <span className="truncate">{b.name}</span>
-                </div>
-                <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-500">
-                  {b.complete ? (
-                    <span className="inline-flex items-center gap-0.5 text-emerald-400/90">
-                      <Check className="w-3 h-3" />
-                      Complete
+                <div className="w-6 flex justify-center shrink-0">
+                  {i < 3 ? (
+                    <span
+                      className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-extrabold ${
+                        i === 0
+                          ? "bg-amber-400 text-slate-900"
+                          : i === 1
+                          ? "bg-slate-300 text-slate-900"
+                          : "bg-amber-700 text-amber-50"
+                      }`}
+                    >
+                      {i + 1}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-0.5 text-amber-400/90">
-                      <AlertTriangle className="w-3 h-3" />
-                      Incomplete
-                    </span>
-                  )}
-                  <span>TB {b.goals ?? 0} gls</span>
-                  {!b.locked && b.champion && (
-                    <span className="text-amber-200/80 truncate">
-                      {flagFor(b.champion)} {b.champion}
+                    <span className="text-xs font-bold text-slate-500 tabular-nums">
+                      {i + 1}
                     </span>
                   )}
                 </div>
-              </button>
-              <div className="shrink-0 text-right">
-                <div className="font-bold text-cyan-300 tabular-nums leading-none">
-                  {b.points ?? 0}
-                </div>
-                <div className="text-[9px] uppercase tracking-wider text-slate-500">
-                  pts
-                </div>
-              </div>
-              <div className="shrink-0 flex items-center gap-1 border-l border-slate-700/40 pl-2">
+
                 <button
                   type="button"
                   onClick={() => open(b.id)}
-                  title="View bracket"
-                  className="inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-800/60 p-1.5 text-slate-300 hover:bg-slate-700/60"
+                  className="flex-1 min-w-0 text-left"
                 >
-                  <Eye className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-100">
+                    {b.locked && (
+                      <Lock className="w-3 h-3 text-amber-400 shrink-0" />
+                    )}
+                    <span className="truncate">{b.name}</span>
+                    {b.complete ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertTriangle
+                        className="w-3.5 h-3.5 text-amber-400/80 shrink-0"
+                        title="Incomplete bracket"
+                      />
+                    )}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-slate-500 truncate">
+                    {b.locked
+                      ? "Locked until reveal"
+                      : b.champion
+                      ? `🏆 ${flagFor(b.champion)} ${b.champion}`
+                      : "No champion picked"}
+                  </div>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onEdit?.(b.id)}
-                  title="Edit bracket"
-                  className="inline-flex items-center justify-center rounded-md border border-slate-700 bg-slate-800/60 p-1.5 text-cyan-300 hover:bg-slate-700/60"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(b.id, b.name)}
-                  disabled={deleting === b.id}
-                  title="Delete bracket"
-                  className="inline-flex items-center justify-center rounded-md border border-rose-500/40 bg-rose-500/10 p-1.5 text-rose-300 hover:bg-rose-500/20 disabled:opacity-50"
-                >
-                  {deleting === b.id ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-3.5 h-3.5" />
-                  )}
-                </button>
+
+                <div className="hidden sm:block w-10 text-right text-xs tabular-nums text-slate-400 shrink-0">
+                  {b.goals ?? 0}
+                </div>
+                <div className="w-9 text-right shrink-0">
+                  <span className="text-base font-extrabold tabular-nums leading-none text-cyan-300">
+                    {b.points ?? 0}
+                  </span>
+                </div>
+
+                <div className="w-[88px] shrink-0 flex items-center justify-end gap-1">
+                  <button
+                    type="button"
+                    onClick={() => open(b.id)}
+                    title="View bracket"
+                    className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onEdit?.(b.id)}
+                    title="Edit bracket"
+                    className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-700/60 hover:text-cyan-300"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => remove(b.id, b.name)}
+                    disabled={deleting === b.id}
+                    title="Delete bracket"
+                    className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-rose-500/15 hover:text-rose-300 disabled:opacity-50"
+                  >
+                    {deleting === b.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 px-3 py-2 text-[10px] leading-relaxed text-slate-400">
+        <span className="font-semibold text-slate-300">Scoring</span> — each
+        correct pick: R32 <b className="font-semibold text-slate-200">1</b> · R16{" "}
+        <b className="font-semibold text-slate-200">2</b> · QF{" "}
+        <b className="font-semibold text-slate-200">3</b> · SF{" "}
+        <b className="font-semibold text-slate-200">4</b> · Final{" "}
+        <b className="font-semibold text-slate-200">5</b> pts.{" "}
+        <span className="text-slate-500">
+          Tiebreaker (Gls) = total goals by every team you picked. The Sun 6/28
+          play-in doesn't count.
+        </span>
+      </div>
 
       {openId && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col">
