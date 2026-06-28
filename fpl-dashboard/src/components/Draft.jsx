@@ -637,7 +637,7 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
           value={pw}
           onChange={(e) => setPw(e.target.value)}
           type="password"
-          placeholder="Bracket password"
+          placeholder="Create bracket password"
           maxLength={60}
           autoComplete="off"
           className="flex-1 min-w-[140px] rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
@@ -664,6 +664,10 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
           {editId ? "Update bracket" : "Save bracket"}
         </button>
       </div>
+      <p className="text-[11px] text-slate-500 -mt-1">
+        Make up a password — you'll use it to view or edit your bracket before
+        the Mon 1 PM ET deadline.
+      </p>
 
       {msg && (
         <div
@@ -724,7 +728,7 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
                 value={pw}
                 onChange={(e) => setPw(e.target.value)}
                 type="password"
-                placeholder="Bracket password"
+                placeholder="Create bracket password"
                 maxLength={60}
                 autoComplete="off"
                 className="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
@@ -743,6 +747,10 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
                 {editId ? "Update" : "Save bracket"}
               </button>
             </div>
+            <p className="mt-1.5 text-[11px] text-slate-500">
+              Make up a password — you'll use it to view or edit your bracket
+              before the Mon 1 PM ET deadline.
+            </p>
             {msg && (
               <div
                 className={`mt-2 text-xs rounded-lg px-3 py-2 border ${
