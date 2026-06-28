@@ -124,7 +124,9 @@ const FEEDS = {
   103: { a: { ml: 101 }, b: { ml: 102 } }, // third place: SF losers
   104: { a: { mw: 101 }, b: { mw: 102 } },
 };
-const KO_NUMS = Array.from({ length: 32 }, (_, i) => 73 + i); // 73..104
+// Pickable knockout matches: 73-102 plus the final (104). The third-place
+// match (103) is intentionally excluded from the bracket.
+const KO_NUMS = [...Array.from({ length: 30 }, (_, i) => 73 + i), 104]; // 31
 
 // Remember each bracket's password on this device so you don't retype it.
 const pwKey = (id) => `draftpw:${id}`;
@@ -451,13 +453,13 @@ function BracketGrid({ data, picks, editable, onPick }) {
             );
           })}
 
-          {/* Champion + Third place, stacked at the end of the tree */}
+          {/* Champion at the end of the tree */}
           <div className="flex flex-col shrink-0 pl-2" style={{ width: 180 }}>
             <div className="text-center text-[9px] uppercase tracking-wider text-amber-400/80 font-semibold mb-1 h-4">
               Champion
             </div>
             <div
-              className="flex flex-col justify-center gap-5"
+              className="flex flex-col justify-center"
               style={{ height: COL_H }}
             >
               <div
@@ -482,18 +484,6 @@ function BracketGrid({ data, picks, editable, onPick }) {
                 >
                   {champion ? champion.team : "TBD"}
                 </div>
-              </div>
-
-              <div>
-                <div className="text-center text-[9px] uppercase tracking-wider text-orange-400/80 font-semibold mb-1">
-                  🥉 Third Place
-                </div>
-                <DraftMatch
-                  m={matchOf(103)}
-                  editable={editable}
-                  onPick={onPick}
-                  count={1}
-                />
               </div>
             </div>
           </div>
@@ -697,7 +687,7 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
 
       <p className="text-[11px] text-slate-500">
         Tap a team to advance them all the way to the final
-        ({made}/32 matches picked). Set a password to protect your bracket — it
+        ({made}/31 matches picked). Set a password to protect your bracket — it
         stays private until the reveal ({REVEAL_LABEL}). Finished games fill in
         and lock automatically from ESPN; a{" "}
         <Check className="inline w-3 h-3 text-emerald-400" />/

@@ -257,8 +257,8 @@ export default async function handler(req, res) {
               correct: sc.correct,
               goals: sc.goals,
               breakdown: sc.breakdown,
-              // 32 knockout matches (73-104); a full bracket picks them all.
-              complete: Object.keys(j.picks || {}).length >= 32,
+              // 31 pickable matches (73-102 + final 104); third place excluded.
+              complete: Object.keys(j.picks || {}).length >= 31,
             };
           } catch {
             return null;
