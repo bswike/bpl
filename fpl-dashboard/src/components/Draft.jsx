@@ -551,6 +551,13 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
   );
   const complete = remaining === 0;
 
+  // Surface a "lock it in" save card the moment the bracket is finished.
+  const [dismissedSaveCard, setDismissedSaveCard] = useState(false);
+  useEffect(() => {
+    if (!complete) setDismissedSaveCard(false);
+  }, [complete]);
+  const showSaveCard = complete && !dismissedSaveCard;
+
   const save = async () => {
     if (!title.trim()) {
       setMsg({ type: "err", text: "Add your name first." });
@@ -686,6 +693,70 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
       </div>
 
       <BracketGrid data={data} picks={picks} editable onPick={onPick} />
+
+      {showSaveCard && (
+        <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-3 pointer-events-none animate-[slideUp_.25s_ease-out]">
+          <style>{`@keyframes slideUp{from{transform:translateY(110%)}to{transform:translateY(0)}}`}</style>
+          <div className="pointer-events-auto max-w-xl mx-auto rounded-2xl border border-cyan-500/40 bg-slate-900/95 backdrop-blur shadow-2xl shadow-cyan-950/50 p-3">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-1.5 text-sm font-bold text-emerald-300">
+                <span className="text-base">🎉</span>
+                {editId ? "Update your bracket" : "Bracket complete — lock it in!"}
+              </div>
+              <button
+                type="button"
+                onClick={() => setDismissedSaveCard(true)}
+                className="rounded-md p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                title="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Your name"
+                maxLength={60}
+                className="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
+              />
+              <input
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+                type="password"
+                placeholder="Bracket password"
+                maxLength={60}
+                autoComplete="off"
+                className="flex-1 min-w-0 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-500/60"
+              />
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-50 shrink-0"
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {editId ? "Update" : "Save bracket"}
+              </button>
+            </div>
+            {msg && (
+              <div
+                className={`mt-2 text-xs rounded-lg px-3 py-2 border ${
+                  msg.type === "ok"
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                    : "border-rose-500/40 bg-rose-500/10 text-rose-300"
+                }`}
+              >
+                {msg.text}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
