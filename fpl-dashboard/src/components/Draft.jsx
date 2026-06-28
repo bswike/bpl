@@ -967,21 +967,21 @@ function SavedTab({ data, refreshKey, onEdit }) {
                   onClick={() => open(b.id)}
                   className="flex-1 min-w-0 text-left"
                 >
-                  <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-100">
+                  <div className="flex items-start gap-1.5 text-sm font-semibold text-slate-100">
                     {b.locked && (
-                      <Lock className="w-3 h-3 text-amber-400 shrink-0" />
+                      <Lock className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
                     )}
-                    <span className="truncate">{b.name}</span>
+                    <span className="break-words">{b.name}</span>
                     {b.complete ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
                     ) : (
                       <AlertTriangle
-                        className="w-3.5 h-3.5 text-amber-400/80 shrink-0"
+                        className="w-3.5 h-3.5 text-amber-400/80 shrink-0 mt-0.5"
                         title="Incomplete bracket"
                       />
                     )}
                   </div>
-                  <div className="mt-0.5 text-[10px] text-slate-500 truncate">
+                  <div className="mt-0.5 text-[10px] text-slate-500 break-words">
                     {b.locked
                       ? "Locked until reveal"
                       : b.champion
