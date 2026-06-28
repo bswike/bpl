@@ -685,16 +685,6 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
         )}
       </div>
 
-      <p className="text-[11px] text-slate-500">
-        Tap a team to advance them all the way to the final
-        ({made}/31 matches picked). Set a password to protect your bracket — it
-        stays private until the reveal ({REVEAL_LABEL}). Finished games fill in
-        and lock automatically from ESPN; a{" "}
-        <Check className="inline w-3 h-3 text-emerald-400" />/
-        <X className="inline w-3 h-3 text-rose-400" /> shows whether your pick
-        matched the actual result.
-      </p>
-
       <BracketGrid data={data} picks={picks} editable onPick={onPick} />
     </div>
   );
