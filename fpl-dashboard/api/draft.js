@@ -52,6 +52,14 @@ const ROUND_POINTS = { r32: 1, r16: 2, qf: 3, sf: 4, final: 5 };
 // officially starts at Monday 1pm). Third place (round "third") never counts.
 const EXCLUDED_DATES = new Set(["2026-06-28"]);
 
+// The 31 pickable matches: 73-102 plus the final (104). Third place (103)
+// is excluded. A bracket is "complete" when each of these has either a user
+// pick or a real result (finished games auto-fill and aren't clickable).
+const PICKABLE_MATCHES = [
+  ...Array.from({ length: 30 }, (_, i) => 73 + i), // 73..102
+  104,
+];
+
 async function fetchFootie(req) {
   try {
     const proto = req.headers?.["x-forwarded-proto"] || "https";
@@ -271,7 +279,13 @@ export default async function handler(req, res) {
           try {
             const r = await fetch(b.url, { cache: "no-store" });
             const j = await r.json();
-            const sc = scorePicks(j.picks || {}, byNo, goalsByTeam, eliminated);
+            const picks = j.picks || {};
+            const sc = scorePicks(picks, byNo, goalsByTeam, eliminated);
+            // Complete = every pickable slot is set, either by the user's pick
+            // or by a finished game that auto-filled (e.g. the Sun play-in).
+            const complete = PICKABLE_MATCHES.every(
+              (no) => picks[no] != null || byNo[no]?.winnerCanon
+            );
             return {
               id: j.id,
               name: j.name,
@@ -283,8 +297,7 @@ export default async function handler(req, res) {
               goals: sc.goals,
               max: sc.max,
               breakdown: sc.breakdown,
-              // 31 pickable matches (73-102 + final 104); third place excluded.
-              complete: Object.keys(j.picks || {}).length >= 31,
+              complete,
             };
           } catch {
             return null;
