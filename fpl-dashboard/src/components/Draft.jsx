@@ -818,6 +818,55 @@ function SavedTab({ data, refreshKey, onEdit }) {
     };
   }, [load]);
 
+  // Knockout games that are live right now (from the live ESPN feed).
+  const liveMatches = useMemo(() => {
+    return (data?.bracket || [])
+      .filter((m) => m.state === "in" && (m.home?.canon || m.away?.canon))
+      .map((m) => {
+        const hs = Number(m.homeScore ?? 0);
+        const as = Number(m.awayScore ?? 0);
+        return {
+          no: m.no,
+          detail: m.detail || "LIVE",
+          home: { canon: m.home?.canon, team: m.home?.team, score: hs },
+          away: { canon: m.away?.canon, team: m.away?.team, score: as },
+          leader: hs > as ? m.home?.canon : as > hs ? m.away?.canon : null,
+        };
+      });
+  }, [data]);
+
+  // The teams an entry has riding on the currently-live games.
+  const livePillsFor = (entry) => {
+    if (!entry?.picks || !liveMatches.length) return [];
+    const out = [];
+    for (const lm of liveMatches) {
+      const pick = entry.picks[lm.no];
+      if (!pick) continue;
+      const side =
+        pick === lm.home.canon ? lm.home : pick === lm.away.canon ? lm.away : null;
+      if (!side) continue; // their pick isn't one of the two teams playing
+      const status =
+        lm.leader == null ? "tied" : lm.leader === pick ? "leading" : "trailing";
+      out.push({ no: lm.no, team: side.team, status });
+    }
+    return out;
+  };
+
+  // Top "live now" strip with a who-has-who split per live game.
+  const liveStrip = useMemo(() => {
+    if (!liveMatches.length || !Array.isArray(list)) return [];
+    return liveMatches.map((lm) => {
+      let homeCount = 0;
+      let awayCount = 0;
+      for (const e of list) {
+        const p = e.picks?.[lm.no];
+        if (p === lm.home.canon) homeCount += 1;
+        else if (p === lm.away.canon) awayCount += 1;
+      }
+      return { ...lm, homeCount, awayCount };
+    });
+  }, [liveMatches, list]);
+
   const open = async (id) => {
     setOpenId(id);
     setLoadingOne(true);
@@ -910,6 +959,50 @@ function SavedTab({ data, refreshKey, onEdit }) {
           </span>
         </div>
       )}
+      {liveStrip.map((lm) => (
+        <div
+          key={lm.no}
+          className="rounded-xl border border-rose-500/40 bg-rose-500/5 px-3 py-2"
+        >
+          <div className="flex items-center gap-1.5 text-[11px] mb-1">
+            <span className="inline-flex items-center gap-1 font-bold text-rose-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              LIVE
+            </span>
+            <span className="text-slate-500">{lm.detail}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <span className="text-lg leading-none shrink-0">
+                {flagFor(lm.home.team)}
+              </span>
+              <span className="text-sm font-semibold text-slate-100 truncate">
+                {lm.home.team}
+              </span>
+            </div>
+            <div className="font-mono font-bold text-slate-100 shrink-0 px-2">
+              {lm.home.score}–{lm.away.score}
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
+              <span className="text-sm font-semibold text-slate-100 truncate">
+                {lm.away.team}
+              </span>
+              <span className="text-lg leading-none shrink-0">
+                {flagFor(lm.away.team)}
+              </span>
+            </div>
+          </div>
+          <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+            <span>
+              {lm.homeCount} {lm.homeCount === 1 ? "manager" : "managers"} advancing
+            </span>
+            <span>
+              advancing {lm.awayCount} {lm.awayCount === 1 ? "manager" : "managers"}
+            </span>
+          </div>
+        </div>
+      ))}
+
       <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/60 bg-gradient-to-r from-slate-800 to-slate-800/20">
           <div className="flex items-center gap-2">
@@ -939,12 +1032,17 @@ function SavedTab({ data, refreshKey, onEdit }) {
               {!revealed && <span className="w-[52px] shrink-0" />}
             </div>
 
-            {list.map((b, i) => (
+            {list.map((b, i) => {
+              const pills = livePillsFor(b);
+              const leadingNow = pills.some((p) => p.status === "leading");
+              return (
               <div
                 key={b.id}
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 transition-colors hover:bg-slate-700/20 ${
-                  i % 2 ? "bg-slate-800/20" : ""
-                } ${i < list.length - 1 ? "border-b border-slate-700/30" : ""}`}
+                  leadingNow ? "border-l-2 border-l-emerald-500/70" : ""
+                } ${i % 2 ? "bg-slate-800/20" : ""} ${
+                  i < list.length - 1 ? "border-b border-slate-700/30" : ""
+                }`}
               >
                 <div className="w-6 flex justify-center shrink-0">
                   {i < 3 ? (
@@ -998,13 +1096,40 @@ function SavedTab({ data, refreshKey, onEdit }) {
                       />
                     )}
                   </div>
-                  <div className="mt-0.5 text-[10px] text-slate-500 break-words">
-                    {b.locked
-                      ? "Locked until reveal"
-                      : b.champion
-                      ? `🏆 ${b.champion}`
-                      : "No champion picked"}
-                  </div>
+                  {pills.length ? (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {pills.map((p) => (
+                        <span
+                          key={p.no}
+                          className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${
+                            p.status === "leading"
+                              ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-200"
+                              : p.status === "trailing"
+                              ? "border-rose-500/40 bg-rose-500/15 text-rose-200"
+                              : "border-slate-500/40 bg-slate-600/30 text-slate-200"
+                          }`}
+                        >
+                          <span>{flagFor(p.team)}</span>
+                          {p.team}
+                          <span className="font-bold">
+                            {p.status === "leading"
+                              ? "▲"
+                              : p.status === "trailing"
+                              ? "▼"
+                              : "–"}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-0.5 text-[10px] text-slate-500 break-words">
+                      {b.locked
+                        ? "Locked until reveal"
+                        : b.champion
+                        ? `🏆 ${b.champion}`
+                        : "No champion picked"}
+                    </div>
+                  )}
                 </button>
 
                 <div className="w-9 text-right shrink-0">
@@ -1049,7 +1174,8 @@ function SavedTab({ data, refreshKey, onEdit }) {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </>
         )}
       </div>

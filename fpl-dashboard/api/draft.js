@@ -303,6 +303,9 @@ export default async function handler(req, res) {
               max: sc.max,
               breakdown: sc.breakdown,
               complete,
+              // Picks are public after the reveal; the client uses them to show
+              // who has which team in a currently-live game.
+              ...(revealed ? { picks } : {}),
             };
           } catch {
             return null;
