@@ -1589,10 +1589,20 @@ export default async function handler(req, res) {
       }))
       .sort((a, b) => b.total - a.total || b.gs - a.gs);
 
-    const anyLive = [...groupEvents, ...koEvents].some(
+    const allEvents = [...groupEvents, ...koEvents];
+    const anyLive = allEvents.some(
       (e) => e.competitions?.[0]?.status?.type?.state === "in"
     );
-    const cacheTime = anyLive ? 15 : 120;
+    // A kickoff can flip a game from "pre" to "in" between fetches. If we cached
+    // the pre-game snapshot for the full 120s, the live state would lag by up to
+    // two minutes. So when any game is about to start (or just did), keep the
+    // cache window short too.
+    const nowMs = Date.now();
+    const kickoffSoon = allEvents.some((e) => {
+      const t = new Date(e.date).getTime();
+      return Number.isFinite(t) && t - nowMs < 15 * 60 * 1000 && nowMs - t < 15 * 60 * 1000;
+    });
+    const cacheTime = anyLive || kickoffSoon ? 15 : 120;
     res.setHeader(
       "Cache-Control",
       `s-maxage=${cacheTime}, stale-while-revalidate=${cacheTime * 2}`

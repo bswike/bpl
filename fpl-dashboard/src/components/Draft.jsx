@@ -811,7 +811,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
   useEffect(() => {
     const id = setInterval(() => {
       if (!document.hidden) load();
-    }, 60000);
+    }, 30000);
     const onVisible = () => {
       if (!document.hidden) load();
     };
