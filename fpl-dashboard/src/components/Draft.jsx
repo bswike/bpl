@@ -935,7 +935,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
               <span className="flex-1 min-w-0">Entry</span>
               <span className="w-9 text-right shrink-0">Pts</span>
               <span className="w-9 text-right shrink-0">Max</span>
-              <span className="w-9 text-right shrink-0">Gls</span>
+              <span className="w-10 text-right shrink-0">Goals</span>
               {!revealed && <span className="w-[52px] shrink-0" />}
             </div>
 
@@ -1017,7 +1017,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
                     {b.max ?? b.points ?? 0}
                   </span>
                 </div>
-                <div className="w-9 text-right shrink-0">
+                <div className="w-10 text-right shrink-0">
                   <span className="text-sm font-semibold tabular-nums leading-none text-slate-400">
                     {b.goals ?? 0}
                   </span>
@@ -1063,9 +1063,9 @@ function SavedTab({ data, refreshKey, onEdit }) {
         <b className="font-semibold text-slate-200">5</b> pts.{" "}
         <span className="text-slate-500">
           <b className="font-semibold text-slate-300">Max</b> = most points you
-          can still reach (picks on eliminated teams drop off). Tiebreaker (Gls)
-          = total goals by every team you picked. The Sun 6/28 play-in doesn't
-          count.
+          can still reach (picks on eliminated teams drop off). Tiebreaker
+          (Goals) = total goals by every team you picked. The Sun 6/28 play-in
+          doesn't count.
         </span>
       </div>
 
