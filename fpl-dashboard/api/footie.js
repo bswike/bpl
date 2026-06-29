@@ -1305,7 +1305,7 @@ function buildBracket(groups, koEvents, thirdInfo) {
     const k = [canon(cs[0].team.displayName), canon(cs[1].team.displayName)]
       .sort()
       .join("|");
-    koByPair[k] = { comp, cs };
+    koByPair[k] = { comp, cs, kickoff: e.date };
   }
 
   const resolved = {};
@@ -1334,11 +1334,13 @@ function buildBracket(groups, koEvents, thirdInfo) {
     let loser = null;
     let homePens = null;
     let awayPens = null;
+    let kickoff = null;
 
     if (home && away) {
       const hit = koByPair[[home.canon, away.canon].sort().join("|")];
       if (hit) {
         const { comp, cs } = hit;
+        kickoff = hit.kickoff || null;
         state = comp.status?.type?.state || "pre";
         detail = comp.status?.type?.shortDetail || "";
         const hc = cs.find((c) => canon(c.team.displayName) === home.canon);
@@ -1367,6 +1369,7 @@ function buildBracket(groups, koEvents, thirdInfo) {
       roundLabel: ROUND_LABELS[m.round],
       date: m.date,
       time: m.time,
+      kickoff,
       venue: m.venue,
       city: m.city,
       home: home

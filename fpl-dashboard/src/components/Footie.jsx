@@ -206,7 +206,16 @@ const dayHeading = (key) => {
   if (diff >= 2 && diff <= 6) return wd;
   return `${wd} ${d.getMonth() + 1}/${d.getDate()}`;
 };
-function TodayMatches({ schedule, managers, draftPicks }) {
+const KO_SHORT = {
+  r32: "R32",
+  r16: "R16",
+  qf: "QF",
+  sf: "SF",
+  third: "3rd",
+  final: "FIN",
+};
+
+function TodayMatches({ schedule, bracket, managers, draftPicks }) {
   const ownerFor = makeOwnerFor(managers);
   const pickFor = (team) => draftPicks?.[teamCanon(team)] ?? null;
 
@@ -215,9 +224,33 @@ function TodayMatches({ schedule, managers, draftPicks }) {
     2,
     "0"
   )}-${String(now.getDate()).padStart(2, "0")}`;
-  const matches = (schedule || [])
-    .filter((m) => localDayKey(m.date) === todayKey)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const groupToday = (schedule || []).filter(
+    (m) => localDayKey(m.date) === todayKey
+  );
+
+  // Knockout games happening today (once group play is over).
+  const koToday = (bracket || [])
+    .filter((m) => {
+      if (!m.home?.team || !m.away?.team) return false;
+      const key = m.kickoff ? localDayKey(m.kickoff) : m.date;
+      return key === todayKey;
+    })
+    .map((m) => ({
+      date: m.kickoff || `${m.date}T16:00:00Z`,
+      state: m.state,
+      detail: m.detail,
+      home: m.home.team,
+      away: m.away.team,
+      homeScore: m.homeScore,
+      awayScore: m.awayScore,
+      roundShort: KO_SHORT[m.round] || "KO",
+      ko: true,
+    }));
+
+  const matches = [...groupToday, ...koToday].sort(
+    (a, b) => new Date(a.date) - new Date(b.date)
+  );
 
   return (
     <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden">
@@ -871,11 +904,15 @@ function MatchRow({ m, ownerFor, pickFor }) {
             </span>
           )}
         </div>
-        {m.group && (
+        {m.group ? (
           <span className="w-4 shrink-0 text-center text-[10px] text-slate-500 font-medium">
             {m.group}
           </span>
-        )}
+        ) : m.roundShort ? (
+          <span className="w-7 shrink-0 text-center text-[9px] text-cyan-400/90 font-bold uppercase">
+            {m.roundShort}
+          </span>
+        ) : null}
       </div>
       <OddsLine m={m} />
       <StakesLine m={m} />
@@ -1844,6 +1881,7 @@ export default function Footie() {
               <div className="space-y-4">
                 <TodayMatches
                   schedule={data.schedule}
+                  bracket={data.bracket}
                   managers={data.managers}
                   draftPicks={data.draftPicks}
                 />
