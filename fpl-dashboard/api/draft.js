@@ -202,6 +202,11 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === "POST") {
+      if (isRevealed()) {
+        return res
+          .status(403)
+          .json({ error: "Submissions are closed — the bracket has locked." });
+      }
       const body = await readJsonBody(req);
       if (!body) return res.status(400).json({ error: "Invalid JSON body." });
       const norm = normalizeBracket(body);
@@ -319,6 +324,11 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "DELETE") {
+      if (isRevealed()) {
+        return res
+          .status(403)
+          .json({ error: "Brackets can no longer be deleted." });
+      }
       const id = req.query?.id ? String(req.query.id) : null;
       if (!id || !ID_RE.test(id)) {
         return res.status(400).json({ error: "A valid id is required." });

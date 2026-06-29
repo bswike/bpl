@@ -145,6 +145,10 @@ const setStoredPw = (id, pw) => {
   }
 };
 const REVEAL_LABEL = "Monday, Jun 29 · 1:00 PM EDT";
+// Reveal/lock moment: Mon Jun 29 2026 1:00 PM EDT (17:00 UTC). Must match the API.
+const REVEAL_AT = Date.UTC(2026, 5, 29, 17, 0, 0);
+const isRevealed = () => Date.now() >= REVEAL_AT;
+const NO_PICKS = {};
 
 // Resolve the bracket: R32 teams come from the live API standings; every other
 // match's two contestants come from whoever has advanced up the tree.
@@ -932,7 +936,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
               <span className="w-9 text-right shrink-0">Pts</span>
               <span className="w-9 text-right shrink-0">Max</span>
               <span className="w-9 text-right shrink-0">Gls</span>
-              <span className="w-[52px] shrink-0" />
+              {!revealed && <span className="w-[52px] shrink-0" />}
             </div>
 
             {list.map((b, i) => (
@@ -1019,29 +1023,31 @@ function SavedTab({ data, refreshKey, onEdit }) {
                   </span>
                 </div>
 
-                <div className="w-[52px] shrink-0 flex items-center justify-end gap-0.5">
-                  <button
-                    type="button"
-                    onClick={() => onEdit?.(b.id)}
-                    title="Edit bracket"
-                    className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-700/60 hover:text-cyan-300"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => remove(b.id, b.name)}
-                    disabled={deleting === b.id}
-                    title="Delete bracket"
-                    className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-rose-500/15 hover:text-rose-300 disabled:opacity-50"
-                  >
-                    {deleting === b.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
+                {!revealed && (
+                  <div className="w-[52px] shrink-0 flex items-center justify-end gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => onEdit?.(b.id)}
+                      title="Edit bracket"
+                      className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-700/60 hover:text-cyan-300"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => remove(b.id, b.name)}
+                      disabled={deleting === b.id}
+                      title="Delete bracket"
+                      className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-rose-500/15 hover:text-rose-300 disabled:opacity-50"
+                    >
+                      {deleting === b.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </>
@@ -1078,19 +1084,21 @@ function SavedTab({ data, refreshKey, onEdit }) {
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  const id = openId;
-                  setOpenId(null);
-                  setOpenData(null);
-                  onEdit?.(id);
-                }}
-                className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1.5 text-xs font-medium text-cyan-200 hover:bg-cyan-500/20"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                Edit
-              </button>
+              {!revealed && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = openId;
+                    setOpenId(null);
+                    setOpenData(null);
+                    onEdit?.(id);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1.5 text-xs font-medium text-cyan-200 hover:bg-cyan-500/20"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -1136,15 +1144,47 @@ function SavedTab({ data, refreshKey, onEdit }) {
 }
 
 // ---------------------------------------------------------------------------
+// Live read-only bracket tab (shown after the reveal)
+// ---------------------------------------------------------------------------
+function LiveBracketTab({ data }) {
+  return (
+    <div className="space-y-3">
+      <p className="text-[11px] text-slate-500">
+        Live World Cup knockout bracket — fills in automatically from ESPN as
+        games finish.
+      </p>
+      <BracketGrid data={data} picks={NO_PICKS} editable={false} onPick={() => {}} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page shell
 // ---------------------------------------------------------------------------
 export default function Draft() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [view, setView] = useState("pick");
+  const [revealed, setRevealed] = useState(() => isRevealed());
+  const [view, setView] = useState(() => (isRevealed() ? "saved" : "pick"));
   const [refreshKey, setRefreshKey] = useState(0);
   const [editTarget, setEditTarget] = useState(null);
+
+  // Flip to revealed/locked state when the deadline passes.
+  useEffect(() => {
+    if (revealed) return;
+    const check = () => {
+      if (isRevealed()) setRevealed(true);
+    };
+    const id = setInterval(check, 30000);
+    check();
+    return () => clearInterval(id);
+  }, [revealed]);
+
+  // Once locked, the "My Bracket" create/edit view goes away.
+  useEffect(() => {
+    if (revealed && (view === "pick")) setView("saved");
+  }, [revealed, view]);
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -1218,10 +1258,15 @@ export default function Draft() {
     }
   }, []);
 
-  const tabs = [
-    { id: "pick", label: "My Bracket", icon: GitBranch },
-    { id: "saved", label: "Standings", icon: Trophy },
-  ];
+  const tabs = revealed
+    ? [
+        { id: "saved", label: "Standings", icon: Trophy },
+        { id: "live", label: "Bracket", icon: GitBranch },
+      ]
+    : [
+        { id: "pick", label: "My Bracket", icon: GitBranch },
+        { id: "saved", label: "Standings", icon: Trophy },
+      ];
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-slate-900 text-slate-100">
@@ -1287,13 +1332,15 @@ export default function Draft() {
               Try again
             </button>
           </div>
-        ) : view === "pick" ? (
+        ) : view === "pick" && !revealed ? (
           <PickTab
             data={data}
             onSaved={handleSaved}
             editTarget={editTarget}
             onClearEdit={() => setEditTarget(null)}
           />
+        ) : view === "live" ? (
+          <LiveBracketTab data={data} />
         ) : (
           <SavedTab data={data} refreshKey={refreshKey} onEdit={startEdit} />
         )}
