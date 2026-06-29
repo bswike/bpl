@@ -127,6 +127,10 @@ const FEEDS = {
 // match (103) is intentionally excluded from the bracket.
 const KO_NUMS = [...Array.from({ length: 30 }, (_, i) => 73 + i), 104]; // 31
 
+// Scoring (mirrors api/draft.js). The Sunday 6/28 play-in never counts.
+const ROUND_POINTS = { r32: 1, r16: 2, qf: 3, sf: 4, final: 5 };
+const EXCLUDED_DATES = new Set(["2026-06-28"]);
+
 // Remember each bracket's password on this device so you don't retype it.
 const pwKey = (id) => `draftpw:${id}`;
 const getStoredPw = (id) => {
@@ -835,6 +839,35 @@ function SavedTab({ data, refreshKey, onEdit }) {
       });
   }, [data]);
 
+  // Teams currently losing in a live game -> if the score holds they're out.
+  const losingTeams = useMemo(() => {
+    const s = new Set();
+    for (const lm of liveMatches) {
+      if (!lm.leader) continue; // tied: nobody's getting screwed yet
+      const trailing =
+        lm.leader === lm.home.canon ? lm.away.canon : lm.home.canon;
+      if (trailing) s.add(trailing);
+    }
+    return s;
+  }, [liveMatches]);
+
+  // "Most screwed": how many *max* points an entry would forfeit if every
+  // currently-losing team they're riding on stayed down. That's the sum of
+  // the undecided points still pinned to those teams across their bracket.
+  const atRiskFor = (entry) => {
+    if (!losingTeams.size || !entry?.picks) return 0;
+    const byNo = {};
+    (data?.bracket || []).forEach((m) => (byNo[m.no] = m));
+    let risk = 0;
+    for (const [no, pick] of Object.entries(entry.picks)) {
+      if (!losingTeams.has(pick)) continue;
+      const m = byNo[Number(no)];
+      if (!m || m.winnerCanon || EXCLUDED_DATES.has(m.date)) continue;
+      risk += ROUND_POINTS[m.round] || 0;
+    }
+    return risk;
+  };
+
   // The teams an entry has riding on the currently-live games.
   const livePillsFor = (entry) => {
     if (!entry?.picks || !liveMatches.length) return [];
@@ -1035,6 +1068,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
             {list.map((b, i) => {
               const pills = livePillsFor(b);
               const leadingNow = pills.some((p) => p.status === "leading");
+              const atRisk = atRiskFor(b);
               return (
               <div
                 key={b.id}
@@ -1137,10 +1171,18 @@ function SavedTab({ data, refreshKey, onEdit }) {
                     {b.points ?? 0}
                   </span>
                 </div>
-                <div className="w-9 text-right shrink-0">
-                  <span className="text-sm font-semibold tabular-nums leading-none text-slate-300">
+                <div className="w-9 text-right shrink-0 leading-none">
+                  <span className="text-sm font-semibold tabular-nums text-slate-300">
                     {b.max ?? b.points ?? 0}
                   </span>
+                  {atRisk > 0 && (
+                    <span
+                      className="block text-[9px] font-medium tabular-nums text-rose-400/60"
+                      title={`Would lose ${atRisk} max pts if the live result(s) hold`}
+                    >
+                      −{atRisk}
+                    </span>
+                  )}
                 </div>
                 <div className="w-10 text-right shrink-0">
                   <span className="text-sm font-semibold tabular-nums leading-none text-slate-400">
