@@ -835,6 +835,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
           home: { canon: m.home?.canon, team: m.home?.team, score: hs },
           away: { canon: m.away?.canon, team: m.away?.team, score: as },
           leader: hs > as ? m.home?.canon : as > hs ? m.away?.canon : null,
+          odds: m.odds || null,
         };
       });
   }, [data]);
@@ -1009,17 +1010,38 @@ function SavedTab({ data, refreshKey, onEdit }) {
               <span className="text-lg leading-none shrink-0">
                 {flagFor(lm.home.team)}
               </span>
-              <span className="text-sm font-semibold text-slate-100 truncate">
-                {lm.home.team}
-              </span>
+              <div className="min-w-0">
+                <span className="block text-sm font-semibold text-slate-100 truncate">
+                  {lm.home.team}
+                </span>
+                {lm.odds?.home && (
+                  <span className="block text-[9px] font-mono text-slate-500 leading-none">
+                    {lm.odds.home}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="font-mono font-bold text-slate-100 shrink-0 px-2">
-              {lm.home.score}–{lm.away.score}
+            <div className="shrink-0 px-2 text-center">
+              <div className="font-mono font-bold text-slate-100 leading-none">
+                {lm.home.score}–{lm.away.score}
+              </div>
+              {lm.odds?.draw && (
+                <div className="text-[9px] font-mono text-slate-500 leading-none mt-0.5">
+                  X {lm.odds.draw}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
-              <span className="text-sm font-semibold text-slate-100 truncate">
-                {lm.away.team}
-              </span>
+              <div className="min-w-0 text-right">
+                <span className="block text-sm font-semibold text-slate-100 truncate">
+                  {lm.away.team}
+                </span>
+                {lm.odds?.away && (
+                  <span className="block text-[9px] font-mono text-slate-500 leading-none">
+                    {lm.odds.away}
+                  </span>
+                )}
+              </div>
               <span className="text-lg leading-none shrink-0">
                 {flagFor(lm.away.team)}
               </span>
