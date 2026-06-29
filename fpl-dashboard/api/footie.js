@@ -1449,6 +1449,21 @@ export default async function handler(req, res) {
       advanceProb[canonKey] ??
       (statusVal === "in" ? 1 : statusVal === "out" ? 0 : null);
 
+    // Teams knocked out in the bracket (loser of any completed KO match). Group
+    // status alone can't tell us this, so the squad "remaining" count needs it.
+    const koEliminated = new Set();
+    for (const e of koEvents) {
+      const comp = e.competitions?.[0];
+      if (!comp || comp.status?.type?.state !== "post") continue;
+      const cs = comp.competitors || [];
+      if (!cs.some((c) => c.winner === true)) continue; // skip until a winner is set
+      for (const c of cs) {
+        if (c.winner !== true && c.team?.displayName) {
+          koEliminated.add(canon(c.team.displayName));
+        }
+      }
+    }
+
     // Who advances: top 2 per group + the best 8 third-placed teams.
     const thirdInfo = computeThirdPlace(groups, teamStatus);
     const qualifyingThirds = new Set(thirdInfo.qualifierGroups);
@@ -1459,11 +1474,13 @@ export default async function handler(req, res) {
         else if (t.pos === 3 && qualifyingThirds.has(g.group)) t.advance = "3Q";
         else t.advance = null;
         const o = teamStatus[t.canon];
-        t.status = o?.status || "bubble";
+        const koOut = koEliminated.has(t.canon);
+        t.status = koOut ? "out" : o?.status || "bubble";
         t.posBest = o?.posBest ?? null;
         t.posWorst = o?.posWorst ?? null;
-        t.eliminated = t.status === "out";
-        t.prob = probFor(t.canon, t.status);
+        t.eliminated = t.status === "out" || koOut;
+        t.koEliminated = koOut;
+        t.prob = koOut ? 0 : probFor(t.canon, t.status);
       });
     });
     thirdInfo.ranking.forEach((t) => {
@@ -1503,6 +1520,10 @@ export default async function handler(req, res) {
               date: upcoming[0].date,
             }
           : null;
+        const koOut = koEliminated.has(canon(teamName));
+        const status = koOut
+          ? "out"
+          : teamStatus[canon(teamName)]?.status || "bubble";
         return {
           team: teamName,
           group: tr.group,
@@ -1516,7 +1537,9 @@ export default async function handler(req, res) {
           played,
           remaining: Math.max(0, 3 - played),
           nextGame: next,
-          status: teamStatus[canon(teamName)]?.status || "bubble",
+          status,
+          koEliminated: koOut,
+          alive: status !== "out",
         };
       });
       const gsPoints = teams.reduce((s, t) => s + t.gsPoints, 0);
@@ -1533,6 +1556,8 @@ export default async function handler(req, res) {
         advanced: teams.filter((t) => t.status === "in").length,
         bubble: teams.filter((t) => t.status === "bubble").length,
         eliminated: teams.filter((t) => t.status === "out").length,
+        teamCount: teams.length,
+        teamsLeft: teams.filter((t) => t.alive).length,
       };
     });
 

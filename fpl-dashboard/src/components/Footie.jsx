@@ -497,6 +497,15 @@ function ManagerRow({ manager, rank, ownerFor, pickFor, placeFor }) {
   const [open, setOpen] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const total = (manager.gsPoints || 0) + (manager.koPoints || 0);
+  const teamCount =
+    manager.teamCount ?? (manager.teams ? manager.teams.length : null);
+  const teamsLeft =
+    manager.teamsLeft ??
+    (manager.teams
+      ? manager.teams.filter((t) => (t.alive ?? t.status !== "out")).length
+      : null);
+  const teamsOut =
+    teamCount != null && teamsLeft != null ? teamCount - teamsLeft : 0;
 
   return (
     <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl overflow-hidden">
@@ -527,28 +536,29 @@ function ManagerRow({ manager, rank, ownerFor, pickFor, placeFor }) {
             )}
           </div>
           <div className="flex items-center gap-1 text-[10px] mt-0.5 flex-wrap">
-            {manager.advanced > 0 && (
+            {teamsLeft != null && (
               <span
-                title="Teams that have clinched a knockout spot"
+                title="Teams still alive in the tournament"
                 className="px-1 py-px rounded bg-emerald-500/15 text-emerald-300 font-semibold"
               >
-                {manager.advanced} thru
+                {teamsLeft}
+                {teamCount != null ? `/${teamCount}` : ""} left
               </span>
             )}
             {manager.bubble > 0 && (
               <span
-                title="Teams still in contention"
+                title="Teams still in contention to advance"
                 className="px-1 py-px rounded bg-amber-500/15 text-amber-300 font-semibold"
               >
                 {manager.bubble} bubble
               </span>
             )}
-            {manager.eliminated > 0 && (
+            {teamsOut > 0 && (
               <span
-                title="Teams officially eliminated"
+                title="Teams eliminated (group stage or knockout)"
                 className="px-1 py-px rounded bg-rose-500/15 text-rose-300 font-semibold"
               >
-                {manager.eliminated} out
+                {teamsOut} out
               </span>
             )}
           </div>
