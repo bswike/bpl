@@ -504,8 +504,6 @@ function ManagerRow({ manager, rank, ownerFor, pickFor, placeFor }) {
     (manager.teams
       ? manager.teams.filter((t) => (t.alive ?? t.status !== "out")).length
       : null);
-  const teamsOut =
-    teamCount != null && teamsLeft != null ? teamCount - teamsLeft : 0;
 
   return (
     <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl overflow-hidden">
@@ -551,14 +549,6 @@ function ManagerRow({ manager, rank, ownerFor, pickFor, placeFor }) {
                 className="px-1 py-px rounded bg-amber-500/15 text-amber-300 font-semibold"
               >
                 {manager.bubble} bubble
-              </span>
-            )}
-            {teamsOut > 0 && (
-              <span
-                title="Teams eliminated (group stage or knockout)"
-                className="px-1 py-px rounded bg-rose-500/15 text-rose-300 font-semibold"
-              >
-                {teamsOut} out
               </span>
             )}
           </div>
