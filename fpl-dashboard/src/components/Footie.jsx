@@ -242,8 +242,11 @@ function TodayMatches({ schedule, bracket, managers, draftPicks }) {
       detail: m.detail,
       home: m.home.team,
       away: m.away.team,
+      homeAbbr: m.home.abbr,
+      awayAbbr: m.away.abbr,
       homeScore: m.homeScore,
       awayScore: m.awayScore,
+      odds: m.odds,
       roundShort: KO_SHORT[m.round] || "KO",
       ko: true,
     }));
@@ -672,10 +675,23 @@ function OddsLine({ m }) {
         ? "away"
         : "draw";
   }
+  const isLive = m.odds.live || m.state === "in";
   return (
-    <div className="flex items-center justify-center gap-3 mt-0.5 pl-12 text-[10px]">
-      {m.odds.locked && (
+    <div className="flex items-center justify-center gap-2 mt-0.5 pl-12 text-[10px]">
+      {m.odds.locked ? (
         <Lock size={9} className="text-slate-600 shrink-0" title="Final odds" />
+      ) : isLive ? (
+        <span
+          title="Live betting odds"
+          className="shrink-0 inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wide text-rose-400"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+          Live
+        </span>
+      ) : (
+        <span className="shrink-0 text-[8px] font-semibold uppercase tracking-wide text-slate-600">
+          Odds
+        </span>
       )}
       {items.map((o) => (
         <span

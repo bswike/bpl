@@ -1335,6 +1335,7 @@ function buildBracket(groups, koEvents, thirdInfo) {
     let homePens = null;
     let awayPens = null;
     let kickoff = null;
+    let odds = null;
 
     if (home && away) {
       const hit = koByPair[[home.canon, away.canon].sort().join("|")];
@@ -1343,6 +1344,23 @@ function buildBracket(groups, koEvents, thirdInfo) {
         kickoff = hit.kickoff || null;
         state = comp.status?.type?.state || "pre";
         detail = comp.status?.type?.shortDetail || "";
+        // Scoreboard moneyline: live while in-progress, locked once final.
+        odds = extractOdds(comp);
+        if (odds) {
+          // ESPN's moneyline.home/away follow ESPN's home/away designation,
+          // which can be reversed vs our bracket orientation — realign it.
+          const espnHome = cs.find((c) => c.homeAway === "home");
+          const espnHomeCanon = espnHome
+            ? canon(espnHome.team.displayName)
+            : null;
+          if (espnHomeCanon && espnHomeCanon !== home.canon) {
+            const t = odds.home;
+            odds.home = odds.away;
+            odds.away = t;
+          }
+          if (state === "in") odds.live = true;
+          else if (state === "post") odds.locked = true;
+        }
         const hc = cs.find((c) => canon(c.team.displayName) === home.canon);
         const ac = cs.find((c) => canon(c.team.displayName) === away.canon);
         if (state !== "pre") {
@@ -1384,6 +1402,7 @@ function buildBracket(groups, koEvents, thirdInfo) {
       awayPens,
       state,
       detail,
+      odds,
       winnerCanon: winner?.canon || null,
     });
   }
