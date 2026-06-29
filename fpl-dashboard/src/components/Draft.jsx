@@ -828,7 +828,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
       if (res.status === 403) {
         pwd =
           window.prompt(
-            "This bracket is locked until the reveal. Enter its password to view:"
+            "This bracket is locked until the reveal. Enter its password (or the admin password) to view:"
           ) || "";
         if (!pwd) {
           setOpenId(null);

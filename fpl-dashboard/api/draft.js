@@ -245,7 +245,8 @@ export default async function handler(req, res) {
         if (!rec) return res.status(404).json({ error: "Not found." });
         if (!revealed) {
           const password = passwordFrom(req, null);
-          if (!verifyAuth(password, rec.auth)) {
+          const isAdmin = password && password === ADMIN_PASSWORD;
+          if (!isAdmin && !verifyAuth(password, rec.auth)) {
             return res
               .status(403)
               .json({ error: "This bracket is locked until the reveal.", locked: true });
