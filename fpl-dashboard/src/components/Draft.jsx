@@ -5,7 +5,6 @@ import {
   Save,
   RotateCcw,
   X,
-  Eye,
   Loader2,
   RefreshCw,
   Check,
@@ -926,19 +925,20 @@ function SavedTab({ data, refreshKey, onEdit }) {
           </p>
         ) : (
           <>
-            <div className="flex items-center gap-3 px-3 sm:px-4 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-700/40 bg-slate-900/40">
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-700/40 bg-slate-900/40">
               <span className="w-6 text-center shrink-0">Rk</span>
+              <span className="w-7 text-center shrink-0">Pk</span>
               <span className="flex-1 min-w-0">Entry</span>
-              <span className="hidden sm:block w-10 text-right shrink-0">Gls</span>
               <span className="w-9 text-right shrink-0">Pts</span>
               <span className="w-9 text-right shrink-0">Max</span>
-              <span className="w-[88px] shrink-0" />
+              <span className="w-9 text-right shrink-0">Gls</span>
+              <span className="w-[52px] shrink-0" />
             </div>
 
             {list.map((b, i) => (
               <div
                 key={b.id}
-                className={`flex items-center gap-3 px-3 sm:px-4 py-2.5 transition-colors hover:bg-slate-700/20 ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 transition-colors hover:bg-slate-700/20 ${
                   i % 2 ? "bg-slate-800/20" : ""
                 } ${i < list.length - 1 ? "border-b border-slate-700/30" : ""}`}
               >
@@ -962,15 +962,28 @@ function SavedTab({ data, refreshKey, onEdit }) {
                   )}
                 </div>
 
+                {/* Champion pick flag */}
+                <div className="w-7 text-center shrink-0">
+                  {b.locked ? (
+                    <Lock className="w-3.5 h-3.5 text-amber-400 inline" />
+                  ) : b.champion ? (
+                    <span
+                      className="text-xl leading-none"
+                      title={`Champion: ${b.champion}`}
+                    >
+                      {flagFor(b.champion)}
+                    </span>
+                  ) : (
+                    <span className="text-slate-600 text-sm">—</span>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   onClick={() => open(b.id)}
                   className="flex-1 min-w-0 text-left"
                 >
                   <div className="flex items-start gap-1.5 text-sm font-semibold text-slate-100">
-                    {b.locked && (
-                      <Lock className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
-                    )}
                     <span className="break-words">{b.name}</span>
                     {b.complete ? (
                       <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
@@ -985,34 +998,28 @@ function SavedTab({ data, refreshKey, onEdit }) {
                     {b.locked
                       ? "Locked until reveal"
                       : b.champion
-                      ? `🏆 ${flagFor(b.champion)} ${b.champion}`
+                      ? `🏆 ${b.champion}`
                       : "No champion picked"}
                   </div>
                 </button>
 
-                <div className="hidden sm:block w-10 text-right text-xs tabular-nums text-slate-400 shrink-0">
-                  {b.goals ?? 0}
-                </div>
                 <div className="w-9 text-right shrink-0">
                   <span className="text-base font-extrabold tabular-nums leading-none text-cyan-300">
                     {b.points ?? 0}
                   </span>
                 </div>
                 <div className="w-9 text-right shrink-0">
-                  <span className="text-sm font-semibold tabular-nums leading-none text-slate-400">
+                  <span className="text-sm font-semibold tabular-nums leading-none text-slate-300">
                     {b.max ?? b.points ?? 0}
                   </span>
                 </div>
+                <div className="w-9 text-right shrink-0">
+                  <span className="text-sm font-semibold tabular-nums leading-none text-slate-400">
+                    {b.goals ?? 0}
+                  </span>
+                </div>
 
-                <div className="w-[88px] shrink-0 flex items-center justify-end gap-1">
-                  <button
-                    type="button"
-                    onClick={() => open(b.id)}
-                    title="View bracket"
-                    className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-700/60 hover:text-slate-200"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
+                <div className="w-[52px] shrink-0 flex items-center justify-end gap-0.5">
                   <button
                     type="button"
                     onClick={() => onEdit?.(b.id)}
