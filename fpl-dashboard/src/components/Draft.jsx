@@ -892,6 +892,18 @@ function SavedTab({ data, refreshKey, onEdit }) {
       });
   }, [data]);
 
+  // Teams knocked out for real (loser of any decided match).
+  const eliminatedTeams = useMemo(() => {
+    const s = new Set();
+    (data?.bracket || []).forEach((m) => {
+      if (!m.winnerCanon) return;
+      [m.home?.canon, m.away?.canon].forEach((c) => {
+        if (c && c !== m.winnerCanon) s.add(c);
+      });
+    });
+    return s;
+  }, [data]);
+
   // Teams currently losing in a live game -> if the score holds they're out.
   const losingTeams = useMemo(() => {
     const s = new Set();
@@ -1143,6 +1155,12 @@ function SavedTab({ data, refreshKey, onEdit }) {
               const pills = livePillsFor(b);
               const leadingNow = pills.some((p) => p.status === "leading");
               const atRisk = atRiskFor(b);
+              // Their picked champion is already knocked out -> cross the entry out.
+              const championOut = !!(
+                b.picks &&
+                b.picks[104] &&
+                eliminatedTeams.has(b.picks[104])
+              );
               return (
               <div
                 key={b.id}
@@ -1178,8 +1196,14 @@ function SavedTab({ data, refreshKey, onEdit }) {
                     <Lock className="w-3.5 h-3.5 text-amber-400 inline" />
                   ) : b.champion ? (
                     <span
-                      className="text-xl leading-none"
-                      title={`Champion: ${b.champion}`}
+                      className={`text-xl leading-none ${
+                        championOut ? "grayscale opacity-50" : ""
+                      }`}
+                      title={
+                        championOut
+                          ? `Champion eliminated: ${b.champion}`
+                          : `Champion: ${b.champion}`
+                      }
                     >
                       {flagFor(b.champion)}
                     </span>
@@ -1193,7 +1217,13 @@ function SavedTab({ data, refreshKey, onEdit }) {
                   onClick={() => open(b.id)}
                   className="flex-1 min-w-0 text-left"
                 >
-                  <div className="flex items-start gap-1.5 text-sm font-semibold text-slate-100">
+                  <div
+                    className={`flex items-start gap-1.5 text-sm font-semibold ${
+                      championOut
+                        ? "text-slate-500 line-through decoration-rose-500/70"
+                        : "text-slate-100"
+                    }`}
+                  >
                     <span className="break-words">{b.name}</span>
                     {b.complete ? (
                       <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
