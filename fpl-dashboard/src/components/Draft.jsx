@@ -1840,6 +1840,7 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                 followPicks
                 zoomRef={zoomRef}
                 hideControls
+                onMatchClick={setMatchNo}
               />
             )}
           </div>
