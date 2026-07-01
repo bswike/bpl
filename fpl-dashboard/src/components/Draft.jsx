@@ -1926,10 +1926,19 @@ function MatchPicksModal({ no, data, list, onClose }) {
     (data?.bracket || []).forEach((m) => (byNo[m.no] = m));
     const m = byNo[no] || null;
     const nameByCanon = {};
+    // Teams knocked out for real anywhere in the tournament (loser of any
+    // decided match) — so a pick that's already out shows red even if it was
+    // eliminated in an earlier round than this matchup.
+    const eliminated = new Set();
     (data?.bracket || []).forEach((mm) => {
       [mm.home, mm.away].forEach((s) => {
         if (s?.canon && s?.team) nameByCanon[s.canon] = s.team;
       });
+      if (mm.winnerCanon) {
+        [mm.home?.canon, mm.away?.canon].forEach((c) => {
+          if (c && c !== mm.winnerCanon) eliminated.add(c);
+        });
+      }
     });
     const groups = new Map();
     let noPick = 0;
@@ -1950,7 +1959,7 @@ function MatchPicksModal({ no, data, list, onClose }) {
     const arr = [...groups.entries()].map(([canon, mgrs]) => ({
       canon,
       team: nameByCanon[canon] || canon,
-      eliminated: !!byNo[no]?.winnerCanon && byNo[no].winnerCanon !== canon,
+      eliminated: eliminated.has(canon),
       won: byNo[no]?.winnerCanon === canon,
       mgrs: mgrs.sort((a, b) => a.rank - b.rank),
     }));
@@ -2003,15 +2012,19 @@ function MatchPicksModal({ no, data, list, onClose }) {
               <div
                 key={g.canon}
                 className={`rounded-xl border ${
-                  g.won
-                    ? "border-emerald-500/40 bg-emerald-500/5"
-                    : g.eliminated
+                  g.eliminated
                     ? "border-rose-500/40 bg-rose-500/5"
+                    : g.won
+                    ? "border-emerald-500/40 bg-emerald-500/5"
                     : "border-slate-700/60 bg-slate-800/40"
                 }`}
               >
                 <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-700/40">
-                  <span className="text-xl leading-none shrink-0">
+                  <span
+                    className={`text-xl leading-none shrink-0 ${
+                      g.eliminated ? "opacity-50" : ""
+                    }`}
+                  >
                     {flagFor(g.team)}
                   </span>
                   <span
@@ -2021,10 +2034,11 @@ function MatchPicksModal({ no, data, list, onClose }) {
                   >
                     {g.team}
                   </span>
-                  {g.won && (
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  {g.eliminated ? (
+                    <X className="w-4 h-4 text-rose-400 shrink-0" />
+                  ) : (
+                    g.won && <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                   )}
-                  {g.eliminated && <X className="w-4 h-4 text-rose-400 shrink-0" />}
                   <span className="shrink-0 rounded-full bg-slate-700/60 px-2 py-0.5 text-[11px] font-bold text-slate-200">
                     {g.mgrs.length}
                   </span>
@@ -2079,6 +2093,26 @@ export default function Draft() {
   const [editTarget, setEditTarget] = useState(null);
   const isMobile = useIsMobile();
   const liveZoomRef = useRef(null);
+  const swipeStart = useRef(null);
+
+  // Swipe navigation between the Standings and Bracket tabs on mobile. A left
+  // swipe on Standings jumps to the Bracket; a left-edge right-swipe on the
+  // Bracket returns (edge start so it doesn't fight the zoom/pan canvas).
+  const onSwipeStart = (e) => {
+    if (!isMobile || !revealed || e.touches.length !== 1) return;
+    swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const onSwipeEnd = (e) => {
+    const s = swipeStart.current;
+    swipeStart.current = null;
+    if (!s || !isMobile || !revealed) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s.x;
+    const dy = t.clientY - s.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (view === "saved" && dx < 0) setView("live");
+    else if (view === "live" && dx > 0 && s.x < 30) setView("saved");
+  };
 
   // Flip to revealed/locked state when the deadline passes.
   useEffect(() => {
@@ -2309,6 +2343,8 @@ export default function Draft() {
           className={
             isMobile ? "flex-1 min-h-0 flex flex-col overflow-hidden" : ""
           }
+          onTouchStart={onSwipeStart}
+          onTouchEnd={onSwipeEnd}
         >
           {loading ? (
             <div className="py-24">
