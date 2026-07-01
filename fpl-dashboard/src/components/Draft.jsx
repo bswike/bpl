@@ -1102,6 +1102,7 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
   const [openErr, setOpenErr] = useState(null);
   const [loadingOne, setLoadingOne] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [matchNo, setMatchNo] = useState(null);
   const isMobile = useIsMobile();
   const zoomRef = useRef(null);
 
@@ -1348,7 +1349,13 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
       {liveStrip.map((lm) => (
         <div
           key={lm.no}
-          className="rounded-xl border border-rose-500/40 bg-rose-500/5 px-3 py-2 shrink-0"
+          role="button"
+          tabIndex={0}
+          onClick={() => setMatchNo(lm.no)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") setMatchNo(lm.no);
+          }}
+          className="rounded-xl border border-rose-500/40 bg-rose-500/5 px-3 py-2 shrink-0 cursor-pointer transition-colors hover:bg-rose-500/10"
         >
           <div className="flex items-center gap-1.5 text-[11px] mb-1">
             <span className="inline-flex items-center gap-1 font-bold text-rose-400">
@@ -1411,7 +1418,15 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
       ))}
 
       {liveStrip.length === 0 && nextGame && (
-        <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 px-3 py-2 shrink-0">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setMatchNo(nextGame.no)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") setMatchNo(nextGame.no);
+          }}
+          className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 px-3 py-2 shrink-0 cursor-pointer transition-colors hover:bg-cyan-500/10"
+        >
           <div className="flex items-center gap-1.5 text-[11px] mb-1">
             <span className="font-bold uppercase tracking-wide text-cyan-300">
               Next
@@ -1829,6 +1844,15 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
             )}
           </div>
         </div>
+      )}
+
+      {matchNo != null && (
+        <MatchPicksModal
+          no={matchNo}
+          data={data}
+          list={list}
+          onClose={() => setMatchNo(null)}
+        />
       )}
     </>
   );
