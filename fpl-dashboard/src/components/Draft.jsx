@@ -1310,70 +1310,39 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
           </span>
         </div>
       )}
-      {liveStrip.map((lm) => (
-        <div
-          key={lm.no}
-          className="rounded-xl border border-rose-500/40 bg-rose-500/5 px-3 py-2 shrink-0"
-        >
-          <div className="flex items-center gap-1.5 text-[11px] mb-1">
-            <span className="inline-flex items-center gap-1 font-bold text-rose-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-              LIVE
-            </span>
-            <span className="text-slate-500">{lm.detail}</span>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0 flex-1">
-              <span className="text-lg leading-none shrink-0">
-                {flagFor(lm.home.team)}
+      {liveStrip.length > 0 && (
+        <div className="shrink-0 flex gap-2 overflow-x-auto snap-scroll-hide -mx-1 px-1 pb-0.5">
+          {liveStrip.map((lm) => (
+            <div
+              key={lm.no}
+              className="shrink-0 flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-2.5 py-1.5"
+              title={`${lm.homeCount} advancing ${lm.home.team} · ${lm.awayCount} advancing ${lm.away.team}`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+              <span className="text-[9px] font-bold uppercase tracking-wide text-rose-300 leading-none">
+                {lm.detail || "Live"}
               </span>
-              <div className="min-w-0">
-                <span className="block text-sm font-semibold text-slate-100 truncate">
-                  {lm.home.team}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold tabular-nums text-slate-400">
+                  {lm.homeCount}
                 </span>
-                {lm.odds?.home && (
-                  <span className="block text-[9px] font-mono text-slate-500 leading-none">
-                    {lm.odds.home}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="shrink-0 px-2 text-center">
-              <div className="font-mono font-bold text-slate-100 leading-none">
-                {lm.home.score}–{lm.away.score}
-              </div>
-              {lm.odds?.draw && (
-                <div className="text-[9px] font-mono text-slate-500 leading-none mt-0.5">
-                  X {lm.odds.draw}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
-              <div className="min-w-0 text-right">
-                <span className="block text-sm font-semibold text-slate-100 truncate">
-                  {lm.away.team}
+                <span className="text-base leading-none">
+                  {flagFor(lm.home.team)}
                 </span>
-                {lm.odds?.away && (
-                  <span className="block text-[9px] font-mono text-slate-500 leading-none">
-                    {lm.odds.away}
-                  </span>
-                )}
+                <span className="font-mono font-bold text-sm text-slate-100 tabular-nums leading-none">
+                  {lm.home.score}–{lm.away.score}
+                </span>
+                <span className="text-base leading-none">
+                  {flagFor(lm.away.team)}
+                </span>
+                <span className="text-[10px] font-bold tabular-nums text-slate-400">
+                  {lm.awayCount}
+                </span>
               </div>
-              <span className="text-lg leading-none shrink-0">
-                {flagFor(lm.away.team)}
-              </span>
             </div>
-          </div>
-          <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
-            <span>
-              {lm.homeCount} {lm.homeCount === 1 ? "manager" : "managers"} advancing
-            </span>
-            <span>
-              advancing {lm.awayCount} {lm.awayCount === 1 ? "manager" : "managers"}
-            </span>
-          </div>
+          ))}
         </div>
-      ))}
+      )}
 
       <div
         className={`rounded-2xl border border-slate-700/60 bg-slate-800/40 overflow-hidden ${
@@ -1498,11 +1467,11 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                     )}
                   </div>
                   {pills.length ? (
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-0.5 flex flex-nowrap gap-1 overflow-hidden">
                       {pills.map((p) => (
                         <span
                           key={p.no}
-                          className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${
+                          className={`inline-flex items-center gap-1 shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${
                             p.status === "leading"
                               ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-200"
                               : p.status === "trailing"
