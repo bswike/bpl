@@ -980,12 +980,25 @@ function DayCard({ dayKey, matches, ownerFor, pickFor }) {
   );
 }
 
+// Build a proper ISO kickoff for a bracket game. ESPN gives a real `kickoff`
+// for scheduled games; for further-out games we only have the date + an
+// Eastern time string ("1:00 PM ET"), so compose one at the EDT (-04:00) offset.
+function koKickoffISO(b) {
+  if (b.kickoff) return b.kickoff;
+  if (!b.date) return null;
+  const m = String(b.time || "").match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!m) return `${b.date}T12:00:00-04:00`;
+  let h = parseInt(m[1], 10) % 12;
+  if (/PM/i.test(m[3])) h += 12;
+  return `${b.date}T${String(h).padStart(2, "0")}:${m[2]}:00-04:00`;
+}
+
 // Turn a knockout-bracket match into the same row shape the schedule uses so
 // the Schedule tab shows every game (groups + all knockout rounds).
 function koToScheduleRow(b) {
   return {
     no: b.no,
-    date: b.kickoff || `${b.date}T12:00:00Z`,
+    date: koKickoffISO(b),
     state: b.state,
     home: b.home?.team || b.home?.label || "TBD",
     away: b.away?.team || b.away?.label || "TBD",
