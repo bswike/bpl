@@ -416,6 +416,85 @@ function useIsMobile(breakpoint = 768) {
   return mobile;
 }
 
+// Native-style pull-to-refresh for the (non-scrolling) mobile screens: drag
+// down to reveal a spinner bubble, release past the threshold to reload.
+function PullToRefresh({ onRefresh, children }) {
+  const [pull, setPull] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const startY = useRef(null);
+  const THRESHOLD = 64;
+  const MAX = 96;
+
+  const begin = (e) => {
+    if (refreshing || e.touches.length !== 1) return;
+    startY.current = e.touches[0].clientY;
+  };
+  const move = (e) => {
+    if (refreshing || startY.current == null || e.touches.length !== 1) return;
+    const dy = e.touches[0].clientY - startY.current;
+    setDragging(true);
+    setPull(dy > 0 ? Math.min(MAX, dy * 0.55) : 0);
+  };
+  const end = async () => {
+    startY.current = null;
+    setDragging(false);
+    if (refreshing) return;
+    if (pull >= THRESHOLD) {
+      setRefreshing(true);
+      setPull(THRESHOLD);
+      try {
+        await onRefresh?.();
+      } finally {
+        setRefreshing(false);
+        setPull(0);
+      }
+    } else {
+      setPull(0);
+    }
+  };
+
+  const progress = Math.min(1, pull / THRESHOLD);
+  return (
+    <div
+      className="relative h-full min-h-0 overflow-hidden"
+      onTouchStart={begin}
+      onTouchMove={move}
+      onTouchEnd={end}
+      onTouchCancel={end}
+    >
+      <div
+        className="absolute left-1/2 z-10 pointer-events-none"
+        style={{
+          top: 4,
+          transform: `translate(-50%, ${pull - 44}px)`,
+          opacity: refreshing ? 1 : progress,
+        }}
+      >
+        <div className="w-9 h-9 rounded-full bg-slate-800/95 border border-slate-600/70 shadow-lg backdrop-blur flex items-center justify-center">
+          <RefreshCw
+            className={`w-4 h-4 text-cyan-300 ${
+              refreshing ? "animate-spin" : ""
+            }`}
+            style={
+              refreshing ? undefined : { transform: `rotate(${progress * 300}deg)` }
+            }
+          />
+        </div>
+      </div>
+      <div
+        className="h-full min-h-0 flex flex-col gap-2"
+        style={{
+          transform: `translateY(${pull}px)`,
+          transition: dragging ? "none" : "transform 0.25s ease",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function BracketGrid({
   data,
   picks,
@@ -1154,8 +1233,8 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
     );
   }
 
-  return (
-    <div className={fill ? "flex flex-col gap-2 h-full min-h-0" : "space-y-3"}>
+  const content = (
+    <>
       {err && (
         <div className="text-xs rounded-lg px-3 py-2 border border-rose-500/40 bg-rose-500/10 text-rose-300 shrink-0">
           {err}
@@ -1457,6 +1536,25 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
           </div>
         )}
       </div>
+    </>
+  );
+
+  return (
+    <>
+      {fill ? (
+        <PullToRefresh
+          onRefresh={async () => {
+            await Promise.all([
+              load(),
+              new Promise((r) => setTimeout(r, 650)),
+            ]);
+          }}
+        >
+          {content}
+        </PullToRefresh>
+      ) : (
+        <div className="space-y-3">{content}</div>
+      )}
 
       {openId && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col">
@@ -1563,7 +1661,7 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
