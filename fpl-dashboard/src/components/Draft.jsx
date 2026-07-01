@@ -1196,14 +1196,8 @@ function SavedTab({ data, refreshKey, onEdit }) {
                     <Lock className="w-3.5 h-3.5 text-amber-400 inline" />
                   ) : b.champion ? (
                     <span
-                      className={`text-xl leading-none ${
-                        championOut ? "grayscale opacity-50" : ""
-                      }`}
-                      title={
-                        championOut
-                          ? `Champion eliminated: ${b.champion}`
-                          : `Champion: ${b.champion}`
-                      }
+                      className="text-xl leading-none"
+                      title={`Champion: ${b.champion}`}
                     >
                       {flagFor(b.champion)}
                     </span>
@@ -1217,13 +1211,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
                   onClick={() => open(b.id)}
                   className="flex-1 min-w-0 text-left"
                 >
-                  <div
-                    className={`flex items-start gap-1.5 text-sm font-semibold ${
-                      championOut
-                        ? "text-slate-500 line-through decoration-rose-500/70"
-                        : "text-slate-100"
-                    }`}
-                  >
+                  <div className="flex items-start gap-1.5 text-sm font-semibold text-slate-100">
                     <span className="break-words">{b.name}</span>
                     {b.complete ? (
                       <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
@@ -1260,12 +1248,23 @@ function SavedTab({ data, refreshKey, onEdit }) {
                       ))}
                     </div>
                   ) : (
-                    <div className="mt-0.5 text-[10px] text-slate-500 break-words">
-                      {b.locked
-                        ? "Locked until reveal"
-                        : b.champion
-                        ? `🏆 ${b.champion}`
-                        : "No champion picked"}
+                    <div className="mt-0.5 text-[10px] break-words">
+                      {b.locked ? (
+                        <span className="text-slate-500">Locked until reveal</span>
+                      ) : b.champion ? (
+                        <span
+                          className={
+                            championOut
+                              ? "text-slate-500 line-through decoration-rose-500/70"
+                              : "text-slate-500"
+                          }
+                          title={championOut ? "Champion eliminated" : undefined}
+                        >
+                          🏆 {b.champion}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">No champion picked</span>
+                      )}
                     </div>
                   )}
                 </button>
