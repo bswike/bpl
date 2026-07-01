@@ -317,6 +317,7 @@ export default async function handler(req, res) {
         .sort(
           (a, b) =>
             b.points - a.points ||
+            (b.max ?? 0) - (a.max ?? 0) ||
             b.goals - a.goals ||
             String(a.name).localeCompare(String(b.name))
         );

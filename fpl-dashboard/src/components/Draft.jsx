@@ -247,6 +247,8 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPi
     isUserPick && locked ? meta.realWinner === sideCanon : null;
   const live = meta.state === "in";
   const clickable = editable && known && !locked;
+  // This slot is the winner the manager drew, but that team is already out.
+  const deadWin = isWinner && meta.winnerDead;
   return (
     <button
       type="button"
@@ -254,7 +256,9 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPi
       onClick={() => clickable && onPick(no, sideCanon)}
       className={`flex items-center gap-1 px-1.5 h-[26px] w-full text-left transition-colors ${
         isWinner
-          ? locked
+          ? deadWin
+            ? "bg-rose-500/20"
+            : locked
             ? "bg-emerald-500/15"
             : "bg-cyan-500/15"
           : known
@@ -271,7 +275,9 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPi
         <span
           className={`flex-1 min-w-0 truncate text-[11px] leading-none ${
             isWinner
-              ? locked
+              ? deadWin
+                ? "text-rose-200 font-bold line-through"
+                : locked
                 ? "text-emerald-100 font-bold"
                 : "text-cyan-100 font-bold"
               : "text-slate-200 font-semibold"
@@ -289,7 +295,9 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPi
         </span>
       )}
       {correct === true && <Check className="w-3 h-3 text-emerald-400 shrink-0" />}
-      {correct === false && <X className="w-3 h-3 text-rose-400 shrink-0" />}
+      {(correct === false || deadWin) && (
+        <X className="w-3 h-3 text-rose-400 shrink-0" />
+      )}
       {score != null && (
         <span
           className={`shrink-0 font-mono text-[10px] leading-none ${
@@ -314,7 +322,9 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
     >
       <div
         className={`w-full rounded-md border overflow-hidden ${
-          isToday
+          m.meta.winnerDead
+            ? "border-rose-500/50 bg-rose-500/[0.07]"
+            : isToday
             ? "border-white/50 bg-slate-800/70 ring-1 ring-white/20"
             : "border-slate-700/60 bg-slate-800/50"
         }`}
@@ -369,6 +379,19 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
 function BracketGrid({ data, picks, editable, onPick }) {
   const resolved = useMemo(() => resolveBracket(data, picks), [data, picks]);
 
+  // Teams knocked out for real (loser of any decided match). Used to paint the
+  // dead branches red when a manager routed an eliminated team deeper.
+  const eliminated = useMemo(() => {
+    const s = new Set();
+    (data?.bracket || []).forEach((m) => {
+      if (!m.winnerCanon) return;
+      [m.home?.canon, m.away?.canon].forEach((c) => {
+        if (c && c !== m.winnerCanon) s.add(c);
+      });
+    });
+    return s;
+  }, [data]);
+
   const matchOf = (no) => {
     const c = resolved.comp[no] || {};
     const api = resolved.byNo[no] || {};
@@ -386,11 +409,12 @@ function BracketGrid({ data, picks, editable, onPick }) {
       disp.includes(apiH) &&
       disp.includes(apiA)
     );
+    const winCanon = resolved.win[no]?.canon || null;
     return {
       no,
       home: c.home,
       away: c.away,
-      winCanon: resolved.win[no]?.canon || null,
+      winCanon,
       locked: !!resolved.locked[no],
       meta: {
         date: api.date,
@@ -403,6 +427,8 @@ function BracketGrid({ data, picks, editable, onPick }) {
         userPick: resolved.picks[no] || null,
         scoreByCanon,
         matchesReality,
+        // Manager routed a team here that's already been knocked out -> dead pick.
+        winnerDead: !!(winCanon && eliminated.has(winCanon)),
       },
     };
   };
@@ -416,6 +442,7 @@ function BracketGrid({ data, picks, editable, onPick }) {
   }
 
   const champion = resolved.champion;
+  const championDead = !!(champion && eliminated.has(champion.canon));
   const COL_H = 1040;
 
   return (
@@ -471,14 +498,20 @@ function BracketGrid({ data, picks, editable, onPick }) {
             >
               <div
                 className={`w-full rounded-lg border px-2 py-3 text-center ${
-                  champion
+                  championDead
+                    ? "border-rose-500/50 bg-rose-500/10"
+                    : champion
                     ? "border-amber-400/50 bg-amber-400/10"
                     : "border-slate-700/60 bg-slate-800/40"
                 }`}
               >
                 <Trophy
                   className={`w-4 h-4 mx-auto mb-1 ${
-                    champion ? "text-amber-300" : "text-slate-600"
+                    championDead
+                      ? "text-rose-400"
+                      : champion
+                      ? "text-amber-300"
+                      : "text-slate-600"
                   }`}
                 />
                 <div className="text-lg leading-none mb-0.5">
@@ -486,7 +519,11 @@ function BracketGrid({ data, picks, editable, onPick }) {
                 </div>
                 <div
                   className={`text-xs font-bold break-words ${
-                    champion ? "text-amber-200" : "text-slate-600 italic"
+                    championDead
+                      ? "text-rose-200 line-through"
+                      : champion
+                      ? "text-amber-200"
+                      : "text-slate-600 italic"
                   }`}
                 >
                   {champion ? champion.team : "TBD"}
