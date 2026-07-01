@@ -1454,21 +1454,6 @@ function SavedTab({ data, refreshKey, onEdit }) {
         )}
       </div>
 
-      <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 px-3 py-2 text-[10px] leading-relaxed text-slate-400">
-        <span className="font-semibold text-slate-300">Scoring</span> — each
-        correct pick: R32 <b className="font-semibold text-slate-200">1</b> · R16{" "}
-        <b className="font-semibold text-slate-200">2</b> · QF{" "}
-        <b className="font-semibold text-slate-200">3</b> · SF{" "}
-        <b className="font-semibold text-slate-200">4</b> · Final{" "}
-        <b className="font-semibold text-slate-200">5</b> pts.{" "}
-        <span className="text-slate-500">
-          <b className="font-semibold text-slate-300">Max</b> = most points you
-          can still reach (picks on eliminated teams drop off). Tiebreaker
-          (Goals) = total goals by every team you picked. The Sun 6/28 play-in
-          doesn't count.
-        </span>
-      </div>
-
       {openId && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col">
           <div className="flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/80 px-4 py-2">
