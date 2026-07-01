@@ -33,7 +33,7 @@ function useIsMobile(breakpoint = 768) {
 // "fit to device" zoom shows the entire first round on load.
 const BRACKET_COL_H = 1040;
 function computeMobileFit() {
-  const VIEWPORT_VH = 0.82;
+  const VIEWPORT_VH = 0.9;
   const TREE_H = BRACKET_COL_H + 24; // column height + round-label row
   const vh = typeof window !== "undefined" ? window.innerHeight : 800;
   const targetPx = vh * VIEWPORT_VH;
@@ -980,10 +980,33 @@ function DayCard({ dayKey, matches, ownerFor, pickFor }) {
   );
 }
 
-function ScheduleView({ schedule, managers, draftPicks }) {
+// Turn a knockout-bracket match into the same row shape the schedule uses so
+// the Schedule tab shows every game (groups + all knockout rounds).
+function koToScheduleRow(b) {
+  return {
+    no: b.no,
+    date: b.kickoff || `${b.date}T12:00:00Z`,
+    state: b.state,
+    home: b.home?.team || b.home?.label || "TBD",
+    away: b.away?.team || b.away?.label || "TBD",
+    homeAbbr: b.home?.abbr || b.home?.team || b.home?.label || "",
+    awayAbbr: b.away?.abbr || b.away?.team || b.away?.label || "",
+    homeScore: b.homeScore,
+    awayScore: b.awayScore,
+    homePens: b.homePens,
+    awayPens: b.awayPens,
+    detail: b.detail,
+    roundShort: KO_SHORT[b.round] || (b.round || "").toUpperCase(),
+    odds: b.odds,
+  };
+}
+
+function ScheduleView({ schedule, bracket, managers, draftPicks }) {
   const [showPast, setShowPast] = useState(false);
 
-  if (!schedule || schedule.length === 0) {
+  const koRows = (bracket || []).map(koToScheduleRow);
+  const allMatches = [...(schedule || []), ...koRows];
+  if (allMatches.length === 0) {
     return (
       <p className="text-center text-slate-500 py-12">Schedule unavailable.</p>
     );
@@ -992,7 +1015,7 @@ function ScheduleView({ schedule, managers, draftPicks }) {
   const pickFor = (team) => draftPicks?.[teamCanon(team)] ?? null;
 
   const byDay = {};
-  schedule.forEach((m) => {
+  allMatches.forEach((m) => {
     const k = localDayKey(m.date);
     (byDay[k] = byDay[k] || []).push(m);
   });
@@ -1009,8 +1032,8 @@ function ScheduleView({ schedule, managers, draftPicks }) {
   return (
     <div className="space-y-3">
       <p className="text-[11px] text-slate-600">
-        Moneyline odds (DraftKings) · favorite highlighted · 🔒 = final odds ·
-        letter = group.
+        Every match — groups + knockouts · moneyline odds (DraftKings) ·
+        favorite highlighted · letter = group, R32→FIN = knockout round.
       </p>
 
       {pastDays.length > 0 && (
@@ -1429,11 +1452,6 @@ function GroupsView({ groups, managers, thirdPlace, draftPicks }) {
   const anyLive = groups.some((g) => g.live);
   return (
     <div className="space-y-3">
-      <ThirdPlaceRace
-        ranking={thirdPlace?.ranking}
-        ownerFor={ownerFor}
-        live={anyLive}
-      />
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
         <span>
           <span className="inline-block w-2 h-2 rounded-sm bg-emerald-500/40 align-middle mr-1" />
@@ -1464,6 +1482,11 @@ function GroupsView({ groups, managers, thirdPlace, draftPicks }) {
           />
         ))}
       </div>
+      <ThirdPlaceRace
+        ranking={thirdPlace?.ranking}
+        ownerFor={ownerFor}
+        live={anyLive}
+      />
     </div>
   );
 }
@@ -1671,17 +1694,6 @@ function BracketView({ bracket, managers, draftPicks }) {
   const third = byNo[103];
   const COL_H = BRACKET_COL_H;
 
-  const header = (
-    <div className="flex items-center justify-between gap-2 flex-wrap">
-      <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
-        Knockout Bracket
-      </h2>
-      <p className="text-[10px] text-slate-600">
-        Projected from current standings · updates live as games finish.
-      </p>
-    </div>
-  );
-
   const thirdBlock = third && (
     <div className="max-w-xs">
       <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1">
@@ -1768,7 +1780,6 @@ function BracketView({ bracket, managers, draftPicks }) {
       "flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700";
     return (
       <div className="space-y-2">
-        {header}
         <TransformWrapper
           key={`z${Math.round(fitScale * 100)}`}
           initialScale={fitScale}
@@ -1818,7 +1829,6 @@ function BracketView({ bracket, managers, draftPicks }) {
 
   return (
     <div className="space-y-3">
-      {header}
       <div className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2">
         <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
           ← swipe sideways for all rounds →
@@ -1833,8 +1843,8 @@ function BracketView({ bracket, managers, draftPicks }) {
 function Tabs({ view, setView }) {
   const tabs = [
     { id: "pool", label: "Pool", icon: Users },
-    { id: "groups", label: "Groups", icon: LayoutGrid },
     { id: "bracket", label: "Bracket", icon: GitBranch },
+    { id: "groups", label: "Groups", icon: LayoutGrid },
     { id: "schedule", label: "Schedule", icon: CalendarDays },
     { id: "scoring", label: "Scoring", icon: Globe },
   ];
@@ -2033,6 +2043,7 @@ export default function Footie() {
             ) : view === "schedule" ? (
               <ScheduleView
                 schedule={data.schedule}
+                bracket={data.bracket}
                 managers={data.managers}
                 draftPicks={data.draftPicks}
               />
