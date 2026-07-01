@@ -395,7 +395,7 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
 const BRACKET_COL_H = 1040;
 
 function computeMobileFit() {
-  const VIEWPORT_VH = 0.82;
+  const VIEWPORT_VH = 0.87;
   const TREE_H = BRACKET_COL_H + 24; // column height + round-label row
   const vh = typeof window !== "undefined" ? window.innerHeight : 800;
   const targetPx = vh * VIEWPORT_VH;
@@ -1582,13 +1582,61 @@ function SavedTab({ data, refreshKey, onEdit }) {
 // Live read-only bracket tab (shown after the reveal)
 // ---------------------------------------------------------------------------
 function LiveBracketTab({ data }) {
+  const isMobile = useIsMobile();
+  const zoomRef = useRef(null);
+  const zbtn =
+    "flex items-center justify-center w-7 h-7 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700";
   return (
     <div className="space-y-2">
-      <p className="hidden sm:block text-[11px] text-slate-500">
-        Live World Cup knockout bracket — fills in automatically from ESPN as
-        games finish.
-      </p>
-      <BracketGrid data={data} picks={NO_PICKS} editable={false} onPick={() => {}} />
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] text-slate-500 truncate">
+          <span className="hidden sm:inline">
+            Live World Cup knockout bracket — fills in automatically from ESPN
+            as games finish.
+          </span>
+          <span className="sm:hidden">Live bracket · updates from ESPN</span>
+        </p>
+        {isMobile && (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={() => zoomRef.current?.zoomOut()}
+              className={zbtn}
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => zoomRef.current?.zoomIn()}
+              className={zbtn}
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                zoomRef.current?.setTransform(
+                  0,
+                  0,
+                  computeMobileFit().fitScale,
+                  200
+                )
+              }
+              className={zbtn}
+            >
+              <Maximize className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+      <BracketGrid
+        data={data}
+        picks={NO_PICKS}
+        editable={false}
+        onPick={() => {}}
+        zoomRef={zoomRef}
+        hideControls
+      />
     </div>
   );
 }
