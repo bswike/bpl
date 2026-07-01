@@ -159,7 +159,7 @@ const NO_PICKS = {};
 // Finished games (real ESPN winner) advance automatically and lock; undecided
 // games advance the user's pick. The user's own pick is still recorded so the
 // UI can flag whether it matched the actual result, and so it persists on save.
-function resolveBracket(data, rawPicks) {
+function resolveBracket(data, rawPicks, followPicks = false) {
   const byNo = {};
   (data?.bracket || []).forEach((m) => (byNo[m.no] = m));
   const teamObj = (slot) =>
@@ -194,7 +194,14 @@ function resolveBracket(data, rawPicks) {
     if (isHere(p)) picks[no] = p; // remember the user's pick when still valid
 
     let eff = null;
-    if (isHere(real)) {
+    if (followPicks) {
+      // Manager view: their predicted winner drives the whole tree so we always
+      // show the team they picked to advance (painted red later if it's out),
+      // never a "TBD" or reality's replacement. Still note real results.
+      if (isHere(p)) eff = p;
+      else if (isHere(real)) eff = real;
+      if (isHere(real)) locked[no] = true;
+    } else if (isHere(real)) {
       eff = real; // finished game: reality wins and locks
       locked[no] = true;
     } else if (isHere(p)) {
@@ -376,8 +383,11 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
   );
 }
 
-function BracketGrid({ data, picks, editable, onPick }) {
-  const resolved = useMemo(() => resolveBracket(data, picks), [data, picks]);
+function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
+  const resolved = useMemo(
+    () => resolveBracket(data, picks, followPicks),
+    [data, picks, followPicks]
+  );
 
   // Teams knocked out for real (loser of any decided match). Used to paint the
   // dead branches red when a manager routed an eliminated team deeper.
@@ -1361,6 +1371,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
                 picks={openData.picks || {}}
                 editable={false}
                 onPick={() => {}}
+                followPicks
               />
             )}
           </div>
