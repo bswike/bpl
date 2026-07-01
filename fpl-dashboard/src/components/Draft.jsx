@@ -1400,6 +1400,15 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
               const pills = livePillsFor(b);
               const leadingNow = pills.some((p) => p.status === "leading");
               const atRisk = atRiskFor(b);
+              // Scale the font down for long entry names so the full name fits
+              // on a single line instead of wrapping / truncating.
+              const nameLen = (b.name || "").length;
+              const nameCls =
+                nameLen > 26
+                  ? "text-[9px]"
+                  : nameLen > 20
+                  ? "text-[11px]"
+                  : "text-[13px]";
               // Their picked champion is already knocked out -> cross the entry out.
               const championOut = !!(
                 b.picks &&
@@ -1474,7 +1483,9 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                 </div>
 
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="flex items-center gap-1.5 text-[13px] font-semibold leading-tight text-slate-100 min-w-0">
+                  <div
+                    className={`flex items-center gap-1.5 font-semibold leading-tight text-slate-100 min-w-0 ${nameCls}`}
+                  >
                     <span className="truncate">{b.name}</span>
                     {b.complete ? (
                       <Check className="w-3 h-3 text-emerald-400 shrink-0" />
