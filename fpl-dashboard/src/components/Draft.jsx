@@ -241,9 +241,11 @@ function Connectors({ count, colH }) {
   );
 }
 
-function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPick }) {
+function MatchSlot({ no, slot, sideCanon, winCanon, locked, dead, meta, editable, onPick }) {
   const known = !!(slot && slot.canon);
   const isWinner = !!winCanon && sideCanon === winCanon;
+  // This exact team has already been knocked out for real (winner or loser slot).
+  const slotDead = !!(known && dead);
   const score =
     known && (no <= 88 || meta.matchesReality) && meta.scoreByCanon[sideCanon] != null
       ? meta.scoreByCanon[sideCanon]
@@ -254,18 +256,16 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPi
     isUserPick && locked ? meta.realWinner === sideCanon : null;
   const live = meta.state === "in";
   const clickable = editable && known && !locked;
-  // This slot is the winner the manager drew, but that team is already out.
-  const deadWin = isWinner && meta.winnerDead;
   return (
     <button
       type="button"
       disabled={!clickable}
       onClick={() => clickable && onPick(no, sideCanon)}
       className={`flex items-center gap-1 px-1.5 h-[26px] w-full text-left transition-colors ${
-        isWinner
-          ? deadWin
-            ? "bg-rose-500/20"
-            : locked
+        slotDead
+          ? "bg-rose-500/20"
+          : isWinner
+          ? locked
             ? "bg-emerald-500/15"
             : "bg-cyan-500/15"
           : known
@@ -281,10 +281,10 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPi
       {known ? (
         <span
           className={`flex-1 min-w-0 truncate text-[11px] leading-none ${
-            isWinner
-              ? deadWin
-                ? "text-rose-200 font-bold line-through"
-                : locked
+            slotDead
+              ? "text-rose-200 font-bold line-through"
+              : isWinner
+              ? locked
                 ? "text-emerald-100 font-bold"
                 : "text-cyan-100 font-bold"
               : "text-slate-200 font-semibold"
@@ -302,7 +302,7 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, meta, editable, onPi
         </span>
       )}
       {correct === true && <Check className="w-3 h-3 text-emerald-400 shrink-0" />}
-      {(correct === false || deadWin) && (
+      {(correct === false || (slotDead && isWinner)) && (
         <X className="w-3 h-3 text-rose-400 shrink-0" />
       )}
       {score != null && (
@@ -363,6 +363,7 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
           sideCanon={home?.canon || null}
           winCanon={winCanon}
           locked={locked}
+          dead={m.homeDead}
           meta={meta}
           editable={editable}
           onPick={onPick}
@@ -374,6 +375,7 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
           sideCanon={away?.canon || null}
           winCanon={winCanon}
           locked={locked}
+          dead={m.awayDead}
           meta={meta}
           editable={editable}
           onPick={onPick}
@@ -425,6 +427,9 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
       home: c.home,
       away: c.away,
       winCanon,
+      // Either team in this match can already be knocked out for real.
+      homeDead: !!(c.home?.canon && eliminated.has(c.home.canon)),
+      awayDead: !!(c.away?.canon && eliminated.has(c.away.canon)),
       locked: !!resolved.locked[no],
       meta: {
         date: api.date,
