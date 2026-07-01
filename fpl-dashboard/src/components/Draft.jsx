@@ -329,7 +329,7 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, dead, meta, editable
   );
 }
 
-function DraftMatch({ m, editable, onPick, colHeight, count }) {
+function DraftMatch({ m, editable, onPick, colHeight, count, onOpen }) {
   const { no, home, away, winCanon, locked, meta } = m;
   const live = meta.state === "in";
   const isToday = koIsToday(meta.date);
@@ -339,7 +339,7 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
       className="flex items-center"
     >
       <div
-        className={`w-full rounded-md border overflow-hidden ${
+        className={`relative w-full rounded-md border overflow-hidden ${
           m.meta.winnerDead
             ? "border-rose-500/50 bg-rose-500/[0.07]"
             : isToday
@@ -347,6 +347,15 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
             : "border-slate-700/60 bg-slate-800/50"
         }`}
       >
+        {onOpen && (
+          <button
+            type="button"
+            onClick={() => onOpen(no)}
+            title="See who picked this matchup"
+            aria-label="See who picked this matchup"
+            className="absolute inset-0 z-10 rounded-md hover:bg-cyan-400/5 hover:ring-1 hover:ring-cyan-400/40 focus:outline-none focus:ring-1 focus:ring-cyan-400/60"
+          />
+        )}
         <div className="flex items-center justify-between px-1.5 py-[2px] bg-slate-900/50 border-b border-slate-700/40">
           <span
             title={`${koDayLabel(meta.date)} · ${meta.time || ""} · ${
@@ -511,6 +520,7 @@ function BracketGrid({
   zoomRef = null,
   hideControls = false,
   fillHeight = false,
+  onMatchClick = null,
 }) {
   const isMobile = useIsMobile();
   // When we fill the available space (e.g. the Bracket tab), measure the real
@@ -628,6 +638,7 @@ function BracketGrid({
                         onPick={onPick}
                         colHeight={COL_H}
                         count={order.length}
+                        onOpen={onMatchClick}
                       />
                     ))}
                   </div>
@@ -1828,6 +1839,28 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
 // ---------------------------------------------------------------------------
 function LiveBracketTab({ data, zoomRef }) {
   const isMobile = useIsMobile();
+  const [list, setList] = useState(null);
+  const [selectedNo, setSelectedNo] = useState(null);
+
+  // Standings (name + rank + live points + everyone's picks) so tapping a
+  // matchup can show who has each team advancing.
+  const loadList = useCallback(async () => {
+    try {
+      const res = await fetch("/api/draft");
+      const json = await res.json();
+      if (res.ok) setList(json.brackets || []);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  useEffect(() => {
+    loadList();
+    const id = setInterval(() => {
+      if (!document.hidden) loadList();
+    }, 30000);
+    return () => clearInterval(id);
+  }, [loadList]);
+
   return (
     <div
       className={
@@ -1836,7 +1869,7 @@ function LiveBracketTab({ data, zoomRef }) {
     >
       <p className="hidden sm:block text-[11px] text-slate-500">
         Live World Cup knockout bracket — fills in automatically from ESPN as
-        games finish.
+        games finish. Tap any matchup to see who picked whom.
       </p>
       <BracketGrid
         data={data}
@@ -1846,7 +1879,164 @@ function LiveBracketTab({ data, zoomRef }) {
         zoomRef={zoomRef}
         hideControls
         fillHeight={isMobile}
+        onMatchClick={setSelectedNo}
       />
+      {selectedNo != null && (
+        <MatchPicksModal
+          no={selectedNo}
+          data={data}
+          list={list}
+          onClose={() => setSelectedNo(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Popup shown when a matchup is tapped in the Bracket tab: how many managers
+// have each team advancing past that match, with each manager's rank + points.
+function MatchPicksModal({ no, data, list, onClose }) {
+  const info = useMemo(() => {
+    const byNo = {};
+    (data?.bracket || []).forEach((m) => (byNo[m.no] = m));
+    const m = byNo[no] || null;
+    const nameByCanon = {};
+    (data?.bracket || []).forEach((mm) => {
+      [mm.home, mm.away].forEach((s) => {
+        if (s?.canon && s?.team) nameByCanon[s.canon] = s.team;
+      });
+    });
+    const groups = new Map();
+    let noPick = 0;
+    (list || []).forEach((b, i) => {
+      const pick = b.picks?.[no];
+      if (!pick) {
+        noPick += 1;
+        return;
+      }
+      if (!groups.has(pick)) groups.set(pick, []);
+      groups.get(pick).push({
+        id: b.id,
+        name: b.name,
+        rank: i + 1,
+        points: b.points ?? 0,
+      });
+    });
+    const arr = [...groups.entries()].map(([canon, mgrs]) => ({
+      canon,
+      team: nameByCanon[canon] || canon,
+      eliminated: !!byNo[no]?.winnerCanon && byNo[no].winnerCanon !== canon,
+      won: byNo[no]?.winnerCanon === canon,
+      mgrs: mgrs.sort((a, b) => a.rank - b.rank),
+    }));
+    arr.sort((a, b) => b.mgrs.length - a.mgrs.length || a.team.localeCompare(b.team));
+    return { m, groups: arr, noPick, total: (list || []).length };
+  }, [no, data, list]);
+
+  const m = info.m;
+  const roundLabel = m?.roundLabel || `Match ${no}`;
+  const matchupTeams =
+    m?.home?.team && m?.away?.team ? `${m.home.team} vs ${m.away.team}` : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md max-h-[85vh] flex flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-2 px-4 py-3 border-b border-slate-700/60 shrink-0">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-cyan-400">
+              {roundLabel} · M{no}
+            </div>
+            <div className="text-sm font-bold text-slate-100 truncate">
+              {matchupTeams || "Who advances?"}
+            </div>
+            <div className="text-[11px] text-slate-500">
+              {info.total - info.noPick} of {info.total} managers picked
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-3">
+          {info.groups.length === 0 ? (
+            <p className="text-center text-sm text-slate-500 py-8">
+              No picks for this matchup yet.
+            </p>
+          ) : (
+            info.groups.map((g) => (
+              <div
+                key={g.canon}
+                className={`rounded-xl border ${
+                  g.won
+                    ? "border-emerald-500/40 bg-emerald-500/5"
+                    : g.eliminated
+                    ? "border-rose-500/40 bg-rose-500/5"
+                    : "border-slate-700/60 bg-slate-800/40"
+                }`}
+              >
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-700/40">
+                  <span className="text-xl leading-none shrink-0">
+                    {flagFor(g.team)}
+                  </span>
+                  <span
+                    className={`flex-1 min-w-0 truncate text-sm font-bold ${
+                      g.eliminated ? "text-rose-200 line-through" : "text-slate-100"
+                    }`}
+                  >
+                    {g.team}
+                  </span>
+                  {g.won && (
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                  )}
+                  {g.eliminated && <X className="w-4 h-4 text-rose-400 shrink-0" />}
+                  <span className="shrink-0 rounded-full bg-slate-700/60 px-2 py-0.5 text-[11px] font-bold text-slate-200">
+                    {g.mgrs.length}
+                  </span>
+                </div>
+                <div className="divide-y divide-slate-800/60">
+                  {g.mgrs.map((mgr) => (
+                    <div
+                      key={mgr.id}
+                      className="flex items-center gap-2 px-3 py-1.5"
+                    >
+                      <span className="w-7 shrink-0 text-[11px] font-bold tabular-nums text-slate-500">
+                        #{mgr.rank}
+                      </span>
+                      <span className="flex-1 min-w-0 truncate text-sm text-slate-200">
+                        {mgr.name}
+                      </span>
+                      <span className="shrink-0 text-xs font-bold tabular-nums text-cyan-300">
+                        {mgr.points}
+                        <span className="text-[10px] font-medium text-slate-500">
+                          {" "}
+                          pts
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+          {info.noPick > 0 && (
+            <p className="text-center text-[11px] text-slate-600">
+              {info.noPick} manager{info.noPick === 1 ? "" : "s"} haven't picked
+              this matchup
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
