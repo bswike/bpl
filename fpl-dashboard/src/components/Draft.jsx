@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   GitBranch,
   Trophy,
@@ -154,6 +154,32 @@ const REVEAL_AT = Date.UTC(2026, 5, 29, 17, 0, 0);
 const isRevealed = () => Date.now() >= REVEAL_AT;
 const NO_PICKS = {};
 
+// Phones get a paged, round-by-round bracket; tablets/desktop keep the tree.
+function useIsMobile(bp = 768) {
+  const [mobile, setMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < bp
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(`(max-width:${bp - 1}px)`);
+    const on = () => setMobile(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, [bp]);
+  return mobile;
+}
+
+// Rounds for the paged mobile view (mirrors BR_COLS + a champion page).
+const MOBILE_ROUNDS = [
+  { key: "r32", label: "R32" },
+  { key: "r16", label: "R16" },
+  { key: "qf", label: "QF" },
+  { key: "sf", label: "SF" },
+  { key: "final", label: "Final" },
+  { key: "champion", label: "🏆" },
+];
+
 // Resolve the bracket: R32 teams come from the live API standings; every other
 // match's two contestants come from whoever has advanced up the tree.
 // Finished games (real ESPN winner) advance automatically and lock; undecided
@@ -241,11 +267,12 @@ function Connectors({ count, colH }) {
   );
 }
 
-function MatchSlot({ no, slot, sideCanon, winCanon, locked, dead, meta, editable, onPick }) {
+function MatchSlot({ no, slot, sideCanon, winCanon, locked, dead, followCanon, meta, editable, onPick }) {
   const known = !!(slot && slot.canon);
   const isWinner = !!winCanon && sideCanon === winCanon;
   // This exact team has already been knocked out for real (winner or loser slot).
   const slotDead = !!(known && dead);
+  const isFollowed = !!(known && followCanon && sideCanon === followCanon);
   const score =
     known && (no <= 88 || meta.matchesReality) && meta.scoreByCanon[sideCanon] != null
       ? meta.scoreByCanon[sideCanon]
@@ -273,6 +300,8 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, dead, meta, editable
             ? "hover:bg-slate-700/40"
             : "opacity-60"
           : ""
+      } ${
+        isFollowed ? "ring-1 ring-inset ring-amber-400/80" : ""
       } ${clickable ? "cursor-pointer" : "cursor-default"}`}
     >
       <span className="text-[11px] leading-none shrink-0">
@@ -318,10 +347,13 @@ function MatchSlot({ no, slot, sideCanon, winCanon, locked, dead, meta, editable
   );
 }
 
-function DraftMatch({ m, editable, onPick, colHeight, count }) {
+function DraftMatch({ m, editable, onPick, colHeight, count, followCanon }) {
   const { no, home, away, winCanon, locked, meta } = m;
   const live = meta.state === "in";
   const isToday = koIsToday(meta.date);
+  const onPath =
+    !!followCanon &&
+    (home?.canon === followCanon || away?.canon === followCanon);
   return (
     <div
       style={{ minHeight: colHeight ? colHeight / count : undefined }}
@@ -334,7 +366,7 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
             : isToday
             ? "border-white/50 bg-slate-800/70 ring-1 ring-white/20"
             : "border-slate-700/60 bg-slate-800/50"
-        }`}
+        } ${onPath ? "ring-2 ring-amber-400/70" : ""}`}
       >
         <div className="flex items-center justify-between px-1.5 py-[2px] bg-slate-900/50 border-b border-slate-700/40">
           <span
@@ -364,6 +396,7 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
           winCanon={winCanon}
           locked={locked}
           dead={m.homeDead}
+          followCanon={followCanon}
           meta={meta}
           editable={editable}
           onPick={onPick}
@@ -376,6 +409,7 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
           winCanon={winCanon}
           locked={locked}
           dead={m.awayDead}
+          followCanon={followCanon}
           meta={meta}
           editable={editable}
           onPick={onPick}
@@ -385,11 +419,305 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
   );
 }
 
+// A single team row inside a mobile match card (bigger tap target than the tree).
+function MobileTeamRow({
+  no,
+  slot,
+  sideCanon,
+  winCanon,
+  locked,
+  dead,
+  followCanon,
+  meta,
+  editable,
+  onPick,
+}) {
+  const known = !!(slot && slot.canon);
+  const isWinner = !!winCanon && sideCanon === winCanon;
+  const slotDead = !!(known && dead);
+  const isFollowed = !!(known && followCanon && sideCanon === followCanon);
+  const score =
+    known && (no <= 88 || meta.matchesReality) && meta.scoreByCanon[sideCanon] != null
+      ? meta.scoreByCanon[sideCanon]
+      : null;
+  const isUserPick = !!meta.userPick && meta.userPick === sideCanon;
+  const correct = isUserPick && locked ? meta.realWinner === sideCanon : null;
+  const live = meta.state === "in";
+  const clickable = editable && known && !locked;
+  return (
+    <button
+      type="button"
+      disabled={!clickable}
+      onClick={() => clickable && onPick(no, sideCanon)}
+      className={`flex items-center gap-2 px-3 h-11 w-full text-left transition-colors ${
+        slotDead
+          ? "bg-rose-500/20"
+          : isWinner
+          ? locked
+            ? "bg-emerald-500/15"
+            : "bg-cyan-500/15"
+          : known && clickable
+          ? "active:bg-slate-700/50"
+          : known
+          ? "opacity-70"
+          : ""
+      } ${isFollowed ? "ring-1 ring-inset ring-amber-400/80" : ""}`}
+    >
+      <span className="text-lg leading-none shrink-0 w-6 text-center">
+        {known ? flagFor(slot.team) : "·"}
+      </span>
+      {known ? (
+        <span
+          className={`flex-1 min-w-0 truncate text-sm ${
+            slotDead
+              ? "text-rose-200 font-bold line-through"
+              : isFollowed
+              ? "text-amber-200 font-bold"
+              : isWinner
+              ? locked
+                ? "text-emerald-100 font-bold"
+                : "text-cyan-100 font-bold"
+              : "text-slate-200 font-medium"
+          }`}
+        >
+          {slot.team}
+        </span>
+      ) : (
+        <span className="flex-1 min-w-0 truncate text-xs text-slate-500 italic">
+          {slot?.label || "TBD"}
+        </span>
+      )}
+      {correct === true && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
+      {(correct === false || (slotDead && isWinner)) && (
+        <X className="w-4 h-4 text-rose-400 shrink-0" />
+      )}
+      {score != null && (
+        <span
+          className={`shrink-0 font-mono text-sm ${
+            live ? "text-cyan-300 font-bold" : "text-slate-400"
+          }`}
+        >
+          {score}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function MobileMatchCard({ m, editable, onPick, followCanon }) {
+  const { no, home, away, winCanon, locked, meta } = m;
+  const live = meta.state === "in";
+  const isToday = koIsToday(meta.date);
+  const onPath =
+    !!followCanon &&
+    (home?.canon === followCanon || away?.canon === followCanon);
+  return (
+    <div
+      className={`rounded-xl border overflow-hidden ${
+        meta.winnerDead
+          ? "border-rose-500/50 bg-rose-500/[0.06]"
+          : isToday
+          ? "border-white/40 bg-slate-800/70"
+          : "border-slate-700/60 bg-slate-800/50"
+      } ${onPath ? "ring-2 ring-amber-400/70" : ""}`}
+    >
+      <div className="flex items-center justify-between px-3 py-1 bg-slate-900/50 border-b border-slate-700/40">
+        <span className="text-[10px] text-slate-500 font-medium truncate">
+          {[koDayLabel(meta.date), koTimeShort(meta.time), shortCity(meta.city)]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+        {live ? (
+          <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400 font-bold shrink-0 ml-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            {meta.detail || "LIVE"}
+          </span>
+        ) : (
+          <span className="text-[10px] text-slate-600 shrink-0 ml-1">M{no}</span>
+        )}
+      </div>
+      <MobileTeamRow
+        no={no}
+        slot={home}
+        sideCanon={home?.canon || null}
+        winCanon={winCanon}
+        locked={locked}
+        dead={m.homeDead}
+        followCanon={followCanon}
+        meta={meta}
+        editable={editable}
+        onPick={onPick}
+      />
+      <div className="border-t border-slate-700/40" />
+      <MobileTeamRow
+        no={no}
+        slot={away}
+        sideCanon={away?.canon || null}
+        winCanon={winCanon}
+        locked={locked}
+        dead={m.awayDead}
+        followCanon={followCanon}
+        meta={meta}
+        editable={editable}
+        onPick={onPick}
+      />
+    </div>
+  );
+}
+
+// Paged, round-by-round bracket for phones: tap a round or swipe left/right.
+function PagedBracket({
+  matchOf,
+  champion,
+  championDead,
+  editable,
+  onPick,
+  followCanon,
+}) {
+  const [ri, setRi] = useState(0);
+  const touch = useRef(null);
+  const round = MOBILE_ROUNDS[ri];
+  const go = (dir) =>
+    setRi((i) => Math.max(0, Math.min(MOBILE_ROUNDS.length - 1, i + dir)));
+
+  const onTouchStart = (e) => {
+    const t = e.touches[0];
+    touch.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e) => {
+    if (!touch.current) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touch.current.x;
+    const dy = t.clientY - touch.current.y;
+    touch.current = null;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      go(dx < 0 ? 1 : -1);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-1 mb-3 overflow-x-auto no-scrollbar">
+        {MOBILE_ROUNDS.map((r, i) => {
+          const active = i === ri;
+          return (
+            <button
+              key={r.key}
+              type="button"
+              onClick={() => setRi(i)}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+                active
+                  ? "bg-cyan-600 text-white"
+                  : "bg-slate-800/70 text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {r.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        className="space-y-2 min-h-[40vh]"
+      >
+        {round.key === "champion" ? (
+          <div className="pt-6 flex flex-col items-center">
+            <div className="text-[10px] uppercase tracking-wider text-amber-400/80 font-semibold mb-2">
+              Champion
+            </div>
+            <div
+              className={`w-48 rounded-2xl border px-4 py-6 text-center ${
+                championDead
+                  ? "border-rose-500/50 bg-rose-500/10"
+                  : champion
+                  ? "border-amber-400/50 bg-amber-400/10"
+                  : "border-slate-700/60 bg-slate-800/40"
+              }`}
+            >
+              <Trophy
+                className={`w-6 h-6 mx-auto mb-2 ${
+                  championDead
+                    ? "text-rose-400"
+                    : champion
+                    ? "text-amber-300"
+                    : "text-slate-600"
+                }`}
+              />
+              <div className="text-3xl leading-none mb-1">
+                {champion ? flagFor(champion.team) : ""}
+              </div>
+              <div
+                className={`text-sm font-bold break-words ${
+                  championDead
+                    ? "text-rose-200 line-through"
+                    : champion
+                    ? "text-amber-200"
+                    : "text-slate-600 italic"
+                }`}
+              >
+                {champion ? champion.team : "TBD"}
+              </div>
+            </div>
+          </div>
+        ) : (
+          BR_ORDER[round.key].map((no) => (
+            <MobileMatchCard
+              key={no}
+              m={matchOf(no)}
+              editable={editable}
+              onPick={onPick}
+              followCanon={followCanon}
+            />
+          ))
+        )}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+        <button
+          type="button"
+          onClick={() => go(-1)}
+          disabled={ri === 0}
+          className="inline-flex items-center gap-1 disabled:opacity-30"
+        >
+          ‹ Prev
+        </button>
+        <span className="text-slate-600">swipe or tap a round</span>
+        <button
+          type="button"
+          onClick={() => go(1)}
+          disabled={ri === MOBILE_ROUNDS.length - 1}
+          className="inline-flex items-center gap-1 disabled:opacity-30"
+        >
+          Next ›
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
+  const isMobile = useIsMobile();
+  const [followCanon, setFollowCanon] = useState(null);
   const resolved = useMemo(
     () => resolveBracket(data, picks, followPicks),
     [data, picks, followPicks]
   );
+
+  // Distinct teams present anywhere in this bracket, for the "follow" picker.
+  const teamOptions = useMemo(() => {
+    const map = new Map();
+    KO_NUMS.forEach((no) => {
+      const c = resolved.comp[no];
+      [c?.home, c?.away].forEach((s) => {
+        if (s?.canon) map.set(s.canon, s.team);
+      });
+    });
+    return [...map.entries()]
+      .map(([canon, team]) => ({ canon, team }))
+      .sort((a, b) => a.team.localeCompare(b.team));
+  }, [resolved]);
 
   // Teams knocked out for real (loser of any decided match). Used to paint the
   // dead branches red when a manager routed an eliminated team deeper.
@@ -460,8 +788,53 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
   const championDead = !!(champion && eliminated.has(champion.canon));
   const COL_H = 1040;
 
+  const followControl =
+    teamOptions.length > 0 ? (
+      <div className="flex items-center gap-2 text-xs">
+        <span className="text-slate-500 shrink-0">Follow</span>
+        <select
+          value={followCanon || ""}
+          onChange={(e) => setFollowCanon(e.target.value || null)}
+          className="min-w-0 max-w-[200px] rounded-lg border border-slate-700 bg-slate-800/70 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-amber-400/60"
+        >
+          <option value="">a team…</option>
+          {teamOptions.map((t) => (
+            <option key={t.canon} value={t.canon}>
+              {t.team}
+            </option>
+          ))}
+        </select>
+        {followCanon && (
+          <button
+            type="button"
+            onClick={() => setFollowCanon(null)}
+            className="shrink-0 rounded-md border border-slate-700 px-2 py-1 text-slate-400 hover:text-amber-200 hover:border-amber-400/50"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+    ) : null;
+
+  if (isMobile) {
+    return (
+      <div className="space-y-3">
+        {followControl}
+        <PagedBracket
+          matchOf={matchOf}
+          champion={champion}
+          championDead={championDead}
+          editable={editable}
+          onPick={onPick}
+          followCanon={followCanon}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
+      {followControl}
       <div className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2">
         <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
           ← swipe sideways for all rounds →
@@ -491,6 +864,7 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
                         onPick={onPick}
                         colHeight={COL_H}
                         count={order.length}
+                        followCanon={followCanon}
                       />
                     ))}
                   </div>
