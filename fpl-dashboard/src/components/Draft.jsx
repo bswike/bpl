@@ -942,7 +942,7 @@ function PickTab({ data, onSaved, editTarget, onClearEdit }) {
 // ---------------------------------------------------------------------------
 // Saved brackets tab
 // ---------------------------------------------------------------------------
-function SavedTab({ data, refreshKey, onEdit }) {
+function SavedTab({ data, refreshKey, onEdit, fill = false }) {
   const [list, setList] = useState(null);
   const [revealed, setRevealed] = useState(true);
   const [err, setErr] = useState(null);
@@ -1155,14 +1155,14 @@ function SavedTab({ data, refreshKey, onEdit }) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className={fill ? "flex flex-col gap-2 h-full min-h-0" : "space-y-3"}>
       {err && (
-        <div className="text-xs rounded-lg px-3 py-2 border border-rose-500/40 bg-rose-500/10 text-rose-300">
+        <div className="text-xs rounded-lg px-3 py-2 border border-rose-500/40 bg-rose-500/10 text-rose-300 shrink-0">
           {err}
         </div>
       )}
       {!revealed && (
-        <div className="text-xs rounded-lg px-3 py-2 border border-amber-500/40 bg-amber-500/10 text-amber-200 flex items-start gap-2">
+        <div className="text-xs rounded-lg px-3 py-2 border border-amber-500/40 bg-amber-500/10 text-amber-200 flex items-start gap-2 shrink-0">
           <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
           <span>
             Brackets stay private until the reveal ({REVEAL_LABEL}). You can only
@@ -1173,7 +1173,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
       {liveStrip.map((lm) => (
         <div
           key={lm.no}
-          className="rounded-xl border border-rose-500/40 bg-rose-500/5 px-3 py-2"
+          className="rounded-xl border border-rose-500/40 bg-rose-500/5 px-3 py-2 shrink-0"
         >
           <div className="flex items-center gap-1.5 text-[11px] mb-1">
             <span className="inline-flex items-center gap-1 font-bold text-rose-400">
@@ -1235,8 +1235,12 @@ function SavedTab({ data, refreshKey, onEdit }) {
         </div>
       ))}
 
-      <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700/60 bg-gradient-to-r from-slate-800 to-slate-800/20">
+      <div
+        className={`rounded-2xl border border-slate-700/60 bg-slate-800/40 overflow-hidden ${
+          fill ? "flex-1 min-h-0 flex flex-col" : ""
+        }`}
+      >
+        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-700/60 bg-gradient-to-r from-slate-800 to-slate-800/20 shrink-0">
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-amber-400" />
             <h2 className="text-sm font-bold tracking-tight text-slate-100">
@@ -1253,8 +1257,8 @@ function SavedTab({ data, refreshKey, onEdit }) {
             No brackets submitted yet. Fill one out and hit save.
           </p>
         ) : (
-          <>
-            <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-700/40 bg-slate-900/40">
+          <div className={fill ? "flex-1 min-h-0 flex flex-col" : ""}>
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-700/40 bg-slate-900/40 shrink-0">
               <span className="w-6 text-center shrink-0">Rk</span>
               <span className="w-7 text-center shrink-0">Pk</span>
               <span className="flex-1 min-w-0">Entry</span>
@@ -1278,10 +1282,10 @@ function SavedTab({ data, refreshKey, onEdit }) {
               <div
                 key={b.id}
                 className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 transition-colors hover:bg-slate-700/20 ${
-                  leadingNow ? "border-l-2 border-l-emerald-500/70" : ""
-                } ${i % 2 ? "bg-slate-800/20" : ""} ${
-                  i < list.length - 1 ? "border-b border-slate-700/30" : ""
-                }`}
+                  fill ? "flex-1 min-h-0 overflow-hidden" : ""
+                } ${leadingNow ? "border-l-2 border-l-emerald-500/70" : ""} ${
+                  i % 2 ? "bg-slate-800/20" : ""
+                } ${i < list.length - 1 ? "border-b border-slate-700/30" : ""}`}
               >
                 <div className="w-6 flex justify-center shrink-0">
                   {i < 3 ? (
@@ -1450,7 +1454,7 @@ function SavedTab({ data, refreshKey, onEdit }) {
               </div>
               );
             })}
-          </>
+          </div>
         )}
       </div>
 
@@ -1698,8 +1702,14 @@ export default function Draft() {
       ];
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-slate-900 text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
+    <div
+      className={`w-full bg-slate-900 text-slate-100 ${
+        isMobile
+          ? "h-[100dvh] overflow-hidden flex flex-col"
+          : "min-h-screen overflow-x-hidden"
+      }`}
+    >
+      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10 shrink-0">
         <div className="max-w-5xl mx-auto px-4 py-1.5 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2 leading-tight">
@@ -1723,8 +1733,12 @@ export default function Draft() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between gap-2 mb-3">
+      <main
+        className={`max-w-5xl mx-auto w-full px-4 py-3 ${
+          isMobile ? "flex-1 min-h-0 flex flex-col" : ""
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
           <div className="inline-flex p-1 bg-slate-800/60 border border-slate-700/60 rounded-xl max-w-full overflow-x-auto">
             {tabs.map((t) => {
               const Icon = t.icon;
@@ -1780,33 +1794,44 @@ export default function Draft() {
           )}
         </div>
 
-        {loading ? (
-          <div className="py-24">
-            <LoadingSpinner size="lg" message="Loading bracket..." />
-          </div>
-        ) : error ? (
-          <div className="max-w-md mx-auto bg-rose-500/10 border border-rose-500/30 rounded-2xl p-8 text-center">
-            <p className="text-rose-300 mb-4">{error}</p>
-            <button
-              type="button"
-              onClick={() => load(false)}
-              className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
-            >
-              Try again
-            </button>
-          </div>
-        ) : view === "pick" && !revealed ? (
-          <PickTab
-            data={data}
-            onSaved={handleSaved}
-            editTarget={editTarget}
-            onClearEdit={() => setEditTarget(null)}
-          />
-        ) : view === "live" ? (
-          <LiveBracketTab data={data} zoomRef={liveZoomRef} />
-        ) : (
-          <SavedTab data={data} refreshKey={refreshKey} onEdit={startEdit} />
-        )}
+        <div
+          className={
+            isMobile ? "flex-1 min-h-0 flex flex-col overflow-hidden" : ""
+          }
+        >
+          {loading ? (
+            <div className="py-24">
+              <LoadingSpinner size="lg" message="Loading bracket..." />
+            </div>
+          ) : error ? (
+            <div className="max-w-md mx-auto bg-rose-500/10 border border-rose-500/30 rounded-2xl p-8 text-center">
+              <p className="text-rose-300 mb-4">{error}</p>
+              <button
+                type="button"
+                onClick={() => load(false)}
+                className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
+              >
+                Try again
+              </button>
+            </div>
+          ) : view === "pick" && !revealed ? (
+            <PickTab
+              data={data}
+              onSaved={handleSaved}
+              editTarget={editTarget}
+              onClearEdit={() => setEditTarget(null)}
+            />
+          ) : view === "live" ? (
+            <LiveBracketTab data={data} zoomRef={liveZoomRef} />
+          ) : (
+            <SavedTab
+              data={data}
+              refreshKey={refreshKey}
+              onEdit={startEdit}
+              fill={isMobile}
+            />
+          )}
+        </div>
       </main>
     </div>
   );
