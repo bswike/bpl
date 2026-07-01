@@ -566,22 +566,21 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
       "flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700";
     // Fit the zoom to the device so the entire first round (tallest column)
     // is visible on load, then let the user pan right for later rounds.
+    // The viewport is sized to the *exact* fitted tree height so there's no
+    // vertical slack for the pan library to re-settle (avoids a jump on swipe).
     const VIEWPORT_VH = 0.82;
     const TREE_H = COL_H + 24; // column height + round-label row
     const vh = typeof window !== "undefined" ? window.innerHeight : 800;
-    const viewportPx = vh * VIEWPORT_VH;
-    const fitScale = Math.max(
-      0.25,
-      Math.min(1, (viewportPx / TREE_H) * 0.97)
-    );
-    const posY = Math.max(0, (viewportPx - TREE_H * fitScale) / 2);
+    const targetPx = vh * VIEWPORT_VH;
+    const fitScale = Math.max(0.25, Math.min(1, targetPx / TREE_H));
+    const wrapperH = Math.round(TREE_H * fitScale);
     return (
       <div className="space-y-2">
         <TransformWrapper
           key={`z${Math.round(fitScale * 100)}`}
           initialScale={fitScale}
           initialPositionX={0}
-          initialPositionY={posY}
+          initialPositionY={0}
           minScale={Math.min(0.25, fitScale)}
           maxScale={2.6}
           centerZoomedOut
@@ -601,7 +600,7 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTransform(0, posY, fitScale, 200)}
+                  onClick={() => setTransform(0, 0, fitScale, 200)}
                   className={btn}
                 >
                   <Maximize className="w-4 h-4" />
@@ -611,7 +610,7 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
                 </span>
               </div>
               <TransformComponent
-                wrapperStyle={{ width: "100%", height: "82vh" }}
+                wrapperStyle={{ width: "100%", height: `${wrapperH}px` }}
                 wrapperClass="rounded-xl border border-slate-700/50 bg-slate-900/40"
               >
                 {tree}
