@@ -1218,6 +1218,30 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
     });
   }, [liveMatches, list]);
 
+  // Next upcoming knockout game (both teams already set) + the manager split,
+  // shown when nothing is live so there's always a "who has who" pulse.
+  const nextGame = useMemo(() => {
+    if (!Array.isArray(list)) return null;
+    const cands = (data?.bracket || []).filter(
+      (m) => m.state === "pre" && m.home?.canon && m.away?.canon
+    );
+    if (!cands.length) return null;
+    cands.sort((a, b) =>
+      String(a.kickoff || `${a.date} ${a.time}` || "").localeCompare(
+        String(b.kickoff || `${b.date} ${b.time}` || "")
+      )
+    );
+    const m = cands[0];
+    let homeCount = 0;
+    let awayCount = 0;
+    for (const e of list) {
+      const p = e.picks?.[m.no];
+      if (p === m.home.canon) homeCount += 1;
+      else if (p === m.away.canon) awayCount += 1;
+    }
+    return { ...m, homeCount, awayCount };
+  }, [data, list]);
+
   const open = async (id) => {
     setOpenId(id);
     setLoadingOne(true);
@@ -1374,6 +1398,72 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
           </div>
         </div>
       ))}
+
+      {liveStrip.length === 0 && nextGame && (
+        <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 px-3 py-2 shrink-0">
+          <div className="flex items-center gap-1.5 text-[11px] mb-1">
+            <span className="font-bold uppercase tracking-wide text-cyan-300">
+              Next
+            </span>
+            <span className="text-slate-500 truncate">
+              {nextGame.roundLabel}
+              {nextGame.time ? ` · ${nextGame.time}` : ""}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <span className="text-lg leading-none shrink-0">
+                {flagFor(nextGame.home.team)}
+              </span>
+              <div className="min-w-0">
+                <span className="block text-sm font-semibold text-slate-100 truncate">
+                  {nextGame.home.team}
+                </span>
+                {nextGame.odds?.home && (
+                  <span className="block text-[9px] font-mono text-slate-500 leading-none">
+                    {nextGame.odds.home}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="shrink-0 px-2 text-center">
+              <div className="text-[10px] font-bold text-slate-400 leading-none">
+                VS
+              </div>
+              {nextGame.odds?.draw && (
+                <div className="text-[9px] font-mono text-slate-500 leading-none mt-0.5">
+                  X {nextGame.odds.draw}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
+              <div className="min-w-0 text-right">
+                <span className="block text-sm font-semibold text-slate-100 truncate">
+                  {nextGame.away.team}
+                </span>
+                {nextGame.odds?.away && (
+                  <span className="block text-[9px] font-mono text-slate-500 leading-none">
+                    {nextGame.odds.away}
+                  </span>
+                )}
+              </div>
+              <span className="text-lg leading-none shrink-0">
+                {flagFor(nextGame.away.team)}
+              </span>
+            </div>
+          </div>
+          <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+            <span>
+              {nextGame.homeCount}{" "}
+              {nextGame.homeCount === 1 ? "manager" : "managers"} advancing
+            </span>
+            <span>
+              advancing {nextGame.awayCount}{" "}
+              {nextGame.awayCount === 1 ? "manager" : "managers"}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div
         className={`rounded-2xl border border-slate-700/60 bg-slate-800/40 overflow-hidden ${
