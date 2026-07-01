@@ -13,7 +13,11 @@ import {
   Plus,
   Lock,
   AlertTriangle,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
 } from "lucide-react";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import LoadingSpinner from "./LoadingSpinner";
 
 // ---------------------------------------------------------------------------
@@ -385,7 +389,20 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
   );
 }
 
+function useIsMobile(breakpoint = 768) {
+  const [mobile, setMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  );
+  useEffect(() => {
+    const onResize = () => setMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [breakpoint]);
+  return mobile;
+}
+
 function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
+  const isMobile = useIsMobile();
   const resolved = useMemo(
     () => resolveBracket(data, picks, followPicks),
     [data, picks, followPicks]
@@ -460,13 +477,8 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
   const championDead = !!(champion && eliminated.has(champion.canon));
   const COL_H = 1040;
 
-  return (
-    <div className="space-y-3">
-      <div className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2">
-        <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
-          ← swipe sideways for all rounds →
-        </div>
-        <div className="flex" style={{ minWidth: 1200 }}>
+  const tree = (
+    <div className="flex" style={{ minWidth: 1200 }}>
           {BR_COLS.map((col, ci) => {
             const order = BR_ORDER[col.key];
             const next = BR_COLS[ci + 1];
@@ -546,7 +558,64 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
               </div>
             </div>
           </div>
+    </div>
+  );
+
+  if (isMobile) {
+    const btn =
+      "flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700";
+    return (
+      <div className="space-y-2">
+        <TransformWrapper
+          initialScale={1}
+          minScale={0.28}
+          maxScale={2.6}
+          centerZoomedOut
+          limitToBounds
+          doubleClick={{ step: 0.7 }}
+          wheel={{ disabled: true }}
+          panning={{ velocityDisabled: true }}
+        >
+          {({ zoomIn, zoomOut, resetTransform }) => (
+            <>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => zoomOut()} className={btn}>
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+                <button type="button" onClick={() => zoomIn()} className={btn}>
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => resetTransform()}
+                  className={btn}
+                >
+                  <Maximize className="w-4 h-4" />
+                </button>
+                <span className="text-[10px] text-slate-500 ml-auto">
+                  pinch to zoom · drag to pan
+                </span>
+              </div>
+              <TransformComponent
+                wrapperStyle={{ width: "100%", height: "72vh" }}
+                wrapperClass="rounded-xl border border-slate-700/50 bg-slate-900/40"
+              >
+                {tree}
+              </TransformComponent>
+            </>
+          )}
+        </TransformWrapper>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2">
+        <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
+          ← swipe sideways for all rounds →
         </div>
+        {tree}
       </div>
     </div>
   );
