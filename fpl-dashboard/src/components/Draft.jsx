@@ -1196,8 +1196,14 @@ function SavedTab({ data, refreshKey, onEdit }) {
                     <Lock className="w-3.5 h-3.5 text-amber-400 inline" />
                   ) : b.champion ? (
                     <span
-                      className="text-xl leading-none"
-                      title={`Champion: ${b.champion}`}
+                      className={`text-xl leading-none ${
+                        championOut ? "line-through decoration-rose-500/80" : ""
+                      }`}
+                      title={
+                        championOut
+                          ? `Champion eliminated: ${b.champion}`
+                          : `Champion: ${b.champion}`
+                      }
                     >
                       {flagFor(b.champion)}
                     </span>
