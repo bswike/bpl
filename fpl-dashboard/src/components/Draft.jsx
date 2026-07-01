@@ -1455,13 +1455,13 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                 </div>
 
                 <div className="flex-1 min-w-0 text-left">
-                  <div className="flex items-start gap-1.5 text-[13px] font-semibold leading-tight text-slate-100">
-                    <span className="break-words">{b.name}</span>
+                  <div className="flex items-center gap-1.5 text-[13px] font-semibold leading-tight text-slate-100 min-w-0">
+                    <span className="truncate">{b.name}</span>
                     {b.complete ? (
-                      <Check className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
+                      <Check className="w-3 h-3 text-emerald-400 shrink-0" />
                     ) : (
                       <AlertTriangle
-                        className="w-3 h-3 text-amber-400/80 shrink-0 mt-0.5"
+                        className="w-3 h-3 text-amber-400/80 shrink-0"
                         title="Incomplete bracket"
                       />
                     )}
