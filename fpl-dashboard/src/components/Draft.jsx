@@ -1581,54 +1581,13 @@ function SavedTab({ data, refreshKey, onEdit }) {
 // ---------------------------------------------------------------------------
 // Live read-only bracket tab (shown after the reveal)
 // ---------------------------------------------------------------------------
-function LiveBracketTab({ data }) {
-  const isMobile = useIsMobile();
-  const zoomRef = useRef(null);
-  const zbtn =
-    "flex items-center justify-center w-7 h-7 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700";
+function LiveBracketTab({ data, zoomRef }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] text-slate-500 truncate">
-          <span className="hidden sm:inline">
-            Live World Cup knockout bracket — fills in automatically from ESPN
-            as games finish.
-          </span>
-          <span className="sm:hidden">Live bracket · updates from ESPN</span>
-        </p>
-        {isMobile && (
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={() => zoomRef.current?.zoomOut()}
-              className={zbtn}
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => zoomRef.current?.zoomIn()}
-              className={zbtn}
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                zoomRef.current?.setTransform(
-                  0,
-                  0,
-                  computeMobileFit().fitScale,
-                  200
-                )
-              }
-              className={zbtn}
-            >
-              <Maximize className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-      </div>
+      <p className="hidden sm:block text-[11px] text-slate-500">
+        Live World Cup knockout bracket — fills in automatically from ESPN as
+        games finish.
+      </p>
       <BracketGrid
         data={data}
         picks={NO_PICKS}
@@ -1652,6 +1611,8 @@ export default function Draft() {
   const [view, setView] = useState(() => (isRevealed() ? "saved" : "pick"));
   const [refreshKey, setRefreshKey] = useState(0);
   const [editTarget, setEditTarget] = useState(null);
+  const isMobile = useIsMobile();
+  const liveZoomRef = useRef(null);
 
   // Flip to revealed/locked state when the deadline passes.
   useEffect(() => {
@@ -1778,26 +1739,60 @@ export default function Draft() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-3">
-        <div className="inline-flex p-1 bg-slate-800/60 border border-slate-700/60 rounded-xl mb-3 max-w-full overflow-x-auto">
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            const active = view === t.id;
-            return (
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="inline-flex p-1 bg-slate-800/60 border border-slate-700/60 rounded-xl max-w-full overflow-x-auto">
+            {tabs.map((t) => {
+              const Icon = t.icon;
+              const active = view === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setView(t.id)}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
+                    active
+                      ? "bg-cyan-600 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+          {isMobile && view === "live" && (
+            <div className="flex items-center gap-1 shrink-0">
               <button
-                key={t.id}
                 type="button"
-                onClick={() => setView(t.id)}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${
-                  active
-                    ? "bg-cyan-600 text-white"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
+                onClick={() => liveZoomRef.current?.zoomOut()}
+                className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700"
               >
-                <Icon className="w-4 h-4" />
-                {t.label}
+                <ZoomOut className="w-4 h-4" />
               </button>
-            );
-          })}
+              <button
+                type="button"
+                onClick={() => liveZoomRef.current?.zoomIn()}
+                className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  liveZoomRef.current?.setTransform(
+                    0,
+                    0,
+                    computeMobileFit().fitScale,
+                    200
+                  )
+                }
+                className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700"
+              >
+                <Maximize className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -1823,7 +1818,7 @@ export default function Draft() {
             onClearEdit={() => setEditTarget(null)}
           />
         ) : view === "live" ? (
-          <LiveBracketTab data={data} />
+          <LiveBracketTab data={data} zoomRef={liveZoomRef} />
         ) : (
           <SavedTab data={data} refreshKey={refreshKey} onEdit={startEdit} />
         )}
