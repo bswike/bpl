@@ -1654,6 +1654,47 @@ export default function Draft() {
     };
   }, [isLive, load]);
 
+  // On mobile we render as a fixed-height (100dvh) app so nothing scrolls.
+  // The global stylesheet pins body/#root to `min-height: 100vh`, which on
+  // mobile is *taller* than the visible dynamic viewport and would let the
+  // page scroll by the toolbar height. Lock those to the dynamic viewport
+  // while this screen is mounted on mobile, and restore on unmount.
+  useEffect(() => {
+    if (!isMobile) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const root = document.getElementById("root");
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      bodyHeight: body.style.height,
+      bodyMinHeight: body.style.minHeight,
+      bodyOverscroll: body.style.overscrollBehavior,
+      rootHeight: root?.style.height,
+      rootMinHeight: root?.style.minHeight,
+    };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    body.style.height = "100dvh";
+    body.style.minHeight = "0";
+    body.style.overscrollBehavior = "none";
+    if (root) {
+      root.style.height = "100dvh";
+      root.style.minHeight = "0";
+    }
+    return () => {
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      body.style.height = prev.bodyHeight;
+      body.style.minHeight = prev.bodyMinHeight;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
+      if (root) {
+        root.style.height = prev.rootHeight || "";
+        root.style.minHeight = prev.rootMinHeight || "";
+      }
+    };
+  }, [isMobile]);
+
   const handleSaved = () => {
     setRefreshKey((k) => k + 1);
     setEditTarget(null);
