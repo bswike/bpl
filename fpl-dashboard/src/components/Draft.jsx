@@ -1196,16 +1196,26 @@ function SavedTab({ data, refreshKey, onEdit }) {
                     <Lock className="w-3.5 h-3.5 text-amber-400 inline" />
                   ) : b.champion ? (
                     <span
-                      className={`text-xl leading-none ${
-                        championOut ? "line-through decoration-rose-500/80" : ""
-                      }`}
+                      className="relative inline-flex items-center justify-center"
                       title={
                         championOut
                           ? `Champion eliminated: ${b.champion}`
                           : `Champion: ${b.champion}`
                       }
                     >
-                      {flagFor(b.champion)}
+                      <span
+                        className={`text-xl leading-none ${
+                          championOut ? "opacity-50" : ""
+                        }`}
+                      >
+                        {flagFor(b.champion)}
+                      </span>
+                      {championOut && (
+                        <X
+                          className="absolute w-5 h-5 text-rose-500"
+                          strokeWidth={3}
+                        />
+                      )}
                     </span>
                   ) : (
                     <span className="text-slate-600 text-sm">—</span>
