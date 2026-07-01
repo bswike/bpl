@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   GitBranch,
   Trophy,
@@ -389,6 +389,21 @@ function DraftMatch({ m, editable, onPick, colHeight, count }) {
   );
 }
 
+// Height of a bracket column (also the tallest, first-round column). Shared so
+// the mobile "fit to device" zoom can be computed both inside BracketGrid and
+// by the manager modal header controls.
+const BRACKET_COL_H = 1040;
+
+function computeMobileFit() {
+  const VIEWPORT_VH = 0.82;
+  const TREE_H = BRACKET_COL_H + 24; // column height + round-label row
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const targetPx = vh * VIEWPORT_VH;
+  const fitScale = Math.max(0.25, Math.min(1, targetPx / TREE_H));
+  const wrapperH = Math.round(TREE_H * fitScale);
+  return { fitScale, wrapperH };
+}
+
 function useIsMobile(breakpoint = 768) {
   const [mobile, setMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < breakpoint : false
@@ -401,7 +416,15 @@ function useIsMobile(breakpoint = 768) {
   return mobile;
 }
 
-function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
+function BracketGrid({
+  data,
+  picks,
+  editable,
+  onPick,
+  followPicks = false,
+  zoomRef = null,
+  hideControls = false,
+}) {
   const isMobile = useIsMobile();
   const resolved = useMemo(
     () => resolveBracket(data, picks, followPicks),
@@ -475,7 +498,7 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
 
   const champion = resolved.champion;
   const championDead = !!(champion && eliminated.has(champion.canon));
-  const COL_H = 1040;
+  const COL_H = BRACKET_COL_H;
 
   const tree = (
     <div className="flex" style={{ minWidth: 1200 }}>
@@ -568,15 +591,11 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
     // is visible on load, then let the user pan right for later rounds.
     // The viewport is sized to the *exact* fitted tree height so there's no
     // vertical slack for the pan library to re-settle (avoids a jump on swipe).
-    const VIEWPORT_VH = 0.82;
-    const TREE_H = COL_H + 24; // column height + round-label row
-    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
-    const targetPx = vh * VIEWPORT_VH;
-    const fitScale = Math.max(0.25, Math.min(1, targetPx / TREE_H));
-    const wrapperH = Math.round(TREE_H * fitScale);
+    const { fitScale, wrapperH } = computeMobileFit();
     return (
       <div className="space-y-2">
         <TransformWrapper
+          ref={zoomRef}
           key={`z${Math.round(fitScale * 100)}`}
           initialScale={fitScale}
           initialPositionX={0}
@@ -591,24 +610,34 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
         >
           {({ zoomIn, zoomOut, setTransform }) => (
             <>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => zoomOut()} className={btn}>
-                  <ZoomOut className="w-4 h-4" />
-                </button>
-                <button type="button" onClick={() => zoomIn()} className={btn}>
-                  <ZoomIn className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTransform(0, 0, fitScale, 200)}
-                  className={btn}
-                >
-                  <Maximize className="w-4 h-4" />
-                </button>
-                <span className="text-[10px] text-slate-500 ml-auto">
-                  pinch to zoom · drag to pan
-                </span>
-              </div>
+              {!hideControls && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => zoomOut()}
+                    className={btn}
+                  >
+                    <ZoomOut className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => zoomIn()}
+                    className={btn}
+                  >
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransform(0, 0, fitScale, 200)}
+                    className={btn}
+                  >
+                    <Maximize className="w-4 h-4" />
+                  </button>
+                  <span className="text-[10px] text-slate-500 ml-auto">
+                    pinch to zoom · drag to pan
+                  </span>
+                </div>
+              )}
               <TransformComponent
                 wrapperStyle={{ width: "100%", height: `${wrapperH}px` }}
                 wrapperClass="rounded-xl border border-slate-700/50 bg-slate-900/40"
@@ -922,6 +951,8 @@ function SavedTab({ data, refreshKey, onEdit }) {
   const [openErr, setOpenErr] = useState(null);
   const [loadingOne, setLoadingOne] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const isMobile = useIsMobile();
+  const zoomRef = useRef(null);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -1440,19 +1471,51 @@ function SavedTab({ data, refreshKey, onEdit }) {
 
       {openId && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col">
-          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-4 py-3">
-            <div className="min-w-0">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/80 px-4 py-2">
+            <div className="min-w-0 flex items-baseline gap-2">
               <h3 className="text-sm font-bold text-slate-100 truncate">
                 {openData?.name || "Bracket"}
               </h3>
               {openData?.champion && (
-                <p className="text-[11px] text-amber-300 flex items-center gap-1">
+                <span className="text-[11px] text-amber-300 flex items-center gap-1 shrink-0">
                   <Trophy className="w-3 h-3" /> {flagFor(openData.champion)}{" "}
                   {openData.champion}
-                </p>
+                </span>
               )}
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
+              {isMobile && openData && (
+                <div className="flex items-center gap-1 mr-1">
+                  <button
+                    type="button"
+                    onClick={() => zoomRef.current?.zoomOut()}
+                    className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700"
+                  >
+                    <ZoomOut className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => zoomRef.current?.zoomIn()}
+                    className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      zoomRef.current?.setTransform(
+                        0,
+                        0,
+                        computeMobileFit().fitScale,
+                        200
+                      )
+                    }
+                    className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700"
+                  >
+                    <Maximize className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
               {!revealed && (
                 <button
                   type="button"
@@ -1504,6 +1567,8 @@ function SavedTab({ data, refreshKey, onEdit }) {
                 editable={false}
                 onPick={() => {}}
                 followPicks
+                zoomRef={zoomRef}
+                hideControls
               />
             )}
           </div>
