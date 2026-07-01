@@ -9,8 +9,38 @@ import {
   LayoutGrid,
   GitBranch,
   Trophy,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
 } from "lucide-react";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import LoadingSpinner from "./LoadingSpinner";
+
+// Detect small screens so the bracket can switch to a pinch-to-zoom canvas.
+function useIsMobile(breakpoint = 768) {
+  const [mobile, setMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false
+  );
+  useEffect(() => {
+    const onResize = () => setMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [breakpoint]);
+  return mobile;
+}
+
+// Height of a bracket column (tallest / first round). Shared so the mobile
+// "fit to device" zoom shows the entire first round on load.
+const BRACKET_COL_H = 1040;
+function computeMobileFit() {
+  const VIEWPORT_VH = 0.82;
+  const TREE_H = BRACKET_COL_H + 24; // column height + round-label row
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+  const targetPx = vh * VIEWPORT_VH;
+  const fitScale = Math.max(0.25, Math.min(1, targetPx / TREE_H));
+  const wrapperH = Math.round(TREE_H * fitScale);
+  return { fitScale, wrapperH };
+}
 
 const FLAGS = {
   France: "🇫🇷",
@@ -513,34 +543,38 @@ function ManagerRow({ manager, rank, ownerFor, pickFor, placeFor }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-slate-700/20 transition-colors"
+        className="w-full flex items-center gap-2.5 px-3 py-1.5 text-left hover:bg-slate-700/20 transition-colors"
       >
         {rank != null && (
           <span
-            className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${
-              rank === 1 ? "bg-cyan-400 text-slate-900" : "bg-slate-700 text-slate-300"
+            className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold shrink-0 ${
+              rank === 1
+                ? "bg-amber-400 text-slate-900"
+                : rank === 2
+                ? "bg-slate-300 text-slate-900"
+                : rank === 3
+                ? "bg-amber-700 text-amber-50"
+                : "bg-slate-700 text-slate-300"
             }`}
           >
             {rank}
           </span>
         )}
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-slate-100 truncate leading-tight">
+          <div className="text-sm font-semibold text-slate-100 truncate leading-tight">
             {manager.name}
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 leading-tight mt-0.5">
             <span className="text-emerald-400">{manager.wins}W</span>
             <span className="text-amber-400">{manager.draws}D</span>
             <span className="text-rose-400">{manager.losses}L</span>
             {manager.pending > 0 && (
               <span className="text-slate-500">· {manager.pending} to play</span>
             )}
-          </div>
-          <div className="flex items-center gap-1 text-[10px] mt-0.5 flex-wrap">
             {teamsLeft != null && (
               <span
                 title="Teams still alive in the tournament"
-                className="px-1 py-px rounded bg-emerald-500/15 text-emerald-300 font-semibold"
+                className="px-1 rounded bg-emerald-500/15 text-emerald-300 font-semibold"
               >
                 {teamsLeft}
                 {teamCount != null ? `/${teamCount}` : ""} left
@@ -549,23 +583,23 @@ function ManagerRow({ manager, rank, ownerFor, pickFor, placeFor }) {
             {manager.bubble > 0 && (
               <span
                 title="Teams still in contention to advance"
-                className="px-1 py-px rounded bg-amber-500/15 text-amber-300 font-semibold"
+                className="px-1 rounded bg-amber-500/15 text-amber-300 font-semibold"
               >
                 {manager.bubble} bubble
               </span>
             )}
           </div>
         </div>
-        <div className="text-right shrink-0">
-          <div className="text-lg font-bold font-mono text-cyan-400 leading-none">
+        <div className="text-right shrink-0 leading-none">
+          <span className="text-base font-bold font-mono text-cyan-400">
             {total}
-          </div>
-          <div className="text-[10px] uppercase tracking-wide text-slate-500">
+          </span>
+          <span className="text-[9px] uppercase tracking-wide text-slate-500 ml-0.5">
             pts
-          </div>
+          </span>
         </div>
         <ChevronDown
-          size={16}
+          size={15}
           className={`text-slate-500 shrink-0 transition-transform ${
             open ? "rotate-180" : ""
           }`}
@@ -1617,6 +1651,7 @@ function BracketMatch({ m, ownerFor, pickFor, colHeight, count }) {
 }
 
 function BracketView({ bracket, managers, draftPicks }) {
+  const isMobile = useIsMobile();
   if (!bracket || bracket.length === 0) {
     return (
       <p className="text-center text-slate-500 py-12">Bracket unavailable.</p>
@@ -1634,24 +1669,30 @@ function BracketView({ bracket, managers, draftPicks }) {
   const pickFor = (team) => draftPicks?.[teamCanon(team)] ?? null;
 
   const third = byNo[103];
-  const COL_H = 1040;
+  const COL_H = BRACKET_COL_H;
 
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
-          Knockout Bracket
-        </h2>
-        <p className="text-[10px] text-slate-600">
-          Projected from current standings · updates live as games finish.
-        </p>
+  const header = (
+    <div className="flex items-center justify-between gap-2 flex-wrap">
+      <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">
+        Knockout Bracket
+      </h2>
+      <p className="text-[10px] text-slate-600">
+        Projected from current standings · updates live as games finish.
+      </p>
+    </div>
+  );
+
+  const thirdBlock = third && (
+    <div className="max-w-xs">
+      <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1">
+        Third-Place Match
       </div>
+      <BracketMatch m={third} ownerFor={ownerFor} pickFor={pickFor} count={1} />
+    </div>
+  );
 
-      <div className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2">
-        <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
-          ← swipe sideways for all rounds →
-        </div>
-        <div className="flex" style={{ minWidth: 900 }}>
+  const tree = (
+    <div className="flex" style={{ minWidth: 900 }}>
           {BR_COLS.map((col, ci) => {
             const order = BR_ORDER[col.key];
             const next = BR_COLS[ci + 1];
@@ -1716,17 +1757,75 @@ function BracketView({ bracket, managers, draftPicks }) {
               </div>
             );
           })}
-        </div>
-      </div>
+    </div>
+  );
 
-      {third && (
-        <div className="max-w-xs">
-          <div className="text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1">
-            Third-Place Match
-          </div>
-          <BracketMatch m={third} ownerFor={ownerFor} pickFor={pickFor} count={1} />
+  // Mobile: a pinch-to-zoom / pan canvas fitted so the whole first round is
+  // visible on load (matches the /draft bracket experience).
+  if (isMobile) {
+    const { fitScale, wrapperH } = computeMobileFit();
+    const btn =
+      "flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700";
+    return (
+      <div className="space-y-2">
+        {header}
+        <TransformWrapper
+          key={`z${Math.round(fitScale * 100)}`}
+          initialScale={fitScale}
+          initialPositionX={0}
+          initialPositionY={0}
+          minScale={Math.min(0.25, fitScale)}
+          maxScale={2.6}
+          centerZoomedOut
+          limitToBounds
+          doubleClick={{ step: 0.7 }}
+          wheel={{ disabled: true }}
+          panning={{ velocityDisabled: true }}
+        >
+          {({ zoomIn, zoomOut, setTransform }) => (
+            <>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => zoomOut()} className={btn}>
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+                <button type="button" onClick={() => zoomIn()} className={btn}>
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTransform(0, 0, fitScale, 200)}
+                  className={btn}
+                >
+                  <Maximize className="w-4 h-4" />
+                </button>
+                <span className="text-[10px] text-slate-500 ml-auto">
+                  pinch to zoom · drag to pan
+                </span>
+              </div>
+              <TransformComponent
+                wrapperStyle={{ width: "100%", height: `${wrapperH}px` }}
+                wrapperClass="rounded-xl border border-slate-700/50 bg-slate-900/40"
+              >
+                {tree}
+              </TransformComponent>
+            </>
+          )}
+        </TransformWrapper>
+        {thirdBlock}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {header}
+      <div className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2">
+        <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
+          ← swipe sideways for all rounds →
         </div>
-      )}
+        {tree}
+      </div>
+      {thirdBlock}
     </div>
   );
 }
