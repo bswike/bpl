@@ -1360,7 +1360,13 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
               return (
               <div
                 key={b.id}
-                className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 transition-colors hover:bg-slate-700/20 ${
+                role="button"
+                tabIndex={0}
+                onClick={() => open(b.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") open(b.id);
+                }}
+                className={`flex items-center gap-2 px-3 sm:px-4 py-1.5 cursor-pointer transition-colors hover:bg-slate-700/20 ${
                   fill ? "flex-1 min-h-0 overflow-hidden" : ""
                 } ${leadingNow ? "border-l-2 border-l-emerald-500/70" : ""} ${
                   i % 2 ? "bg-slate-800/20" : ""
@@ -1418,11 +1424,7 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => open(b.id)}
-                  className="flex-1 min-w-0 text-left"
-                >
+                <div className="flex-1 min-w-0 text-left">
                   <div className="flex items-start gap-1.5 text-[13px] font-semibold leading-tight text-slate-100">
                     <span className="break-words">{b.name}</span>
                     {b.complete ? (
@@ -1479,7 +1481,7 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                       )}
                     </div>
                   )}
-                </button>
+                </div>
 
                 <div className="w-9 text-right shrink-0">
                   <span className="text-sm font-bold tabular-nums leading-none text-cyan-300">
@@ -1509,7 +1511,10 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                   <div className="w-[52px] shrink-0 flex items-center justify-end gap-0.5">
                     <button
                       type="button"
-                      onClick={() => onEdit?.(b.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit?.(b.id);
+                      }}
                       title="Edit bracket"
                       className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-slate-700/60 hover:text-cyan-300"
                     >
@@ -1517,7 +1522,10 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => remove(b.id, b.name)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        remove(b.id, b.name);
+                      }}
                       disabled={deleting === b.id}
                       title="Delete bracket"
                       className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-400 hover:bg-rose-500/15 hover:text-rose-300 disabled:opacity-50"
