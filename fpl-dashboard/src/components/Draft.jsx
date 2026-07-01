@@ -567,9 +567,10 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
     return (
       <div className="space-y-2">
         <TransformWrapper
-          initialScale={1}
+          initialScale={0.7}
           minScale={0.28}
           maxScale={2.6}
+          centerOnInit
           centerZoomedOut
           limitToBounds
           doubleClick={{ step: 0.7 }}
@@ -597,7 +598,7 @@ function BracketGrid({ data, picks, editable, onPick, followPicks = false }) {
                 </span>
               </div>
               <TransformComponent
-                wrapperStyle={{ width: "100%", height: "72vh" }}
+                wrapperStyle={{ width: "100%", height: "82vh" }}
                 wrapperClass="rounded-xl border border-slate-700/50 bg-slate-900/40"
               >
                 {tree}
@@ -1505,8 +1506,8 @@ function SavedTab({ data, refreshKey, onEdit }) {
 // ---------------------------------------------------------------------------
 function LiveBracketTab({ data }) {
   return (
-    <div className="space-y-3">
-      <p className="text-[11px] text-slate-500">
+    <div className="space-y-2">
+      <p className="hidden sm:block text-[11px] text-slate-500">
         Live World Cup knockout bracket — fills in automatically from ESPN as
         games finish.
       </p>
@@ -1628,13 +1629,13 @@ export default function Draft() {
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-slate-900 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
+        <div className="max-w-5xl mx-auto px-4 py-1.5 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-base sm:text-lg font-bold tracking-tight flex items-center gap-2 leading-tight">
               <GitBranch className="w-5 h-5 text-cyan-400" />
               Draft Order Bracket
             </h1>
-            <p className="text-[11px] text-slate-500 leading-tight">
+            <p className="hidden sm:block text-[11px] text-slate-500 leading-tight">
               Pick the World Cup knockout, save it, compare with everyone else.
             </p>
           </div>
@@ -1651,8 +1652,8 @@ export default function Draft() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-4">
-        <div className="inline-flex p-1 bg-slate-800/60 border border-slate-700/60 rounded-xl mb-4 max-w-full overflow-x-auto">
+      <main className="max-w-5xl mx-auto px-4 py-3">
+        <div className="inline-flex p-1 bg-slate-800/60 border border-slate-700/60 rounded-xl mb-3 max-w-full overflow-x-auto">
           {tabs.map((t) => {
             const Icon = t.icon;
             const active = view === t.id;
