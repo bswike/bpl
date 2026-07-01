@@ -1,4 +1,11 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   GitBranch,
   Trophy,
@@ -503,8 +510,24 @@ function BracketGrid({
   followPicks = false,
   zoomRef = null,
   hideControls = false,
+  fillHeight = false,
 }) {
   const isMobile = useIsMobile();
+  // When we fill the available space (e.g. the Bracket tab), measure the real
+  // height left under the header/tabs instead of guessing from innerHeight —
+  // otherwise the bottom of the tree (final game) gets clipped by the browser
+  // toolbar. ResizeObserver keeps it correct across rotation/toolbar changes.
+  const viewportRef = useRef(null);
+  const [availH, setAvailH] = useState(0);
+  useLayoutEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const update = () => setAvailH(el.clientHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isMobile, fillHeight]);
   const resolved = useMemo(
     () => resolveBracket(data, picks, followPicks),
     [data, picks, followPicks]
@@ -666,6 +689,44 @@ function BracketGrid({
   if (isMobile) {
     const btn =
       "flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700";
+
+    // Fill mode (Bracket tab): size the viewport to the *measured* available
+    // space so the bottom game is never clipped by the toolbar.
+    if (fillHeight) {
+      const TREE_H = BRACKET_COL_H + 24;
+      const measuredH = availH || Math.round(window.innerHeight * 0.8);
+      const fScale = Math.max(0.25, Math.min(1, measuredH / TREE_H));
+      return (
+        <div className="h-full min-h-0 flex flex-col">
+          <div ref={viewportRef} className="flex-1 min-h-0 overflow-hidden">
+            {availH > 0 && (
+              <TransformWrapper
+                ref={zoomRef}
+                key={`fh${Math.round(fScale * 100)}-${measuredH}`}
+                initialScale={fScale}
+                initialPositionX={0}
+                initialPositionY={0}
+                minScale={Math.min(0.25, fScale)}
+                maxScale={2.6}
+                centerZoomedOut
+                limitToBounds
+                doubleClick={{ step: 0.7 }}
+                wheel={{ disabled: true }}
+                panning={{ velocityDisabled: true }}
+              >
+                <TransformComponent
+                  wrapperStyle={{ width: "100%", height: `${measuredH}px` }}
+                  wrapperClass="rounded-xl border border-slate-700/50 bg-slate-900/40"
+                >
+                  {tree}
+                </TransformComponent>
+              </TransformWrapper>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     // Fit the zoom to the device so the entire first round (tallest column)
     // is visible on load, then let the user pan right for later rounds.
     // The viewport is sized to the *exact* fitted tree height so there's no
@@ -1677,8 +1738,13 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
 // Live read-only bracket tab (shown after the reveal)
 // ---------------------------------------------------------------------------
 function LiveBracketTab({ data, zoomRef }) {
+  const isMobile = useIsMobile();
   return (
-    <div className="space-y-2">
+    <div
+      className={
+        isMobile ? "h-full min-h-0 flex flex-col" : "space-y-2"
+      }
+    >
       <p className="hidden sm:block text-[11px] text-slate-500">
         Live World Cup knockout bracket — fills in automatically from ESPN as
         games finish.
@@ -1690,6 +1756,7 @@ function LiveBracketTab({ data, zoomRef }) {
         onPick={() => {}}
         zoomRef={zoomRef}
         hideControls
+        fillHeight={isMobile}
       />
     </div>
   );
@@ -1925,14 +1992,7 @@ export default function Draft() {
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  liveZoomRef.current?.setTransform(
-                    0,
-                    0,
-                    computeMobileFit().fitScale,
-                    200
-                  )
-                }
+                onClick={() => liveZoomRef.current?.resetTransform(200)}
                 className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700"
               >
                 <Maximize className="w-4 h-4" />
