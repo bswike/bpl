@@ -337,7 +337,7 @@ function buildGameLog(manager) {
         kind: "ko",
         team: t.team,
         opponent: k.opponent,
-        result: "W",
+        result: k.result || "W",
         label: k.label,
         points: k.points,
         date: k.date,
@@ -388,9 +388,16 @@ function GameLog({ manager, ownerFor, pickFor }) {
               )}
             </span>
             {g.kind === "ko" ? (
-              <span className="font-mono font-bold text-cyan-300 shrink-0">
-                +{g.points}
-              </span>
+              g.result === "L" ? (
+                <ResultPip
+                  result="L"
+                  title={`${g.label} loss vs ${g.opponent}`}
+                />
+              ) : (
+                <span className="font-mono font-bold text-cyan-300 shrink-0">
+                  +{g.points}
+                </span>
+              )
             ) : g.live ? (
               <span className="font-mono text-cyan-300 shrink-0">
                 {g.gf}-{g.ga} <span className="text-[9px] uppercase">live</span>
@@ -499,15 +506,25 @@ function SquadTeams({ manager, pickFor, placeFor }) {
                     }
                   />
                 ))}
-                {(t.ko || []).map((k, i) => (
-                  <span
-                    key={`k${i}`}
-                    title={`${k.label} win vs ${k.opponent} (+${k.points})`}
-                    className="inline-flex items-center justify-center h-5 px-1 rounded border border-cyan-500/40 bg-cyan-500/15 text-cyan-300 text-[10px] font-bold"
-                  >
-                    +{k.points}
-                  </span>
-                ))}
+                {(t.ko || [])
+                  .sort((a, b) => new Date(a.date) - new Date(b.date))
+                  .map((k, i) =>
+                    k.result === "L" ? (
+                      <ResultPip
+                        key={`k${i}`}
+                        result="L"
+                        title={`${k.label} loss vs ${k.opponent}`}
+                      />
+                    ) : (
+                      <span
+                        key={`k${i}`}
+                        title={`${k.label} win vs ${k.opponent} (+${k.points})`}
+                        className="inline-flex items-center justify-center h-5 px-1 rounded border border-cyan-500/40 bg-cyan-500/15 text-cyan-300 text-[10px] font-bold"
+                      >
+                        +{k.points}
+                      </span>
+                    )
+                  )}
               </span>
               <span className="w-5 text-right font-mono text-xs text-slate-400">
                 {hasResults ? t.points : "·"}

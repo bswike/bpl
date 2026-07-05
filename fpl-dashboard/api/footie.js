@@ -219,7 +219,7 @@ function buildTeamResults(groupEvents, koEvents, koScoring) {
     record(b, a, bWin, aWin);
   }
 
-  // Knockout: winner of a match earns that round's bonus
+  // Knockout: winner earns that round's bonus; loser gets an L in the squad log.
   for (const e of koEvents) {
     const comp = e.competitions?.[0];
     if (!comp) continue;
@@ -228,18 +228,22 @@ function buildTeamResults(groupEvents, koEvents, koScoring) {
     if (!key) continue;
     const pts = koScoring[key] || 0;
     const cs = comp.competitors || [];
+    const winner = cs.find((c) => c.winner === true);
+    if (!winner) continue;
     for (const self of cs) {
-      if (self.winner === true) {
-        const t = ensure(canon(self.team.displayName));
-        const other = cs.find((x) => x !== self);
-        t.ko.push({
-          round: key,
-          label: KO_LABELS[key] || key,
-          points: pts,
-          opponent: other?.team?.abbreviation || other?.team?.displayName || "",
-          date: e.date,
-        });
+      const t = ensure(canon(self.team.displayName));
+      const other = cs.find((x) => x !== self);
+      const base = {
+        round: key,
+        label: KO_LABELS[key] || key,
+        opponent: other?.team?.abbreviation || other?.team?.displayName || "",
+        date: e.date,
+      };
+      if (self === winner) {
+        t.ko.push({ ...base, result: "W", points: pts });
         t.koPoints += pts;
+      } else {
+        t.ko.push({ ...base, result: "L", points: 0 });
       }
     }
   }
