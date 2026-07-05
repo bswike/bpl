@@ -129,8 +129,17 @@ function parseSheet(text) {
 }
 
 function eventDateKey(iso) {
-  // iso like 2026-06-15T16:00Z -> 20260615
-  return iso.slice(0, 10).replace(/-/g, "");
+  // Map to the U.S. Eastern calendar date that KO_WINDOWS are written in, so a
+  // late-night ET kickoff (already the next day in UTC) still scores as the
+  // right round. e.g. 2026-07-04T01:30Z is really 2026-07-03 9:30 PM ET, a
+  // Round of 32 game — slicing the raw UTC date would misprice it as R16.
+  const s = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+  return s.replace(/-/g, "");
 }
 
 function koKeyForDate(yyyymmdd) {
