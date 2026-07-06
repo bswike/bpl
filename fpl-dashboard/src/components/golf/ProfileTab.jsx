@@ -31,7 +31,7 @@ function Trophy({ icon, title, detail }) {
   );
 }
 
-export default function ProfileTab({ golfer, rounds }) {
+export default function ProfileTab({ golfer, rounds, onBack }) {
   const career = useMemo(() => aggregate(rounds), [rounds]);
   const currentYear = rounds[0]?.year;
   const season = useMemo(
@@ -100,6 +100,15 @@ export default function ProfileTab({ golfer, rounds }) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-sm bg-transparent border-none cursor-pointer text-green-800 font-semibold px-1 hover:underline"
+        >
+          ← Back to feed
+        </button>
+      )}
       <Card>
         <div className="flex items-center gap-4">
           <Avatar golfer={golfer} size="lg" ring />

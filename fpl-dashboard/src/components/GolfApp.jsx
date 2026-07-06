@@ -39,6 +39,7 @@ function LandingPage({ onLoad }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [ghinNumber, setGhinNumber] = useState("");
+  const [share, setShare] = useState(false);
 
   const processFile = (file) => {
     setError(null);
@@ -71,6 +72,7 @@ function LandingPage({ onLoad }) {
           email,
           password,
           ghinNumber: ghinNumber.trim() || undefined,
+          publish: share,
         }),
       });
       if (!res.ok) {
@@ -177,6 +179,22 @@ function LandingPage({ onLoad }) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent"
             />
           </div>
+          <label className="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={share}
+              onChange={(e) => setShare(e.target.checked)}
+              disabled={loading}
+              className="mt-0.5 accent-green-700"
+            />
+            <span>
+              Share my rounds to the public feed{" "}
+              <span className="text-xs text-gray-400 block">
+                Your name, scores, and courses become visible to anyone. You can
+                remove yourself anytime from settings.
+              </span>
+            </span>
+          </label>
           <button
             type="submit"
             disabled={loading}
@@ -256,7 +274,7 @@ const BOTTOM_NAV = [
   ["profile", "Profile", CircleUserRound],
 ];
 
-function SettingsMenu({ onDownload, onReset }) {
+function SettingsMenu({ onDownload, onReset, published, onPublish, onUnpublish }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -287,10 +305,39 @@ function SettingsMenu({ onDownload, onReset }) {
         <Settings size={16} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-2 z-50 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 text-gray-800 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 z-50 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-1 text-gray-800 overflow-hidden">
+          {published ? (
+            <button
+              type="button"
+              className={`${item} text-gray-700`}
+              onClick={() => {
+                setOpen(false);
+                onUnpublish();
+              }}
+            >
+              Remove from public feed
+              <span className="block text-[11px] text-green-600">
+                Currently public
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className={`${item} text-gray-700`}
+              onClick={() => {
+                setOpen(false);
+                onPublish();
+              }}
+            >
+              Publish to public feed
+              <span className="block text-[11px] text-gray-400">
+                Share your rounds with everyone
+              </span>
+            </button>
+          )}
           <button
             type="button"
-            className={`${item} text-gray-700`}
+            className={`${item} text-gray-700 border-t border-gray-100`}
             onClick={() => {
               setOpen(false);
               onDownload();
@@ -320,6 +367,35 @@ export default function GolfApp() {
   const [year, setYear] = useState("all");
   const [holesFilter, setHolesFilter] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [publicFeed, setPublicFeed] = useState(null); // null = loading
+  const [peer, setPeer] = useState(null); // {golfer, model} of another golfer
+  const [showLanding, setShowLanding] = useState(false);
+  const [published, setPublished] = useState(false);
+  const actedRef = useRef(false); // user published/unpublished this session
+
+  const fetchFeed = (bustCache = false) =>
+    fetch(`/api/golf-feed${bustCache ? `?ts=${Date.now()}` : ""}`)
+      .then((r) => (r.ok ? r.json() : { golfers: [] }))
+      .then((d) => setPublicFeed(d.golfers || []))
+      .catch(() => setPublicFeed((prev) => prev || []));
+
+  useEffect(() => {
+    fetchFeed();
+  }, []);
+
+  const peerModels = useMemo(
+    () =>
+      (publicFeed || [])
+        .map((g) => {
+          try {
+            return { golfer: g.golfer, model: buildModel(g) };
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean),
+    [publicFeed]
+  );
 
   useEffect(() => {
     const html = document.documentElement;
@@ -345,6 +421,69 @@ export default function GolfApp() {
   }, []);
 
   const model = useMemo(() => (data ? buildModel(data) : null), [data]);
+  const myGhin = String(data?.golfer?.ghin_number ?? "");
+
+  // Merged feed: my local rounds plus everyone else's published rounds.
+  const feedEntries = useMemo(() => {
+    const entries = [];
+    if (model) {
+      for (const r of model.rounds)
+        entries.push({ ...r, golfer: model.golfer, ownerId: "me" });
+    }
+    for (const pm of peerModels) {
+      const ghin = String(pm.golfer?.ghin_number ?? "");
+      if (model && ghin === myGhin) continue; // my published copy — local wins
+      for (const r of pm.model.rounds)
+        entries.push({ ...r, golfer: pm.golfer, ownerId: ghin });
+    }
+    return entries.sort((a, b) => b.date.localeCompare(a.date));
+  }, [model, peerModels, myGhin]);
+
+  // Am I on the public feed? Trust the feed until the user acts this session.
+  useEffect(() => {
+    if (actedRef.current || !publicFeed || !myGhin) return;
+    setPublished(publicFeed.some((g) => String(g.golfer?.ghin_number ?? "") === myGhin));
+  }, [publicFeed, myGhin]);
+
+  const openProfile = (ownerId) => {
+    if (ownerId === "me") {
+      setTab("profile");
+      return;
+    }
+    const pm = peerModels.find((p) => String(p.golfer?.ghin_number ?? "") === ownerId);
+    if (pm) {
+      setPeer(pm);
+      setTab("peer");
+    }
+  };
+
+  const publishNow = async () => {
+    try {
+      const res = await fetch("/api/golf-publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+      actedRef.current = true;
+      setPublished(true);
+      fetchFeed(true);
+    } catch (err) {
+      window.alert(`Could not publish: ${err.message}`);
+    }
+  };
+
+  const unpublishNow = async () => {
+    try {
+      const res = await fetch("/api/golf-publish", { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+      actedRef.current = true;
+      setPublished(false);
+      fetchFeed(true);
+    } catch (err) {
+      window.alert(`Could not unpublish: ${err.message}`);
+    }
+  };
 
   // Year + holes filters applied everywhere; year-by-year tables get holes-only.
   const holesRounds = useMemo(() => {
@@ -366,11 +505,19 @@ export default function GolfApp() {
     setYear("all");
     setHolesFilter("all");
     setSelectedCourse(null);
+    setShowLanding(false);
+    if (d.published) {
+      actedRef.current = true;
+      setPublished(true);
+      fetchFeed(true);
+    }
   };
 
   const reset = () => {
     setData(null);
     setSelectedCourse(null);
+    setPeer(null);
+    setTab("home");
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -392,25 +539,68 @@ export default function GolfApp() {
   };
 
   if (!data) {
+    const showGuestFeed =
+      !showLanding && publicFeed !== null && publicFeed.length > 0;
     return (
       <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col">
         <header className="relative bg-gradient-to-br from-[#0a2417] via-[#123a26] to-[#1d5133] text-white shrink-0 w-full min-w-0">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]">
-              Swikle.com
-            </p>
-            <h1 className="font-serif text-3xl sm:text-4xl tracking-tight mt-1">
-              Golf Stats
-            </h1>
-            <p className="text-green-100/60 text-sm mt-1.5">
-              Your GHIN scores — courses, holes, trends
-            </p>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 min-w-0 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]">
+                Swikle.com
+              </p>
+              <h1 className="font-serif text-3xl sm:text-4xl tracking-tight mt-1">
+                Golf Stats
+              </h1>
+              <p className="text-green-100/60 text-sm mt-1.5">
+                {showGuestFeed
+                  ? "The public feed — GHIN rounds, out in the open"
+                  : "Your GHIN scores — courses, holes, trends"}
+              </p>
+            </div>
+            {showGuestFeed && (
+              <button
+                type="button"
+                onClick={() => setShowLanding(true)}
+                className="text-[11px] uppercase tracking-wider bg-transparent border border-white/25 hover:border-white/60 hover:bg-white/5 px-4 py-1.5 rounded-full transition-colors cursor-pointer text-green-50"
+              >
+                Sign in
+              </button>
+            )}
           </div>
           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d4af37]/60 to-transparent" />
         </header>
-        <div className="flex-1 flex items-center justify-center px-4 py-10 min-w-0 w-full">
-          <LandingPage onLoad={handleLoad} />
-        </div>
+        {showGuestFeed ? (
+          <div className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-4 py-5">
+            {tab === "peer" && peer ? (
+              <ProfileTab
+                golfer={peer.golfer}
+                rounds={peer.model.rounds}
+                onBack={() => setTab("home")}
+              />
+            ) : (
+              <FeedTab
+                entries={feedEntries}
+                ownGolfer={null}
+                onProfile={openProfile}
+                onSignIn={() => setShowLanding(true)}
+              />
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center px-4 py-10 min-w-0 w-full gap-4">
+            <LandingPage onLoad={handleLoad} />
+            {publicFeed !== null && publicFeed.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowLanding(false)}
+                className="text-sm bg-transparent border-none cursor-pointer text-green-800 font-semibold hover:underline"
+              >
+                ← Browse the public feed without signing in
+              </button>
+            )}
+          </div>
+        )}
         <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-100 shrink-0">
           Golf Stats — Not affiliated with the USGA or GHIN
         </footer>
@@ -458,7 +648,13 @@ export default function GolfApp() {
               )}
             </div>
             <div className="absolute top-5 right-4 sm:right-6">
-              <SettingsMenu onDownload={handleDownload} onReset={reset} />
+              <SettingsMenu
+                onDownload={handleDownload}
+                onReset={reset}
+                published={published}
+                onPublish={publishNow}
+                onUnpublish={unpublishNow}
+              />
             </div>
           </div>
 
@@ -531,10 +727,13 @@ export default function GolfApp() {
         </div>
 
         {tab === "home" && (
-          <FeedTab
-            rounds={model.rounds}
-            golfer={g}
-            onProfile={() => setTab("profile")}
+          <FeedTab entries={feedEntries} ownGolfer={g} onProfile={openProfile} />
+        )}
+        {tab === "peer" && peer && (
+          <ProfileTab
+            golfer={peer.golfer}
+            rounds={peer.model.rounds}
+            onBack={() => setTab("home")}
           />
         )}
         {tab === "profile" && <ProfileTab golfer={g} rounds={model.rounds} />}

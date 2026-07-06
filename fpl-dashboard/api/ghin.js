@@ -1,3 +1,5 @@
+import { signSession, sessionCookie, publishGolfer } from "./_golf.js";
+
 const API_BASE = "https://api2.ghin.com/api/v1";
 const SOURCE = "GHINcom";
 
@@ -241,8 +243,7 @@ export default async function handler(req, res) {
       (s) => Array.isArray(s.hole_details) && s.hole_details.length > 0
     ).length;
 
-    res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json({
+    const payload = {
       exported_at: new Date().toISOString(),
       golfer: golferInfo
         ? {
@@ -256,7 +257,24 @@ export default async function handler(req, res) {
       total_scores: scores.length,
       scores_with_hole_detail: withHoleDetail,
       scores,
-    });
+    };
+
+    // Session cookie proves ownership of this GHIN for later publish/unpublish.
+    const ghinForSession = String(payload.golfer.ghin_number ?? resolvedId);
+    res.setHeader("Set-Cookie", sessionCookie(signSession(ghinForSession)));
+
+    let published = false;
+    if (req.body.publish && scores.length) {
+      try {
+        await publishGolfer(payload);
+        published = true;
+      } catch (pubErr) {
+        console.error("publish during login failed:", pubErr);
+      }
+    }
+
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json({ ...payload, published });
   } catch (err) {
     console.error("GHIN API error:", err);
     const message = err instanceof Error ? err.message : "Unexpected error";

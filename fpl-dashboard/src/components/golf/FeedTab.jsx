@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { fmtToPar, RESULT_COLORS, resultKey } from "./data";
+import { fmtToPar, RESULT_COLORS, resultKey, groupBy } from "./data";
 import { Avatar, Scorecard, HolesBadge } from "./ui";
 
-/** Activity-feed home: each round is a card with stats, a hole strip,
- *  achievement badges, and kudos (stored locally). */
+/** Activity-feed home. Entries may span multiple golfers (the public feed):
+ *  each entry is a round tagged with `.golfer` and `.ownerId`. */
 
 const KUDOS_KEY = "golf-kudos";
 
@@ -72,7 +72,7 @@ function HoleStrip({ hd }) {
   );
 }
 
-function FeedCard({ round: r, golfer, badges, onProfile }) {
+function FeedCard({ round: r, badges, onProfile }) {
   const [open, setOpen] = useState(false);
   const [kudos, setKudos] = useState(() => !!readKudos()[r.id]);
   const birdies = r.counts ? r.counts.birdie + r.counts.eagle : null;
@@ -80,10 +80,10 @@ function FeedCard({ round: r, golfer, badges, onProfile }) {
   return (
     <article className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="flex items-center gap-3 px-4 pt-4">
-        <Avatar golfer={golfer} size="sm" onClick={onProfile} />
+        <Avatar golfer={r.golfer} size="sm" onClick={() => onProfile(r.ownerId)} />
         <div className="min-w-0">
           <div className="text-sm font-semibold text-gray-900 leading-tight">
-            {golfer.first_name} {golfer.last_name}
+            {r.golfer.first_name} {r.golfer.last_name}
           </div>
           <div className="text-xs text-gray-400 truncate">
             {fmtDate(r.date)}
@@ -166,41 +166,45 @@ function FeedCard({ round: r, golfer, badges, onProfile }) {
   );
 }
 
-export default function FeedTab({ rounds, golfer, onProfile }) {
+export default function FeedTab({ entries, ownGolfer, onProfile, onSignIn }) {
   const [shown, setShown] = useState(12);
 
-  // Achievement badges: all-time best, best of year, course best, eagles, birdie hauls.
+  // Achievement badges, computed independently per golfer.
   const badges = useMemo(() => {
-    const r18 = rounds.filter((r) => r.holes === 18);
-    const bestEver = r18.length ? Math.min(...r18.map((r) => r.ags)) : null;
-    const bestByYear = {};
-    const bestByCourse = {};
-    const courseCount = {};
-    for (const r of r18) {
-      bestByYear[r.year] = Math.min(bestByYear[r.year] ?? Infinity, r.ags);
-      bestByCourse[r.courseKey] = Math.min(bestByCourse[r.courseKey] ?? Infinity, r.ags);
-      courseCount[r.courseKey] = (courseCount[r.courseKey] || 0) + 1;
-    }
     const map = {};
-    for (const r of rounds) {
-      const list = [];
-      if (r.holes === 18) {
-        if (r.ags === bestEver) list.push("🏆 All-time best");
-        else if (r.ags === bestByYear[r.year]) list.push(`🎖️ Best of ${r.year}`);
-        else if (r.ags === bestByCourse[r.courseKey] && courseCount[r.courseKey] >= 3)
-          list.push("📍 Your course best");
+    for (const list of Object.values(groupBy(entries, (r) => r.ownerId))) {
+      const r18 = list.filter((r) => r.holes === 18);
+      const bestEver = r18.length ? Math.min(...r18.map((r) => r.ags)) : null;
+      const bestByYear = {};
+      const bestByCourse = {};
+      const courseCount = {};
+      for (const r of r18) {
+        bestByYear[r.year] = Math.min(bestByYear[r.year] ?? Infinity, r.ags);
+        bestByCourse[r.courseKey] = Math.min(bestByCourse[r.courseKey] ?? Infinity, r.ags);
+        courseCount[r.courseKey] = (courseCount[r.courseKey] || 0) + 1;
       }
-      if (r.counts?.eagle) list.push("🦅 Eagle!");
-      if (r.counts && r.counts.birdie >= 2) list.push(`🐦 ${r.counts.birdie} birdies`);
-      map[r.id] = list;
+      for (const r of list) {
+        const out = [];
+        if (r.holes === 18) {
+          if (r.ags === bestEver) out.push("🏆 All-time best");
+          else if (r.ags === bestByYear[r.year]) out.push(`🎖️ Best of ${r.year}`);
+          else if (r.ags === bestByCourse[r.courseKey] && courseCount[r.courseKey] >= 3)
+            out.push("📍 Course best");
+        }
+        if (r.counts?.eagle) out.push("🦅 Eagle!");
+        if (r.counts && r.counts.birdie >= 2) out.push(`🐦 ${r.counts.birdie} birdies`);
+        map[r.id] = out;
+      }
     }
     return map;
-  }, [rounds]);
+  }, [entries]);
 
   const thisYear = useMemo(() => {
-    const yr = rounds[0]?.year;
+    if (!ownGolfer) return null;
+    const mine = entries.filter((r) => r.ownerId === "me");
+    const yr = mine[0]?.year;
     if (!yr) return null;
-    const ys = rounds.filter((r) => r.year === yr);
+    const ys = mine.filter((r) => r.year === yr);
     const y18 = ys.filter((r) => r.holes === 18);
     return {
       yr,
@@ -211,12 +215,10 @@ export default function FeedTab({ rounds, golfer, onProfile }) {
         0
       ),
     };
-  }, [rounds]);
+  }, [entries, ownGolfer]);
 
-  if (!rounds.length) {
-    return (
-      <p className="text-center text-gray-400 py-12">No rounds to show.</p>
-    );
+  if (!entries.length) {
+    return <p className="text-center text-gray-400 py-12">No rounds to show yet.</p>;
   }
 
   return (
@@ -224,10 +226,10 @@ export default function FeedTab({ rounds, golfer, onProfile }) {
       {thisYear && (
         <button
           type="button"
-          onClick={onProfile}
+          onClick={() => onProfile("me")}
           className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm px-4 py-3 flex items-center gap-3 cursor-pointer hover:border-green-600/40 transition-colors text-left"
         >
-          <Avatar golfer={golfer} size="sm" />
+          <Avatar golfer={ownGolfer} size="sm" />
           <div className="min-w-0 flex-1">
             <div className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
               Your {thisYear.yr}
@@ -247,23 +249,37 @@ export default function FeedTab({ rounds, golfer, onProfile }) {
         </button>
       )}
 
-      {rounds.slice(0, shown).map((r) => (
+      {!ownGolfer && onSignIn && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-gray-700">
+            This is the public feed — sign in to see your own stats.
+          </div>
+          <button
+            type="button"
+            onClick={onSignIn}
+            className="text-xs uppercase tracking-wider bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-full border-none cursor-pointer transition-colors"
+          >
+            Sign in
+          </button>
+        </div>
+      )}
+
+      {entries.slice(0, shown).map((r) => (
         <FeedCard
-          key={r.id}
+          key={`${r.ownerId}-${r.id}`}
           round={r}
-          golfer={golfer}
           badges={badges[r.id] || []}
           onProfile={onProfile}
         />
       ))}
 
-      {shown < rounds.length && (
+      {shown < entries.length && (
         <button
           type="button"
           onClick={() => setShown(shown + 12)}
           className="w-full py-3 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-green-800 cursor-pointer hover:bg-green-50 transition-colors"
         >
-          Show more rounds ({rounds.length - shown} left)
+          Show more rounds ({entries.length - shown} left)
         </button>
       )}
     </div>
