@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { aggregate, fmtToPar } from "./data";
 import { Avatar, Card } from "./ui";
+import RoundsTab from "./RoundsTab";
 
 /** Profile: golfer header, season vs career stats, trophy case. */
 
@@ -30,7 +31,7 @@ function Trophy({ icon, title, detail }) {
   );
 }
 
-export default function ProfileTab({ golfer, rounds, onBack }) {
+export default function ProfileTab({ golfer, rounds }) {
   const career = useMemo(() => aggregate(rounds), [rounds]);
   const currentYear = rounds[0]?.year;
   const season = useMemo(
@@ -98,15 +99,7 @@ export default function ProfileTab({ golfer, rounds, onBack }) {
   const memberSince = first ? first.year : null;
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
-      <button
-        type="button"
-        onClick={onBack}
-        className="text-sm bg-transparent border-none cursor-pointer text-green-800 font-semibold px-1 hover:underline"
-      >
-        ← Back to feed
-      </button>
-
+    <div className="max-w-3xl mx-auto space-y-4">
       <Card>
         <div className="flex items-center gap-4">
           <Avatar golfer={golfer} size="lg" ring />
@@ -170,6 +163,8 @@ export default function ProfileTab({ golfer, rounds, onBack }) {
           <Trophy key={t.title} {...t} />
         ))}
       </Card>
+
+      <RoundsTab rounds={rounds} />
     </div>
   );
 }

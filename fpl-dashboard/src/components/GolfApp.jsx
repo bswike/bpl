@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Home, BarChart3, List, MapPin, Bird } from "lucide-react";
+import { Home, BarChart3, MapPin, Bird, Settings, CircleUserRound } from "lucide-react";
 import { buildModel } from "./golf/data";
 import { Avatar } from "./golf/ui";
 import FeedTab from "./golf/FeedTab";
 import ProfileTab from "./golf/ProfileTab";
 import OverviewTab from "./golf/OverviewTab";
-import RoundsTab from "./golf/RoundsTab";
 import CoursesTab from "./golf/CoursesTab";
 import BirdiesTab from "./golf/BirdiesTab";
 
@@ -240,9 +239,9 @@ function LandingPage({ onLoad }) {
 const TABS = [
   ["home", "Home"],
   ["overview", "Overview"],
-  ["rounds", "Rounds"],
-  ["courses", "Courses"],
   ["birdies", "Birdie Tracker"],
+  ["courses", "Courses"],
+  ["profile", "Profile"],
 ];
 
 // Tabs without the global year/holes filter bar (they have their own controls
@@ -252,10 +251,68 @@ const NO_FILTER_TABS = new Set(["home", "birdies", "profile"]);
 const BOTTOM_NAV = [
   ["home", "Home", Home],
   ["overview", "Stats", BarChart3],
-  ["rounds", "Rounds", List],
-  ["courses", "Courses", MapPin],
   ["birdies", "Birdies", Bird],
+  ["courses", "Courses", MapPin],
+  ["profile", "Profile", CircleUserRound],
 ];
+
+function SettingsMenu({ onDownload, onReset }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  const item =
+    "w-full text-left px-4 py-2.5 text-sm bg-transparent border-none cursor-pointer hover:bg-gray-50 transition-colors";
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        title="Settings"
+        onClick={() => setOpen(!open)}
+        className={`w-9 h-9 rounded-full flex items-center justify-center border cursor-pointer transition-colors ${
+          open
+            ? "bg-white/10 border-white/60 text-white"
+            : "bg-transparent border-white/25 text-green-50 hover:border-white/60 hover:bg-white/5"
+        }`}
+      >
+        <Settings size={16} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 z-50 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 text-gray-800 overflow-hidden">
+          <button
+            type="button"
+            className={`${item} text-gray-700`}
+            onClick={() => {
+              setOpen(false);
+              onDownload();
+            }}
+          >
+            Download JSON
+          </button>
+          <button
+            type="button"
+            className={`${item} text-red-600 border-t border-gray-100`}
+            onClick={() => {
+              setOpen(false);
+              onReset();
+            }}
+          >
+            New export…
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function GolfApp() {
   const [data, setData] = useState(loadSaved);
@@ -388,9 +445,9 @@ export default function GolfApp() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-5 shrink-0 pb-0.5">
+            <div className="flex items-center gap-4 shrink-0 pb-0.5 pr-12">
               {g.handicap_index != null && (
-                <div className="text-right border-r border-white/15 pr-5">
+                <div className="text-right">
                   <div className="font-serif text-3xl sm:text-4xl leading-none text-[#e8d48a]">
                     {g.handicap_index}
                   </div>
@@ -399,22 +456,9 @@ export default function GolfApp() {
                   </div>
                 </div>
               )}
-              <div className="flex flex-col sm:flex-row gap-2">
-                <button
-                  type="button"
-                  onClick={handleDownload}
-                  className="text-[11px] uppercase tracking-wider bg-transparent border border-white/25 hover:border-white/60 hover:bg-white/5 px-4 py-1.5 rounded-full transition-colors cursor-pointer text-green-50"
-                >
-                  Download JSON
-                </button>
-                <button
-                  type="button"
-                  onClick={reset}
-                  className="text-[11px] uppercase tracking-wider bg-transparent border border-white/25 hover:border-white/60 hover:bg-white/5 px-4 py-1.5 rounded-full transition-colors cursor-pointer text-green-50"
-                >
-                  New export
-                </button>
-              </div>
+            </div>
+            <div className="absolute top-5 right-4 sm:right-6">
+              <SettingsMenu onDownload={handleDownload} onReset={reset} />
             </div>
           </div>
 
@@ -493,11 +537,8 @@ export default function GolfApp() {
             onProfile={() => setTab("profile")}
           />
         )}
-        {tab === "profile" && (
-          <ProfileTab golfer={g} rounds={model.rounds} onBack={() => setTab("home")} />
-        )}
+        {tab === "profile" && <ProfileTab golfer={g} rounds={model.rounds} />}
         {tab === "overview" && <OverviewTab rounds={rounds} yearRounds={holesRounds} />}
-        {tab === "rounds" && <RoundsTab rounds={rounds} />}
         {tab === "courses" && (
           <CoursesTab rounds={rounds} selected={selectedCourse} onSelect={setSelectedCourse} />
         )}
