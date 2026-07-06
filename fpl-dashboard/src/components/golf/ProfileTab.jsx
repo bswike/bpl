@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { aggregate, fmtToPar } from "./data";
-import { Avatar, Card } from "./ui";
+import { Avatar, Card, HolesBadge, Scorecard } from "./ui";
 import RoundsTab from "./RoundsTab";
 
 /** Profile: golfer header, season vs career stats, trophy case. */
@@ -17,21 +17,79 @@ function StatCol({ label, value, sub }) {
   );
 }
 
-function Trophy({ icon, title, detail }) {
+function TrophyRoundDetail({ round: r }) {
+  const birdies = r.counts ? r.counts.birdie + r.counts.eagle : null;
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
-      <div className="w-9 h-9 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-lg shrink-0">
-        {icon}
+    <div className="mb-2.5 rounded-xl bg-gray-50 border border-gray-100 p-3 min-w-0">
+      <div className="flex flex-wrap items-center gap-2 text-sm min-w-0">
+        <span className="font-semibold text-gray-900 truncate">{r.courseName}</span>
+        <HolesBadge holes={r.holes} />
+        <span className="text-xs text-gray-400 font-mono">
+          {r.date}
+          {r.tee ? ` · ${r.tee}` : ""}
+        </span>
       </div>
-      <div className="min-w-0">
-        <div className="text-sm font-semibold text-gray-900">{title}</div>
-        <div className="text-xs text-gray-400 truncate">{detail}</div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs font-mono text-gray-600">
+        <span>
+          Score <b className="text-gray-900">{r.ags}</b>
+        </span>
+        <span>
+          To par <b>{fmtToPar(r.toPar)}</b>
+        </span>
+        {r.diff != null && (
+          <span>
+            Diff <b>{r.diff.toFixed(1)}</b>
+          </span>
+        )}
+        {r.counts && (
+          <>
+            <span className="text-red-500">
+              Birdies+ <b>{birdies}</b>
+            </span>
+            <span className="text-green-700">
+              Pars <b>{r.counts.par}</b>
+            </span>
+            <span className="text-blue-600">
+              Bogey+ <b>{r.counts.bogey + r.counts.double + r.counts.triple}</b>
+            </span>
+          </>
+        )}
       </div>
+      {r.hd && (
+        <div className="mt-1">
+          <Scorecard round={r} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Trophy({ icon, title, detail, round, open, onToggle }) {
+  const clickable = !!round;
+  return (
+    <div className="border-b border-gray-50 last:border-0">
+      <div
+        className={`flex items-center gap-3 py-2.5 ${clickable ? "cursor-pointer" : ""}`}
+        onClick={clickable ? onToggle : undefined}
+      >
+        <div className="w-9 h-9 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-lg shrink-0">
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-gray-900">{title}</div>
+          <div className="text-xs text-gray-400 truncate">{detail}</div>
+        </div>
+        {clickable && (
+          <span className="text-gray-300 text-xs shrink-0">{open ? "▾" : "▸"}</span>
+        )}
+      </div>
+      {open && round && <TrophyRoundDetail round={round} />}
     </div>
   );
 }
 
 export default function ProfileTab({ golfer, rounds, onBack }) {
+  const [openTrophy, setOpenTrophy] = useState(null);
   const career = useMemo(() => aggregate(rounds), [rounds]);
   const currentYear = rounds[0]?.year;
   const season = useMemo(
@@ -52,6 +110,7 @@ export default function ProfileTab({ golfer, rounds, onBack }) {
         icon: "🎯",
         title: `${aceTotal} hole-in-one${aceTotal === 1 ? "" : "s"}`,
         detail: `${aceHole ? `Hole ${aceHole.hole_number} · ` : ""}${aceRound.courseName} · ${aceRound.date}`,
+        round: aceRound,
       });
     }
 
@@ -65,13 +124,18 @@ export default function ProfileTab({ golfer, rounds, onBack }) {
         icon: "🏆",
         title: `Best round: ${bestRound.ags} (${fmtToPar(bestRound.toPar)})`,
         detail: `${bestRound.courseName} · ${bestRound.date}`,
+        round: bestRound,
       });
     }
     if (career.bestDiff != null) {
+      const diffRound = rounds.find((r) => r.diff === career.bestDiff);
       out.push({
         icon: "📉",
         title: `Best differential: ${career.bestDiff.toFixed(1)}`,
-        detail: "Lowest handicap differential posted",
+        detail: diffRound
+          ? `${diffRound.courseName} · ${diffRound.date}`
+          : "Lowest handicap differential posted",
+        round: diffRound,
       });
     }
     const mostBirdies = rounds
@@ -88,6 +152,7 @@ export default function ProfileTab({ golfer, rounds, onBack }) {
         icon: "🐦",
         title: `Most birdies in a round: ${mostBirdies.n}`,
         detail: `${mostBirdies.r.courseName} · ${mostBirdies.r.date}`,
+        round: mostBirdies.r,
       });
     }
     // Aces are celebrated above, so only count eagles beyond them here.
@@ -98,6 +163,7 @@ export default function ProfileTab({ golfer, rounds, onBack }) {
         icon: "🦅",
         title: `${eagles} career eagle${eagles === 1 ? "" : "s"}`,
         detail: eagleRound ? `${eagleRound.courseName} · ${eagleRound.date}` : "",
+        round: eagleRound,
       });
     }
     const courses = new Set(rounds.map((r) => r.courseKey));
@@ -190,8 +256,14 @@ export default function ProfileTab({ golfer, rounds, onBack }) {
 
       <Card title="Trophy case">
         {trophies.map((t) => (
-          <Trophy key={t.title} {...t} />
+          <Trophy
+            key={t.title}
+            {...t}
+            open={openTrophy === t.title}
+            onToggle={() => setOpenTrophy(openTrophy === t.title ? null : t.title)}
+          />
         ))}
+        <p className="text-[11px] text-gray-400 mt-2">Tap a trophy to see the round.</p>
       </Card>
 
       <RoundsTab rounds={rounds} />
