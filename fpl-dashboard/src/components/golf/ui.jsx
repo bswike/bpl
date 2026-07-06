@@ -21,6 +21,30 @@ export function Card({ title, right, children, className = "" }) {
   );
 }
 
+export function Avatar({ golfer, size = "md", onClick, ring = false }) {
+  const initials =
+    `${golfer?.first_name?.[0] || ""}${golfer?.last_name?.[0] || ""}`.toUpperCase() || "⛳";
+  const sizes = {
+    sm: "w-9 h-9 text-xs",
+    md: "w-11 h-11 text-sm",
+    lg: "w-20 h-20 text-2xl",
+  };
+  const cls = `${sizes[size]} rounded-full bg-gradient-to-br from-green-600 to-green-900 text-white font-bold flex items-center justify-center shrink-0 select-none ${
+    ring ? "ring-2 ring-[#d4af37]/70 ring-offset-1 ring-offset-transparent" : ""
+  }`;
+  if (!onClick) return <div className={cls}>{initials}</div>;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="View profile"
+      className={`${cls} border-none cursor-pointer hover:brightness-110 transition-all p-0`}
+    >
+      {initials}
+    </button>
+  );
+}
+
 export function StatCard({ label, value, sub, tone = "default" }) {
   const toneClass =
     tone === "good"

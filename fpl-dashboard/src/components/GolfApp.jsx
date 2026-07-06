@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { Home, BarChart3, List, MapPin, Bird } from "lucide-react";
 import { buildModel } from "./golf/data";
+import { Avatar } from "./golf/ui";
+import FeedTab from "./golf/FeedTab";
+import ProfileTab from "./golf/ProfileTab";
 import OverviewTab from "./golf/OverviewTab";
 import RoundsTab from "./golf/RoundsTab";
 import CoursesTab from "./golf/CoursesTab";
@@ -234,15 +238,28 @@ function LandingPage({ onLoad }) {
 }
 
 const TABS = [
+  ["home", "Home"],
   ["overview", "Overview"],
   ["rounds", "Rounds"],
   ["courses", "Courses"],
   ["birdies", "Birdie Tracker"],
 ];
 
+// Tabs without the global year/holes filter bar (they have their own controls
+// or, like the feed and profile, are meant to feel like a standalone app).
+const NO_FILTER_TABS = new Set(["home", "birdies", "profile"]);
+
+const BOTTOM_NAV = [
+  ["home", "Home", Home],
+  ["overview", "Stats", BarChart3],
+  ["rounds", "Rounds", List],
+  ["courses", "Courses", MapPin],
+  ["birdies", "Birdies", Bird],
+];
+
 export default function GolfApp() {
   const [data, setData] = useState(loadSaved);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("home");
   const [year, setYear] = useState("all");
   const [holesFilter, setHolesFilter] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -288,7 +305,7 @@ export default function GolfApp() {
   const handleLoad = (d) => {
     setData(d);
     save(d);
-    setTab("overview");
+    setTab("home");
     setYear("all");
     setHolesFilter("all");
     setSelectedCourse(null);
@@ -349,19 +366,27 @@ export default function GolfApp() {
   return (
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col">
       <header className="relative bg-gradient-to-br from-[#0a2417] via-[#123a26] to-[#1d5133] text-white shrink-0 w-full min-w-0">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-7 min-w-0">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-7 pb-6 sm:pb-0 min-w-0">
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 min-w-0">
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]">
-                Golf Stats
-              </p>
-              <h1 className="font-serif text-2xl sm:text-[2rem] leading-tight tracking-tight mt-1 truncate">
-                {g.first_name ? `${g.first_name} ${g.last_name}` : "Golf Stats"}
-              </h1>
-              <p className="text-green-100/60 text-xs sm:text-sm mt-1">
-                GHIN #{g.ghin_number ?? "—"}
-                {g.club_name ? ` · ${g.club_name}` : ""} · {model.rounds.length} rounds
-              </p>
+            <div className="flex items-center gap-4 min-w-0">
+              <Avatar
+                golfer={g}
+                size="md"
+                ring={tab === "profile"}
+                onClick={() => setTab("profile")}
+              />
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]">
+                  Golf Stats
+                </p>
+                <h1 className="font-serif text-2xl sm:text-[2rem] leading-tight tracking-tight mt-1 truncate">
+                  {g.first_name ? `${g.first_name} ${g.last_name}` : "Golf Stats"}
+                </h1>
+                <p className="text-green-100/60 text-xs sm:text-sm mt-1">
+                  GHIN #{g.ghin_number ?? "—"}
+                  {g.club_name ? ` · ${g.club_name}` : ""} · {model.rounds.length} rounds
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-5 shrink-0 pb-0.5">
               {g.handicap_index != null && (
@@ -393,7 +418,7 @@ export default function GolfApp() {
             </div>
           </div>
 
-          <nav className="flex gap-7 mt-6">
+          <nav className="hidden sm:flex gap-7 mt-6">
             {TABS.map(([k, label]) => (
               <button
                 key={k}
@@ -418,10 +443,10 @@ export default function GolfApp() {
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d4af37]/60 to-transparent" />
       </header>
 
-      <div className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-4 py-5">
+      <div className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-4 pt-5 pb-24 sm:pb-6">
         <div
           className={`flex-wrap items-center gap-2 mb-5 ${
-            tab === "birdies" ? "hidden" : "flex"
+            NO_FILTER_TABS.has(tab) ? "hidden" : "flex"
           }`}
         >
           <select
@@ -461,6 +486,16 @@ export default function GolfApp() {
           </span>
         </div>
 
+        {tab === "home" && (
+          <FeedTab
+            rounds={model.rounds}
+            golfer={g}
+            onProfile={() => setTab("profile")}
+          />
+        )}
+        {tab === "profile" && (
+          <ProfileTab golfer={g} rounds={model.rounds} onBack={() => setTab("home")} />
+        )}
         {tab === "overview" && <OverviewTab rounds={rounds} yearRounds={holesRounds} />}
         {tab === "rounds" && <RoundsTab rounds={rounds} />}
         {tab === "courses" && (
@@ -469,7 +504,26 @@ export default function GolfApp() {
         {tab === "birdies" && <BirdiesTab rounds={model.rounds} />}
       </div>
 
-      <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-100 shrink-0">
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 flex justify-around pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
+        {BOTTOM_NAV.map(([k, label, IconCmp]) => {
+          const Icon = IconCmp;
+          return (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setTab(k)}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1 bg-transparent border-none cursor-pointer ${
+              tab === k ? "text-green-800" : "text-gray-400"
+            }`}
+          >
+            <Icon size={20} strokeWidth={tab === k ? 2.4 : 1.8} />
+            <span className="text-[9px] font-semibold">{label}</span>
+          </button>
+          );
+        })}
+      </nav>
+
+      <footer className="text-center text-xs text-gray-400 py-4 pb-20 sm:pb-4 border-t border-gray-100 shrink-0">
         Golf Stats — Not affiliated with the USGA or GHIN
       </footer>
     </main>
