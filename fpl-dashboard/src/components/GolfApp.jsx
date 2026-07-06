@@ -3,6 +3,7 @@ import { buildModel } from "./golf/data";
 import OverviewTab from "./golf/OverviewTab";
 import RoundsTab from "./golf/RoundsTab";
 import CoursesTab from "./golf/CoursesTab";
+import BirdiesTab from "./golf/BirdiesTab";
 
 const STORAGE_KEY = "golf-ghin-export";
 
@@ -236,6 +237,7 @@ const TABS = [
   ["overview", "Overview"],
   ["rounds", "Rounds"],
   ["courses", "Courses"],
+  ["birdies", "Birdie Tracker"],
 ];
 
 export default function GolfApp() {
@@ -417,7 +419,11 @@ export default function GolfApp() {
       </header>
 
       <div className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-4 py-5">
-        <div className="flex flex-wrap items-center gap-2 mb-5">
+        <div
+          className={`flex-wrap items-center gap-2 mb-5 ${
+            tab === "birdies" ? "hidden" : "flex"
+          }`}
+        >
           <select
             value={year}
             onChange={(e) => setYear(e.target.value)}
@@ -460,6 +466,7 @@ export default function GolfApp() {
         {tab === "courses" && (
           <CoursesTab rounds={rounds} selected={selectedCourse} onSelect={setSelectedCourse} />
         )}
+        {tab === "birdies" && <BirdiesTab rounds={model.rounds} />}
       </div>
 
       <footer className="text-center text-xs text-gray-400 py-4 border-t border-gray-100 shrink-0">
