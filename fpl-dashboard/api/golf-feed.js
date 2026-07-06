@@ -1,6 +1,7 @@
-// GET /api/golf-feed — all published golfer exports, newest publish first.
+// GET /api/golf-feed — all published golfer exports (newest publish first)
+// plus the public kudos map, so the client loads the feed in one request.
 import { list } from "@vercel/blob";
-import { GOLFERS_PREFIX } from "./_golf.js";
+import { GOLFERS_PREFIX, readAllKudos } from "./_golf.js";
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -8,6 +9,7 @@ export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "GET only" });
 
   try {
+    const kudosPromise = readAllKudos().catch(() => ({}));
     const { blobs } = await list({ prefix: GOLFERS_PREFIX, limit: 100 });
     const golfers = (
       await Promise.all(
@@ -28,7 +30,7 @@ export default async function handler(req, res) {
     );
 
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
-    return res.status(200).json({ golfers });
+    return res.status(200).json({ golfers, kudos: await kudosPromise });
   } catch (err) {
     console.error("golf-feed error:", err);
     return res.status(500).json({ error: "Could not load feed" });

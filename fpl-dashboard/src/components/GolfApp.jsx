@@ -489,6 +489,7 @@ export default function GolfApp() {
   const [holesFilter, setHolesFilter] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [publicFeed, setPublicFeed] = useState(null); // null = loading
+  const [kudosMap, setKudosMap] = useState({}); // roundId -> [{ghin, name}]
   const [peer, setPeer] = useState(null); // {golfer, model} of another golfer
   const [showLanding, setShowLanding] = useState(false);
   const [published, setPublished] = useState(false);
@@ -497,7 +498,10 @@ export default function GolfApp() {
   const fetchFeed = (bustCache = false) =>
     fetch(`/api/golf-feed${bustCache ? `?ts=${Date.now()}` : ""}`)
       .then((r) => (r.ok ? r.json() : { golfers: [] }))
-      .then((d) => setPublicFeed(d.golfers || []))
+      .then((d) => {
+        setPublicFeed(d.golfers || []);
+        if (d.kudos) setKudosMap(d.kudos);
+      })
       .catch(() => setPublicFeed((prev) => prev || []));
 
   useEffect(() => {
@@ -606,6 +610,38 @@ export default function GolfApp() {
   };
 
   const publishNow = () => publishData(data);
+
+  // Optimistic kudos toggle, attributed to the signed-in GHIN account.
+  const toggleKudos = async (roundId) => {
+    if (!data || !myGhin) {
+      setShowLanding(true); // guests must sign in to give kudos
+      return;
+    }
+    const rid = String(roundId);
+    const myName =
+      `${model.golfer.first_name || ""} ${model.golfer.last_name || ""}`.trim() ||
+      "Golfer";
+    const before = kudosMap[rid] || [];
+    const gave = before.some((k) => String(k.ghin) === myGhin);
+    const after = gave
+      ? before.filter((k) => String(k.ghin) !== myGhin)
+      : [...before, { ghin: myGhin, name: myName }];
+    setKudosMap((prev) => ({ ...prev, [rid]: after }));
+    try {
+      const res = await fetch("/api/golf-kudos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roundId: rid, give: !gave, name: myName }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
+    } catch (err) {
+      setKudosMap((prev) => ({ ...prev, [rid]: before })); // revert
+      window.alert(`Kudos didn't save: ${err.message}`);
+    }
+  };
 
   const unpublishNow = async () => {
     try {
@@ -736,6 +772,9 @@ export default function GolfApp() {
                 ownGolfer={null}
                 onProfile={openProfile}
                 onSignIn={() => setShowLanding(true)}
+                kudos={kudosMap}
+                myGhin={null}
+                onKudos={toggleKudos}
               />
             )}
           </div>
@@ -881,7 +920,14 @@ export default function GolfApp() {
         </div>
 
         {tab === "home" && (
-          <FeedTab entries={feedEntries} ownGolfer={g} onProfile={openProfile} />
+          <FeedTab
+            entries={feedEntries}
+            ownGolfer={g}
+            onProfile={openProfile}
+            kudos={kudosMap}
+            myGhin={myGhin}
+            onKudos={toggleKudos}
+          />
         )}
         {tab === "peer" && peer && (
           <ProfileTab

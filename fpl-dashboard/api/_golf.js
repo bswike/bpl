@@ -144,3 +144,60 @@ export async function unpublishGolfer(ghin) {
   const { blobs } = await list({ prefix: golferPath(ghin) });
   await Promise.all(blobs.map((b) => del(b.url)));
 }
+
+/* ---------- kudos ---------- */
+// One blob per giver (golf/kudos/<ghin>.json) so users never overwrite each
+// other: { ghin, name, rounds: { [roundId]: timestamp } }
+
+export const KUDOS_PREFIX = "golf/kudos/";
+
+export function kudosPath(ghin) {
+  const clean = String(ghin).replace(/[^0-9]/g, "");
+  if (!clean) throw new Error("Invalid GHIN number");
+  return `${KUDOS_PREFIX}${clean}.json`;
+}
+
+async function fetchBlobJson(blob) {
+  try {
+    const r = await fetch(`${blob.url}?v=${Date.parse(blob.uploadedAt) || 0}`);
+    return r.ok ? await r.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** All kudos, inverted to { [roundId]: [{ghin, name}, ...] }. */
+export async function readAllKudos() {
+  const { blobs } = await list({ prefix: KUDOS_PREFIX, limit: 500 });
+  const users = (await Promise.all(blobs.map(fetchBlobJson))).filter(
+    (u) => u?.ghin
+  );
+  const map = {};
+  for (const u of users) {
+    for (const rid of Object.keys(u.rounds || {})) {
+      (map[rid] = map[rid] || []).push({ ghin: String(u.ghin), name: u.name || "Golfer" });
+    }
+  }
+  return map;
+}
+
+export async function setKudos(ghin, roundId, give, name) {
+  const path = kudosPath(ghin);
+  const { blobs } = await list({ prefix: path });
+  const existing = blobs[0] ? await fetchBlobJson(blobs[0]) : null;
+  const mine = {
+    ghin: String(ghin),
+    name: String(name || existing?.name || "Golfer").slice(0, 60),
+    rounds: existing?.rounds || {},
+  };
+  const rid = String(roundId);
+  if (give) mine.rounds[rid] = Date.now();
+  else delete mine.rounds[rid];
+  await put(path, JSON.stringify(mine), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+    cacheControlMaxAge: 30,
+  });
+}

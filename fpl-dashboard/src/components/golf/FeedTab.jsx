@@ -3,27 +3,16 @@ import { fmtToPar, RESULT_COLORS, resultKey, groupBy } from "./data";
 import { Avatar, Scorecard, HolesBadge } from "./ui";
 
 /** Activity-feed home. Entries may span multiple golfers (the public feed):
- *  each entry is a round tagged with `.golfer` and `.ownerId`. */
+ *  each entry is a round tagged with `.golfer` and `.ownerId`. Kudos are
+ *  server-backed and attributed to the GHIN account that gave them. */
 
-const KUDOS_KEY = "golf-kudos";
-
-function readKudos() {
-  try {
-    return JSON.parse(localStorage.getItem(KUDOS_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-function toggleKudos(id) {
-  const k = readKudos();
-  k[id] = !k[id];
-  try {
-    localStorage.setItem(KUDOS_KEY, JSON.stringify(k));
-  } catch {
-    /* best-effort */
-  }
-  return k[id];
+function kudosLine(givers) {
+  const names = givers.map((k) => k.name);
+  if (names.length === 1) return `${names[0]} gave kudos`;
+  if (names.length === 2) return `${names[0]} and ${names[1]} gave kudos`;
+  return `${names[0]}, ${names[1]} and ${names.length - 2} other${
+    names.length - 2 === 1 ? "" : "s"
+  } gave kudos`;
 }
 
 function fmtDate(date) {
@@ -72,9 +61,8 @@ function HoleStrip({ hd }) {
   );
 }
 
-function FeedCard({ round: r, badges, onProfile }) {
+function FeedCard({ round: r, badges, onProfile, givers, gave, onKudos }) {
   const [open, setOpen] = useState(false);
-  const [kudos, setKudos] = useState(() => !!readKudos()[r.id]);
   const birdies = r.counts ? r.counts.birdie + r.counts.eagle : null;
 
   return (
@@ -135,16 +123,22 @@ function FeedCard({ round: r, badges, onProfile }) {
         </div>
       )}
 
+      {givers.length > 0 && (
+        <div className="px-4 pb-1.5 text-xs text-gray-500 truncate">
+          👏 {kudosLine(givers)}
+        </div>
+      )}
+
       <div className="border-t border-gray-100 px-2 py-1 flex items-center">
         <button
           type="button"
-          onClick={() => setKudos(toggleKudos(r.id))}
+          onClick={() => onKudos(r.id)}
           className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-transparent border-none cursor-pointer transition-colors ${
-            kudos ? "text-green-700 font-semibold" : "text-gray-400 hover:text-gray-600"
+            gave ? "text-green-700 font-semibold" : "text-gray-400 hover:text-gray-600"
           }`}
         >
-          <span className={kudos ? "" : "grayscale opacity-60"}>👏</span>
-          {kudos ? "1 kudos" : "Kudos"}
+          <span className={gave ? "" : "grayscale opacity-60"}>👏</span>
+          {givers.length > 0 ? `${givers.length} kudos` : "Kudos"}
         </button>
         {r.hd && (
           <button
@@ -166,8 +160,27 @@ function FeedCard({ round: r, badges, onProfile }) {
   );
 }
 
-export default function FeedTab({ entries, ownGolfer, onProfile, onSignIn }) {
+export default function FeedTab({
+  entries,
+  ownGolfer,
+  onProfile,
+  onSignIn,
+  kudos = {},
+  myGhin = null,
+  onKudos,
+}) {
   const [shown, setShown] = useState(12);
+
+  const cardProps = (r) => {
+    const givers = kudos[String(r.id)] || [];
+    return {
+      round: r,
+      badges: badges[r.id] || [],
+      givers,
+      gave: !!myGhin && givers.some((k) => String(k.ghin) === String(myGhin)),
+      onKudos,
+    };
+  };
 
   // Achievement badges, computed independently per golfer.
   const badges = useMemo(() => {
@@ -230,12 +243,7 @@ export default function FeedTab({ entries, ownGolfer, onProfile, onSignIn }) {
     return (
       <div className="max-w-xl mx-auto space-y-4">
         {visible.map((r) => (
-          <FeedCard
-            key={`${r.ownerId}-${r.id}`}
-            round={r}
-            badges={badges[r.id] || []}
-            onProfile={onProfile}
-          />
+          <FeedCard key={`${r.ownerId}-${r.id}`} {...cardProps(r)} onProfile={onProfile} />
         ))}
         {teaser.length > 0 && (
           <div className="relative">
@@ -246,9 +254,9 @@ export default function FeedTab({ entries, ownGolfer, onProfile, onSignIn }) {
               {teaser.map((r) => (
                 <FeedCard
                   key={`${r.ownerId}-${r.id}`}
-                  round={r}
-                  badges={badges[r.id] || []}
+                  {...cardProps(r)}
                   onProfile={() => {}}
+                  onKudos={() => {}}
                 />
               ))}
             </div>
@@ -307,12 +315,7 @@ export default function FeedTab({ entries, ownGolfer, onProfile, onSignIn }) {
       )}
 
       {entries.slice(0, shown).map((r) => (
-        <FeedCard
-          key={`${r.ownerId}-${r.id}`}
-          round={r}
-          badges={badges[r.id] || []}
-          onProfile={onProfile}
-        />
+        <FeedCard key={`${r.ownerId}-${r.id}`} {...cardProps(r)} onProfile={onProfile} />
       ))}
 
       {shown < entries.length && (
