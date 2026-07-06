@@ -127,8 +127,8 @@ export default function RoundsTab({ rounds }) {
       <p className="text-[11px] text-gray-400 mt-3">
         Click a row to see the full scorecard. <span className="text-green-600">•</span> = round
         counts toward your handicap index. To par:{" "}
-        <span className="font-mono">{fmtToPar(0)}</span> = even. Diff for 9-hole rounds is the
-        scaled-up 18-hole equivalent.
+        <span className="font-mono">{fmtToPar(0)}</span> = even. Diff for rounds under 18 holes
+        is the USGA scaled-up 18-hole equivalent.
       </p>
     </Card>
   );

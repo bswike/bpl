@@ -178,7 +178,7 @@ export default function FeedTab({
     const givers = kudos[String(r.id)] || [];
     return {
       round: r,
-      badges: badges[r.id] || [],
+      badges: badges[`${r.ownerId}-${r.id}`] || [],
       givers,
       gave: !!myGhin && givers.some((k) => String(k.ghin) === String(myGhin)),
       onKudos,
@@ -189,27 +189,44 @@ export default function FeedTab({
   const badges = useMemo(() => {
     const map = {};
     for (const list of Object.values(groupBy(entries, (r) => r.ownerId))) {
-      const r18 = list.filter((r) => r.holes === 18);
-      const bestEver = r18.length ? Math.min(...r18.map((r) => r.ags)) : null;
-      const bestByYear = {};
+      const firstName = list[0]?.golfer?.first_name || "Their";
+      // Best-round honors require a full-length course (par 70+), so scores
+      // from executive/par-3 courses can't claim them.
+      const honors = list.filter(
+        (r) => r.holes === 18 && !(r.par != null && r.par < 70)
+      );
+      const bestEver = honors.length ? Math.min(...honors.map((r) => r.ags)) : null;
+      const yearTop3 = {};
+      for (const r of honors) (yearTop3[r.year] = yearTop3[r.year] || []).push(r.ags);
+      for (const y of Object.keys(yearTop3)) {
+        yearTop3[y] = [...new Set(yearTop3[y])].sort((a, b) => a - b).slice(0, 3);
+      }
       const bestByCourse = {};
       const courseCount = {};
-      for (const r of r18) {
-        bestByYear[r.year] = Math.min(bestByYear[r.year] ?? Infinity, r.ags);
+      for (const r of list) {
+        if (r.holes !== 18) continue;
         bestByCourse[r.courseKey] = Math.min(bestByCourse[r.courseKey] ?? Infinity, r.ags);
         courseCount[r.courseKey] = (courseCount[r.courseKey] || 0) + 1;
       }
       for (const r of list) {
         const out = [];
-        if (r.holes === 18) {
-          if (r.ags === bestEver) out.push("🏆 All-time best");
-          else if (r.ags === bestByYear[r.year]) out.push(`🎖️ Best of ${r.year}`);
-          else if (r.ags === bestByCourse[r.courseKey] && courseCount[r.courseKey] >= 3)
-            out.push("📍 Course best");
-        }
-        if (r.counts?.eagle) out.push("🦅 Eagle!");
+        if (r.counts?.ace) out.push("🎯 Hole-in-one!");
+        const top3 = yearTop3[r.year] || [];
+        const honored = r.holes === 18 && !(r.par != null && r.par < 70);
+        if (honored && r.ags === bestEver) out.push("🏆 All-time best");
+        else if (honored && r.ags === top3[0]) out.push(`🎖️ Best of ${r.year}`);
+        else if (honored && r.ags === top3[1]) out.push(`🥈 2nd best of ${r.year}`);
+        else if (honored && r.ags === top3[2]) out.push(`🥉 3rd best of ${r.year}`);
+        else if (
+          r.holes === 18 &&
+          r.ags === bestByCourse[r.courseKey] &&
+          courseCount[r.courseKey] >= 3
+        )
+          out.push(`📍 ${firstName}'s course best`);
+        // An ace already implies its eagle, so only badge eagles beyond aces.
+        if (r.counts && r.counts.eagle > r.counts.ace) out.push("🦅 Eagle!");
         if (r.counts && r.counts.birdie >= 2) out.push(`🐦 ${r.counts.birdie} birdies`);
-        map[r.id] = out;
+        map[`${r.ownerId}-${r.id}`] = out;
       }
     }
     return map;

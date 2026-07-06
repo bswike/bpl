@@ -41,11 +41,30 @@ export default function ProfileTab({ golfer, rounds, onBack }) {
 
   const trophies = useMemo(() => {
     const out = [];
-    if (career.best18) {
+
+    const aceTotal = rounds.reduce((s, r) => s + (r.counts?.ace || 0), 0);
+    if (aceTotal > 0) {
+      const aceRound = rounds.find((r) => r.counts?.ace); // rounds are newest-first
+      const aceHole = aceRound.hd.find(
+        (h) => (h.raw_score || h.adjusted_gross_score) === 1
+      );
+      out.push({
+        icon: "🎯",
+        title: `${aceTotal} hole-in-one${aceTotal === 1 ? "" : "s"}`,
+        detail: `${aceHole ? `Hole ${aceHole.hole_number} · ` : ""}${aceRound.courseName} · ${aceRound.date}`,
+      });
+    }
+
+    // Best round only counts full-length courses (par 70+), so executive and
+    // par-3 course scores can't sneak in.
+    const bestRound = rounds
+      .filter((r) => r.holes === 18 && !(r.par != null && r.par < 70))
+      .reduce((a, b) => (a == null || b.ags < a.ags ? b : a), null);
+    if (bestRound) {
       out.push({
         icon: "🏆",
-        title: `Best round: ${career.best18.ags} (${fmtToPar(career.best18.toPar)})`,
-        detail: `${career.best18.courseName} · ${career.best18.date}`,
+        title: `Best round: ${bestRound.ags} (${fmtToPar(bestRound.toPar)})`,
+        detail: `${bestRound.courseName} · ${bestRound.date}`,
       });
     }
     if (career.bestDiff != null) {
@@ -71,11 +90,13 @@ export default function ProfileTab({ golfer, rounds, onBack }) {
         detail: `${mostBirdies.r.courseName} · ${mostBirdies.r.date}`,
       });
     }
-    if (career.counts.eagle > 0) {
-      const eagleRound = rounds.find((r) => r.counts?.eagle > 0);
+    // Aces are celebrated above, so only count eagles beyond them here.
+    const eagles = career.counts.eagle - aceTotal;
+    if (eagles > 0) {
+      const eagleRound = rounds.find((r) => r.counts?.eagle > (r.counts?.ace || 0));
       out.push({
         icon: "🦅",
-        title: `${career.counts.eagle} career eagle${career.counts.eagle === 1 ? "" : "s"}`,
+        title: `${eagles} career eagle${eagles === 1 ? "" : "s"}`,
         detail: eagleRound ? `${eagleRound.courseName} · ${eagleRound.date}` : "",
       });
     }

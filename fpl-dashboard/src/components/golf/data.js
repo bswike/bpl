@@ -177,11 +177,12 @@ function normalizeCourse(score) {
 /* ---------- round model ---------- */
 
 function countResults(hd) {
-  const counts = { eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0, triple: 0 };
+  const counts = { eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0, triple: 0, ace: 0 };
   for (const h of hd) {
     const raw = h.raw_score || h.adjusted_gross_score;
     if (!raw || !h.par) continue;
     counts[resultKey(raw, h.par)]++;
+    if (raw === 1) counts.ace++;
   }
   return counts;
 }
@@ -204,11 +205,14 @@ export function buildModel(json) {
       const toPar =
         parseToPar(s.to_par_display_value) ??
         (par ? s.adjusted_gross_score - par : null);
-      // GHIN's `differential` on a 9-hole score is the 9-hole differential
-      // (~half scale). Use the WHS scaled-up 18-hole equivalent so it can sit
-      // next to 18-hole diffs; never fall back to the raw 9-hole value.
+      // USGA/WHS: any round under 18 played holes gets an 18-hole Score
+      // Differential by scaling up with the player's expected score for the
+      // unplayed holes — GHIN computes that as (adjusted_)scaled_up_differential.
+      // The raw `differential` on those rounds is partial-scale, so never
+      // fall back to it.
+      const played = s.number_of_played_holes || s.number_of_holes || 18;
       const diff =
-        holes === 9
+        played < 18
           ? (s.adjusted_scaled_up_differential ?? s.scaled_up_differential)
           : s.differential;
       return {
