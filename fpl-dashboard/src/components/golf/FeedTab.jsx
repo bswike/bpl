@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { fmtToPar, RESULT_COLORS, resultKey, groupBy } from "./data";
+import { RESULT_COLORS, resultKey, groupBy } from "./data";
 import { Avatar, Scorecard, HolesBadge } from "./ui";
 
 /** Activity-feed home. Entries may span multiple golfers (the public feed):
@@ -100,20 +100,23 @@ function FeedCard({ round: r, badges, onProfile, givers, gave, onKudos }) {
         </div>
       )}
 
-      <div className="px-4 py-3 flex gap-6 sm:gap-10">
+      <div className="px-4 py-3 flex gap-5 sm:gap-9">
         <Stat label="Score" value={r.ags} />
-        <Stat
-          label="To par"
-          value={fmtToPar(r.toPar)}
-          accent={r.toPar != null && r.toPar <= 9 ? "text-green-700" : undefined}
-        />
         {r.diff != null && <Stat label="Diff" value={r.diff.toFixed(1)} />}
-        {birdies != null && (
-          <Stat
-            label="Birdies"
-            value={birdies}
-            accent={birdies > 0 ? "text-[#d63c2e]" : undefined}
-          />
+        {r.counts && (
+          <>
+            <Stat
+              label="Birdies"
+              value={birdies}
+              accent={birdies > 0 ? "text-[#d63c2e]" : undefined}
+            />
+            <Stat label="Pars" value={r.counts.par} accent="text-green-600" />
+            <Stat
+              label="Bogey+"
+              value={r.counts.bogey + r.counts.double + r.counts.triple}
+              accent="text-blue-500"
+            />
+          </>
         )}
       </div>
 
