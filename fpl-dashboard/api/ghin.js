@@ -1,4 +1,4 @@
-import { signSession, sessionCookie, publishGolfer } from "./_golf.js";
+import { signSession, sessionCookie } from "./_golf.js";
 
 const API_BASE = "https://api2.ghin.com/api/v1";
 const SOURCE = "GHINcom";
@@ -260,21 +260,13 @@ export default async function handler(req, res) {
     };
 
     // Session cookie proves ownership of this GHIN for later publish/unpublish.
+    // Publishing itself always goes through /api/golf-publish so failures are
+    // surfaced to the user instead of being swallowed here.
     const ghinForSession = String(payload.golfer.ghin_number ?? resolvedId);
     res.setHeader("Set-Cookie", sessionCookie(signSession(ghinForSession)));
 
-    let published = false;
-    if (req.body.publish && scores.length) {
-      try {
-        await publishGolfer(payload);
-        published = true;
-      } catch (pubErr) {
-        console.error("publish during login failed:", pubErr);
-      }
-    }
-
     res.setHeader("Cache-Control", "no-store");
-    return res.status(200).json({ ...payload, published });
+    return res.status(200).json(payload);
   } catch (err) {
     console.error("GHIN API error:", err);
     const message = err instanceof Error ? err.message : "Unexpected error";

@@ -80,7 +80,6 @@ function LandingPage({ onLoad }) {
           email,
           password,
           ghinNumber: ghinNumber.trim() || undefined,
-          publish: share,
         }),
       });
       if (!res.ok) {
@@ -91,7 +90,7 @@ function LandingPage({ onLoad }) {
       const data = await res.json();
       if (!data.scores?.length)
         throw new Error("No scores found for this GHIN number.");
-      onLoad(data);
+      onLoad(data, { share });
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -565,21 +564,28 @@ export default function GolfApp() {
     else openProfile(String(ghin));
   };
 
-  const publishNow = async () => {
+  // Single publish path for both the sign-in checkbox and the gear menu, so
+  // failures always surface with the server's reason instead of dying quietly.
+  const publishData = async (payload) => {
     try {
       const res = await fetch("/api/golf-publish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data }),
+        body: JSON.stringify({ data: payload }),
       });
-      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `HTTP ${res.status}`);
+      }
       actedRef.current = true;
       setPublished(true);
       fetchFeed(true);
     } catch (err) {
-      window.alert(`Could not publish: ${err.message}`);
+      window.alert(`Could not publish to the public feed: ${err.message}`);
     }
   };
+
+  const publishNow = () => publishData(data);
 
   const unpublishNow = async () => {
     try {
@@ -606,7 +612,7 @@ export default function GolfApp() {
     [holesRounds, year]
   );
 
-  const handleLoad = (d) => {
+  const handleLoad = (d, { share } = {}) => {
     setData(d);
     save(d);
     setTab("home");
@@ -614,11 +620,7 @@ export default function GolfApp() {
     setHolesFilter("all");
     setSelectedCourse(null);
     setShowLanding(false);
-    if (d.published) {
-      actedRef.current = true;
-      setPublished(true);
-      fetchFeed(true);
-    }
+    if (share) publishData(d);
   };
 
   const reset = () => {
