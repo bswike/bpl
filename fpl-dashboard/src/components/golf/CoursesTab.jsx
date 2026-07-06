@@ -20,6 +20,7 @@ function CourseList({ rounds, onSelect }) {
         avg18: a.avg18,
         best: a.best18 ? a.best18.ags : a.best9 ? a.best9.ags : null,
         avgToPar: a.avgToPar18 ?? a.avgToPar9,
+        avgDiff: a.avgDiff,
         birdies: a.trackedRounds ? a.counts.birdie + a.counts.eagle : null,
         pars: a.trackedRounds ? a.counts.par : null,
         last: rs[0].date,
@@ -62,10 +63,12 @@ function CourseList({ rounds, onSelect }) {
             {[
               ["n", "Rounds"],
               ["name", "Name"],
-              ["avg18", "Avg"],
-              ["best", "Best"],
+              ["avg18", "Avg score"],
+              ["best", "Best score"],
               ["avgToPar", "Avg ± par"],
+              ["avgDiff", "Avg diff"],
               ["birdies", "Birdies"],
+              ["pars", "Pars"],
               ["last", "Last played"],
             ].map(([k, label]) => (
               <option key={k} value={k}>
@@ -103,6 +106,7 @@ function CourseList({ rounds, onSelect }) {
               <span>
                 {c.avgToPar != null ? `${fmtToPar(c.avgToPar, { decimals: 1 })} vs par` : ""}
               </span>
+              <span>Diff {c.avgDiff != null ? c.avgDiff.toFixed(1) : "—"}</span>
               <span className="text-red-500 font-semibold">🐦 {c.birdies ?? "—"}</span>
               <span>P {c.pars ?? "—"}</span>
             </div>
@@ -120,6 +124,7 @@ function CourseList({ rounds, onSelect }) {
               <Th label="Avg (18)" k="avg18" sort={sort} onSort={onSort} align="right" />
               <Th label="Best" k="best" sort={sort} onSort={onSort} align="right" />
               <Th label="Avg ± Par" k="avgToPar" sort={sort} onSort={onSort} align="right" />
+              <Th label="Avg Diff" k="avgDiff" sort={sort} onSort={onSort} align="right" />
               <Th label="Birdies+" k="birdies" sort={sort} onSort={onSort} align="right" />
               <Th label="Pars" k="pars" sort={sort} onSort={onSort} align="right" />
               <Th label="Last played" k="last" sort={sort} onSort={onSort} align="right" />
@@ -151,6 +156,9 @@ function CourseList({ rounds, onSelect }) {
                 </td>
                 <td className="py-2 px-1.5 text-right font-mono text-gray-700">
                   {c.avgToPar != null ? fmtToPar(c.avgToPar, { decimals: 1 }) : "—"}
+                </td>
+                <td className="py-2 px-1.5 text-right font-mono text-gray-600">
+                  {c.avgDiff != null ? c.avgDiff.toFixed(1) : "—"}
                 </td>
                 <td className="py-2 px-1.5 text-right font-mono text-red-500 font-semibold">
                   {c.birdies ?? "—"}

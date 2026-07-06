@@ -22,6 +22,7 @@ const SORT_LABELS = [
   ["diff", "Diff"],
   ["birdies", "Birdies"],
   ["pars", "Pars"],
+  ["holes", "Holes"],
 ];
 
 export default function RoundsTab({ rounds }) {

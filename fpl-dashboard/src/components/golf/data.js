@@ -222,6 +222,7 @@ export function buildModel(json) {
         courseKey: key,
         tee: s.tee_name || null,
         holes,
+        played,
         ags: s.adjusted_gross_score,
         toPar,
         par: par ?? (toPar != null ? s.adjusted_gross_score - toPar : null),
@@ -266,8 +267,11 @@ export function aggregate(rounds) {
       }
     }
   }
-  const best18 = r18.length
-    ? r18.reduce((a, b) => (b.ags < a.ags ? b : a))
+  // Only rounds with all 18 holes actually played can be a "best" — scaled-up
+  // partial rounds (10-17 holes) have projected scores, not real ones.
+  const full18 = r18.filter((r) => r.played === 18);
+  const best18 = full18.length
+    ? full18.reduce((a, b) => (b.ags < a.ags ? b : a))
     : null;
   const best9 = r9.length ? r9.reduce((a, b) => (b.ags < a.ags ? b : a)) : null;
   const diffs = rounds.map((r) => r.diff).filter((d) => d != null);

@@ -55,10 +55,10 @@ export default function ProfileTab({ golfer, rounds, onBack }) {
       });
     }
 
-    // Best round only counts full-length courses (par 70+), so executive and
-    // par-3 course scores can't sneak in.
+    // Best round only counts full-length courses (par 70+) with all 18 holes
+    // actually played — no executive courses, no scaled-up partial rounds.
     const bestRound = rounds
-      .filter((r) => r.holes === 18 && !(r.par != null && r.par < 70))
+      .filter((r) => r.played === 18 && !(r.par != null && r.par < 70))
       .reduce((a, b) => (a == null || b.ags < a.ags ? b : a), null);
     if (bestRound) {
       out.push({

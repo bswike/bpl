@@ -190,10 +190,10 @@ export default function FeedTab({
     const map = {};
     for (const list of Object.values(groupBy(entries, (r) => r.ownerId))) {
       const firstName = list[0]?.golfer?.first_name || "Their";
-      // Best-round honors require a full-length course (par 70+), so scores
-      // from executive/par-3 courses can't claim them.
+      // Best-round honors require a full-length course (par 70+) AND all 18
+      // holes actually played — scaled-up partial rounds don't qualify.
       const honors = list.filter(
-        (r) => r.holes === 18 && !(r.par != null && r.par < 70)
+        (r) => r.played === 18 && !(r.par != null && r.par < 70)
       );
       const bestEver = honors.length ? Math.min(...honors.map((r) => r.ags)) : null;
       const yearTop3 = {};
@@ -204,7 +204,7 @@ export default function FeedTab({
       const bestByCourse = {};
       const courseCount = {};
       for (const r of list) {
-        if (r.holes !== 18) continue;
+        if (r.played !== 18) continue;
         bestByCourse[r.courseKey] = Math.min(bestByCourse[r.courseKey] ?? Infinity, r.ags);
         courseCount[r.courseKey] = (courseCount[r.courseKey] || 0) + 1;
       }
@@ -212,13 +212,13 @@ export default function FeedTab({
         const out = [];
         if (r.counts?.ace) out.push("🎯 Hole-in-one!");
         const top3 = yearTop3[r.year] || [];
-        const honored = r.holes === 18 && !(r.par != null && r.par < 70);
+        const honored = r.played === 18 && !(r.par != null && r.par < 70);
         if (honored && r.ags === bestEver) out.push("🏆 All-time best");
         else if (honored && r.ags === top3[0]) out.push(`🎖️ Best of ${r.year}`);
         else if (honored && r.ags === top3[1]) out.push(`🥈 2nd best of ${r.year}`);
         else if (honored && r.ags === top3[2]) out.push(`🥉 3rd best of ${r.year}`);
         else if (
-          r.holes === 18 &&
+          r.played === 18 &&
           r.ags === bestByCourse[r.courseKey] &&
           courseCount[r.courseKey] >= 3
         )
