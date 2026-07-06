@@ -16,10 +16,13 @@ import OverviewTab from "./golf/OverviewTab";
 import CoursesTab from "./golf/CoursesTab";
 import BirdiesTab from "./golf/BirdiesTab";
 
-const STORAGE_KEY = "golf-ghin-export";
+// v2: bumping the key signs everyone out once (old saved exports are cleared).
+const STORAGE_KEY = "golf-ghin-export-v2";
+const LEGACY_STORAGE_KEYS = ["golf-ghin-export"];
 
 function loadSaved() {
   try {
+    for (const k of LEGACY_STORAGE_KEYS) localStorage.removeItem(k);
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const data = JSON.parse(raw);

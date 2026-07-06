@@ -221,6 +221,63 @@ export default function FeedTab({ entries, ownGolfer, onProfile, onSignIn }) {
     return <p className="text-center text-gray-400 py-12">No rounds to show yet.</p>;
   }
 
+  // Guests see the first two posts; the rest is blurred behind a sign-in gate.
+  const guest = !ownGolfer;
+  const GUEST_VISIBLE = 2;
+  if (guest) {
+    const visible = entries.slice(0, GUEST_VISIBLE);
+    const teaser = entries.slice(GUEST_VISIBLE, GUEST_VISIBLE + 3);
+    return (
+      <div className="max-w-xl mx-auto space-y-4">
+        {visible.map((r) => (
+          <FeedCard
+            key={`${r.ownerId}-${r.id}`}
+            round={r}
+            badges={badges[r.id] || []}
+            onProfile={onProfile}
+          />
+        ))}
+        {teaser.length > 0 && (
+          <div className="relative">
+            <div
+              className="space-y-4 blur-[6px] opacity-60 pointer-events-none select-none"
+              aria-hidden="true"
+            >
+              {teaser.map((r) => (
+                <FeedCard
+                  key={`${r.ownerId}-${r.id}`}
+                  round={r}
+                  badges={badges[r.id] || []}
+                  onProfile={() => {}}
+                />
+              ))}
+            </div>
+            <div className="absolute inset-0 flex items-start justify-center pt-14 bg-gradient-to-b from-transparent via-[#f8faf8]/60 to-[#f8faf8]">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-lg px-6 py-5 text-center max-w-xs mx-4">
+                <div className="text-2xl mb-1">⛳</div>
+                <div className="text-sm font-bold text-gray-900">
+                  There's more where that came from
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Sign in with GHIN to see the full feed and your own stats.
+                </p>
+                {onSignIn && (
+                  <button
+                    type="button"
+                    onClick={onSignIn}
+                    className="mt-3 text-xs uppercase tracking-wider bg-green-700 hover:bg-green-600 text-white px-5 py-2 rounded-full border-none cursor-pointer transition-colors"
+                  >
+                    Sign in to GHIN
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-xl mx-auto space-y-4">
       {thisYear && (
@@ -247,21 +304,6 @@ export default function FeedTab({ entries, ownGolfer, onProfile, onSignIn }) {
           </div>
           <span className="text-gray-300 text-lg">›</span>
         </button>
-      )}
-
-      {!ownGolfer && onSignIn && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-gray-700">
-            This is the public feed — sign in to see your own stats.
-          </div>
-          <button
-            type="button"
-            onClick={onSignIn}
-            className="text-xs uppercase tracking-wider bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-full border-none cursor-pointer transition-colors"
-          >
-            Sign in
-          </button>
-        </div>
       )}
 
       {entries.slice(0, shown).map((r) => (
