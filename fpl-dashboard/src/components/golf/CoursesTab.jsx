@@ -41,9 +41,77 @@ function CourseList({ rounds, onSelect }) {
     });
   }, [courses, sort]);
 
+  const roundsLabel = (c) =>
+    [c.n18 > 0 ? `${c.n18}×18` : null, c.n9 > 0 ? `${c.n9}×9` : null]
+      .filter(Boolean)
+      .join(", ");
+
   return (
     <Card title={`Courses · ${courses.length}`}>
-      <div className="overflow-x-auto -mx-1 px-1">
+      {/* Mobile: stacked course rows, no side-scroll */}
+      <div className="sm:hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+            Sort
+          </label>
+          <select
+            value={sort.key}
+            onChange={(e) => e.target.value !== sort.key && onSort(e.target.value)}
+            className="px-2 py-1 border border-gray-200 rounded-lg text-xs bg-white text-gray-900 focus:outline-none"
+          >
+            {[
+              ["n", "Rounds"],
+              ["name", "Name"],
+              ["avg18", "Avg"],
+              ["best", "Best"],
+              ["avgToPar", "Avg ± par"],
+              ["birdies", "Birdies"],
+              ["last", "Last played"],
+            ].map(([k, label]) => (
+              <option key={k} value={k}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => onSort(sort.key)}
+            className="px-2 py-1 border border-gray-200 rounded-lg text-xs bg-white text-gray-600 cursor-pointer"
+          >
+            {sort.dir === "asc" ? "↑ asc" : "↓ desc"}
+          </button>
+        </div>
+        {sorted.map((c) => (
+          <div
+            key={c.key}
+            onClick={() => onSelect(c.key)}
+            className="py-2.5 border-b border-gray-100 last:border-0 cursor-pointer active:bg-green-50/50"
+          >
+            <div className="flex items-baseline gap-2 min-w-0">
+              <div className="text-sm font-medium text-green-900 truncate flex-1">
+                {c.name}
+              </div>
+              <div className="text-[11px] text-gray-400 font-mono shrink-0">{c.last}</div>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[11px] text-gray-500 font-mono">
+              <span>{roundsLabel(c)}</span>
+              <span>Avg {c.avg18 != null ? c.avg18.toFixed(1) : "—"}</span>
+              <span className="text-green-700 font-semibold">
+                Best {c.best ?? "—"}
+                {c.best != null && c.n18 === 0 ? " (9)" : ""}
+              </span>
+              <span>
+                {c.avgToPar != null ? `${fmtToPar(c.avgToPar, { decimals: 1 })} vs par` : ""}
+              </span>
+              <span className="text-red-500 font-semibold">🐦 {c.birdies ?? "—"}</span>
+              <span>P {c.pars ?? "—"}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: full sortable table */}
+      <div className="hidden sm:block overflow-x-auto -mx-1 px-1">
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr>
@@ -109,18 +177,36 @@ function CourseYearTable({ rounds }) {
   return (
     <Card title="Year by year at this course">
       <div className="overflow-x-auto -mx-1 px-1">
-        <table className="w-full text-sm">
+        <table className="w-full text-xs sm:text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-200 text-[10px] uppercase tracking-wide">
               <th className="pb-2">Year</th>
-              <th className="pb-2 px-1.5 text-center">Rounds</th>
-              <th className="pb-2 px-1.5 text-right">Avg (18)</th>
-              <th className="pb-2 px-1.5 text-right">Best</th>
-              <th className="pb-2 px-1.5 text-right">Eagles</th>
-              <th className="pb-2 px-1.5 text-right">Birdies</th>
-              <th className="pb-2 px-1.5 text-right">Pars</th>
-              <th className="pb-2 px-1.5 text-right">Bogeys</th>
-              <th className="pb-2 px-1.5 text-right">Dbl+</th>
+              <th className="pb-2 px-1 sm:px-1.5 text-center">
+                <span className="sm:hidden">Rds</span>
+                <span className="hidden sm:inline">Rounds</span>
+              </th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">
+                <span className="sm:hidden">Avg</span>
+                <span className="hidden sm:inline">Avg (18)</span>
+              </th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">Best</th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">
+                <span className="sm:hidden">🦅</span>
+                <span className="hidden sm:inline">Eagles</span>
+              </th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">
+                <span className="sm:hidden">🐦</span>
+                <span className="hidden sm:inline">Birdies</span>
+              </th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">
+                <span className="sm:hidden">Par</span>
+                <span className="hidden sm:inline">Pars</span>
+              </th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">
+                <span className="sm:hidden">Bog</span>
+                <span className="hidden sm:inline">Bogeys</span>
+              </th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">Dbl+</th>
             </tr>
           </thead>
           <tbody>
@@ -129,30 +215,30 @@ function CourseYearTable({ rounds }) {
               return (
                 <tr key={yr} className="border-b border-gray-50">
                   <td className="py-1.5 font-semibold">{yr}</td>
-                  <td className="py-1.5 px-1.5 text-center text-gray-600 text-xs">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-center text-gray-600 text-xs">
                     {a.n18 > 0 && `${a.n18}×18`}
                     {a.n18 > 0 && a.n9 > 0 && ", "}
                     {a.n9 > 0 && `${a.n9}×9`}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono">
                     {a.avg18 != null ? a.avg18.toFixed(1) : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-green-700 font-semibold">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-green-700 font-semibold">
                     {a.best18 ? a.best18.ags : a.best9 ? `${a.best9.ags} (9)` : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-yellow-600">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-yellow-600">
                     {a.trackedRounds ? a.counts.eagle : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-red-500 font-semibold">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-red-500 font-semibold">
                     {a.trackedRounds ? a.counts.birdie : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-green-600">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-green-600">
                     {a.trackedRounds ? a.counts.par : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-blue-500">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-blue-500">
                     {a.trackedRounds ? a.counts.bogey : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-gray-500">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-gray-500">
                     {a.trackedRounds ? a.counts.double + a.counts.triple : "—"}
                   </td>
                 </tr>
@@ -232,17 +318,21 @@ function HoleTable({ holes }) {
               </span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
+              <table className="w-full border-collapse text-xs sm:text-sm">
                 <thead>
                   <tr>
                     <th className={`${th} w-12 text-center`}>Hole</th>
                     <th className={`${th} w-10 text-center`}>Par</th>
-                    <th className={`${th} w-10 text-center`}>Hcp</th>
+                    <th className={`${th} w-10 text-center hidden sm:table-cell`}>Hcp</th>
                     <th className={`${th} w-14 text-center`}>Avg</th>
                     <th className={`${th} w-14 text-center`}>±Par</th>
-                    <th className={`${th} w-11 text-center`}>Best</th>
-                    <th className={`${th} w-11 text-center`}>Worst</th>
-                    <th className={`${th} min-w-[170px] text-left`}>Distribution</th>
+                    <th className={`${th} w-11 text-center hidden sm:table-cell`}>Best</th>
+                    <th className={`${th} w-11 text-center hidden sm:table-cell`}>Worst</th>
+                    <th className={`${th} w-11 text-center sm:hidden`}>B/W</th>
+                    <th className={`${th} min-w-[104px] sm:min-w-[170px] text-left`}>
+                      <span className="sm:hidden">Dist</span>
+                      <span className="hidden sm:inline">Distribution</span>
+                    </th>
                     <th className={`${th} w-8 text-center`}>n</th>
                   </tr>
                 </thead>
@@ -257,24 +347,42 @@ function HoleTable({ holes }) {
                           : "text-amber-600";
                     return (
                       <tr key={h.hole} className="border-b border-gray-50 hover:bg-gray-50/80">
-                        <td className="py-2 px-1.5 text-center font-mono font-bold text-gray-900">
+                        <td className="py-2 px-1 sm:px-1.5 text-center font-mono font-bold text-gray-900">
                           {h.hole}
+                          {h.sa && (
+                            <div className="text-[8px] text-gray-400 font-normal font-sans sm:hidden">
+                              hcp {h.sa}
+                            </div>
+                          )}
                         </td>
-                        <td className="py-2 px-1.5 text-center text-gray-600">{h.par}</td>
-                        <td className="py-2 px-1.5 text-center text-gray-400 text-xs">{h.sa || "—"}</td>
-                        <td className="py-2 px-1.5 text-center font-mono font-bold text-gray-900">
+                        <td className="py-2 px-1 sm:px-1.5 text-center text-gray-600">{h.par}</td>
+                        <td className="py-2 px-1.5 text-center text-gray-400 text-xs hidden sm:table-cell">
+                          {h.sa || "—"}
+                        </td>
+                        <td className="py-2 px-1 sm:px-1.5 text-center font-mono font-bold text-gray-900">
                           {h.avg.toFixed(2)}
                         </td>
-                        <td className={`py-2 px-1.5 text-center font-mono font-bold ${vc}`}>
+                        <td className={`py-2 px-1 sm:px-1.5 text-center font-mono font-bold ${vc}`}>
                           {vp > 0 ? "+" : ""}
                           {vp.toFixed(2)}
                         </td>
-                        <td className="py-2 px-1.5 text-center text-green-600 font-medium">{h.best}</td>
-                        <td className="py-2 px-1.5 text-center text-red-600 font-medium">{h.worst}</td>
-                        <td className="py-2 pr-2">
+                        <td className="py-2 px-1.5 text-center text-green-600 font-medium hidden sm:table-cell">
+                          {h.best}
+                        </td>
+                        <td className="py-2 px-1.5 text-center text-red-600 font-medium hidden sm:table-cell">
+                          {h.worst}
+                        </td>
+                        <td className="py-2 px-1 text-center font-mono whitespace-nowrap sm:hidden">
+                          <span className="text-green-600">{h.best}</span>
+                          <span className="text-gray-300">/</span>
+                          <span className="text-red-600">{h.worst}</span>
+                        </td>
+                        <td className="py-2 pr-1 sm:pr-2">
                           <DistBar dist={h.distribution} total={h.count} />
                         </td>
-                        <td className="py-2 px-1.5 text-center text-gray-400 text-xs">{h.count}</td>
+                        <td className="py-2 px-1 sm:px-1.5 text-center text-gray-400 text-xs">
+                          {h.count}
+                        </td>
                       </tr>
                     );
                   })}
@@ -406,17 +514,17 @@ function CourseDetail({ rounds, courseKey, onBack }) {
                 <tr key={r.id} className="border-b border-gray-50">
                   <td className="py-1.5 font-mono text-xs text-gray-600">{r.date}</td>
                   <td className="py-1.5 text-xs text-gray-500 uppercase">{r.tee || "—"}</td>
-                  <td className="py-1.5 px-1.5 text-center">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-center">
                     <HolesBadge holes={r.holes} />
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono font-bold">{r.ags}</td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-gray-600">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono font-bold">{r.ags}</td>
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-gray-600">
                     {fmtToPar(r.toPar)}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-red-500 font-semibold">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-red-500 font-semibold">
                     {r.counts ? r.counts.birdie + r.counts.eagle : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-gray-700">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-gray-700">
                     {r.counts ? r.counts.par : "—"}
                   </td>
                 </tr>

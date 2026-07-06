@@ -354,7 +354,7 @@ function BirdieLog({ rounds, scope, courseName }) {
   return (
     <Card title={`Birdie log · ${courseName} · ${scope}`}>
       <div className="overflow-x-auto -mx-1 px-1">
-        <table className="w-full text-sm">
+        <table className="w-full text-xs sm:text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-200 text-[10px] uppercase tracking-wide">
               <th className="pb-2">Date</th>

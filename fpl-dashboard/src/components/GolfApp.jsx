@@ -759,7 +759,7 @@ export default function GolfApp() {
           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d4af37]/60 to-transparent" />
         </header>
         {showGuestFeed ? (
-          <div className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-4 py-5">
+          <div className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-3 sm:px-4 py-4 sm:py-5">
             {tab === "peer" && peer ? (
               <ProfileTab
                 golfer={peer.golfer}
@@ -876,7 +876,7 @@ export default function GolfApp() {
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d4af37]/60 to-transparent" />
       </header>
 
-      <div className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-4 pt-5 pb-24 sm:pb-6">
+      <div className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-3 sm:px-4 pt-4 sm:pt-5 pb-24 sm:pb-6">
         <div
           className={`flex-wrap items-center gap-2 mb-5 ${
             NO_FILTER_TABS.has(tab) ? "hidden" : "flex"

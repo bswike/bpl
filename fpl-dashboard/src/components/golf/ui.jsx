@@ -53,12 +53,12 @@ export function StatCard({ label, value, sub, tone = "default" }) {
         ? "text-red-600"
         : "text-green-900";
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 min-w-0">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-3 py-2.5 sm:px-4 sm:py-3 min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
         {label}
       </div>
-      <div className={`text-2xl font-bold font-mono mt-0.5 ${toneClass}`}>{value}</div>
-      <div className="text-xs text-gray-400 mt-0.5 truncate">{sub || " "}</div>
+      <div className={`text-xl sm:text-2xl font-bold font-mono mt-0.5 ${toneClass}`}>{value}</div>
+      <div className="text-[11px] sm:text-xs text-gray-400 mt-0.5 truncate">{sub || " "}</div>
     </div>
   );
 }
@@ -131,7 +131,7 @@ export function Legend() {
 
 export function DistBar({ dist, total }) {
   return (
-    <div className="flex items-center gap-2 h-6 min-w-[160px]">
+    <div className="flex items-center gap-2 h-6 min-w-[96px] sm:min-w-[160px]">
       <div className="flex flex-1 h-4 rounded overflow-hidden bg-gray-100">
         {RESULT_ORDER.map((k) => {
           const c = dist[k] || 0;

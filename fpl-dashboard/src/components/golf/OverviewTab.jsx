@@ -101,16 +101,31 @@ function YearTable({ rounds }) {
   return (
     <Card title="Year by year">
       <div className="overflow-x-auto -mx-1 px-1">
-        <table className="w-full text-sm">
+        <table className="w-full text-xs sm:text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-200 text-[10px] uppercase tracking-wide">
               <th className="pb-2">Year</th>
-              <th className="pb-2 px-1.5 text-center">Rounds</th>
-              <th className="pb-2 px-1.5 text-right">Avg (18)</th>
-              <th className="pb-2 px-1.5 text-right">Best</th>
-              <th className="pb-2 px-1.5 text-right">Avg Diff</th>
-              <th className="pb-2 px-1.5 text-right">Birdies+</th>
-              <th className="pb-2 px-1.5 text-right">Pars/rd</th>
+              <th className="pb-2 px-1 sm:px-1.5 text-center">
+                <span className="sm:hidden">Rds</span>
+                <span className="hidden sm:inline">Rounds</span>
+              </th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">
+                <span className="sm:hidden">Avg</span>
+                <span className="hidden sm:inline">Avg (18)</span>
+              </th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">Best</th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">
+                <span className="sm:hidden">Diff</span>
+                <span className="hidden sm:inline">Avg Diff</span>
+              </th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">
+                <span className="sm:hidden">🐦</span>
+                <span className="hidden sm:inline">Birdies+</span>
+              </th>
+              <th className="pb-2 px-1 sm:px-1.5 text-right">
+                <span className="sm:hidden">P/rd</span>
+                <span className="hidden sm:inline">Pars/rd</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -120,24 +135,24 @@ function YearTable({ rounds }) {
               return (
                 <tr key={yr} className="border-b border-gray-50 hover:bg-gray-50/60">
                   <td className="py-1.5 font-semibold">{yr}</td>
-                  <td className="py-1.5 px-1.5 text-center text-gray-600">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-center text-gray-600">
                     {a.n18 > 0 && `${a.n18}×18`}
                     {a.n18 > 0 && a.n9 > 0 && ", "}
                     {a.n9 > 0 && `${a.n9}×9`}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono">
                     {a.avg18 != null ? a.avg18.toFixed(1) : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-green-700 font-semibold">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-green-700 font-semibold">
                     {a.best18 ? a.best18.ags : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-gray-600">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-gray-600">
                     {a.avgDiff != null ? a.avgDiff.toFixed(1) : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-red-500 font-semibold">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-red-500 font-semibold">
                     {a.trackedRounds ? birdies : "—"}
                   </td>
-                  <td className="py-1.5 px-1.5 text-right font-mono text-gray-600">
+                  <td className="py-1.5 px-1 sm:px-1.5 text-right font-mono text-gray-600">
                     {a.trackedRounds ? (a.counts.par / a.trackedRounds).toFixed(1) : "—"}
                   </td>
                 </tr>
@@ -160,8 +175,8 @@ export default function OverviewTab({ rounds, yearRounds }) {
   const birdies = agg.counts.birdie + agg.counts.eagle;
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="space-y-4 sm:space-y-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         <StatCard
           label="Rounds"
           value={agg.n}
