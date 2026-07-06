@@ -1,5 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Home, BarChart3, MapPin, Bird, Settings, CircleUserRound } from "lucide-react";
+import {
+  Home,
+  BarChart3,
+  MapPin,
+  Bird,
+  Settings,
+  CircleUserRound,
+  Search,
+} from "lucide-react";
 import { buildModel } from "./golf/data";
 import { Avatar } from "./golf/ui";
 import FeedTab from "./golf/FeedTab";
@@ -274,6 +282,100 @@ const BOTTOM_NAV = [
   ["profile", "Profile", CircleUserRound],
 ];
 
+function GolferSearch({ peers, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const ref = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    inputRef.current?.focus();
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  const needle = q.trim().toLowerCase();
+  const results = peers
+    .filter((p) => {
+      const g = p.golfer || {};
+      const hay =
+        `${g.first_name || ""} ${g.last_name || ""} ${g.club_name || ""} ${g.ghin_number || ""}`.toLowerCase();
+      return !needle || hay.includes(needle);
+    })
+    .slice(0, 8);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        title="Search public golfers"
+        onClick={() => setOpen(!open)}
+        className={`w-9 h-9 rounded-full flex items-center justify-center border cursor-pointer transition-colors ${
+          open
+            ? "bg-white/10 border-white/60 text-white"
+            : "bg-transparent border-white/25 text-green-50 hover:border-white/60 hover:bg-white/5"
+        }`}
+      >
+        <Search size={16} />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-2 z-50 w-72 max-w-[82vw] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden text-gray-800">
+          <input
+            ref={inputRef}
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search public golfers…"
+            className="w-full px-4 py-2.5 text-sm border-none outline-none bg-white text-gray-900"
+          />
+          <div className="max-h-72 overflow-y-auto border-t border-gray-100">
+            {peers.length === 0 ? (
+              <p className="px-4 py-4 text-xs text-gray-400">
+                No public profiles yet — be the first to publish from settings.
+              </p>
+            ) : results.length === 0 ? (
+              <p className="px-4 py-4 text-xs text-gray-400">No golfers match “{q}”.</p>
+            ) : (
+              results.map((p) => {
+                const g = p.golfer || {};
+                const ghin = String(g.ghin_number ?? "");
+                return (
+                  <button
+                    key={ghin}
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      setQ("");
+                      onSelect(ghin);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 bg-transparent border-none cursor-pointer hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <Avatar golfer={g} size="sm" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-gray-900 truncate">
+                        {g.first_name} {g.last_name}
+                      </div>
+                      <div className="text-xs text-gray-400 truncate">
+                        {g.club_name ? `${g.club_name} · ` : ""}
+                        {p.model.rounds.length} rounds
+                        {g.handicap_index != null ? ` · ${g.handicap_index} index` : ""}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsMenu({ onDownload, onReset, published, onPublish, onUnpublish }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -457,6 +559,12 @@ export default function GolfApp() {
     }
   };
 
+  // From search: my own GHIN opens my local profile, anyone else opens a peer view.
+  const selectGolfer = (ghin) => {
+    if (data && String(ghin) === myGhin) setTab("profile");
+    else openProfile(String(ghin));
+  };
+
   const publishNow = async () => {
     try {
       const res = await fetch("/api/golf-publish", {
@@ -545,18 +653,23 @@ export default function GolfApp() {
       <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col">
         <header className="relative bg-gradient-to-br from-[#0a2417] via-[#123a26] to-[#1d5133] text-white shrink-0 w-full min-w-0">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 min-w-0 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]">
-                Swikle.com
-              </p>
-              <h1 className="font-serif text-3xl sm:text-4xl tracking-tight mt-1">
-                Golf Stats
-              </h1>
-              <p className="text-green-100/60 text-sm mt-1.5">
-                {showGuestFeed
-                  ? "The public feed — GHIN rounds, out in the open"
-                  : "Your GHIN scores — courses, holes, trends"}
-              </p>
+            <div className="flex items-center gap-4 min-w-0">
+              {showGuestFeed && (
+                <GolferSearch peers={peerModels} onSelect={selectGolfer} />
+              )}
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]">
+                  Swikle.com
+                </p>
+                <h1 className="font-serif text-3xl sm:text-4xl tracking-tight mt-1">
+                  Golf Stats
+                </h1>
+                <p className="text-green-100/60 text-sm mt-1.5">
+                  {showGuestFeed
+                    ? "The public feed — GHIN rounds, out in the open"
+                    : "Your GHIN scores — courses, holes, trends"}
+                </p>
+              </div>
             </div>
             {showGuestFeed && (
               <button
@@ -616,6 +729,7 @@ export default function GolfApp() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-7 pb-6 sm:pb-0 min-w-0">
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 min-w-0">
             <div className="flex items-center gap-4 min-w-0">
+              <GolferSearch peers={peerModels} onSelect={selectGolfer} />
               <Avatar
                 golfer={g}
                 size="md"
