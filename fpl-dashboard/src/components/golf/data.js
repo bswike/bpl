@@ -204,6 +204,13 @@ export function buildModel(json) {
       const toPar =
         parseToPar(s.to_par_display_value) ??
         (par ? s.adjusted_gross_score - par : null);
+      // GHIN's `differential` on a 9-hole score is the 9-hole differential
+      // (~half scale). Use the WHS scaled-up 18-hole equivalent so it can sit
+      // next to 18-hole diffs; never fall back to the raw 9-hole value.
+      const diff =
+        holes === 9
+          ? (s.adjusted_scaled_up_differential ?? s.scaled_up_differential)
+          : s.differential;
       return {
         id: s.id,
         date: s.played_at,
@@ -214,7 +221,7 @@ export function buildModel(json) {
         ags: s.adjusted_gross_score,
         toPar,
         par: par ?? (toPar != null ? s.adjusted_gross_score - toPar : null),
-        diff: s.differential != null ? Number(s.differential) : null,
+        diff: diff != null ? Number(diff) : null,
         used: !!s.used,
         hd,
         counts: hd ? countResults(hd) : null,

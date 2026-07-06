@@ -318,13 +318,19 @@ export default function GolfApp() {
   if (!data) {
     return (
       <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col">
-        <header className="bg-green-800 text-white shrink-0 w-full min-w-0">
-          <div className="max-w-5xl mx-auto px-4 py-6 min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight">⛳ Golf Stats</h1>
-            <p className="text-green-200 text-sm mt-0.5">
-              Analyze your GHIN scores — courses, holes, trends
+        <header className="relative bg-gradient-to-br from-[#0a2417] via-[#123a26] to-[#1d5133] text-white shrink-0 w-full min-w-0">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]">
+              Swikle.com
+            </p>
+            <h1 className="font-serif text-3xl sm:text-4xl tracking-tight mt-1">
+              Golf Stats
+            </h1>
+            <p className="text-green-100/60 text-sm mt-1.5">
+              Your GHIN scores — courses, holes, trends
             </p>
           </div>
+          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d4af37]/60 to-transparent" />
         </header>
         <div className="flex-1 flex items-center justify-center px-4 py-10 min-w-0 w-full">
           <LandingPage onLoad={handleLoad} />
@@ -340,63 +346,74 @@ export default function GolfApp() {
 
   return (
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col">
-      <header className="bg-green-800 text-white shrink-0 w-full min-w-0">
-        <div className="max-w-5xl mx-auto px-4 pt-5 pb-4 min-w-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 min-w-0">
+      <header className="relative bg-gradient-to-br from-[#0a2417] via-[#123a26] to-[#1d5133] text-white shrink-0 w-full min-w-0">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-7 min-w-0">
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 min-w-0">
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-                ⛳ {g.first_name ? `${g.first_name} ${g.last_name}` : "Golf Stats"}
+              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#d4af37]">
+                Golf Stats
+              </p>
+              <h1 className="font-serif text-2xl sm:text-[2rem] leading-tight tracking-tight mt-1 truncate">
+                {g.first_name ? `${g.first_name} ${g.last_name}` : "Golf Stats"}
               </h1>
-              <p className="text-green-200 text-xs sm:text-sm">
+              <p className="text-green-100/60 text-xs sm:text-sm mt-1">
                 GHIN #{g.ghin_number ?? "—"}
                 {g.club_name ? ` · ${g.club_name}` : ""} · {model.rounds.length} rounds
               </p>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-5 shrink-0 pb-0.5">
               {g.handicap_index != null && (
-                <div className="text-right mr-1">
-                  <div className="text-2xl sm:text-3xl font-bold leading-none">
+                <div className="text-right border-r border-white/15 pr-5">
+                  <div className="font-serif text-3xl sm:text-4xl leading-none text-[#e8d48a]">
                     {g.handicap_index}
                   </div>
-                  <div className="text-green-200 text-[10px] uppercase tracking-wide">
-                    Index
+                  <div className="text-green-100/50 text-[9px] uppercase tracking-[0.2em] mt-1">
+                    Handicap index
                   </div>
                 </div>
               )}
-              <button
-                type="button"
-                onClick={handleDownload}
-                className="text-xs sm:text-sm bg-green-700 hover:bg-green-600 px-3 py-2 rounded-lg transition-colors cursor-pointer border-none text-white"
-              >
-                Download JSON
-              </button>
-              <button
-                type="button"
-                onClick={reset}
-                className="text-xs sm:text-sm bg-green-900 hover:bg-green-700 px-3 py-2 rounded-lg transition-colors cursor-pointer border-none text-white"
-              >
-                New export
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  className="text-[11px] uppercase tracking-wider bg-transparent border border-white/25 hover:border-white/60 hover:bg-white/5 px-4 py-1.5 rounded-full transition-colors cursor-pointer text-green-50"
+                >
+                  Download JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="text-[11px] uppercase tracking-wider bg-transparent border border-white/25 hover:border-white/60 hover:bg-white/5 px-4 py-1.5 rounded-full transition-colors cursor-pointer text-green-50"
+                >
+                  New export
+                </button>
+              </div>
             </div>
           </div>
 
-          <nav className="flex gap-1 mt-4 -mb-4">
+          <nav className="flex gap-7 mt-6">
             {TABS.map(([k, label]) => (
               <button
                 key={k}
                 type="button"
                 onClick={() => setTab(k)}
-                className={`px-4 py-2 text-sm font-semibold rounded-t-lg border-none cursor-pointer transition-colors ${
+                className={`pb-3 text-sm bg-transparent cursor-pointer transition-colors tracking-wide ${
                   tab === k
-                    ? "bg-[#f8faf8] text-green-900"
-                    : "bg-green-700/40 text-green-100 hover:bg-green-700"
+                    ? "text-white font-semibold"
+                    : "text-green-100/60 hover:text-white font-medium"
                 }`}
+                style={{
+                  border: "none",
+                  borderBottom:
+                    tab === k ? "2px solid #d4af37" : "2px solid transparent",
+                }}
               >
                 {label}
               </button>
             ))}
           </nav>
         </div>
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d4af37]/60 to-transparent" />
       </header>
 
       <div className="flex-1 max-w-5xl w-full min-w-0 mx-auto px-4 py-5">
