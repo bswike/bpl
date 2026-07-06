@@ -56,6 +56,10 @@ export function sessionCookie(token) {
   return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${SESSION_TTL_S}; HttpOnly; Secure; SameSite=Lax`;
 }
 
+export function clearedSessionCookie() {
+  return `${SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
+}
+
 /* ---------- publishing ---------- */
 
 const SCORE_FIELDS = [

@@ -378,7 +378,14 @@ function GolferSearch({ peers, onSelect }) {
   );
 }
 
-function SettingsMenu({ onDownload, onReset, published, onPublish, onUnpublish }) {
+function SettingsMenu({
+  onDownload,
+  onReset,
+  onSignOut,
+  published,
+  onPublish,
+  onUnpublish,
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -448,6 +455,16 @@ function SettingsMenu({ onDownload, onReset, published, onPublish, onUnpublish }
             }}
           >
             Download JSON
+          </button>
+          <button
+            type="button"
+            className={`${item} text-gray-700 border-t border-gray-100`}
+            onClick={() => {
+              setOpen(false);
+              onSignOut();
+            }}
+          >
+            Sign out
           </button>
           <button
             type="button"
@@ -626,7 +643,7 @@ export default function GolfApp() {
     if (share) publishData(d);
   };
 
-  const reset = () => {
+  const clearLocal = () => {
     setData(null);
     setSelectedCourse(null);
     setPeer(null);
@@ -636,6 +653,23 @@ export default function GolfApp() {
     } catch {
       /* ignore */
     }
+  };
+
+  // "New export" clears local data and goes straight to the sign-in form.
+  const reset = () => {
+    clearLocal();
+    setShowLanding(true);
+  };
+
+  // "Sign out" also expires the session cookie and lands on the public feed.
+  const signOut = async () => {
+    try {
+      await fetch("/api/golf-signout", { method: "POST" });
+    } catch {
+      /* cookie expiry is best-effort; local data is cleared regardless */
+    }
+    clearLocal();
+    setShowLanding(false);
   };
 
   const handleDownload = () => {
@@ -770,6 +804,7 @@ export default function GolfApp() {
               <SettingsMenu
                 onDownload={handleDownload}
                 onReset={reset}
+                onSignOut={signOut}
                 published={published}
                 onPublish={publishNow}
                 onUnpublish={unpublishNow}
