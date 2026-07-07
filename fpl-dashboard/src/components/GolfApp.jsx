@@ -274,7 +274,7 @@ const TABS = [
 
 // Tabs without the global year/holes filter bar (they have their own controls
 // or, like the feed and profile, are meant to feel like a standalone app).
-const NO_FILTER_TABS = new Set(["home", "birdies", "profile"]);
+const NO_FILTER_TABS = new Set(["home", "birdies", "profile", "peer", "lookup"]);
 
 const BOTTOM_NAV = [
   ["home", "Home", Home],
@@ -284,9 +284,11 @@ const BOTTOM_NAV = [
   ["profile", "Profile", CircleUserRound],
 ];
 
-function GolferSearch({ peers, onSelect }) {
+function GolferSearch({ peers, onSelect, canLookup, onLookup }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [ghinInput, setGhinInput] = useState("");
+  const [looking, setLooking] = useState(false);
   const ref = useRef(null);
   const inputRef = useRef(null);
 
@@ -299,6 +301,18 @@ function GolferSearch({ peers, onSelect }) {
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
+
+  const runLookup = async () => {
+    const num = ghinInput.trim();
+    if (!/^\d{2,}$/.test(num)) return;
+    setLooking(true);
+    const ok = await onLookup(num);
+    setLooking(false);
+    if (ok) {
+      setOpen(false);
+      setGhinInput("");
+    }
+  };
 
   const needle = q.trim().toLowerCase();
   const results = peers
@@ -372,6 +386,35 @@ function GolferSearch({ peers, onSelect }) {
               })
             )}
           </div>
+          {canLookup && (
+            <div className="border-t border-gray-100 p-3 bg-gray-50/60">
+              <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">
+                Look up any golfer by GHIN #
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={ghinInput}
+                  onChange={(e) => setGhinInput(e.target.value.replace(/[^\d]/g, ""))}
+                  onKeyDown={(e) => e.key === "Enter" && runLookup()}
+                  placeholder="e.g. 11514629"
+                  className="flex-1 min-w-0 px-3 py-1.5 text-sm border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-green-600 bg-white text-gray-900"
+                />
+                <button
+                  type="button"
+                  onClick={runLookup}
+                  disabled={looking || !/^\d{2,}$/.test(ghinInput.trim())}
+                  className="px-3 py-1.5 text-xs uppercase tracking-wider bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white rounded-lg border-none cursor-pointer transition-colors shrink-0"
+                >
+                  {looking ? "…" : "Look up"}
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1.5">
+                Private to you — this isn't published anywhere.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -491,9 +534,19 @@ export default function GolfApp() {
   const [publicFeed, setPublicFeed] = useState(null); // null = loading
   const [kudosMap, setKudosMap] = useState({}); // roundId -> [{ghin, name}]
   const [peer, setPeer] = useState(null); // {golfer, model} of another golfer
+  const [lookup, setLookup] = useState(null); // {golfer, model} from a live GHIN lookup
   const [showLanding, setShowLanding] = useState(false);
   const [published, setPublished] = useState(false);
   const actedRef = useRef(false); // user published/unpublished this session
+  // Short-lived GHIN token (from this session's sign-in) enabling live friend
+  // lookups. Held only in sessionStorage, never persisted or sent to our DB.
+  const [ghinToken, setGhinToken] = useState(() => {
+    try {
+      return sessionStorage.getItem("golf-ghin-token") || null;
+    } catch {
+      return null;
+    }
+  });
 
   const fetchFeed = (bustCache = false) =>
     fetch(`/api/golf-feed${bustCache ? `?ts=${Date.now()}` : ""}`)
@@ -588,6 +641,44 @@ export default function GolfApp() {
     else openProfile(String(ghin));
   };
 
+  // Live "look up a friend" — uses this session's GHIN token, shows a private
+  // read-only profile, never publishes. Returns true on success.
+  const runLookup = async (ghinNumber) => {
+    if (!ghinToken) {
+      window.alert("Your GHIN session expired — sign in again to look up golfers.");
+      return false;
+    }
+    try {
+      const res = await fetch("/api/golf-lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: ghinToken, ghinNumber }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        // token expired — clear it so the UI stops offering lookups
+        setGhinToken(null);
+        try {
+          sessionStorage.removeItem("golf-ghin-token");
+        } catch {
+          /* ignore */
+        }
+        window.alert(body.error || "Sign in again to look up golfers.");
+        return false;
+      }
+      if (!res.ok) {
+        window.alert(body.error || `Lookup failed (${res.status}).`);
+        return false;
+      }
+      setLookup({ golfer: body.golfer, model: buildModel(body) });
+      setTab("lookup");
+      return true;
+    } catch (err) {
+      window.alert(`Lookup failed: ${err.message}`);
+      return false;
+    }
+  };
+
   // Single publish path for both the sign-in checkbox and the gear menu, so
   // failures always surface with the server's reason instead of dying quietly.
   const publishData = async (payload) => {
@@ -676,6 +767,15 @@ export default function GolfApp() {
     setHolesFilter("all");
     setSelectedCourse(null);
     setShowLanding(false);
+    // Capture the session's GHIN token (login only) for live friend lookups.
+    if (viaLogin && d.ghinToken) {
+      setGhinToken(d.ghinToken);
+      try {
+        sessionStorage.setItem("golf-ghin-token", d.ghinToken);
+      } catch {
+        /* ignore */
+      }
+    }
     // GHIN sign-ins republish automatically when the golfer is already on the
     // public feed, so published data stays fresh without storing credentials.
     // (File uploads can't publish — no session cookie — so never auto-fire.)
@@ -690,9 +790,12 @@ export default function GolfApp() {
     setData(null);
     setSelectedCourse(null);
     setPeer(null);
+    setLookup(null);
+    setGhinToken(null);
     setTab("home");
     try {
       localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem("golf-ghin-token");
     } catch {
       /* ignore */
     }
@@ -814,7 +917,12 @@ export default function GolfApp() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-7 pb-6 sm:pb-0 min-w-0">
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 min-w-0">
             <div className="flex items-center gap-4 min-w-0">
-              <GolferSearch peers={peerModels} onSelect={selectGolfer} />
+              <GolferSearch
+                peers={peerModels}
+                onSelect={selectGolfer}
+                canLookup={!!ghinToken}
+                onLookup={runLookup}
+              />
               <Avatar
                 golfer={g}
                 size="md"
@@ -942,6 +1050,21 @@ export default function GolfApp() {
             rounds={peer.model.rounds}
             onBack={() => setTab("home")}
           />
+        )}
+        {tab === "lookup" && lookup && (
+          <div className="max-w-3xl mx-auto">
+            <div className="mb-3 flex items-center gap-2 text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2">
+              <span>🔒</span>
+              <span>
+                Private lookup — visible only to you and not published anywhere.
+              </span>
+            </div>
+            <ProfileTab
+              golfer={lookup.golfer}
+              rounds={lookup.model.rounds}
+              onBack={() => setTab("home")}
+            />
+          </div>
         )}
         {tab === "profile" && <ProfileTab golfer={g} rounds={model.rounds} />}
         {tab === "overview" && <OverviewTab rounds={rounds} yearRounds={holesRounds} />}

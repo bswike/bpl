@@ -265,6 +265,11 @@ export default async function handler(req, res) {
     const ghinForSession = String(payload.golfer.ghin_number ?? resolvedId);
     res.setHeader("Set-Cookie", sessionCookie(signSession(ghinForSession)));
 
+    // The short-lived (~12h) GHIN token is returned so the client can do live
+    // read-only "look up a friend" queries (peer lookup, never republished).
+    // It's held only in the browser session, never stored server-side.
+    payload.ghinToken = authToken;
+
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).json(payload);
   } catch (err) {
