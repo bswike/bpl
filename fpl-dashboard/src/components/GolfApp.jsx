@@ -93,7 +93,7 @@ function LandingPage({ onLoad }) {
       const data = await res.json();
       if (!data.scores?.length)
         throw new Error("No scores found for this GHIN number.");
-      onLoad(data, { share });
+      onLoad(data, { share, viaLogin: true });
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -668,7 +668,7 @@ export default function GolfApp() {
     [holesRounds, year]
   );
 
-  const handleLoad = (d, { share } = {}) => {
+  const handleLoad = (d, { share, viaLogin } = {}) => {
     setData(d);
     save(d);
     setTab("home");
@@ -676,7 +676,14 @@ export default function GolfApp() {
     setHolesFilter("all");
     setSelectedCourse(null);
     setShowLanding(false);
-    if (share) publishData(d);
+    // GHIN sign-ins republish automatically when the golfer is already on the
+    // public feed, so published data stays fresh without storing credentials.
+    // (File uploads can't publish — no session cookie — so never auto-fire.)
+    const ghin = String(d.golfer?.ghin_number ?? "");
+    const alreadyPublic = (publicFeed || []).some(
+      (g) => String(g.golfer?.ghin_number ?? "") === ghin
+    );
+    if (viaLogin && (share || alreadyPublic)) publishData(d);
   };
 
   const clearLocal = () => {
