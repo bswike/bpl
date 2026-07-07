@@ -1,6 +1,8 @@
 {
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/" }
+  ],
+  "crons": [
+    { "path": "/api/golf-cron", "schedule": "0 9 * * *" }
   ]
 }
-

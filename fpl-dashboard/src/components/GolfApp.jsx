@@ -51,6 +51,7 @@ function LandingPage({ onLoad }) {
   const [password, setPassword] = useState("");
   const [ghinNumber, setGhinNumber] = useState("");
   const [share, setShare] = useState(false);
+  const [keepSynced, setKeepSynced] = useState(false);
 
   const processFile = (file) => {
     setError(null);
@@ -83,6 +84,7 @@ function LandingPage({ onLoad }) {
           email,
           password,
           ghinNumber: ghinNumber.trim() || undefined,
+          keepSynced,
         }),
       });
       if (!res.ok) {
@@ -93,7 +95,11 @@ function LandingPage({ onLoad }) {
       const data = await res.json();
       if (!data.scores?.length)
         throw new Error("No scores found for this GHIN number.");
-      onLoad(data, { share, viaLogin: true });
+      if (keepSynced && data.syncError) {
+        window.alert(`Signed in, but auto-sync couldn't be enabled: ${data.syncError}`);
+      }
+      // Auto-sync implies a public feed, so it also publishes.
+      onLoad(data, { share: share || keepSynced, viaLogin: true });
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -192,9 +198,9 @@ function LandingPage({ onLoad }) {
           <label className="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer select-none">
             <input
               type="checkbox"
-              checked={share}
+              checked={share || keepSynced}
               onChange={(e) => setShare(e.target.checked)}
-              disabled={loading}
+              disabled={loading || keepSynced}
               className="mt-0.5 accent-green-700"
             />
             <span>
@@ -202,6 +208,23 @@ function LandingPage({ onLoad }) {
               <span className="text-xs text-gray-400 block">
                 Your name, scores, and courses become visible to anyone. You can
                 remove yourself anytime from settings.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={keepSynced}
+              onChange={(e) => setKeepSynced(e.target.checked)}
+              disabled={loading}
+              className="mt-0.5 accent-green-700"
+            />
+            <span>
+              Keep my scores synced automatically{" "}
+              <span className="text-xs text-gray-400 block">
+                Stores your GHIN login <b>encrypted</b> so a daily job can post new
+                rounds for you (implies sharing). Only enable this on your own
+                account. Turn it off anytime in settings.
               </span>
             </span>
           </label>
@@ -213,7 +236,9 @@ function LandingPage({ onLoad }) {
             {loading ? loadingMsg : "Fetch My Scores"}
           </button>
           <p className="text-xs text-gray-400 text-center">
-            Credentials go to GHIN only; nothing is stored on this server.
+            {keepSynced
+              ? "With auto-sync on, your GHIN login is stored encrypted so a daily job can refresh your scores. Otherwise credentials go to GHIN only."
+              : "Credentials go to GHIN only; nothing is stored on this server."}
           </p>
         </form>
       )}
@@ -428,6 +453,8 @@ function SettingsMenu({
   published,
   onPublish,
   onUnpublish,
+  syncEnrolled,
+  onStopSync,
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -489,6 +516,21 @@ function SettingsMenu({
               </span>
             </button>
           )}
+          {syncEnrolled && (
+            <button
+              type="button"
+              className={`${item} text-gray-700 border-t border-gray-100`}
+              onClick={() => {
+                setOpen(false);
+                onStopSync();
+              }}
+            >
+              Turn off auto-sync
+              <span className="block text-[11px] text-green-600">
+                Daily sync on · deletes your stored login
+              </span>
+            </button>
+          )}
           <button
             type="button"
             className={`${item} text-gray-700 border-t border-gray-100`}
@@ -537,6 +579,7 @@ export default function GolfApp() {
   const [lookup, setLookup] = useState(null); // {golfer, model} from a live GHIN lookup
   const [showLanding, setShowLanding] = useState(false);
   const [published, setPublished] = useState(false);
+  const [syncEnrolled, setSyncEnrolled] = useState(false);
   const actedRef = useRef(false); // user published/unpublished this session
   // Short-lived GHIN token (from this session's sign-in) enabling live friend
   // lookups. Held only in sessionStorage, never persisted or sent to our DB.
@@ -622,6 +665,29 @@ export default function GolfApp() {
     if (actedRef.current || !publicFeed || !myGhin) return;
     setPublished(publicFeed.some((g) => String(g.golfer?.ghin_number ?? "") === myGhin));
   }, [publicFeed, myGhin]);
+
+  // Am I enrolled in daily auto-sync? (Only knowable while signed in.)
+  useEffect(() => {
+    if (!data) {
+      setSyncEnrolled(false);
+      return;
+    }
+    fetch("/api/golf-vault")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setSyncEnrolled(!!d.enrolled))
+      .catch(() => {});
+  }, [data]);
+
+  const stopSync = async () => {
+    try {
+      const res = await fetch("/api/golf-vault", { method: "DELETE" });
+      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+      setSyncEnrolled(false);
+      window.alert("Auto-sync turned off. Your stored login was deleted.");
+    } catch (err) {
+      window.alert(`Could not turn off auto-sync: ${err.message}`);
+    }
+  };
 
   const openProfile = (ownerId) => {
     if (ownerId === "me") {
@@ -740,6 +806,12 @@ export default function GolfApp() {
       if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
       actedRef.current = true;
       setPublished(false);
+      // Removing yourself also stops auto-sync, otherwise the cron would just
+      // re-publish you tomorrow.
+      if (syncEnrolled) {
+        await fetch("/api/golf-vault", { method: "DELETE" }).catch(() => {});
+        setSyncEnrolled(false);
+      }
       fetchFeed(true);
     } catch (err) {
       window.alert(`Could not unpublish: ${err.message}`);
@@ -776,6 +848,7 @@ export default function GolfApp() {
         /* ignore */
       }
     }
+    if (d.synced) setSyncEnrolled(true);
     // GHIN sign-ins republish automatically when the golfer is already on the
     // public feed, so published data stays fresh without storing credentials.
     // (File uploads can't publish — no session cookie — so never auto-fire.)
@@ -962,6 +1035,8 @@ export default function GolfApp() {
                 published={published}
                 onPublish={publishNow}
                 onUnpublish={unpublishNow}
+                syncEnrolled={syncEnrolled}
+                onStopSync={stopSync}
               />
             </div>
           </div>
