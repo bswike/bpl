@@ -590,6 +590,10 @@ export default function GolfApp() {
       return null;
     }
   });
+  // Latest rounds pulled live from GHIN for feed golfers ({ ghin: [scores] }).
+  // Only populated while this session holds a GHIN token.
+  const [liveScores, setLiveScores] = useState(null);
+  const refreshedRef = useRef(""); // avoids re-hitting GHIN for the same feed
 
   const fetchFeed = (bustCache = false) =>
     fetch(`/api/golf-feed${bustCache ? `?ts=${Date.now()}` : ""}`)
@@ -604,18 +608,34 @@ export default function GolfApp() {
     fetchFeed();
   }, []);
 
+  // Published snapshots, overlaid with any rounds fetched live from GHIN this
+  // session — so feed golfers show their latest rounds, not just what they
+  // had when they last published.
   const peerModels = useMemo(
     () =>
       (publicFeed || [])
         .map((g) => {
           try {
-            return { golfer: g.golfer, model: buildModel(g) };
+            const ghin = String(g.golfer?.ghin_number ?? "");
+            const fresh = liveScores?.[ghin];
+            let merged = g;
+            if (fresh?.length) {
+              const ids = new Set(fresh.map((s) => String(s.id)));
+              merged = {
+                ...g,
+                scores: [
+                  ...fresh,
+                  ...(g.scores || []).filter((s) => !ids.has(String(s.id))),
+                ],
+              };
+            }
+            return { golfer: merged.golfer, model: buildModel(merged) };
           } catch {
             return null;
           }
         })
         .filter(Boolean),
-    [publicFeed]
+    [publicFeed, liveScores]
   );
 
   useEffect(() => {
@@ -643,6 +663,51 @@ export default function GolfApp() {
 
   const model = useMemo(() => (data ? buildModel(data) : null), [data]);
   const myGhin = String(data?.golfer?.ghin_number ?? "");
+
+  // While signed in with a live GHIN token, silently pull the latest rounds
+  // for everyone already on the public feed so the feed isn't stale.
+  useEffect(() => {
+    if (!ghinToken || !publicFeed?.length) return;
+    const ghins = publicFeed
+      .map((g) => String(g.golfer?.ghin_number ?? ""))
+      .filter((g) => g && g !== myGhin)
+      .sort();
+    if (!ghins.length) return;
+    const key = `${ghinToken}|${ghins.join(",")}`;
+    if (refreshedRef.current === key) return; // this feed is already refreshed
+    refreshedRef.current = key;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/golf-refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: ghinToken, ghins }),
+        });
+        if (res.status === 401) {
+          // Background refresh — expire the token quietly; manual lookups
+          // still explain themselves when the user tries one.
+          if (!cancelled) setGhinToken(null);
+          try {
+            sessionStorage.removeItem("golf-ghin-token");
+          } catch {
+            /* ignore */
+          }
+          return;
+        }
+        if (!res.ok) return;
+        const body = await res.json().catch(() => null);
+        if (!cancelled && body?.scores && Object.keys(body.scores).length) {
+          setLiveScores((prev) => ({ ...(prev || {}), ...body.scores }));
+        }
+      } catch {
+        /* best-effort — the published snapshots still show */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ghinToken, publicFeed, myGhin]);
 
   // Merged feed: my local rounds plus everyone else's published rounds.
   const feedEntries = useMemo(() => {
@@ -865,6 +930,8 @@ export default function GolfApp() {
     setPeer(null);
     setLookup(null);
     setGhinToken(null);
+    setLiveScores(null);
+    refreshedRef.current = "";
     setTab("home");
     try {
       localStorage.removeItem(STORAGE_KEY);
