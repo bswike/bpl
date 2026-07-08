@@ -69,6 +69,56 @@ function loadFeedCache() {
   }
 }
 
+// GHIN token, persisted in localStorage WITH its real expiry (the JWT carries
+// one, ~12h) so live feed refresh and friend lookups survive tab closes and
+// browser restarts — the previous sessionStorage home died with the tab, which
+// made friends' latest (unpublished) rounds silently vanish on reopen.
+const TOKEN_KEY = "golf-ghin-token-v2";
+
+function tokenExpiry(token) {
+  try {
+    const payload = JSON.parse(atob(String(token).split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    if (payload.exp) return payload.exp * 1000;
+  } catch {
+    /* not a JWT — fall through */
+  }
+  return Date.now() + 12 * 60 * 60 * 1000; // GHIN tokens live ~12h
+}
+
+function loadGhinToken() {
+  try {
+    sessionStorage.removeItem("golf-ghin-token"); // legacy home
+    const raw = localStorage.getItem(TOKEN_KEY);
+    if (!raw) return null;
+    const { t, exp } = JSON.parse(raw);
+    // 5-min buffer: don't hand out a token that dies mid-request
+    if (!t || !exp || exp < Date.now() + 5 * 60 * 1000) {
+      localStorage.removeItem(TOKEN_KEY);
+      return null;
+    }
+    return t;
+  } catch {
+    return null;
+  }
+}
+
+function saveGhinToken(t) {
+  try {
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ t, exp: tokenExpiry(t) }));
+  } catch {
+    /* best-effort */
+  }
+}
+
+function clearGhinToken() {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem("golf-ghin-token");
+  } catch {
+    /* ignore */
+  }
+}
+
 function saveFeedCache(golfers, kudos) {
   try {
     const payload = JSON.stringify({ golfers, kudos });
@@ -649,15 +699,10 @@ export default function GolfApp() {
   const [published, setPublished] = useState(false);
   const [syncEnrolled, setSyncEnrolled] = useState(false);
   const actedRef = useRef(false); // user published/unpublished this session
-  // Short-lived GHIN token (from this session's sign-in) enabling live friend
-  // lookups. Held only in sessionStorage, never persisted or sent to our DB.
-  const [ghinToken, setGhinToken] = useState(() => {
-    try {
-      return sessionStorage.getItem("golf-ghin-token") || null;
-    } catch {
-      return null;
-    }
-  });
+  // Short-lived (~12h) GHIN token from the last sign-in, enabling live friend
+  // lookups and feed refresh. Persisted locally with its expiry, never sent to
+  // our own storage.
+  const [ghinToken, setGhinToken] = useState(loadGhinToken);
   // Latest rounds pulled live from GHIN for feed golfers ({ ghin: [scores] }).
   // Only populated while this session holds a GHIN token.
   const [liveScores, setLiveScores] = useState(null);
@@ -771,11 +816,7 @@ export default function GolfApp() {
           // Background refresh — expire the token quietly; manual lookups
           // still explain themselves when the user tries one.
           if (!cancelled) setGhinToken(null);
-          try {
-            sessionStorage.removeItem("golf-ghin-token");
-          } catch {
-            /* ignore */
-          }
+          clearGhinToken();
           return;
         }
         if (!res.ok) return;
@@ -872,11 +913,7 @@ export default function GolfApp() {
       if (res.status === 401) {
         // token expired — clear it so the UI stops offering lookups
         setGhinToken(null);
-        try {
-          sessionStorage.removeItem("golf-ghin-token");
-        } catch {
-          /* ignore */
-        }
+        clearGhinToken();
         window.alert(body.error || "Sign in again to look up golfers.");
         return false;
       }
@@ -987,14 +1024,11 @@ export default function GolfApp() {
     setHolesFilter("all");
     setSelectedCourse(null);
     setShowLanding(false);
-    // Capture the session's GHIN token (login only) for live friend lookups.
+    // Capture the sign-in's GHIN token (login only) for live friend lookups
+    // and feed refresh — persisted with its expiry so it survives tab closes.
     if (viaLogin && d.ghinToken) {
       setGhinToken(d.ghinToken);
-      try {
-        sessionStorage.setItem("golf-ghin-token", d.ghinToken);
-      } catch {
-        /* ignore */
-      }
+      saveGhinToken(d.ghinToken);
     }
     if (d.synced) setSyncEnrolled(true);
     // GHIN sign-ins republish automatically when the golfer is already on the
@@ -1016,9 +1050,9 @@ export default function GolfApp() {
     setLiveScores(null);
     refreshedRef.current = "";
     setTab("home");
+    clearGhinToken();
     try {
       localStorage.removeItem(STORAGE_KEY);
-      sessionStorage.removeItem("golf-ghin-token");
     } catch {
       /* ignore */
     }
