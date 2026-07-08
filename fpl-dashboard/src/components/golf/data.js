@@ -334,6 +334,69 @@ export function aggregateHoles(rounds) {
     });
 }
 
+/* ---------- local persistence ---------- */
+
+// Everything buildModel and the UI consume (mirrors api/_golf.js slimExport).
+// Persisting only these fields keeps the saved export ~70% smaller, which
+// matters because swikle.com's localStorage is shared with the FPL apps'
+// caches and can run near quota.
+const STORE_SCORE_FIELDS = [
+  "id",
+  "played_at",
+  "number_of_holes",
+  "number_of_played_holes",
+  "adjusted_gross_score",
+  "differential",
+  "scaled_up_differential",
+  "adjusted_scaled_up_differential",
+  "to_par_display_value",
+  "used",
+  "course_name",
+  "facility_name",
+  "course_display_value",
+  "tee_name",
+  "course_rating",
+  "slope_rating",
+  "tee_yardage",
+];
+const STORE_HOLE_FIELDS = [
+  "hole_number",
+  "par",
+  "raw_score",
+  "adjusted_gross_score",
+  "stroke_allocation",
+  "x_hole",
+];
+const pickFields = (obj, fields) => {
+  const out = {};
+  for (const f of fields) if (obj[f] != null) out[f] = obj[f];
+  return out;
+};
+
+/** Slim an export for localStorage: drops unused GHIN fields and, importantly,
+ *  never persists the live ghinToken. */
+export function slimExportForStorage(data) {
+  const g = data.golfer || {};
+  return {
+    exported_at: data.exported_at,
+    golfer: {
+      first_name: g.first_name,
+      last_name: g.last_name,
+      ghin_number: g.ghin_number,
+      handicap_index: g.handicap_index,
+      club_name: g.club_name,
+    },
+    total_scores: data.total_scores,
+    scores: (data.scores || []).map((s) => {
+      const slim = pickFields(s, STORE_SCORE_FIELDS);
+      if (Array.isArray(s.hole_details) && s.hole_details.length) {
+        slim.hole_details = s.hole_details.map((h) => pickFields(h, STORE_HOLE_FIELDS));
+      }
+      return slim;
+    }),
+  };
+}
+
 export function groupBy(rounds, keyFn) {
   const m = {};
   for (const r of rounds) {

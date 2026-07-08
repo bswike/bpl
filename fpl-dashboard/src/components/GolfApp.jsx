@@ -9,7 +9,7 @@ import {
   Search,
   Crosshair,
 } from "lucide-react";
-import { buildModel } from "./golf/data";
+import { buildModel, slimExportForStorage } from "./golf/data";
 import { Avatar } from "./golf/ui";
 import FeedTab from "./golf/FeedTab";
 import ProfileTab from "./golf/ProfileTab";
@@ -34,17 +34,29 @@ function loadSaved() {
   }
 }
 
-function save(data) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch {
-    /* quota exceeded — persistence is best-effort */
-  }
-}
-
 // Last-seen public feed, cached so a refresh paints friends' rounds instantly
 // instead of showing only your own scores while the network catches up.
 const FEED_CACHE_KEY = "golf-feed-cache-v1";
+
+function save(data) {
+  // Persist a slimmed copy (~70% smaller, and never the live ghinToken).
+  // swikle.com's localStorage is shared with the FPL apps' gameweek caches,
+  // so quota can genuinely run out — never fail silently: evict our own feed
+  // cache and retry, then warn so "signed out on every refresh" is explained.
+  const payload = JSON.stringify(slimExportForStorage(data));
+  try {
+    localStorage.setItem(STORAGE_KEY, payload);
+  } catch {
+    try {
+      localStorage.removeItem(FEED_CACHE_KEY);
+      localStorage.setItem(STORAGE_KEY, payload);
+    } catch {
+      window.alert(
+        "Heads up: this browser's storage for swikle.com is full, so your sign-in can't be remembered — you'll have to sign in again after a refresh. Clearing site data for swikle.com fixes it."
+      );
+    }
+  }
+}
 
 function loadFeedCache() {
   try {
@@ -59,7 +71,10 @@ function loadFeedCache() {
 
 function saveFeedCache(golfers, kudos) {
   try {
-    localStorage.setItem(FEED_CACHE_KEY, JSON.stringify({ golfers, kudos }));
+    const payload = JSON.stringify({ golfers, kudos });
+    // The feed cache is a nicety — never let it crowd out the saved export.
+    if (payload.length > 1_500_000) return;
+    localStorage.setItem(FEED_CACHE_KEY, payload);
   } catch {
     /* quota exceeded — cache is best-effort */
   }
