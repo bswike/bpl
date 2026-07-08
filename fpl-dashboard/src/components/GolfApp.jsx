@@ -7,6 +7,7 @@ import {
   Settings,
   CircleUserRound,
   Search,
+  Crosshair,
 } from "lucide-react";
 import { buildModel } from "./golf/data";
 import { Avatar } from "./golf/ui";
@@ -15,6 +16,7 @@ import ProfileTab from "./golf/ProfileTab";
 import OverviewTab from "./golf/OverviewTab";
 import CoursesTab from "./golf/CoursesTab";
 import BirdiesTab from "./golf/BirdiesTab";
+import ShotPatternTab from "./golf/ShotPatternTab";
 
 // v2: bumping the key signs everyone out once (old saved exports are cleared).
 const STORAGE_KEY = "golf-ghin-export-v2";
@@ -339,18 +341,20 @@ const TABS = [
   ["home", "Home"],
   ["overview", "Overview"],
   ["birdies", "Birdie Tracker"],
+  ["shots", "Shot Pattern"],
   ["courses", "Courses"],
   ["profile", "Profile"],
 ];
 
 // Tabs without the global year/holes filter bar (they have their own controls
 // or, like the feed and profile, are meant to feel like a standalone app).
-const NO_FILTER_TABS = new Set(["home", "birdies", "profile", "peer", "lookup"]);
+const NO_FILTER_TABS = new Set(["home", "birdies", "shots", "profile", "peer", "lookup"]);
 
 const BOTTOM_NAV = [
   ["home", "Home", Home],
   ["overview", "Stats", BarChart3],
   ["birdies", "Birdies", Bird],
+  ["shots", "Shots", Crosshair],
   ["courses", "Courses", MapPin],
   ["profile", "Profile", CircleUserRound],
 ];
@@ -1281,6 +1285,7 @@ export default function GolfApp() {
           <CoursesTab rounds={rounds} selected={selectedCourse} onSelect={setSelectedCourse} />
         )}
         {tab === "birdies" && <BirdiesTab rounds={model.rounds} />}
+        {tab === "shots" && <ShotPatternTab rounds={model.rounds} />}
       </div>
 
       <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 flex justify-around pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
