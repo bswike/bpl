@@ -69,7 +69,20 @@ export default async function handler(req, res) {
             return;
           }
           if (r?.scores?.length) {
-            out[ghin] = slimExport({ golfer: {}, scores: r.scores }).scores;
+            // Peer fetches can return odd rows — stubs missing dates/scores,
+            // or (defensively) rows belonging to a different golfer. Only
+            // pass along complete rows that are really this golfer's.
+            const good = r.scores.filter(
+              (s) =>
+                s &&
+                s.id != null &&
+                s.played_at &&
+                s.adjusted_gross_score != null &&
+                (s.golfer_id == null || String(s.golfer_id) === ghin)
+            );
+            if (good.length) {
+              out[ghin] = slimExport({ golfer: {}, scores: good }).scores;
+            }
           }
         } catch {
           /* skip this golfer; the published snapshot still shows */

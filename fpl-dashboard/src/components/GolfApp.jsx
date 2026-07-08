@@ -615,23 +615,37 @@ export default function GolfApp() {
     () =>
       (publicFeed || [])
         .map((g) => {
-          try {
-            const ghin = String(g.golfer?.ghin_number ?? "");
-            const fresh = liveScores?.[ghin];
-            let merged = g;
-            if (fresh?.length) {
-              const ids = new Set(fresh.map((s) => String(s.id)));
-              merged = {
-                ...g,
-                scores: [
-                  ...fresh,
-                  ...(g.scores || []).filter((s) => !ids.has(String(s.id))),
-                ],
-              };
+          const ghin = String(g.golfer?.ghin_number ?? "");
+          const fresh = liveScores?.[ghin];
+          let merged = g;
+          if (fresh?.length) {
+            // Published rounds win on conflicts — they carry the richest data
+            // (peer fetches from GHIN can come back without course names or
+            // dates). Live data only ADDS rounds missing from the snapshot,
+            // so a sparse GHIN response can never degrade what already shows.
+            const have = new Set((g.scores || []).map((s) => String(s.id)));
+            const additions = fresh.filter(
+              (s) =>
+                s &&
+                s.id != null &&
+                s.played_at &&
+                s.adjusted_gross_score != null &&
+                !have.has(String(s.id))
+            );
+            if (additions.length) {
+              merged = { ...g, scores: [...additions, ...(g.scores || [])] };
             }
+          }
+          try {
             return { golfer: merged.golfer, model: buildModel(merged) };
           } catch {
-            return null;
+            // If the merge somehow breaks the model, fall back to the
+            // published snapshot rather than dropping the golfer.
+            try {
+              return { golfer: g.golfer, model: buildModel(g) };
+            } catch {
+              return null;
+            }
           }
         })
         .filter(Boolean),
