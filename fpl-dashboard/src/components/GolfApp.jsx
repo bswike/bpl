@@ -87,7 +87,15 @@ function tokenExpiry(token) {
 
 function loadGhinToken() {
   try {
-    sessionStorage.removeItem("golf-ghin-token"); // legacy home
+    // Migrate a token from the legacy sessionStorage home instead of dropping
+    // it — sessions from before the localStorage move keep working.
+    const legacy = sessionStorage.getItem("golf-ghin-token");
+    if (legacy) {
+      sessionStorage.removeItem("golf-ghin-token");
+      if (!localStorage.getItem(TOKEN_KEY)) {
+        localStorage.setItem(TOKEN_KEY, JSON.stringify({ t: legacy, exp: tokenExpiry(legacy) }));
+      }
+    }
     const raw = localStorage.getItem(TOKEN_KEY);
     if (!raw) return null;
     const { t, exp } = JSON.parse(raw);
@@ -116,6 +124,32 @@ function clearGhinToken() {
     sessionStorage.removeItem("golf-ghin-token");
   } catch {
     /* ignore */
+  }
+}
+
+// Live-refreshed rounds ({ ghin: [scores] }), cached so friends' latest rounds
+// don't vanish when the GHIN token expires — once seen, they stay until the
+// next successful refresh replaces them.
+const LIVE_CACHE_KEY = "golf-live-scores-v1";
+
+function loadLiveCache() {
+  try {
+    const raw = localStorage.getItem(LIVE_CACHE_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    return d && typeof d === "object" && Object.keys(d).length ? d : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveLiveCache(map) {
+  try {
+    const payload = JSON.stringify(map);
+    if (payload.length > 1_000_000) return; // never crowd out the saved export
+    localStorage.setItem(LIVE_CACHE_KEY, payload);
+  } catch {
+    /* best-effort */
   }
 }
 
@@ -704,8 +738,9 @@ export default function GolfApp() {
   // our own storage.
   const [ghinToken, setGhinToken] = useState(loadGhinToken);
   // Latest rounds pulled live from GHIN for feed golfers ({ ghin: [scores] }).
-  // Only populated while this session holds a GHIN token.
-  const [liveScores, setLiveScores] = useState(null);
+  // Hydrated from the local cache so once-seen rounds survive refreshes and
+  // token expiry; a live token only ADDS newer rounds on top.
+  const [liveScores, setLiveScores] = useState(loadLiveCache);
   const refreshedRef = useRef(""); // avoids re-hitting GHIN for the same feed
 
   const fetchFeed = (bustCache = false) =>
@@ -803,8 +838,12 @@ export default function GolfApp() {
     if (!ghins.length) return;
     const key = `${ghinToken}|${ghins.join(",")}`;
     if (refreshedRef.current === key) return; // this feed is already refreshed
+    // Claim the key now (single-flight), but RELEASE it if this effect run is
+    // cancelled before the response lands — otherwise a discarded fetch would
+    // permanently block the retry and friends' latest rounds would never load.
     refreshedRef.current = key;
     let cancelled = false;
+    let completed = false;
     (async () => {
       try {
         const res = await fetch("/api/golf-refresh", {
@@ -813,16 +852,23 @@ export default function GolfApp() {
           body: JSON.stringify({ token: ghinToken, ghins }),
         });
         if (res.status === 401) {
+          completed = true; // token is dead — a retry can't succeed
           // Background refresh — expire the token quietly; manual lookups
           // still explain themselves when the user tries one.
           if (!cancelled) setGhinToken(null);
           clearGhinToken();
           return;
         }
-        if (!res.ok) return;
+        if (!res.ok) return; // transient server error — allow a later retry
         const body = await res.json().catch(() => null);
-        if (!cancelled && body?.scores && Object.keys(body.scores).length) {
-          setLiveScores((prev) => ({ ...(prev || {}), ...body.scores }));
+        if (cancelled) return;
+        completed = true;
+        if (body?.scores && Object.keys(body.scores).length) {
+          setLiveScores((prev) => {
+            const merged = { ...(prev || {}), ...body.scores };
+            saveLiveCache(merged);
+            return merged;
+          });
         }
       } catch {
         /* best-effort — the published snapshots still show */
@@ -830,6 +876,7 @@ export default function GolfApp() {
     })();
     return () => {
       cancelled = true;
+      if (!completed && refreshedRef.current === key) refreshedRef.current = "";
     };
   }, [ghinToken, publicFeed, myGhin]);
 
@@ -1053,6 +1100,7 @@ export default function GolfApp() {
     clearGhinToken();
     try {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(LIVE_CACHE_KEY);
     } catch {
       /* ignore */
     }
