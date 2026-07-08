@@ -40,6 +40,52 @@ function save(data) {
   }
 }
 
+// Last-seen public feed, cached so a refresh paints friends' rounds instantly
+// instead of showing only your own scores while the network catches up.
+const FEED_CACHE_KEY = "golf-feed-cache-v1";
+
+function loadFeedCache() {
+  try {
+    const raw = localStorage.getItem(FEED_CACHE_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    return Array.isArray(d?.golfers) && d.golfers.length ? d : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveFeedCache(golfers, kudos) {
+  try {
+    localStorage.setItem(FEED_CACHE_KEY, JSON.stringify({ golfers, kudos }));
+  } catch {
+    /* quota exceeded — cache is best-effort */
+  }
+}
+
+/** Placeholder cards shown only on a first-ever visit while the feed loads. */
+function FeedSkeleton() {
+  return (
+    <div className="max-w-xl mx-auto space-y-4">
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 animate-pulse"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-gray-200" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 bg-gray-200 rounded w-1/3" />
+              <div className="h-2.5 bg-gray-100 rounded w-1/2" />
+            </div>
+          </div>
+          <div className="mt-4 h-16 bg-gray-100 rounded-xl" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function LandingPage({ onLoad }) {
   const fileRef = useRef();
   const [tab, setTab] = useState("login");
@@ -573,8 +619,11 @@ export default function GolfApp() {
   const [year, setYear] = useState("all");
   const [holesFilter, setHolesFilter] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [publicFeed, setPublicFeed] = useState(null); // null = loading
-  const [kudosMap, setKudosMap] = useState({}); // roundId -> [{ghin, name}]
+  // Hydrate from the cached feed so friends' rounds paint on first render;
+  // the live fetch below replaces it moments later. null = loading, no cache.
+  const [feedBoot] = useState(loadFeedCache);
+  const [publicFeed, setPublicFeed] = useState(feedBoot?.golfers ?? null);
+  const [kudosMap, setKudosMap] = useState(feedBoot?.kudos ?? {}); // roundId -> [{ghin, name}]
   const [peer, setPeer] = useState(null); // {golfer, model} of another golfer
   const [lookup, setLookup] = useState(null); // {golfer, model} from a live GHIN lookup
   const [showLanding, setShowLanding] = useState(false);
@@ -601,6 +650,7 @@ export default function GolfApp() {
       .then((d) => {
         setPublicFeed(d.golfers || []);
         if (d.kudos) setKudosMap(d.kudos);
+        saveFeedCache(d.golfers || [], d.kudos || {});
       })
       .catch(() => setPublicFeed((prev) => prev || []));
 
@@ -1190,16 +1240,19 @@ export default function GolfApp() {
           </span>
         </div>
 
-        {tab === "home" && (
-          <FeedTab
-            entries={feedEntries}
-            ownGolfer={g}
-            onProfile={openProfile}
-            kudos={kudosMap}
-            myGhin={myGhin}
-            onKudos={toggleKudos}
-          />
-        )}
+        {tab === "home" &&
+          (publicFeed === null ? (
+            <FeedSkeleton />
+          ) : (
+            <FeedTab
+              entries={feedEntries}
+              ownGolfer={g}
+              onProfile={openProfile}
+              kudos={kudosMap}
+              myGhin={myGhin}
+              onKudos={toggleKudos}
+            />
+          ))}
         {tab === "peer" && peer && (
           <ProfileTab
             golfer={peer.golfer}
