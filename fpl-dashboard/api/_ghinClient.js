@@ -193,6 +193,62 @@ async function fetchAllScores(token, golferId) {
   return allScores;
 }
 
+// Yardage lives on the course's tee sets, not on scores. Fetch details for
+// each unique course played and stamp a `tee_yardage` onto every score,
+// respecting nine-hole sides (F9/B9). Best-effort: failures just mean the
+// yardage won't display for that course.
+async function attachTeeYardages(token, scores) {
+  const courseIds = [
+    ...new Set(scores.map((s) => s.course_id).filter(Boolean).map(String)),
+  ];
+  const teeYards = {}; // "courseId:teeSetId" -> { total, front, back }
+  let i = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(5, courseIds.length) }, async () => {
+      while (i < courseIds.length) {
+        const courseId = courseIds[i++];
+        try {
+          const params = new URLSearchParams({
+            course_id: courseId,
+            source: SOURCE,
+          });
+          const res = await fetch(
+            `${API_BASE}/crsCourseMethods.asmx/GetCourseDetails.json?${params}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (!res.ok) continue;
+          const data = await res.json();
+          for (const ts of data?.TeeSets || []) {
+            const holes = Array.isArray(ts.Holes) ? ts.Holes : [];
+            const sum = (from, to) =>
+              holes
+                .filter((h) => h.Number >= from && h.Number <= to)
+                .reduce((acc, h) => acc + (h.Length || 0), 0);
+            teeYards[`${courseId}:${ts.TeeSetRatingId}`] = {
+              total: ts.TotalYardage || sum(1, 18) || null,
+              front: sum(1, 9) || null,
+              back: sum(10, 18) || null,
+            };
+          }
+        } catch {
+          /* yardage is a nice-to-have */
+        }
+      }
+    })
+  );
+  for (const s of scores) {
+    const y = teeYards[`${s.course_id}:${s.tee_set_id}`];
+    if (!y) continue;
+    const yards =
+      s.tee_set_side === "F9"
+        ? y.front
+        : s.tee_set_side === "B9"
+          ? y.back
+          : y.total;
+    if (yards) s.tee_yardage = yards;
+  }
+}
+
 /** Full login + fetch. Returns the shape /api/ghin and the cron both need. */
 export async function fetchGhinData({ email, password, ghinNumber }) {
   const sessionToken = await getFirebaseSessionToken();
@@ -200,6 +256,7 @@ export async function fetchGhinData({ email, password, ghinNumber }) {
   const resolvedId = await resolveGolferId(token, email, ghinNumber, golferIdHint);
   const golferInfo = await fetchGolfer(token, resolvedId);
   const scores = await fetchAllScores(token, resolvedId);
+  await attachTeeYardages(token, scores);
 
   return {
     token,

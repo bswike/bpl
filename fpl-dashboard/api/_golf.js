@@ -79,6 +79,7 @@ const SCORE_FIELDS = [
   "tee_name",
   "course_rating",
   "slope_rating",
+  "tee_yardage",
 ];
 
 const HOLE_FIELDS = [

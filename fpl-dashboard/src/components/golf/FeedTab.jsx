@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { RESULT_COLORS, resultKey, groupBy } from "./data";
+import { RESULT_COLORS, resultKey, groupBy, prettyName } from "./data";
 import { Avatar, Scorecard, HolesBadge } from "./ui";
 
 /** Activity-feed home. Entries may span multiple golfers (the public feed):
@@ -61,9 +61,19 @@ function HoleStrip({ hd }) {
   );
 }
 
+/** "Gold tees · 71.5 / 125 · 6,214 yds" — whatever parts the round has. */
+function teeLine(r) {
+  const parts = [];
+  if (r.tee) parts.push(`${prettyName(r.tee)} tees`);
+  if (r.cr != null && r.slope != null) parts.push(`${r.cr} / ${r.slope}`);
+  if (r.yards) parts.push(`${r.yards.toLocaleString("en-US")} yds`);
+  return parts.join(" · ");
+}
+
 function FeedCard({ round: r, badges, onProfile, givers, gave, onKudos }) {
   const [open, setOpen] = useState(false);
   const birdies = r.counts ? r.counts.birdie + r.counts.eagle : null;
+  const tees = teeLine(r);
 
   return (
     <article className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -73,10 +83,7 @@ function FeedCard({ round: r, badges, onProfile, givers, gave, onKudos }) {
           <div className="text-sm font-semibold text-gray-900 leading-tight">
             {r.golfer.first_name} {r.golfer.last_name}
           </div>
-          <div className="text-xs text-gray-400 truncate">
-            {fmtDate(r.date)}
-            {r.tee ? ` · ${r.tee} tees` : ""}
-          </div>
+          <div className="text-xs text-gray-400 truncate">{fmtDate(r.date)}</div>
         </div>
       </div>
 
@@ -86,6 +93,12 @@ function FeedCard({ round: r, badges, onProfile, givers, gave, onKudos }) {
         </h3>
         <HolesBadge holes={r.holes} />
       </div>
+
+      {tees && (
+        <div className="px-4 mt-0.5 text-[11px] text-gray-400 tracking-wide truncate">
+          {tees}
+        </div>
+      )}
 
       {badges.length > 0 && (
         <div className="px-4 mt-1.5 flex flex-wrap gap-1.5">
