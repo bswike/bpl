@@ -458,11 +458,13 @@ const BOTTOM_NAV = [
   ["profile", "Profile", CircleUserRound],
 ];
 
-function GolferSearch({ peers, onSelect, canLookup, onLookup }) {
+function GolferSearch({ peers, onSelect, canLookup, onLookup, onSearch }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const [ghinInput, setGhinInput] = useState("");
   const [looking, setLooking] = useState(false);
+  const [stateInput, setStateInput] = useState("");
+  const [ghinResults, setGhinResults] = useState(null); // null = not searched
+  const [searching, setSearching] = useState(false);
   const ref = useRef(null);
   const inputRef = useRef(null);
 
@@ -476,16 +478,29 @@ function GolferSearch({ peers, onSelect, canLookup, onLookup }) {
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
 
-  const runLookup = async () => {
-    const num = ghinInput.trim();
+  const runLookup = async (num) => {
     if (!/^\d{2,}$/.test(num)) return;
     setLooking(true);
     const ok = await onLookup(num);
     setLooking(false);
     if (ok) {
       setOpen(false);
-      setGhinInput("");
+      setGhinResults(null);
     }
+  };
+
+  // GHIN-wide name search (needs a live token). Digits = straight GHIN lookup.
+  const runSearch = async () => {
+    const needle = q.trim();
+    if (/^\d{2,}$/.test(needle)) {
+      runLookup(needle);
+      return;
+    }
+    if (needle.length < 2) return;
+    setSearching(true);
+    const found = await onSearch(needle, stateInput.trim());
+    setSearching(false);
+    setGhinResults(found); // null on failure, [] on no matches
   };
 
   const needle = q.trim().toLowerCase();
@@ -518,8 +533,12 @@ function GolferSearch({ peers, onSelect, canLookup, onLookup }) {
             ref={inputRef}
             type="search"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search public golfers…"
+            onChange={(e) => {
+              setQ(e.target.value);
+              setGhinResults(null);
+            }}
+            onKeyDown={(e) => e.key === "Enter" && canLookup && runSearch()}
+            placeholder={canLookup ? "Search golfers…" : "Search public golfers…"}
             className="w-full px-4 py-2.5 text-sm border-none outline-none bg-white text-gray-900"
           />
           <div className="max-h-72 overflow-y-auto border-t border-gray-100">
@@ -563,29 +582,65 @@ function GolferSearch({ peers, onSelect, canLookup, onLookup }) {
           {canLookup && (
             <div className="border-t border-gray-100 p-3 bg-gray-50/60">
               <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">
-                Look up any golfer by GHIN #
+                Look up anyone on GHIN
               </div>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  inputMode="numeric"
-                  value={ghinInput}
-                  onChange={(e) => setGhinInput(e.target.value.replace(/[^\d]/g, ""))}
-                  onKeyDown={(e) => e.key === "Enter" && runLookup()}
-                  placeholder="e.g. 11514629"
-                  className="flex-1 min-w-0 px-3 py-1.5 text-sm border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-green-600 bg-white text-gray-900"
+                  value={stateInput}
+                  onChange={(e) =>
+                    setStateInput(
+                      e.target.value.replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase()
+                    )
+                  }
+                  onKeyDown={(e) => e.key === "Enter" && runSearch()}
+                  placeholder="State"
+                  title="Optional 2-letter state, e.g. IL"
+                  className="w-16 px-2 py-1.5 text-sm text-center border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-green-600 bg-white text-gray-900"
                 />
                 <button
                   type="button"
-                  onClick={runLookup}
-                  disabled={looking || !/^\d{2,}$/.test(ghinInput.trim())}
-                  className="px-3 py-1.5 text-xs uppercase tracking-wider bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white rounded-lg border-none cursor-pointer transition-colors shrink-0"
+                  onClick={runSearch}
+                  disabled={searching || looking || q.trim().length < 2}
+                  className="flex-1 min-w-0 px-3 py-1.5 text-xs uppercase tracking-wider bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white rounded-lg border-none cursor-pointer transition-colors truncate"
                 >
-                  {looking ? "…" : "Look up"}
+                  {searching || looking
+                    ? "Searching…"
+                    : `Search GHIN${q.trim() ? ` for “${q.trim()}”` : ""}`}
                 </button>
               </div>
+              {ghinResults !== null && (
+                <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+                  {ghinResults.length === 0 ? (
+                    <p className="px-3 py-3 text-xs text-gray-400">
+                      No GHIN golfers match — check spelling or drop the state.
+                    </p>
+                  ) : (
+                    ghinResults.map((g) => (
+                      <button
+                        key={g.ghin}
+                        type="button"
+                        disabled={looking}
+                        onClick={() => runLookup(g.ghin)}
+                        className="w-full px-3 py-2 bg-transparent border-none cursor-pointer hover:bg-gray-50 transition-colors text-left disabled:opacity-50"
+                      >
+                        <div className="text-sm font-semibold text-gray-900 truncate">
+                          {g.first_name} {g.last_name}
+                          {g.state ? (
+                            <span className="font-normal text-gray-400"> · {g.state}</span>
+                          ) : null}
+                        </div>
+                        <div className="text-xs text-gray-400 truncate">
+                          {g.club_name ? `${g.club_name} · ` : ""}GHIN #{g.ghin}
+                          {g.handicap_index != null ? ` · ${g.handicap_index} index` : ""}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
               <p className="text-[10px] text-gray-400 mt-1.5">
-                Private to you — this isn't published anywhere.
+                Name or GHIN # · state optional · private to you, never published.
               </p>
             </div>
           )}
@@ -977,6 +1032,34 @@ export default function GolfApp() {
     }
   };
 
+  // GHIN-wide name search for the lookup box. Returns matches, or null when
+  // the search couldn't run (expired token, network trouble).
+  const runGhinSearch = async (query, state) => {
+    if (!ghinToken) return null;
+    try {
+      const res = await fetch("/api/golf-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: ghinToken, query, state }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        setGhinToken(null);
+        clearGhinToken();
+        window.alert(body.error || "Sign in again to search golfers.");
+        return null;
+      }
+      if (!res.ok) {
+        window.alert(body.error || `Search failed (${res.status}).`);
+        return null;
+      }
+      return body.golfers || [];
+    } catch (err) {
+      window.alert(`Search failed: ${err.message}`);
+      return null;
+    }
+  };
+
   // Single publish path for both the sign-in checkbox and the gear menu, so
   // failures always surface with the server's reason instead of dying quietly.
   const publishData = async (payload) => {
@@ -1227,6 +1310,7 @@ export default function GolfApp() {
                 onSelect={selectGolfer}
                 canLookup={!!ghinToken}
                 onLookup={runLookup}
+                onSearch={runGhinSearch}
               />
               <Avatar
                 golfer={g}
