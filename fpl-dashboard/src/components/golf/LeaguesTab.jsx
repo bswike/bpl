@@ -693,14 +693,24 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
   // ghin -> { loading, error, rounds }
   const [data, setData] = useState({});
   const loadingRef = useRef(new Set());
-  // Serialize league writes so rapid add/assign clicks can't race on blob storage.
+  // Always point at the latest roster — prop, optimistic, or server — so rapid
+  // adds build on each other instead of a stale React closure.
+  const leagueRef = useRef(league);
+  useEffect(() => {
+    leagueRef.current = league;
+  }, [league]);
+  // Serialize league writes so rapid clicks don't interleave on the server.
   const mutateRef = useRef(Promise.resolve());
 
   const mutate = (body, { optimistic } = {}) => {
-    if (optimistic) onChanged(optimistic);
+    if (optimistic) {
+      leagueRef.current = optimistic;
+      onChanged(optimistic);
+    }
     mutateRef.current = mutateRef.current
       .then(async () => {
         const { league: updated } = await api("POST", body);
+        leagueRef.current = updated;
         onChanged(updated);
         return updated;
       })
@@ -709,6 +719,15 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
         throw err;
       });
     return mutateRef.current;
+  };
+
+  const saveMembers = (nextMembers, extra = {}) => {
+    const cur = leagueRef.current;
+    const optimistic = { ...cur, members: nextMembers };
+    return mutate(
+      { action: "update", id: cur.id, members: nextMembers, ...extra },
+      { optimistic }
+    );
   };
 
   useEffect(() => {
@@ -767,32 +786,43 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
   );
 
   const addMember = (g) => {
+    const cur = leagueRef.current;
     const m = {
       ghin: String(g.ghin),
       first_name: g.first_name || "",
       last_name: g.last_name || "",
       club_name: g.club_name || null,
     };
-    const optimistic = {
-      ...league,
-      members: league.members.some((x) => x.ghin === m.ghin)
-        ? league.members
-        : [...league.members, m],
-    };
-    return mutate(
-      { action: "update", id: league.id, addMembers: [g] },
-      { optimistic }
-    );
+    if (cur.members.some((x) => x.ghin === m.ghin)) return Promise.resolve();
+    return saveMembers([...cur.members, m]);
   };
 
   const removeMember = (ghin) =>
-    mutate({ action: "update", id: league.id, removeGhins: [ghin] });
+    saveMembers(leagueRef.current.members.filter((m) => m.ghin !== String(ghin)));
 
-  const assignTeam = (ghin, team) =>
-    mutate({ action: "update", id: league.id, assignments: { [ghin]: team } });
+  const assignTeam = (ghin, team) => {
+    const id = String(ghin);
+    const next = leagueRef.current.members.map((m) => {
+      if (m.ghin !== id) return m;
+      const copy = { ...m };
+      if (team === "a" || team === "b") copy.team = team;
+      else delete copy.team;
+      return copy;
+    });
+    return saveMembers(next);
+  };
 
-  const setTeams = (teams) =>
-    mutate({ action: "update", id: league.id, teams });
+  const setTeams = (teams) => {
+    const cur = leagueRef.current;
+    const teamsObj = {
+      a: { name: String(teams[0]?.name || "Team 1").slice(0, 30) },
+      b: { name: String(teams[1]?.name || "Team 2").slice(0, 30) },
+    };
+    return mutate(
+      { action: "update", id: cur.id, members: cur.members, teams },
+      { optimistic: { ...cur, teams: teamsObj } }
+    );
+  };
 
   const renameTeams = () => {
     const a = window.prompt("First team name:", league.teams?.a?.name || "Team 1");

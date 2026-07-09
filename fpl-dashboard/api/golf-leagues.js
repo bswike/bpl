@@ -69,39 +69,28 @@ async function writeLeague(league) {
   return blob;
 }
 
-// Blob list/fetch can lag right after a write; retry so back-to-back updates
-// (add member, assign team, etc.) don't read a stale snapshot and clobber
-// members that were just saved.
-async function readLeagueFresh(ghin, id, { attempts = 4, delayMs = 120 } = {}) {
-  let last = null;
-  for (let i = 0; i < attempts; i++) {
-    last = await readLeague(ghin, id);
-    if (i === attempts - 1) return last;
-    await new Promise((r) => setTimeout(r, delayMs));
-  }
-  return last;
-}
-
-function applyUpdate(league, body) {
+function applyUpdate(league, body, { skipMembers = false } = {}) {
   if (body.name !== undefined) {
     const name = String(body.name || "").trim().slice(0, 60);
     if (name) league.name = name;
   }
   if (body.start !== undefined) league.start = cleanDate(body.start);
   if (body.end !== undefined) league.end = cleanDate(body.end);
-  if (Array.isArray(body.addMembers)) {
-    const have = new Set(league.members.map((m) => m.ghin));
-    for (const raw of body.addMembers) {
-      const m = cleanMember(raw);
-      if (m && !have.has(m.ghin) && league.members.length < MAX_MEMBERS) {
-        league.members.push(m);
-        have.add(m.ghin);
+  if (!skipMembers) {
+    if (Array.isArray(body.addMembers)) {
+      const have = new Set(league.members.map((m) => m.ghin));
+      for (const raw of body.addMembers) {
+        const m = cleanMember(raw);
+        if (m && !have.has(m.ghin) && league.members.length < MAX_MEMBERS) {
+          league.members.push(m);
+          have.add(m.ghin);
+        }
       }
     }
-  }
-  if (Array.isArray(body.removeGhins)) {
-    const drop = new Set(body.removeGhins.map((g) => String(g)));
-    league.members = league.members.filter((m) => !drop.has(m.ghin));
+    if (Array.isArray(body.removeGhins)) {
+      const drop = new Set(body.removeGhins.map((g) => String(g)));
+      league.members = league.members.filter((m) => !drop.has(m.ghin));
+    }
   }
   if (body.teams !== undefined) {
     const t = cleanTeams(body.teams);
@@ -186,9 +175,15 @@ export default async function handler(req, res) {
 
       if (body.action === "update") {
         const id = String(body.id || "");
-        const league = await readLeagueFresh(ghin, id);
+        const league = await readLeague(ghin, id);
         if (!league) return res.status(404).json({ error: "League not found." });
-        applyUpdate(league, body);
+        // Client sends the full roster it believes is correct — replace
+        // outright so a stale blob read can't drop golfers that were just added.
+        const fullMembers = Array.isArray(body.members);
+        if (fullMembers) {
+          league.members = body.members.map(cleanMember).filter(Boolean).slice(0, MAX_MEMBERS);
+        }
+        applyUpdate(league, body, { skipMembers: fullMembers });
         await writeLeague(league);
         return res.status(200).json({ league });
       }
