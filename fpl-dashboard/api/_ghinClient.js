@@ -193,51 +193,69 @@ async function fetchAllScores(token, golferId) {
   return allScores;
 }
 
-// Yardage lives on the course's tee sets, not on scores. Fetch details for
-// each unique course played and stamp a `tee_yardage` onto every score,
-// respecting nine-hole sides (F9/B9). Best-effort: failures just mean the
-// yardage won't display for that course.
-async function attachTeeYardages(token, scores) {
+// Course names and yardage live on the course record, not reliably on scores
+// (peer score histories often omit course/facility names entirely). Fetch
+// details for each unique course played, then stamp missing names and a
+// `tee_yardage` onto every score, respecting nine-hole sides (F9/B9).
+// Best-effort: failures just mean that course keeps whatever the score had.
+// Course data barely changes, so keep a warm-instance cache across requests.
+const courseCache = new Map(); // courseId -> { courseName, facilityName, tees }
+
+async function fetchCourseDetails(token, courseId) {
+  const params = new URLSearchParams({ course_id: courseId, source: SOURCE });
+  const res = await fetch(
+    `${API_BASE}/crsCourseMethods.asmx/GetCourseDetails.json?${params}`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) return null;
+  const data = await res.json();
+  const tees = {}; // teeSetId -> { total, front, back }
+  for (const ts of data?.TeeSets || []) {
+    const holes = Array.isArray(ts.Holes) ? ts.Holes : [];
+    const sum = (from, to) =>
+      holes
+        .filter((h) => h.Number >= from && h.Number <= to)
+        .reduce((acc, h) => acc + (h.Length || 0), 0);
+    tees[String(ts.TeeSetRatingId)] = {
+      total: ts.TotalYardage || sum(1, 18) || null,
+      front: sum(1, 9) || null,
+      back: sum(10, 18) || null,
+    };
+  }
+  return {
+    courseName: data?.CourseName || null,
+    facilityName: data?.Facility?.FacilityName || null,
+    tees,
+  };
+}
+
+export async function attachCourseData(token, scores, { maxCourses = 100 } = {}) {
+  // Scores arrive newest-first, so the cap keeps recently played courses.
   const courseIds = [
     ...new Set(scores.map((s) => s.course_id).filter(Boolean).map(String)),
-  ];
-  const teeYards = {}; // "courseId:teeSetId" -> { total, front, back }
+  ].slice(0, maxCourses);
+  const toFetch = courseIds.filter((id) => !courseCache.has(id));
   let i = 0;
   await Promise.all(
-    Array.from({ length: Math.min(5, courseIds.length) }, async () => {
-      while (i < courseIds.length) {
-        const courseId = courseIds[i++];
+    Array.from({ length: Math.min(5, toFetch.length) }, async () => {
+      while (i < toFetch.length) {
+        const courseId = toFetch[i++];
         try {
-          const params = new URLSearchParams({
-            course_id: courseId,
-            source: SOURCE,
-          });
-          const res = await fetch(
-            `${API_BASE}/crsCourseMethods.asmx/GetCourseDetails.json?${params}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          if (!res.ok) continue;
-          const data = await res.json();
-          for (const ts of data?.TeeSets || []) {
-            const holes = Array.isArray(ts.Holes) ? ts.Holes : [];
-            const sum = (from, to) =>
-              holes
-                .filter((h) => h.Number >= from && h.Number <= to)
-                .reduce((acc, h) => acc + (h.Length || 0), 0);
-            teeYards[`${courseId}:${ts.TeeSetRatingId}`] = {
-              total: ts.TotalYardage || sum(1, 18) || null,
-              front: sum(1, 9) || null,
-              back: sum(10, 18) || null,
-            };
-          }
+          const details = await fetchCourseDetails(token, courseId);
+          if (details) courseCache.set(courseId, details);
         } catch {
-          /* yardage is a nice-to-have */
+          /* course data is a nice-to-have */
         }
       }
     })
   );
   for (const s of scores) {
-    const y = teeYards[`${s.course_id}:${s.tee_set_id}`];
+    const info = courseCache.get(String(s.course_id));
+    if (!info) continue;
+    if (!s.course_name && info.courseName) s.course_name = info.courseName;
+    if (!s.facility_name && info.facilityName)
+      s.facility_name = info.facilityName;
+    const y = info.tees[String(s.tee_set_id)];
     if (!y) continue;
     const yards =
       s.tee_set_side === "F9"
@@ -256,7 +274,7 @@ export async function fetchGhinData({ email, password, ghinNumber }) {
   const resolvedId = await resolveGolferId(token, email, ghinNumber, golferIdHint);
   const golferInfo = await fetchGolfer(token, resolvedId);
   const scores = await fetchAllScores(token, resolvedId);
-  await attachTeeYardages(token, scores);
+  await attachCourseData(token, scores);
 
   return {
     token,

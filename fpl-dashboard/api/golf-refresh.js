@@ -6,6 +6,7 @@
 // them to sign in again or for the daily sync. Nothing is written server-side.
 // Requires a golf_session cookie so this can't be used as an open GHIN proxy.
 import { sessionFromReq, slimExport } from "./_golf.js";
+import { attachCourseData } from "./_ghinClient.js";
 
 const API_BASE = "https://api2.ghin.com/api/v1";
 const SOURCE = "GHINcom";
@@ -80,9 +81,7 @@ export default async function handler(req, res) {
                 s.adjusted_gross_score != null &&
                 (s.golfer_id == null || String(s.golfer_id) === ghin)
             );
-            if (good.length) {
-              out[ghin] = slimExport({ golfer: {}, scores: good }).scores;
-            }
+            if (good.length) out[ghin] = good;
           }
         } catch {
           /* skip this golfer; the published snapshot still shows */
@@ -96,6 +95,20 @@ export default async function handler(req, res) {
     return res
       .status(401)
       .json({ error: "Your GHIN session expired — sign in again." });
+  }
+
+  // One backfill pass across everyone's rounds: peer histories often omit
+  // course/facility names, which would render as "Unknown course".
+  const allScores = Object.values(out).flat();
+  if (allScores.length) {
+    try {
+      await attachCourseData(token, allScores, { maxCourses: 60 });
+    } catch {
+      /* names are a nice-to-have */
+    }
+  }
+  for (const ghin of Object.keys(out)) {
+    out[ghin] = slimExport({ golfer: {}, scores: out[ghin] }).scores;
   }
 
   res.setHeader("Cache-Control", "no-store");
