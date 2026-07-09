@@ -22,12 +22,24 @@ const leaguePath = (ghin, id) => `${PREFIX}${ghin}/${id}.json`;
 function cleanMember(m) {
   const ghin = String(m?.ghin ?? "").replace(/[^0-9]/g, "");
   if (!ghin) return null;
-  return {
+  const out = {
     ghin,
     first_name: String(m.first_name || "").slice(0, 40),
     last_name: String(m.last_name || "").slice(0, 40),
     club_name: m.club_name ? String(m.club_name).slice(0, 80) : null,
   };
+  if (m.team === "a" || m.team === "b") out.team = m.team;
+  return out;
+}
+
+// Trip mode: exactly two named teams. Returns undefined when input is
+// malformed (leave unchanged), null to clear, or {a,b} to set.
+function cleanTeams(v) {
+  if (v === null) return null;
+  if (!Array.isArray(v) || v.length !== 2) return undefined;
+  const name = (t, i) =>
+    String(t?.name || "").trim().slice(0, 30) || `Team ${i + 1}`;
+  return { a: { name: name(v[0], 0) }, b: { name: name(v[1], 1) } };
 }
 
 const cleanDate = (v) =>
@@ -112,6 +124,8 @@ export default async function handler(req, res) {
           members,
           created_at: new Date().toISOString(),
         };
+        const teams = cleanTeams(body.teams);
+        if (teams) league.teams = teams;
         await writeLeague(league);
         return res.status(200).json({ league });
       }
@@ -138,6 +152,23 @@ export default async function handler(req, res) {
         if (Array.isArray(body.removeGhins)) {
           const drop = new Set(body.removeGhins.map((g) => String(g)));
           league.members = league.members.filter((m) => !drop.has(m.ghin));
+        }
+        if (body.teams !== undefined) {
+          const t = cleanTeams(body.teams);
+          if (t === null) {
+            delete league.teams;
+            for (const m of league.members) delete m.team;
+          } else if (t) {
+            league.teams = t;
+          }
+        }
+        if (body.assignments && typeof body.assignments === "object") {
+          for (const m of league.members) {
+            if (!(m.ghin in body.assignments)) continue;
+            const a = body.assignments[m.ghin];
+            if (a === "a" || a === "b") m.team = a;
+            else delete m.team;
+          }
         }
         await writeLeague(league);
         return res.status(200).json({ league });

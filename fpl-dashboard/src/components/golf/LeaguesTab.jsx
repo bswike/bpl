@@ -17,6 +17,54 @@ const api = async (method, body) => {
   return data;
 };
 
+const TEAM_STYLES = {
+  a: {
+    dot: "bg-sky-500",
+    text: "text-sky-700",
+    active: "bg-sky-600 text-white border-sky-600",
+    idle: "bg-white text-gray-400 border-gray-200 hover:border-sky-400",
+  },
+  b: {
+    dot: "bg-rose-500",
+    text: "text-rose-700",
+    active: "bg-rose-600 text-white border-rose-600",
+    idle: "bg-white text-gray-400 border-gray-200 hover:border-rose-400",
+  },
+};
+
+function TeamDot({ team }) {
+  if (!team) return null;
+  return (
+    <span
+      className={`inline-block w-2 h-2 rounded-full shrink-0 ${TEAM_STYLES[team].dot}`}
+    />
+  );
+}
+
+/** Form going into the trip: avg handicap differential of the last 5 rounds
+ *  before the start date vs the 10 before those. Differentials normalize
+ *  9- vs 18-hole rounds, so everyone compares fairly. Lower = better. */
+function formStats(rounds, start) {
+  const before = start ? rounds.filter((r) => r.date < start) : rounds;
+  const diffs = before.map((r) => r.diff).filter((d) => d != null); // newest first
+  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+  const recentAvg = avg(diffs.slice(0, 5));
+  const priorAvg = avg(diffs.slice(5, 15));
+  return {
+    recentAvg,
+    delta: recentAvg != null && priorAvg != null ? recentAvg - priorAvg : null,
+    n: Math.min(diffs.length, 5),
+    lastDate: before[0]?.date || null,
+  };
+}
+
+function trendLabel(delta) {
+  if (delta == null) return { text: "not enough rounds", cls: "text-gray-400", arrow: "" };
+  if (delta <= -0.3) return { text: `${Math.abs(delta).toFixed(1)} better`, cls: "text-green-600", arrow: "▲" };
+  if (delta >= 0.3) return { text: `${delta.toFixed(1)} worse`, cls: "text-red-500", arrow: "▼" };
+  return { text: "steady", cls: "text-gray-400", arrow: "◆" };
+}
+
 function fmtRange(start, end) {
   if (!start && !end) return "All time";
   const f = (d) =>
@@ -36,6 +84,9 @@ function CreateLeague({ onCreated, self }) {
   const [name, setName] = useState("");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [trip, setTrip] = useState(false);
+  const [teamA, setTeamA] = useState("");
+  const [teamB, setTeamB] = useState("");
   const [busy, setBusy] = useState(false);
 
   const create = async () => {
@@ -48,6 +99,9 @@ function CreateLeague({ onCreated, self }) {
         start: start || undefined,
         end: end || undefined,
         members: self ? [self] : [],
+        teams: trip
+          ? [{ name: teamA.trim() || "Team 1" }, { name: teamB.trim() || "Team 2" }]
+          : undefined,
       });
       setName("");
       setStart("");
@@ -112,6 +166,39 @@ function CreateLeague({ onCreated, self }) {
           Set dates for a trip — the leaderboard only counts rounds played in
           the window. Leave blank for an all-time league.
         </p>
+        <label className="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={trip}
+            onChange={(e) => setTrip(e.target.checked)}
+            className="mt-0.5 accent-green-700"
+          />
+          <span>
+            Golf trip with two teams{" "}
+            <span className="text-xs text-gray-400 block">
+              Split the group into two named teams — Ryder Cup style — with
+              team form and trip scoring.
+            </span>
+          </span>
+        </label>
+        {trip && (
+          <div className="flex gap-2">
+            <input
+              className={input}
+              value={teamA}
+              onChange={(e) => setTeamA(e.target.value)}
+              placeholder="Team 1 name"
+              maxLength={30}
+            />
+            <input
+              className={input}
+              value={teamB}
+              onChange={(e) => setTeamB(e.target.value)}
+              placeholder="Team 2 name"
+              maxLength={30}
+            />
+          </div>
+        )}
         <div className="flex gap-2">
           <button
             type="button"
@@ -283,8 +370,11 @@ function Leaderboard({ league, rows }) {
             </div>
             <Avatar golfer={row.member} size="sm" />
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-semibold text-gray-900 truncate">
-                {row.member.first_name} {row.member.last_name}
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900 truncate">
+                <span className="truncate">
+                  {row.member.first_name} {row.member.last_name}
+                </span>
+                <TeamDot team={row.member.team} />
               </div>
               <div className="text-[11px] text-gray-400 truncate">
                 {row.loading
@@ -306,6 +396,154 @@ function Leaderboard({ league, rows }) {
           </div>
         );
       })}
+    </Card>
+  );
+}
+
+/* ---------- teams: head-to-head card + individual form ---------- */
+
+function teamAgg(rows) {
+  const forms = rows.map((r) => r.form.recentAvg).filter((v) => v != null);
+  const tripToPars = rows
+    .filter((r) => r.stats.n > 0 && r.stats.avgToPar != null)
+    .map((r) => r.stats.avgToPar);
+  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+  return {
+    form: avg(forms),
+    trip: avg(tripToPars),
+    tripRounds: rows.reduce((s, r) => s + r.stats.n, 0),
+    heating: rows.filter((r) => r.form.delta != null && r.form.delta <= -0.3).length,
+    cooling: rows.filter((r) => r.form.delta != null && r.form.delta >= 0.3).length,
+    size: rows.length,
+  };
+}
+
+function TeamCol({ team, name, rows }) {
+  const agg = teamAgg(rows);
+  const s = TEAM_STYLES[team];
+  return (
+    <div className="flex-1 min-w-0 text-center">
+      <div className={`flex items-center justify-center gap-1.5 font-bold text-sm ${s.text} truncate`}>
+        <TeamDot team={team} />
+        <span className="truncate">{name}</span>
+      </div>
+      <div className="text-[10px] uppercase tracking-wider text-gray-400 mt-2">
+        Trip avg to par
+      </div>
+      <div className="text-2xl font-bold font-mono text-gray-900">
+        {agg.trip != null ? fmtToPar(agg.trip, { decimals: 1 }) : "—"}
+      </div>
+      <div className="text-[11px] text-gray-400">
+        {agg.tripRounds} round{agg.tripRounds === 1 ? "" : "s"}
+      </div>
+      <div className="text-[10px] uppercase tracking-wider text-gray-400 mt-2.5">
+        Form (avg diff, last 5)
+      </div>
+      <div className="text-lg font-bold font-mono text-gray-800">
+        {agg.form != null ? agg.form.toFixed(1) : "—"}
+      </div>
+      <div className="text-[11px] mt-0.5">
+        {agg.heating > 0 && <span className="text-green-600">▲ {agg.heating} hot</span>}
+        {agg.heating > 0 && agg.cooling > 0 && <span className="text-gray-300"> · </span>}
+        {agg.cooling > 0 && <span className="text-red-500">▼ {agg.cooling} cold</span>}
+        {agg.heating === 0 && agg.cooling === 0 && (
+          <span className="text-gray-400">{agg.size} golfer{agg.size === 1 ? "" : "s"}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TeamsCard({ league, rows, onRename }) {
+  const rowsA = rows.filter((r) => r.member.team === "a");
+  const rowsB = rows.filter((r) => r.member.team === "b");
+  const unassigned = rows.length - rowsA.length - rowsB.length;
+  return (
+    <Card
+      title="Teams"
+      right={
+        <button
+          type="button"
+          onClick={onRename}
+          className="text-xs text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer"
+        >
+          Rename
+        </button>
+      }
+    >
+      <div className="flex items-start gap-3">
+        <TeamCol team="a" name={league.teams.a.name} rows={rowsA} />
+        <div className="self-center text-[11px] font-bold text-gray-300 uppercase shrink-0 pt-1">
+          vs
+        </div>
+        <TeamCol team="b" name={league.teams.b.name} rows={rowsB} />
+      </div>
+      {unassigned > 0 && (
+        <p className="text-[11px] text-gray-400 mt-3 text-center">
+          {unassigned} golfer{unassigned === 1 ? "" : "s"} not on a team yet —
+          assign below in Members.
+        </p>
+      )}
+    </Card>
+  );
+}
+
+function FormCard({ league, rows }) {
+  const ranked = [...rows].sort((a, b) => {
+    if (a.form.delta == null && b.form.delta == null) return 0;
+    if (a.form.delta == null) return 1;
+    if (b.form.delta == null) return -1;
+    return a.form.delta - b.form.delta; // most improved first (lower diff = better)
+  });
+  const heading = league.start
+    ? new Date() < new Date(league.start + "T00:00:00")
+      ? "Form going into the trip"
+      : "Form heading in"
+    : "Current form";
+  return (
+    <Card
+      title={heading}
+      right={<span className="text-xs text-gray-400">last 5 vs prior 10 diffs</span>}
+    >
+      {ranked.map((row) => {
+        const t = trendLabel(row.form.delta);
+        return (
+          <div
+            key={row.member.ghin}
+            className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 min-w-0"
+          >
+            <Avatar golfer={row.member} size="sm" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900 truncate">
+                <span className="truncate">
+                  {row.member.first_name} {row.member.last_name}
+                </span>
+                <TeamDot team={row.member.team} />
+              </div>
+              <div className="text-[11px] text-gray-400 truncate">
+                {row.loading
+                  ? "Loading rounds…"
+                  : row.form.n > 0
+                    ? `last ${row.form.n} · played ${row.form.lastDate}`
+                    : "no rounds yet"}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-base font-bold font-mono text-gray-900">
+                {row.form.recentAvg != null ? row.form.recentAvg.toFixed(1) : "—"}
+              </div>
+              <div className={`text-[11px] font-semibold ${t.cls}`}>
+                {t.arrow} {t.text}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      <p className="text-[11px] text-gray-400 mt-2">
+        Avg handicap differential of the 5 most recent rounds
+        {league.start ? " before the trip" : ""} — lower is better. The trend
+        compares against the 10 rounds before those.
+      </p>
     </Card>
   );
 }
@@ -403,6 +641,7 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
           loading: !!d.loading,
           error: d.error || null,
           stats: memberStats(d.rounds || [], league.start, league.end),
+          form: formStats(d.rounds || [], league.start),
         };
       }),
     [league, data, myGhin, myRounds]
@@ -439,6 +678,40 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
     }
   };
 
+  const assignTeam = async (ghin, team) => {
+    try {
+      const { league: updated } = await api("POST", {
+        action: "update",
+        id: league.id,
+        assignments: { [ghin]: team },
+      });
+      onChanged(updated);
+    } catch (err) {
+      window.alert(`Could not assign: ${err.message}`);
+    }
+  };
+
+  const setTeams = async (teams) => {
+    try {
+      const { league: updated } = await api("POST", {
+        action: "update",
+        id: league.id,
+        teams,
+      });
+      onChanged(updated);
+    } catch (err) {
+      window.alert(`Could not update teams: ${err.message}`);
+    }
+  };
+
+  const renameTeams = () => {
+    const a = window.prompt("First team name:", league.teams?.a?.name || "Team 1");
+    if (a === null) return;
+    const b = window.prompt("Second team name:", league.teams?.b?.name || "Team 2");
+    if (b === null) return;
+    setTeams([{ name: a }, { name: b }]);
+  };
+
   const deleteLeague = async () => {
     if (!window.confirm(`Delete “${league.name}”? This can't be undone.`)) return;
     try {
@@ -469,11 +742,24 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
       </div>
 
       <Card>
-        <h2 className="text-xl font-bold text-gray-900 leading-tight">{league.name}</h2>
-        <p className="text-sm text-gray-400 mt-0.5">
-          {fmtRange(league.start, league.end)} · {league.members.length} golfer
-          {league.members.length === 1 ? "" : "s"} · only you can see this
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold text-gray-900 leading-tight">{league.name}</h2>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {fmtRange(league.start, league.end)} · {league.members.length} golfer
+              {league.members.length === 1 ? "" : "s"} · only you can see this
+            </p>
+          </div>
+          {!league.teams && (
+            <button
+              type="button"
+              onClick={() => setTeams([{ name: "Team 1" }, { name: "Team 2" }])}
+              className="shrink-0 text-xs font-semibold text-green-800 bg-green-50 border border-green-200 hover:bg-green-100 rounded-full px-3 py-1.5 cursor-pointer transition-colors"
+            >
+              + Make it a trip
+            </button>
+          )}
+        </div>
       </Card>
 
       {!ghinToken && (
@@ -482,7 +768,11 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
         </div>
       )}
 
+      {league.teams && (
+        <TeamsCard league={league} rows={rows} onRename={renameTeams} />
+      )}
       <Leaderboard league={league} rows={rows} />
+      <FormCard league={league} rows={rows} />
       <TripFeed league={league} rows={rows} />
 
       <Card title={`Members · ${league.members.length}`}>
@@ -501,6 +791,30 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
                   {m.club_name ? `${m.club_name} · ` : ""}GHIN #{m.ghin}
                 </div>
               </div>
+              {league.teams && (
+                <div className="flex gap-1 shrink-0">
+                  {["a", "b"].map((t) => {
+                    const on = m.team === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        title={
+                          on
+                            ? `Remove from ${league.teams[t].name}`
+                            : `Put on ${league.teams[t].name}`
+                        }
+                        onClick={() => assignTeam(m.ghin, on ? null : t)}
+                        className={`max-w-24 truncate text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border cursor-pointer transition-colors ${
+                          on ? TEAM_STYLES[t].active : TEAM_STYLES[t].idle
+                        }`}
+                      >
+                        {league.teams[t].name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               {String(m.ghin) !== myGhin && (
                 <button
                   type="button"
@@ -604,9 +918,17 @@ export default function LeaguesTab({ myGhin, myGolfer, myRounds, ghinToken, onSe
               <div className="flex items-center justify-between gap-3 min-w-0">
                 <div className="min-w-0">
                   <div className="text-base font-bold text-gray-900 truncate">{l.name}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">
+                  <div className="text-xs text-gray-400 mt-0.5 truncate">
                     {fmtRange(l.start, l.end)} · {l.members.length} golfer
                     {l.members.length === 1 ? "" : "s"}
+                    {l.teams && (
+                      <>
+                        {" · "}
+                        <span className="text-sky-600 font-semibold">{l.teams.a.name}</span>
+                        <span> vs </span>
+                        <span className="text-rose-600 font-semibold">{l.teams.b.name}</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <span className="text-gray-300 shrink-0">›</span>
