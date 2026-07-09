@@ -198,7 +198,6 @@ function LandingPage({ onLoad }) {
   const [password, setPassword] = useState("");
   const [ghinNumber, setGhinNumber] = useState("");
   const [share, setShare] = useState(false);
-  const [keepSynced, setKeepSynced] = useState(false);
 
   const processFile = (file) => {
     setError(null);
@@ -231,7 +230,6 @@ function LandingPage({ onLoad }) {
           email,
           password,
           ghinNumber: ghinNumber.trim() || undefined,
-          keepSynced,
         }),
       });
       if (!res.ok) {
@@ -242,11 +240,7 @@ function LandingPage({ onLoad }) {
       const data = await res.json();
       if (!data.scores?.length)
         throw new Error("No scores found for this GHIN number.");
-      if (keepSynced && data.syncError) {
-        window.alert(`Signed in, but auto-sync couldn't be enabled: ${data.syncError}`);
-      }
-      // Auto-sync implies a public feed, so it also publishes.
-      onLoad(data, { share: share || keepSynced, viaLogin: true });
+      onLoad(data, { share, viaLogin: true });
     } catch (err) {
       setError(err.message || "Something went wrong.");
     } finally {
@@ -345,9 +339,9 @@ function LandingPage({ onLoad }) {
           <label className="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer select-none">
             <input
               type="checkbox"
-              checked={share || keepSynced}
+              checked={share}
               onChange={(e) => setShare(e.target.checked)}
-              disabled={loading || keepSynced}
+              disabled={loading}
               className="mt-0.5 accent-green-700"
             />
             <span>
@@ -355,23 +349,6 @@ function LandingPage({ onLoad }) {
               <span className="text-xs text-gray-400 block">
                 Your name, scores, and courses become visible to anyone. You can
                 remove yourself anytime from settings.
-              </span>
-            </span>
-          </label>
-          <label className="flex items-start gap-2.5 text-sm text-gray-700 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={keepSynced}
-              onChange={(e) => setKeepSynced(e.target.checked)}
-              disabled={loading}
-              className="mt-0.5 accent-green-700"
-            />
-            <span>
-              Keep my scores synced automatically{" "}
-              <span className="text-xs text-gray-400 block">
-                Stores your GHIN login <b>encrypted</b> so a daily job can post new
-                rounds for you (implies sharing). Only enable this on your own
-                account. Turn it off anytime in settings.
               </span>
             </span>
           </label>
@@ -383,9 +360,7 @@ function LandingPage({ onLoad }) {
             {loading ? loadingMsg : "Fetch My Scores"}
           </button>
           <p className="text-xs text-gray-400 text-center">
-            {keepSynced
-              ? "With auto-sync on, your GHIN login is stored encrypted so a daily job can refresh your scores. Otherwise credentials go to GHIN only."
-              : "Credentials go to GHIN only; nothing is stored on this server."}
+            Credentials go to GHIN only; nothing is stored on this server.
           </p>
         </form>
       )}
