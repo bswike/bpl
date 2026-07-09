@@ -193,6 +193,49 @@ async function fetchAllScores(token, golferId) {
   return allScores;
 }
 
+// GHIN redacts bulk score history for golfers outside your own club: rows
+// arrive with no course name/id and truncated played_at dates ("2026-07").
+// The single-score endpoint returns those same rounds in full, so hydrate
+// redacted rows one by one (newest first, bounded). Best-effort.
+const isRedacted = (s) =>
+  !s.course_name &&
+  !s.facility_name &&
+  !s.course_display_value &&
+  !s.ghin_course_name_display;
+
+export async function hydrateRedactedScores(
+  token,
+  scores,
+  { max = 300, concurrency = 8 } = {}
+) {
+  const targets = scores
+    .filter((s) => s && s.id != null && isRedacted(s))
+    .slice(0, max);
+  let i = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, targets.length) }, async () => {
+      while (i < targets.length) {
+        const s = targets[i++];
+        try {
+          const res = await fetch(
+            `${API_BASE}/scores/${s.id}.json?source=${SOURCE}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (!res.ok) continue;
+          const full = (await res.json())?.scores;
+          if (full && String(full.id) === String(s.id)) {
+            for (const [k, v] of Object.entries(full)) {
+              if (v != null) s[k] = v;
+            }
+          }
+        } catch {
+          /* leave the redacted row as-is */
+        }
+      }
+    })
+  );
+}
+
 // Course names and yardage live on the course record, not reliably on scores
 // (peer score histories often omit course/facility names entirely). Fetch
 // details for each unique course played, then stamp missing names and a

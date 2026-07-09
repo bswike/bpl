@@ -4,7 +4,7 @@
 // shown privately to the signed-in user only. Requires a valid golf_session
 // cookie so this can't be used as an open GHIN proxy.
 import { sessionFromReq, slimExport } from "./_golf.js";
-import { attachCourseData } from "./_ghinClient.js";
+import { attachCourseData, hydrateRedactedScores } from "./_ghinClient.js";
 
 const API_BASE = "https://api2.ghin.com/api/v1";
 const SOURCE = "GHINcom";
@@ -86,8 +86,11 @@ export default async function handler(req, res) {
     if (!s.scores?.length) {
       return res.status(404).json({ error: "No scores found for that GHIN number." });
     }
-    // Peer histories often omit course/facility names; backfill them (and
-    // tee yardage) from the course records so rounds don't show as unknown.
+    // GHIN redacts bulk history for out-of-club golfers (no course names or
+    // ids, truncated dates). Re-fetch those rounds individually — the
+    // single-score endpoint returns them in full — then backfill any still
+    // missing names (and tee yardage) from the course records.
+    await hydrateRedactedScores(token, s.scores, { max: 200 });
     await attachCourseData(token, s.scores);
     const gi = g.golfer;
     const payload = slimExport({

@@ -6,7 +6,7 @@
 // them to sign in again or for the daily sync. Nothing is written server-side.
 // Requires a golf_session cookie so this can't be used as an open GHIN proxy.
 import { sessionFromReq, slimExport } from "./_golf.js";
-import { attachCourseData } from "./_ghinClient.js";
+import { attachCourseData, hydrateRedactedScores } from "./_ghinClient.js";
 
 const API_BASE = "https://api2.ghin.com/api/v1";
 const SOURCE = "GHINcom";
@@ -97,18 +97,27 @@ export default async function handler(req, res) {
       .json({ error: "Your GHIN session expired — sign in again." });
   }
 
-  // One backfill pass across everyone's rounds: peer histories often omit
-  // course/facility names, which would render as "Unknown course".
+  // GHIN redacts bulk history for out-of-club golfers (no course names/ids,
+  // truncated dates). Re-fetch redacted rows via the single-score endpoint
+  // (bounded — newest rounds first, which is all the feed adds anyway), then
+  // backfill any still-missing names from course records.
   const allScores = Object.values(out).flat();
   if (allScores.length) {
     try {
+      await hydrateRedactedScores(token, allScores, { max: 240 });
       await attachCourseData(token, allScores, { maxCourses: 60 });
     } catch {
       /* names are a nice-to-have */
     }
   }
   for (const ghin of Object.keys(out)) {
-    out[ghin] = slimExport({ golfer: {}, scores: out[ghin] }).scores;
+    // Anything still redacted (over budget / fetch failed) has a truncated
+    // date and no course — worse than useless in the feed, so drop it. The
+    // golfer's published snapshot still covers their older history.
+    const clean = out[ghin].filter(
+      (s) => String(s.played_at || "").length >= 10
+    );
+    out[ghin] = slimExport({ golfer: {}, scores: clean }).scores;
   }
 
   res.setHeader("Cache-Control", "no-store");
