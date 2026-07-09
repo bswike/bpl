@@ -8,6 +8,7 @@ import {
   CircleUserRound,
   Search,
   Crosshair,
+  Trophy,
 } from "lucide-react";
 import { buildModel, slimExportForStorage } from "./golf/data";
 import { Avatar } from "./golf/ui";
@@ -17,6 +18,10 @@ import OverviewTab from "./golf/OverviewTab";
 import CoursesTab from "./golf/CoursesTab";
 import BirdiesTab from "./golf/BirdiesTab";
 import ShotPatternTab from "./golf/ShotPatternTab";
+import LeaguesTab from "./golf/LeaguesTab";
+
+// Leagues are in private beta while being built — only these GHINs see the tab.
+const LEAGUES_BETA_GHINS = new Set(["11514629"]);
 
 // v2: bumping the key signs everyone out once (old saved exports are cleared).
 const STORAGE_KEY = "golf-ghin-export-v2";
@@ -422,7 +427,15 @@ const TABS = [
 
 // Tabs without the global year/holes filter bar (they have their own controls
 // or, like the feed and profile, are meant to feel like a standalone app).
-const NO_FILTER_TABS = new Set(["home", "birdies", "shots", "profile", "peer", "lookup"]);
+const NO_FILTER_TABS = new Set([
+  "home",
+  "birdies",
+  "shots",
+  "profile",
+  "peer",
+  "lookup",
+  "leagues",
+]);
 
 const BOTTOM_NAV = [
   ["home", "Home", Home],
@@ -1274,6 +1287,15 @@ export default function GolfApp() {
 
   const g = model.golfer;
 
+  // Leagues are beta-gated: insert the tab after Home only for beta GHINs.
+  const showLeagues = LEAGUES_BETA_GHINS.has(myGhin);
+  const tabs = showLeagues
+    ? [TABS[0], ["leagues", "Leagues"], ...TABS.slice(1)]
+    : TABS;
+  const bottomNav = showLeagues
+    ? [BOTTOM_NAV[0], ["leagues", "Leagues", Trophy], ...BOTTOM_NAV.slice(1)]
+    : BOTTOM_NAV;
+
   return (
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col">
       <header className="relative bg-gradient-to-br from-[#0a2417] via-[#123a26] to-[#1d5133] text-white shrink-0 w-full min-w-0">
@@ -1333,7 +1355,7 @@ export default function GolfApp() {
           </div>
 
           <nav className="hidden sm:flex gap-7 mt-6">
-            {TABS.map(([k, label]) => (
+            {tabs.map(([k, label]) => (
               <button
                 key={k}
                 type="button"
@@ -1442,10 +1464,19 @@ export default function GolfApp() {
         )}
         {tab === "birdies" && <BirdiesTab rounds={model.rounds} />}
         {tab === "shots" && <ShotPatternTab rounds={model.rounds} />}
+        {tab === "leagues" && showLeagues && (
+          <LeaguesTab
+            myGhin={myGhin}
+            myGolfer={g}
+            myRounds={model.rounds}
+            ghinToken={ghinToken}
+            onSearch={runGhinSearch}
+          />
+        )}
       </div>
 
       <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 flex justify-around pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]">
-        {BOTTOM_NAV.map(([k, label, IconCmp]) => {
+        {bottomNav.map(([k, label, IconCmp]) => {
           const Icon = IconCmp;
           return (
           <button
