@@ -59,13 +59,67 @@ async function readLeague(ghin, id) {
 }
 
 async function writeLeague(league) {
-  await put(leaguePath(league.owner, league.id), JSON.stringify(league), {
+  const blob = await put(leaguePath(league.owner, league.id), JSON.stringify(league), {
     access: "public",
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "application/json",
     cacheControlMaxAge: 0,
   });
+  return blob;
+}
+
+// Blob list/fetch can lag right after a write; retry so back-to-back updates
+// (add member, assign team, etc.) don't read a stale snapshot and clobber
+// members that were just saved.
+async function readLeagueFresh(ghin, id, { attempts = 4, delayMs = 120 } = {}) {
+  let last = null;
+  for (let i = 0; i < attempts; i++) {
+    last = await readLeague(ghin, id);
+    if (i === attempts - 1) return last;
+    await new Promise((r) => setTimeout(r, delayMs));
+  }
+  return last;
+}
+
+function applyUpdate(league, body) {
+  if (body.name !== undefined) {
+    const name = String(body.name || "").trim().slice(0, 60);
+    if (name) league.name = name;
+  }
+  if (body.start !== undefined) league.start = cleanDate(body.start);
+  if (body.end !== undefined) league.end = cleanDate(body.end);
+  if (Array.isArray(body.addMembers)) {
+    const have = new Set(league.members.map((m) => m.ghin));
+    for (const raw of body.addMembers) {
+      const m = cleanMember(raw);
+      if (m && !have.has(m.ghin) && league.members.length < MAX_MEMBERS) {
+        league.members.push(m);
+        have.add(m.ghin);
+      }
+    }
+  }
+  if (Array.isArray(body.removeGhins)) {
+    const drop = new Set(body.removeGhins.map((g) => String(g)));
+    league.members = league.members.filter((m) => !drop.has(m.ghin));
+  }
+  if (body.teams !== undefined) {
+    const t = cleanTeams(body.teams);
+    if (t === null) {
+      delete league.teams;
+      for (const m of league.members) delete m.team;
+    } else if (t) {
+      league.teams = t;
+    }
+  }
+  if (body.assignments && typeof body.assignments === "object") {
+    for (const m of league.members) {
+      if (!(m.ghin in body.assignments)) continue;
+      const a = body.assignments[m.ghin];
+      if (a === "a" || a === "b") m.team = a;
+      else delete m.team;
+    }
+  }
 }
 
 export default async function handler(req, res) {
@@ -131,45 +185,10 @@ export default async function handler(req, res) {
       }
 
       if (body.action === "update") {
-        const league = await readLeague(ghin, String(body.id || ""));
+        const id = String(body.id || "");
+        const league = await readLeagueFresh(ghin, id);
         if (!league) return res.status(404).json({ error: "League not found." });
-        if (body.name !== undefined) {
-          const name = String(body.name || "").trim().slice(0, 60);
-          if (name) league.name = name;
-        }
-        if (body.start !== undefined) league.start = cleanDate(body.start);
-        if (body.end !== undefined) league.end = cleanDate(body.end);
-        if (Array.isArray(body.addMembers)) {
-          const have = new Set(league.members.map((m) => m.ghin));
-          for (const raw of body.addMembers) {
-            const m = cleanMember(raw);
-            if (m && !have.has(m.ghin) && league.members.length < MAX_MEMBERS) {
-              league.members.push(m);
-              have.add(m.ghin);
-            }
-          }
-        }
-        if (Array.isArray(body.removeGhins)) {
-          const drop = new Set(body.removeGhins.map((g) => String(g)));
-          league.members = league.members.filter((m) => !drop.has(m.ghin));
-        }
-        if (body.teams !== undefined) {
-          const t = cleanTeams(body.teams);
-          if (t === null) {
-            delete league.teams;
-            for (const m of league.members) delete m.team;
-          } else if (t) {
-            league.teams = t;
-          }
-        }
-        if (body.assignments && typeof body.assignments === "object") {
-          for (const m of league.members) {
-            if (!(m.ghin in body.assignments)) continue;
-            const a = body.assignments[m.ghin];
-            if (a === "a" || a === "b") m.team = a;
-            else delete m.team;
-          }
-        }
+        applyUpdate(league, body);
         await writeLeague(league);
         return res.status(200).json({ league });
       }

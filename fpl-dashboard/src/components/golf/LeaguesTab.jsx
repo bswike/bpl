@@ -223,11 +223,12 @@ function CreateLeague({ onCreated, self }) {
 
 /* ---------- add-member search ---------- */
 
-function AddMember({ onSearch, existing, onAdd }) {
+function AddMember({ onSearch, existing, onAdd, compact }) {
   const [q, setQ] = useState("");
   const [st, setSt] = useState("");
   const [results, setResults] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [adding, setAdding] = useState(null);
 
   const run = async () => {
     if (q.trim().length < 2) return;
@@ -237,10 +238,27 @@ function AddMember({ onSearch, existing, onAdd }) {
     setResults(found);
   };
 
+  const pick = async (g) => {
+    if (existing.has(String(g.ghin))) return;
+    setAdding(g.ghin);
+    setResults(null);
+    try {
+      await onAdd(g);
+      setQ("");
+      setSt("");
+    } finally {
+      setAdding(null);
+    }
+  };
+
+  const shell = compact
+    ? "rounded-xl border border-green-200 bg-green-50/40 p-3"
+    : "rounded-xl border border-gray-200 bg-gray-50/60 p-3";
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-3">
+    <div className={shell}>
       <div className="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-1.5">
-        Add a golfer (GHIN search)
+        Add golfers
       </div>
       <div className="flex gap-2">
         <input
@@ -250,8 +268,8 @@ function AddMember({ onSearch, existing, onAdd }) {
             setResults(null);
           }}
           onKeyDown={(e) => e.key === "Enter" && run()}
-          placeholder="Name — e.g. Todd Swikle"
-          className="flex-1 min-w-0 px-3 py-1.5 text-sm border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-green-600 bg-white text-gray-900"
+          placeholder="Search by name — e.g. Todd Swikle"
+          className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-green-600 bg-white text-gray-900"
         />
         <input
           value={st}
@@ -259,36 +277,34 @@ function AddMember({ onSearch, existing, onAdd }) {
             setSt(e.target.value.replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase())
           }
           onKeyDown={(e) => e.key === "Enter" && run()}
-          placeholder="State"
-          className="w-16 px-2 py-1.5 text-sm text-center border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-green-600 bg-white text-gray-900"
+          placeholder="ST"
+          title="Optional state"
+          className="w-14 px-2 py-2 text-sm text-center border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-green-600 bg-white text-gray-900"
         />
         <button
           type="button"
           onClick={run}
           disabled={busy || q.trim().length < 2}
-          className="px-3 py-1.5 text-xs uppercase tracking-wider bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white rounded-lg border-none cursor-pointer transition-colors shrink-0"
+          className="px-3 py-2 text-xs uppercase tracking-wider bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white rounded-lg border-none cursor-pointer transition-colors shrink-0"
         >
           {busy ? "…" : "Search"}
         </button>
       </div>
       {results !== null && (
-        <div className="mt-2 max-h-44 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+        <div className="mt-2 max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-sm">
           {results.length === 0 ? (
-            <p className="px-3 py-3 text-xs text-gray-400">No matches.</p>
+            <p className="px-3 py-3 text-xs text-gray-400">No matches — try a different spelling or drop the state.</p>
           ) : (
             results.map((g) => {
               const already = existing.has(String(g.ghin));
+              const isAdding = adding === g.ghin;
               return (
                 <button
                   key={g.ghin}
                   type="button"
-                  disabled={already}
-                  onClick={() => {
-                    onAdd(g);
-                    setResults(null);
-                    setQ("");
-                  }}
-                  className="w-full px-3 py-2 bg-transparent border-none cursor-pointer hover:bg-gray-50 transition-colors text-left disabled:opacity-40 disabled:cursor-default"
+                  disabled={already || isAdding}
+                  onClick={() => pick(g)}
+                  className="w-full px-3 py-2.5 bg-transparent border-none cursor-pointer hover:bg-gray-50 transition-colors text-left disabled:opacity-40 disabled:cursor-default border-b border-gray-50 last:border-0"
                 >
                   <div className="text-sm font-semibold text-gray-900 truncate">
                     {g.first_name} {g.last_name}
@@ -296,7 +312,10 @@ function AddMember({ onSearch, existing, onAdd }) {
                       <span className="font-normal text-gray-400"> · {g.state}</span>
                     ) : null}
                     {already && (
-                      <span className="font-normal text-green-700 text-xs"> · in league</span>
+                      <span className="font-normal text-green-700 text-xs"> · already in</span>
+                    )}
+                    {isAdding && (
+                      <span className="font-normal text-gray-400 text-xs"> · adding…</span>
                     )}
                   </div>
                   <div className="text-xs text-gray-400 truncate">
@@ -309,7 +328,85 @@ function AddMember({ onSearch, existing, onAdd }) {
           )}
         </div>
       )}
+      <p className="text-[10px] text-gray-400 mt-2">
+        Tap a result to add them. Name or GHIN # works — state is optional.
+      </p>
     </div>
+  );
+}
+
+function MembersCard({
+  league,
+  myGhin,
+  ghinToken,
+  onSearch,
+  existing,
+  onAdd,
+  onRemove,
+  onAssign,
+}) {
+  return (
+    <Card title={`Golfers · ${league.members.length}`}>
+      {ghinToken ? (
+        <AddMember onSearch={onSearch} existing={existing} onAdd={onAdd} compact />
+      ) : (
+        <div className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 mb-3">
+          Sign in to GHIN again to search and add golfers.
+        </div>
+      )}
+      <div className="space-y-1 mt-3">
+        {league.members.map((m) => (
+          <div key={m.ghin} className="flex items-center gap-3 py-1.5 min-w-0">
+            <Avatar golfer={m} size="sm" />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold text-gray-900 truncate">
+                {m.first_name} {m.last_name}
+                {String(m.ghin) === myGhin && (
+                  <span className="font-normal text-gray-400 text-xs"> · you</span>
+                )}
+              </div>
+              <div className="text-[11px] text-gray-400 truncate">
+                {m.club_name ? `${m.club_name} · ` : ""}GHIN #{m.ghin}
+              </div>
+            </div>
+            {league.teams && (
+              <div className="flex gap-1 shrink-0">
+                {["a", "b"].map((t) => {
+                  const on = m.team === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      title={
+                        on
+                          ? `Remove from ${league.teams[t].name}`
+                          : `Put on ${league.teams[t].name}`
+                      }
+                      onClick={() => onAssign(m.ghin, on ? null : t)}
+                      className={`max-w-24 truncate text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border cursor-pointer transition-colors ${
+                        on ? TEAM_STYLES[t].active : TEAM_STYLES[t].idle
+                      }`}
+                    >
+                      {league.teams[t].name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {String(m.ghin) !== myGhin && (
+              <button
+                type="button"
+                onClick={() => onRemove(m.ghin)}
+                title="Remove from league"
+                className="text-gray-300 hover:text-red-500 bg-transparent border-none cursor-pointer text-lg leading-none px-1"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
@@ -481,7 +578,7 @@ function TeamsCard({ league, rows, onRename }) {
       {unassigned > 0 && (
         <p className="text-[11px] text-gray-400 mt-3 text-center">
           {unassigned} golfer{unassigned === 1 ? "" : "s"} not on a team yet —
-          assign below in Members.
+          assign them in Golfers above.
         </p>
       )}
     </Card>
@@ -596,6 +693,23 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
   // ghin -> { loading, error, rounds }
   const [data, setData] = useState({});
   const loadingRef = useRef(new Set());
+  // Serialize league writes so rapid add/assign clicks can't race on blob storage.
+  const mutateRef = useRef(Promise.resolve());
+
+  const mutate = (body, { optimistic } = {}) => {
+    if (optimistic) onChanged(optimistic);
+    mutateRef.current = mutateRef.current
+      .then(async () => {
+        const { league: updated } = await api("POST", body);
+        onChanged(updated);
+        return updated;
+      })
+      .catch((err) => {
+        window.alert(err.message || "Update failed.");
+        throw err;
+      });
+    return mutateRef.current;
+  };
 
   useEffect(() => {
     for (const m of league.members) {
@@ -652,57 +766,33 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
     [league.members]
   );
 
-  const addMember = async (g) => {
-    try {
-      const { league: updated } = await api("POST", {
-        action: "update",
-        id: league.id,
-        addMembers: [g],
-      });
-      onChanged(updated);
-    } catch (err) {
-      window.alert(`Could not add: ${err.message}`);
-    }
+  const addMember = (g) => {
+    const m = {
+      ghin: String(g.ghin),
+      first_name: g.first_name || "",
+      last_name: g.last_name || "",
+      club_name: g.club_name || null,
+    };
+    const optimistic = {
+      ...league,
+      members: league.members.some((x) => x.ghin === m.ghin)
+        ? league.members
+        : [...league.members, m],
+    };
+    return mutate(
+      { action: "update", id: league.id, addMembers: [g] },
+      { optimistic }
+    );
   };
 
-  const removeMember = async (ghin) => {
-    try {
-      const { league: updated } = await api("POST", {
-        action: "update",
-        id: league.id,
-        removeGhins: [ghin],
-      });
-      onChanged(updated);
-    } catch (err) {
-      window.alert(`Could not remove: ${err.message}`);
-    }
-  };
+  const removeMember = (ghin) =>
+    mutate({ action: "update", id: league.id, removeGhins: [ghin] });
 
-  const assignTeam = async (ghin, team) => {
-    try {
-      const { league: updated } = await api("POST", {
-        action: "update",
-        id: league.id,
-        assignments: { [ghin]: team },
-      });
-      onChanged(updated);
-    } catch (err) {
-      window.alert(`Could not assign: ${err.message}`);
-    }
-  };
+  const assignTeam = (ghin, team) =>
+    mutate({ action: "update", id: league.id, assignments: { [ghin]: team } });
 
-  const setTeams = async (teams) => {
-    try {
-      const { league: updated } = await api("POST", {
-        action: "update",
-        id: league.id,
-        teams,
-      });
-      onChanged(updated);
-    } catch (err) {
-      window.alert(`Could not update teams: ${err.message}`);
-    }
-  };
+  const setTeams = (teams) =>
+    mutate({ action: "update", id: league.id, teams });
 
   const renameTeams = () => {
     const a = window.prompt("First team name:", league.teams?.a?.name || "Team 1");
@@ -768,74 +858,23 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
         </div>
       )}
 
+      <MembersCard
+        league={league}
+        myGhin={myGhin}
+        ghinToken={ghinToken}
+        onSearch={onSearch}
+        existing={existing}
+        onAdd={addMember}
+        onRemove={removeMember}
+        onAssign={assignTeam}
+      />
+
       {league.teams && (
         <TeamsCard league={league} rows={rows} onRename={renameTeams} />
       )}
       <Leaderboard league={league} rows={rows} />
       <FormCard league={league} rows={rows} />
       <TripFeed league={league} rows={rows} />
-
-      <Card title={`Members · ${league.members.length}`}>
-        <div className="space-y-1 mb-3">
-          {league.members.map((m) => (
-            <div key={m.ghin} className="flex items-center gap-3 py-1.5 min-w-0">
-              <Avatar golfer={m} size="sm" />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-gray-900 truncate">
-                  {m.first_name} {m.last_name}
-                  {String(m.ghin) === myGhin && (
-                    <span className="font-normal text-gray-400 text-xs"> · you</span>
-                  )}
-                </div>
-                <div className="text-[11px] text-gray-400 truncate">
-                  {m.club_name ? `${m.club_name} · ` : ""}GHIN #{m.ghin}
-                </div>
-              </div>
-              {league.teams && (
-                <div className="flex gap-1 shrink-0">
-                  {["a", "b"].map((t) => {
-                    const on = m.team === t;
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        title={
-                          on
-                            ? `Remove from ${league.teams[t].name}`
-                            : `Put on ${league.teams[t].name}`
-                        }
-                        onClick={() => assignTeam(m.ghin, on ? null : t)}
-                        className={`max-w-24 truncate text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border cursor-pointer transition-colors ${
-                          on ? TEAM_STYLES[t].active : TEAM_STYLES[t].idle
-                        }`}
-                      >
-                        {league.teams[t].name}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              {String(m.ghin) !== myGhin && (
-                <button
-                  type="button"
-                  onClick={() => removeMember(m.ghin)}
-                  title="Remove from league"
-                  className="text-gray-300 hover:text-red-500 bg-transparent border-none cursor-pointer text-lg leading-none px-1"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-        {ghinToken ? (
-          <AddMember onSearch={onSearch} existing={existing} onAdd={addMember} />
-        ) : (
-          <p className="text-xs text-gray-400">
-            Sign in to GHIN to add golfers by name.
-          </p>
-        )}
-      </Card>
     </div>
   );
 }
