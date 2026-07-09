@@ -76,6 +76,7 @@ const SCORE_FIELDS = [
   "course_name",
   "facility_name",
   "course_display_value",
+  "ghin_course_name_display",
   "tee_name",
   "course_rating",
   "slope_rating",

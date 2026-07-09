@@ -132,10 +132,27 @@ function matchKnownPars(score) {
   return null;
 }
 
+// Last-resort name source: "Duran Golf Club / GOLD" — the course + tee display
+// string GHIN keeps on rows (esp. peer histories) even when the proper name
+// fields are empty. Strip the tee suffix only when it provably matches.
+function nameFromGhinDisplay(score) {
+  const gcnd = (score.ghin_course_name_display || "").trim();
+  if (!gcnd) return "";
+  const tee = (score.tee_name || "").trim();
+  if (tee && gcnd.toLowerCase().endsWith(`/ ${tee.toLowerCase()}`)) {
+    return gcnd.slice(0, gcnd.toLowerCase().lastIndexOf(`/ ${tee.toLowerCase()}`)).replace(/\s+$/, "");
+  }
+  return gcnd;
+}
+
 function normalizeCourse(score) {
   const facility = (score.facility_name || "").trim();
   const course = (score.course_name || "").trim();
-  const raw = course || facility || (score.course_display_value || "").trim();
+  const raw =
+    course ||
+    facility ||
+    (score.course_display_value || "").trim() ||
+    nameFromGhinDisplay(score);
   const combined = `${facility} ${raw}`.toLowerCase();
 
   // Suntree has four naming variants in the wild (incl. a truncated one);
