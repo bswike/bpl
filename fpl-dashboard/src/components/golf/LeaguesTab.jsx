@@ -100,7 +100,7 @@ function CreateLeague({ onCreated, self }) {
         end: end || undefined,
         members: self ? [self] : [],
         teams: trip
-          ? [{ name: teamA.trim() || "Team 1" }, { name: teamB.trim() || "Team 2" }]
+          ? [{ name: teamA.trim() || "North" }, { name: teamB.trim() || "South" }]
           : undefined,
       });
       setName("");
@@ -187,14 +187,14 @@ function CreateLeague({ onCreated, self }) {
               className={input}
               value={teamA}
               onChange={(e) => setTeamA(e.target.value)}
-              placeholder="Team 1 name"
+              placeholder="North"
               maxLength={30}
             />
             <input
               className={input}
               value={teamB}
               onChange={(e) => setTeamB(e.target.value)}
-              placeholder="Team 2 name"
+              placeholder="South"
               maxLength={30}
             />
           </div>
@@ -585,57 +585,107 @@ function TeamsCard({ league, rows, onRename }) {
   );
 }
 
-function FormCard({ league, rows }) {
-  const ranked = [...rows].sort((a, b) => {
+function FormRow({ row }) {
+  const t = trendLabel(row.form.delta);
+  return (
+    <div className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 min-w-0">
+      <Avatar golfer={row.member} size="sm" />
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-gray-900 truncate">
+          {row.member.first_name} {row.member.last_name}
+        </div>
+        <div className="text-[11px] text-gray-400 truncate">
+          {row.loading
+            ? "Loading rounds…"
+            : row.form.n > 0
+              ? `last ${row.form.n} · played ${row.form.lastDate}`
+              : "no rounds yet"}
+        </div>
+      </div>
+      <div className="text-right shrink-0">
+        <div className="text-base font-bold font-mono text-gray-900">
+          {row.form.recentAvg != null ? row.form.recentAvg.toFixed(1) : "—"}
+        </div>
+        <div className={`text-[11px] font-semibold ${t.cls}`}>
+          {t.arrow} {t.text}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function rankByForm(rows) {
+  return [...rows].sort((a, b) => {
     if (a.form.delta == null && b.form.delta == null) return 0;
     if (a.form.delta == null) return 1;
     if (b.form.delta == null) return -1;
-    return a.form.delta - b.form.delta; // most improved first (lower diff = better)
+    return a.form.delta - b.form.delta;
   });
+}
+
+function FormTeamCol({ team, name, rows }) {
+  const ranked = rankByForm(rows);
+  const s = TEAM_STYLES[team];
+  const agg = teamAgg(rows);
+  return (
+    <div className="flex-1 min-w-0">
+      <div
+        className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider mb-2 pb-2 border-b ${s.text} border-gray-100`}
+      >
+        <TeamDot team={team} />
+        <span className="truncate">{name}</span>
+        {agg.form != null && (
+          <span className="ml-auto font-mono normal-case tracking-normal text-gray-500 text-[11px]">
+            team {agg.form.toFixed(1)}
+          </span>
+        )}
+      </div>
+      {ranked.length === 0 ? (
+        <p className="text-xs text-gray-400 py-3">No golfers on this team yet.</p>
+      ) : (
+        ranked.map((row) => <FormRow key={row.member.ghin} row={row} />)
+      )}
+    </div>
+  );
+}
+
+function FormCard({ league, rows }) {
   const heading = league.start
     ? new Date() < new Date(league.start + "T00:00:00")
       ? "Form going into the trip"
       : "Form heading in"
     : "Current form";
+
+  const rowsA = rows.filter((r) => r.member.team === "a");
+  const rowsB = rows.filter((r) => r.member.team === "b");
+  const unassigned = rows.filter((r) => r.member.team !== "a" && r.member.team !== "b");
+
   return (
     <Card
       title={heading}
       right={<span className="text-xs text-gray-400">last 5 vs prior 10 diffs</span>}
     >
-      {ranked.map((row) => {
-        const t = trendLabel(row.form.delta);
-        return (
-          <div
-            key={row.member.ghin}
-            className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 min-w-0"
-          >
-            <Avatar golfer={row.member} size="sm" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900 truncate">
-                <span className="truncate">
-                  {row.member.first_name} {row.member.last_name}
-                </span>
-                <TeamDot team={row.member.team} />
-              </div>
-              <div className="text-[11px] text-gray-400 truncate">
-                {row.loading
-                  ? "Loading rounds…"
-                  : row.form.n > 0
-                    ? `last ${row.form.n} · played ${row.form.lastDate}`
-                    : "no rounds yet"}
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <div className="text-base font-bold font-mono text-gray-900">
-                {row.form.recentAvg != null ? row.form.recentAvg.toFixed(1) : "—"}
-              </div>
-              <div className={`text-[11px] font-semibold ${t.cls}`}>
-                {t.arrow} {t.text}
-              </div>
-            </div>
+      {league.teams ? (
+        <>
+          <div className="flex flex-col sm:flex-row gap-5 sm:gap-6">
+            <FormTeamCol team="a" name={league.teams.a.name} rows={rowsA} />
+            <div className="hidden sm:block w-px bg-gray-100 self-stretch shrink-0" />
+            <FormTeamCol team="b" name={league.teams.b.name} rows={rowsB} />
           </div>
-        );
-      })}
+          {unassigned.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              <div className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-2">
+                Not on a team
+              </div>
+              {rankByForm(unassigned).map((row) => (
+                <FormRow key={row.member.ghin} row={row} />
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        rankByForm(rows).map((row) => <FormRow key={row.member.ghin} row={row} />)
+      )}
       <p className="text-[11px] text-gray-400 mt-2">
         Avg handicap differential of the 5 most recent rounds
         {league.start ? " before the trip" : ""} — lower is better. The trend
@@ -815,8 +865,8 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
   const setTeams = (teams) => {
     const cur = leagueRef.current;
     const teamsObj = {
-      a: { name: String(teams[0]?.name || "Team 1").slice(0, 30) },
-      b: { name: String(teams[1]?.name || "Team 2").slice(0, 30) },
+      a: { name: String(teams[0]?.name || "North").slice(0, 30) },
+      b: { name: String(teams[1]?.name || "South").slice(0, 30) },
     };
     return mutate(
       { action: "update", id: cur.id, members: cur.members, teams },
@@ -825,9 +875,9 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
   };
 
   const renameTeams = () => {
-    const a = window.prompt("First team name:", league.teams?.a?.name || "Team 1");
+    const a = window.prompt("First team name:", league.teams?.a?.name || "North");
     if (a === null) return;
-    const b = window.prompt("Second team name:", league.teams?.b?.name || "Team 2");
+    const b = window.prompt("Second team name:", league.teams?.b?.name || "South");
     if (b === null) return;
     setTeams([{ name: a }, { name: b }]);
   };
@@ -873,7 +923,7 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
           {!league.teams && (
             <button
               type="button"
-              onClick={() => setTeams([{ name: "Team 1" }, { name: "Team 2" }])}
+              onClick={() => setTeams([{ name: "North" }, { name: "South" }])}
               className="shrink-0 text-xs font-semibold text-green-800 bg-green-50 border border-green-200 hover:bg-green-100 rounded-full px-3 py-1.5 cursor-pointer transition-colors"
             >
               + Make it a trip

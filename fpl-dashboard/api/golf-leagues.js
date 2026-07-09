@@ -38,7 +38,7 @@ function cleanTeams(v) {
   if (v === null) return null;
   if (!Array.isArray(v) || v.length !== 2) return undefined;
   const name = (t, i) =>
-    String(t?.name || "").trim().slice(0, 30) || `Team ${i + 1}`;
+    String(t?.name || "").trim().slice(0, 30) || (i === 0 ? "North" : "South");
   return { a: { name: name(v[0], 0) }, b: { name: name(v[1], 1) } };
 }
 
