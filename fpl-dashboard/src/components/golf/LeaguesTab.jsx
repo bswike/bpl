@@ -697,9 +697,20 @@ function FormCard({ league, rows }) {
 
 /* ---------- trip feed: everyone's rounds in the window, newest first ---------- */
 
+function roundMetaLine(r) {
+  const parts = [];
+  if (r.cr != null && r.slope != null) parts.push(`${r.cr} / ${r.slope}`);
+  else if (r.cr != null) parts.push(`${r.cr} rating`);
+  else if (r.slope != null) parts.push(`Slope ${r.slope}`);
+  if (r.yards) parts.push(`${r.yards.toLocaleString("en-US")} yds`);
+  if (r.diff != null) parts.push(`Diff ${r.diff.toFixed(1)}`);
+  return parts.join(" · ");
+}
+
 function TripRoundRow({ r }) {
   const [open, setOpen] = useState(false);
   const canExpand = !!r.hd;
+  const meta = roundMetaLine(r);
 
   return (
     <div className="border-b border-gray-50 last:border-0">
@@ -711,6 +722,9 @@ function TripRoundRow({ r }) {
             <span className="text-gray-500">at</span> {r.courseName}
           </div>
           <div className="text-[11px] text-gray-400">{r.date}</div>
+          {meta && (
+            <div className="text-[10px] text-gray-400 font-mono truncate">{meta}</div>
+          )}
         </div>
         <HolesBadge holes={r.holes} />
         <div className="text-base font-bold font-mono text-gray-900 w-10 text-right shrink-0">
