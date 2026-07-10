@@ -714,31 +714,36 @@ function TripRoundRow({ r }) {
 
   return (
     <div className="border-b border-gray-50 last:border-0">
-      <div className="flex items-center gap-3 py-2 min-w-0">
+      <div className="flex items-start gap-3 py-2 min-w-0">
         <Avatar golfer={r.member} size="sm" />
         <div className="min-w-0 flex-1">
-          <div className="text-sm text-gray-900 truncate">
-            <span className="font-semibold">{r.member.first_name}</span>{" "}
-            <span className="text-gray-500">at</span> {r.courseName}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="min-w-0 flex-1 text-sm text-gray-900 truncate">
+              <span className="font-semibold">{r.member.first_name}</span>{" "}
+              <span className="text-gray-500">at</span> {r.courseName}
+            </div>
+            <HolesBadge holes={r.holes} />
+            <div className="text-base font-bold font-mono text-gray-900 shrink-0">
+              {r.ags}
+            </div>
+            {canExpand && (
+              <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                aria-label={open ? "Hide scorecard" : "Show scorecard"}
+                className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer shrink-0 p-0 text-xs"
+              >
+                {open ? "▴" : "▾"}
+              </button>
+            )}
           </div>
           <div className="text-[11px] text-gray-400">{r.date}</div>
           {meta && (
-            <div className="text-[10px] text-gray-400 font-mono truncate">{meta}</div>
+            <div className="text-[10px] text-gray-400 font-mono leading-snug">
+              {meta}
+            </div>
           )}
         </div>
-        <HolesBadge holes={r.holes} />
-        <div className="text-base font-bold font-mono text-gray-900 w-10 text-right shrink-0">
-          {r.ags}
-        </div>
-        {canExpand && (
-          <button
-            type="button"
-            onClick={() => setOpen(!open)}
-            className="text-xs px-2 py-1 rounded-lg bg-transparent border-none cursor-pointer text-gray-400 hover:text-gray-600 shrink-0 whitespace-nowrap"
-          >
-            {open ? "Hide ▴" : "Scorecard ▾"}
-          </button>
-        )}
       </div>
       {open && r.hd && (
         <div className="pb-2 px-1 bg-gray-50/50">
