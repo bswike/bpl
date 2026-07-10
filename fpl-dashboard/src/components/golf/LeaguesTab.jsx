@@ -712,9 +712,37 @@ function TripRoundRow({ r }) {
   const canExpand = !!r.hd;
   const meta = roundMetaLine(r);
 
+  const toggle = () => {
+    if (canExpand) setOpen((v) => !v);
+  };
+
   return (
     <div className="border-b border-gray-50 last:border-0">
-      <div className="flex items-start gap-3 py-2 min-w-0">
+      <div
+        role={canExpand ? "button" : undefined}
+        tabIndex={canExpand ? 0 : undefined}
+        aria-expanded={canExpand ? open : undefined}
+        aria-label={
+          canExpand
+            ? open
+              ? `Hide ${r.member.first_name}'s scorecard`
+              : `Show ${r.member.first_name}'s scorecard`
+            : undefined
+        }
+        title={canExpand && !open ? "Tap for scorecard" : undefined}
+        onClick={toggle}
+        onKeyDown={(e) => {
+          if (canExpand && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            toggle();
+          }
+        }}
+        className={`flex items-start gap-3 py-2 min-w-0 -mx-1 px-1 rounded-lg transition-colors ${
+          canExpand
+            ? "cursor-pointer hover:bg-gray-50 active:bg-green-50/50"
+            : ""
+        }`}
+      >
         <Avatar golfer={r.member} size="sm" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
@@ -727,20 +755,23 @@ function TripRoundRow({ r }) {
               {r.ags}
             </div>
             {canExpand && (
-              <button
-                type="button"
-                onClick={() => setOpen(!open)}
-                aria-label={open ? "Hide scorecard" : "Show scorecard"}
-                className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 bg-transparent border-none cursor-pointer shrink-0 p-0 text-xs"
+              <span
+                aria-hidden
+                className={`w-5 h-5 flex items-center justify-center shrink-0 text-[11px] transition-colors ${
+                  open ? "text-gray-500" : "text-green-600"
+                }`}
               >
                 {open ? "▴" : "▾"}
-              </button>
+              </span>
             )}
           </div>
           <div className="text-[11px] text-gray-400">{r.date}</div>
           {meta && (
             <div className="text-[10px] text-gray-400 font-mono leading-snug">
               {meta}
+              {canExpand && !open && (
+                <span className="text-green-600/80"> · scorecard</span>
+              )}
             </div>
           )}
         </div>
