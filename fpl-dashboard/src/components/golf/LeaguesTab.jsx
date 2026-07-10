@@ -417,6 +417,7 @@ function memberStats(rounds, start, end) {
   const r18 = inRange.filter((r) => r.holes === 18);
   const full18 = r18.filter((r) => r.played === 18);
   const toPars = r18.map((r) => r.toPar).filter((v) => v != null);
+  const diffs = inRange.map((r) => r.diff).filter((v) => v != null);
   const birdies = inRange.reduce(
     (s, r) => s + (r.counts ? r.counts.birdie + r.counts.eagle : 0),
     0
@@ -426,6 +427,9 @@ function memberStats(rounds, start, end) {
     avgToPar: toPars.length
       ? toPars.reduce((a, b) => a + b, 0) / toPars.length
       : null,
+    avgDiff: diffs.length
+      ? diffs.reduce((a, b) => a + b, 0) / diffs.length
+      : null,
     best: full18.length ? full18.reduce((a, b) => (b.ags < a.ags ? b : a)) : null,
     birdies,
     latest: inRange[0] || null,
@@ -433,20 +437,46 @@ function memberStats(rounds, start, end) {
 }
 
 function Leaderboard({ league, rows }) {
-  const ranked = [...rows].sort((a, b) => {
-    if (a.stats.n === 0 && b.stats.n === 0) return 0;
-    if (a.stats.n === 0) return 1;
-    if (b.stats.n === 0) return -1;
-    if (a.stats.avgToPar == null) return 1;
-    if (b.stats.avgToPar == null) return -1;
-    return a.stats.avgToPar - b.stats.avgToPar;
-  });
+  const [metric, setMetric] = useState("toPar");
+  const ranked = useMemo(() => {
+    const val = (row) => (metric === "diff" ? row.stats.avgDiff : row.stats.avgToPar);
+    return [...rows].sort((a, b) => {
+      if (a.stats.n === 0 && b.stats.n === 0) return 0;
+      if (a.stats.n === 0) return 1;
+      if (b.stats.n === 0) return -1;
+      const va = val(a);
+      const vb = val(b);
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return va - vb;
+    });
+  }, [rows, metric]);
   const medal = ["bg-amber-100 text-amber-800 border-amber-300", "bg-gray-100 text-gray-600 border-gray-300", "bg-orange-100 text-orange-800 border-orange-200"];
 
   return (
     <Card
       title={`Leaderboard · ${fmtRange(league.start, league.end)}`}
-      right={<span className="text-xs text-gray-400">avg to par, 18s</span>}
+      right={
+        <div className="flex rounded-lg overflow-hidden border border-gray-200 text-[11px] font-semibold">
+          {[
+            ["toPar", "To par"],
+            ["diff", "Diff"],
+          ].map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setMetric(k)}
+              className={`px-2.5 py-1 border-none cursor-pointer transition-colors ${
+                metric === k
+                  ? "bg-green-700 text-white"
+                  : "bg-white text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      }
     >
       {ranked.map((row, i) => {
         const s = row.stats;
@@ -485,7 +515,16 @@ function Leaderboard({ league, rows }) {
             </div>
             <div className="text-right shrink-0">
               <div className="text-base font-bold font-mono text-gray-900">
-                {s.avgToPar != null ? fmtToPar(s.avgToPar, { decimals: 1 }) : "—"}
+                {metric === "diff"
+                  ? s.avgDiff != null
+                    ? s.avgDiff.toFixed(1)
+                    : "—"
+                  : s.avgToPar != null
+                    ? fmtToPar(s.avgToPar, { decimals: 1 })
+                    : "—"}
+              </div>
+              <div className="text-[10px] text-gray-400">
+                {metric === "diff" ? "avg diff" : "avg ±, 18s"}
               </div>
             </div>
           </div>
