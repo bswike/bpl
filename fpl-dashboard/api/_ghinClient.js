@@ -242,7 +242,84 @@ export async function hydrateRedactedScores(
 // `tee_yardage` onto every score, respecting nine-hole sides (F9/B9).
 // Best-effort: failures just mean that course keeps whatever the score had.
 // Course data barely changes, so keep a warm-instance cache across requests.
-const courseCache = new Map(); // courseId -> { courseName, facilityName, tees }
+const courseCache = new Map(); // courseId -> { courseName, facilityName, tees, teeSets }
+const teeSetCache = new Map(); // teeSetId -> { total, front, back } | null
+
+function teeYardsFromHoles(holes, totalYardage) {
+  const list = Array.isArray(holes) ? holes : [];
+  const sum = (from, to) =>
+    list
+      .filter((h) => h.Number >= from && h.Number <= to)
+      .reduce((acc, h) => acc + (h.Length || 0), 0);
+  return {
+    total: totalYardage || sum(1, 18) || null,
+    front: sum(1, 9) || null,
+    back: sum(10, 18) || null,
+  };
+}
+
+function yardsForSide(y, side) {
+  if (!y) return null;
+  const s = String(side || "")
+    .toUpperCase()
+    .replace(/\s+/g, "");
+  if (s === "F9" || s === "FRONT9") return y.front || y.total;
+  if (s === "B9" || s === "BACK9") return y.back || y.total;
+  return y.total;
+}
+
+function stampYardage(score, yards) {
+  const y = yardsForSide(yards, score.tee_set_side);
+  if (y) score.tee_yardage = y;
+}
+
+function indexTeeSet(tees, ts) {
+  const y = teeYardsFromHoles(ts.Holes, ts.TotalYardage);
+  tees[String(ts.TeeSetRatingId)] = y;
+  if (ts.LegacyCRPTeeId != null) tees[String(ts.LegacyCRPTeeId)] = y;
+}
+
+function matchTeeSet(teeSets, score) {
+  const teeId = score.tee_set_id != null ? String(score.tee_set_id) : null;
+  const teeName = String(score.tee_name || "")
+    .toUpperCase()
+    .trim();
+  const cr = score.course_rating != null ? Number(score.course_rating) : null;
+  const slope = score.slope_rating != null ? Number(score.slope_rating) : null;
+
+  for (const ts of teeSets) {
+    if (
+      teeId &&
+      (String(ts.TeeSetRatingId) === teeId ||
+        String(ts.LegacyCRPTeeId) === teeId)
+    ) {
+      return teeYardsFromHoles(ts.Holes, ts.TotalYardage);
+    }
+  }
+  if (teeName) {
+    for (const ts of teeSets) {
+      const name = String(ts.TeeSetRatingName || "").toUpperCase();
+      if (name === teeName || name.includes(teeName) || teeName.includes(name)) {
+        return teeYardsFromHoles(ts.Holes, ts.TotalYardage);
+      }
+    }
+  }
+  if (cr != null && slope != null) {
+    for (const ts of teeSets) {
+      const ratings = Array.isArray(ts.Ratings) ? ts.Ratings : [];
+      if (
+        ratings.some(
+          (r) =>
+            Math.abs(Number(r.CourseRating) - cr) < 0.15 &&
+            Number(r.SlopeRating) === slope
+        )
+      ) {
+        return teeYardsFromHoles(ts.Holes, ts.TotalYardage);
+      }
+    }
+  }
+  return null;
+}
 
 async function fetchCourseDetails(token, courseId) {
   const params = new URLSearchParams({ course_id: courseId, source: SOURCE });
@@ -252,24 +329,40 @@ async function fetchCourseDetails(token, courseId) {
   );
   if (!res.ok) return null;
   const data = await res.json();
-  const tees = {}; // teeSetId -> { total, front, back }
-  for (const ts of data?.TeeSets || []) {
-    const holes = Array.isArray(ts.Holes) ? ts.Holes : [];
-    const sum = (from, to) =>
-      holes
-        .filter((h) => h.Number >= from && h.Number <= to)
-        .reduce((acc, h) => acc + (h.Length || 0), 0);
-    tees[String(ts.TeeSetRatingId)] = {
-      total: ts.TotalYardage || sum(1, 18) || null,
-      front: sum(1, 9) || null,
-      back: sum(10, 18) || null,
-    };
-  }
+  const tees = {};
+  const teeSets = Array.isArray(data?.TeeSets) ? data.TeeSets : [];
+  for (const ts of teeSets) indexTeeSet(tees, ts);
   return {
     courseName: data?.CourseName || null,
     facilityName: data?.Facility?.FacilityName || null,
     tees,
+    teeSets,
   };
+}
+
+async function fetchTeeSetYardage(token, teeSetId) {
+  const key = String(teeSetId);
+  if (teeSetCache.has(key)) return teeSetCache.get(key);
+  const params = new URLSearchParams({
+    source: SOURCE,
+    include_altered_tees: "true",
+  });
+  try {
+    const res = await fetch(`${API_BASE}/TeeSetRatings/${key}.json?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      teeSetCache.set(key, null);
+      return null;
+    }
+    const data = await res.json();
+    const y = teeYardsFromHoles(data?.Holes, data?.TotalYardage);
+    teeSetCache.set(key, y);
+    return y;
+  } catch {
+    teeSetCache.set(key, null);
+    return null;
+  }
 }
 
 export async function attachCourseData(token, scores, { maxCourses = 100 } = {}) {
@@ -292,22 +385,39 @@ export async function attachCourseData(token, scores, { maxCourses = 100 } = {})
       }
     })
   );
+
+  const needDirect = [];
   for (const s of scores) {
     const info = courseCache.get(String(s.course_id));
-    if (!info) continue;
-    if (!s.course_name && info.courseName) s.course_name = info.courseName;
-    if (!s.facility_name && info.facilityName)
-      s.facility_name = info.facilityName;
-    const y = info.tees[String(s.tee_set_id)];
-    if (!y) continue;
-    const yards =
-      s.tee_set_side === "F9"
-        ? y.front
-        : s.tee_set_side === "B9"
-          ? y.back
-          : y.total;
-    if (yards) s.tee_yardage = yards;
+    if (info) {
+      if (!s.course_name && info.courseName) s.course_name = info.courseName;
+      if (!s.facility_name && info.facilityName)
+        s.facility_name = info.facilityName;
+      const byId = info.tees[String(s.tee_set_id)];
+      const yards = byId || matchTeeSet(info.teeSets, s);
+      if (yards) stampYardage(s, yards);
+    }
+    if (!s.tee_yardage && s.tee_set_id != null) needDirect.push(s);
   }
+
+  const teeIds = [
+    ...new Set(needDirect.map((s) => String(s.tee_set_id))),
+  ].slice(0, 120);
+  let j = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(6, teeIds.length) }, async () => {
+      while (j < teeIds.length) {
+        const teeSetId = teeIds[j++];
+        const yards = await fetchTeeSetYardage(token, teeSetId);
+        if (!yards) continue;
+        for (const s of needDirect) {
+          if (String(s.tee_set_id) === teeSetId && !s.tee_yardage) {
+            stampYardage(s, yards);
+          }
+        }
+      }
+    })
+  );
 }
 
 /** Full login + fetch. Returns the shape /api/ghin and the cron both need. */
