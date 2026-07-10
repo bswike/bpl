@@ -51,6 +51,33 @@ export function fmtToPar(n, { decimals = 0 } = {}) {
   return (v > 0 ? "+" : "−") + str;
 }
 
+/** Bounds for GHIN dates — full YYYY-MM-DD, or redacted YYYY-MM / YYYY. */
+function dateBounds(date) {
+  const d = String(date || "");
+  if (/^\d{4}-\d{2}-\d{2}/.test(d)) return { lo: d.slice(0, 10), hi: d.slice(0, 10) };
+  if (/^\d{4}-\d{2}$/.test(d)) return { lo: `${d}-01`, hi: `${d}-31` };
+  if (/^\d{4}$/.test(d)) return { lo: `${d}-01-01`, hi: `${d}-12-31` };
+  return { lo: d, hi: d };
+}
+
+/** True when a round date overlaps [start, end] (inclusive). */
+export function inDateRange(date, start, end) {
+  if (!start && !end) return true;
+  const { lo, hi } = dateBounds(date);
+  if (!lo) return false;
+  if (start && hi < start) return false;
+  if (end && lo > end) return false;
+  return true;
+}
+
+/** True when a round is strictly before a pivot date (for pre-trip form). */
+export function beforeDate(date, pivot) {
+  if (!pivot) return true;
+  const { hi } = dateBounds(date);
+  if (!hi) return false;
+  return hi < pivot;
+}
+
 /* ---------- course name normalization ---------- */
 
 // Par sequences used to identify rounds posted without a course name.
@@ -217,7 +244,9 @@ export function buildModel(json) {
         Array.isArray(s.hole_details) && s.hole_details.length
           ? [...s.hole_details].sort((a, b) => a.hole_number - b.hole_number)
           : null;
-      const holes = s.number_of_holes === 9 || s.number_of_played_holes === 9 ? 9 : 18;
+      const nHoles = Number(s.number_of_holes);
+      const nPlayed = Number(s.number_of_played_holes);
+      const holes = nHoles === 9 || nPlayed === 9 ? 9 : 18;
       const par = hd ? hd.reduce((sum, h) => sum + (h.par || 0), 0) : null;
       const toPar =
         parseToPar(s.to_par_display_value) ??

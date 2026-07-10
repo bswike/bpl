@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buildModel, fmtToPar } from "./data";
+import { buildModel, fmtToPar, inDateRange, beforeDate } from "./data";
 import { Avatar, Card, HolesBadge, Scorecard } from "./ui";
 
 /** Private mini-leagues (golf trips). v1: owner-only — you create leagues,
@@ -45,7 +45,7 @@ function TeamDot({ team }) {
  *  before the start date vs the 10 before those. Differentials normalize
  *  9- vs 18-hole rounds, so everyone compares fairly. Lower = better. */
 function formStats(rounds, start) {
-  const before = start ? rounds.filter((r) => r.date < start) : rounds;
+  const before = start ? rounds.filter((r) => beforeDate(r.date, start)) : rounds;
   const diffs = before.map((r) => r.diff).filter((d) => d != null); // newest first
   const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
   const recentAvg = avg(diffs.slice(0, 5));
@@ -413,9 +413,7 @@ function MembersCard({
 /* ---------- leaderboard ---------- */
 
 function memberStats(rounds, start, end) {
-  const inRange = rounds.filter(
-    (r) => (!start || r.date >= start) && (!end || r.date <= end)
-  );
+  const inRange = rounds.filter((r) => inDateRange(r.date, start, end));
   const r18 = inRange.filter((r) => r.holes === 18);
   const full18 = r18.filter((r) => r.played === 18);
   const toPars = r18.map((r) => r.toPar).filter((v) => v != null);
@@ -790,12 +788,11 @@ function TripFeed({ league, rows }) {
     const all = [];
     for (const row of rows) {
       for (const r of row.rounds || []) {
-        if (league.start && r.date < league.start) continue;
-        if (league.end && r.date > league.end) continue;
+        if (!inDateRange(r.date, league.start, league.end)) continue;
         all.push({ ...r, member: row.member });
       }
     }
-    return all.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 40);
+    return all.sort((a, b) => b.date.localeCompare(a.date));
   }, [league, rows]);
 
   if (!rounds.length) return null;

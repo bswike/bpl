@@ -90,7 +90,7 @@ export default async function handler(req, res) {
     // ids, truncated dates). Re-fetch those rounds individually — the
     // single-score endpoint returns them in full — then backfill any still
     // missing names (and tee yardage) from the course records.
-    await hydrateRedactedScores(token, s.scores, { max: 200 });
+    await hydrateRedactedScores(token, s.scores, { max: 400 });
     await attachCourseData(token, s.scores);
     const gi = g.golfer;
     const payload = slimExport({

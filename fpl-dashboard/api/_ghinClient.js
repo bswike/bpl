@@ -195,13 +195,19 @@ async function fetchAllScores(token, golferId) {
 
 // GHIN redacts bulk score history for golfers outside your own club: rows
 // arrive with no course name/id and truncated played_at dates ("2026-07").
-// The single-score endpoint returns those same rounds in full, so hydrate
-// redacted rows one by one (newest first, bounded). Best-effort.
+// Some rows keep a display name but still have a truncated date. The
+// single-score endpoint returns those same rounds in full, so hydrate
+// them one by one (newest first, bounded). Best-effort.
 const isRedacted = (s) =>
   !s.course_name &&
   !s.facility_name &&
   !s.course_display_value &&
   !s.ghin_course_name_display;
+
+const hasTruncatedDate = (s) => {
+  const d = String(s?.played_at || "");
+  return d.length > 0 && d.length < 10;
+};
 
 export async function hydrateRedactedScores(
   token,
@@ -209,7 +215,7 @@ export async function hydrateRedactedScores(
   { max = 300, concurrency = 8 } = {}
 ) {
   const targets = scores
-    .filter((s) => s && s.id != null && isRedacted(s))
+    .filter((s) => s && s.id != null && (isRedacted(s) || hasTruncatedDate(s)))
     .slice(0, max);
   let i = 0;
   await Promise.all(
