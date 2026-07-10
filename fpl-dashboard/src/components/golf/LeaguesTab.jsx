@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildModel, fmtToPar } from "./data";
-import { Avatar, Card, HolesBadge } from "./ui";
+import { Avatar, Card, HolesBadge, Scorecard } from "./ui";
 
 /** Private mini-leagues (golf trips). v1: owner-only — you create leagues,
  *  add friends found via GHIN search, and see a leaderboard built from
@@ -697,6 +697,44 @@ function FormCard({ league, rows }) {
 
 /* ---------- trip feed: everyone's rounds in the window, newest first ---------- */
 
+function TripRoundRow({ r }) {
+  const [open, setOpen] = useState(false);
+  const canExpand = !!r.hd;
+
+  return (
+    <div className="border-b border-gray-50 last:border-0">
+      <div className="flex items-center gap-3 py-2 min-w-0">
+        <Avatar golfer={r.member} size="sm" />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm text-gray-900 truncate">
+            <span className="font-semibold">{r.member.first_name}</span>{" "}
+            <span className="text-gray-500">at</span> {r.courseName}
+          </div>
+          <div className="text-[11px] text-gray-400">{r.date}</div>
+        </div>
+        <HolesBadge holes={r.holes} />
+        <div className="text-base font-bold font-mono text-gray-900 w-10 text-right shrink-0">
+          {r.ags}
+        </div>
+        {canExpand && (
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className="text-xs px-2 py-1 rounded-lg bg-transparent border-none cursor-pointer text-gray-400 hover:text-gray-600 shrink-0 whitespace-nowrap"
+          >
+            {open ? "Hide ▴" : "Scorecard ▾"}
+          </button>
+        )}
+      </div>
+      {open && r.hd && (
+        <div className="pb-2 px-1 bg-gray-50/50">
+          <Scorecard round={r} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TripFeed({ league, rows }) {
   const rounds = useMemo(() => {
     const all = [];
@@ -715,23 +753,7 @@ function TripFeed({ league, rows }) {
   return (
     <Card title="Rounds">
       {rounds.map((r) => (
-        <div
-          key={`${r.member.ghin}-${r.id}`}
-          className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 min-w-0"
-        >
-          <Avatar golfer={r.member} size="sm" />
-          <div className="min-w-0 flex-1">
-            <div className="text-sm text-gray-900 truncate">
-              <span className="font-semibold">{r.member.first_name}</span>{" "}
-              <span className="text-gray-500">at</span> {r.courseName}
-            </div>
-            <div className="text-[11px] text-gray-400">{r.date}</div>
-          </div>
-          <HolesBadge holes={r.holes} />
-          <div className="text-base font-bold font-mono text-gray-900 w-10 text-right shrink-0">
-            {r.ags}
-          </div>
-        </div>
+        <TripRoundRow key={`${r.member.ghin}-${r.id}`} r={r} />
       ))}
     </Card>
   );
