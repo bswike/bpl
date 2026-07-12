@@ -124,10 +124,11 @@ function FeedCard({ round: r, badges, onProfile, givers, gave, onKudos }) {
               accent={birdies > 0 ? "text-[#d63c2e]" : undefined}
             />
             <Stat label="Pars" value={r.counts.par} accent="text-green-600" />
+            <Stat label="Bogeys" value={r.counts.bogey} accent="text-blue-500" />
             <Stat
-              label="Bogey+"
-              value={r.counts.bogey + r.counts.double + r.counts.triple}
-              accent="text-blue-500"
+              label="Double bogey+"
+              value={r.counts.double + r.counts.triple}
+              accent="text-purple-500"
             />
           </>
         )}
