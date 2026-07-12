@@ -194,6 +194,19 @@ export function Scorecard({ round }) {
                   ))}
                   <td className="text-center font-semibold">{parSum || "—"}</td>
                 </tr>
+                {holes.some((h) => h.stroke_allocation) && (
+                  <tr className="text-gray-400">
+                    <td className="pr-3 py-0.5 text-[10px] uppercase tracking-wide font-sans">
+                      Hcp
+                    </td>
+                    {holes.map((h) => (
+                      <td key={h.hole_number} className="text-center py-0.5">
+                        {h.stroke_allocation || "—"}
+                      </td>
+                    ))}
+                    <td />
+                  </tr>
+                )}
                 <tr>
                   <td className="pr-3 py-1 text-[10px] uppercase tracking-wide font-sans text-gray-500">
                     Score
