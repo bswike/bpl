@@ -9,8 +9,8 @@ import { loadSession, refreshSession, deleteSession, upsertDays } from "./_round
 export const maxDuration = 60;
 
 const COOKIE = "rounds_sid";
-const MAX_SPAN = 14; // days per request — the client chunks longer ranges
-const TIME_BUDGET_MS = 55_000;
+const MAX_SPAN = 10; // days attempted per request; the client resumes via nextFrom
+const TIME_BUDGET_MS = 50_000;
 
 const isISO = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d);
 function addDays(iso, n) {
@@ -72,9 +72,10 @@ export default async function handler(req, res) {
   // Persist any refreshed cookies so the session stays alive across chunks.
   try { await refreshSession(sid, scraper.cookieHeader()); } catch { /* non-fatal */ }
 
-  return res.status(200).json({
-    scraped,
-    errors,
-    nextFrom: scraped.length && to > days[days.length - 1] ? addDays(days[days.length - 1], 1) : null,
-  });
+  // Resume point for the client: the day after the last one we actually
+  // finished. If the time budget (or MAX_SPAN cap) cut this chunk short, the
+  // unfinished days come back on the next call so none are silently skipped.
+  const lastDone = scraped.length ? scraped[scraped.length - 1] : null;
+  const nextFrom = lastDone && lastDone < to ? addDays(lastDone, 1) : null;
+  return res.status(200).json({ scraped, errors, nextFrom });
 }

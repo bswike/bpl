@@ -13,21 +13,8 @@ const fmtDay = (iso) => {
 };
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const yearStart = () => `${todayISO().slice(0, 4)}-01-01`;
-function addDays(iso, n) {
-  const d = new Date(iso + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-// Split [from,to] into <=span-day chunks the scan endpoint can handle per call.
-function chunkRange(from, to, span = 14) {
-  const out = [];
-  let start = from;
-  while (start <= to) {
-    const end = addDays(start, span - 1);
-    out.push([start, end > to ? to : end]);
-    start = addDays(end, 1);
-  }
-  return out;
+function daysInclusive(from, to) {
+  return Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1;
 }
 
 export default function Rounds() {
@@ -154,23 +141,35 @@ function RefreshPanel({ cov, onDone }) {
       if (!login.ok) throw new Error(lj.error || "Login failed");
       setPassword(""); // don't keep it around after the handshake
 
-      const chunks = chunkRange(since, todayISO(), 14);
-      setProgress({ done: 0, total: chunks.length });
-      for (let i = 0; i < chunks.length; i++) {
-        const [f, t] = chunks[i];
+      // The server scrapes up to ~10 days per request and tells us where it
+      // stopped (nextFrom); we keep going from exactly there so no day is
+      // skipped, even when a request runs out of time mid-chunk.
+      const target = todayISO();
+      const totalDays = daysInclusive(since, target);
+      setProgress({ done: 0, total: totalDays });
+      let cursor = since;
+      let doneDays = 0;
+      let guard = 0;
+      while (cursor && cursor <= target) {
+        if (++guard > 500) throw new Error("Refresh didn't finish — try again.");
         const r = await fetch("/api/rounds-scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from: f, to: t }),
+          body: JSON.stringify({ from: cursor, to: target }),
         });
         if (r.status === 401) throw new Error("Your Suntree session expired — log in and try again.");
         if (!r.ok) {
           const j = await r.json().catch(() => ({}));
-          throw new Error(j.error || `Refresh failed on ${f}`);
+          throw new Error(j.error || `Refresh failed near ${cursor}`);
         }
-        setProgress({ done: i + 1, total: chunks.length });
+        const j = await r.json();
+        doneDays += j.scraped?.length || 0;
+        setProgress({ done: Math.min(doneDays, totalDays), total: totalDays });
+        const prev = cursor;
+        cursor = j.nextFrom;
+        if (cursor && cursor <= prev) break; // no forward progress — stop rather than loop
       }
-      setMsg(`Updated ${fmtDay(since)} – ${fmtDay(todayISO())}.`);
+      setMsg(`Updated ${fmtDay(since)} – ${fmtDay(target)}.`);
       onDone?.();
     } catch (e2) {
       setErr(e2.message);
@@ -220,7 +219,7 @@ function RefreshPanel({ cov, onDone }) {
               <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                 <div className="h-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
               </div>
-              <div className="text-xs text-slate-400 mt-1">Scraping tee sheets… {progress.done}/{progress.total}</div>
+              <div className="text-xs text-slate-400 mt-1">Scraping tee sheets… {progress.done}/{progress.total} days</div>
             </div>
           )}
           {msg && <div className="text-xs text-emerald-300">{msg}</div>}
