@@ -57,25 +57,36 @@ export default async function handler(req, res) {
   const started = Date.now();
   const dayMap = {};
   const scraped = [];
-  const errors = [];
-  for (const day of days) {
+  let failed = null;
+  for (let i = 0; i < days.length; i++) {
+    const day = days[i];
     if (Date.now() - started > TIME_BUDGET_MS) break;
     try {
       dayMap[day] = await scraper.scrapeDay(day);
       scraped.push(day);
     } catch (err) {
-      errors.push({ day, error: err.message });
+      // Stop at the FIRST failure so `scraped` stays a contiguous run from
+      // `from`. That way nextFrom points exactly at the failed day and it gets
+      // retried, instead of the whole failing block being leapt over.
+      failed = { day, error: err.message };
+      break;
     }
+    // Space out requests a little — hammering Suntree back-to-back gets a burst
+    // of days throttled, which is what caused whole stretches to drop out.
+    if (i < days.length - 1) await new Promise((r) => setTimeout(r, 300));
   }
 
   if (scraped.length) await upsertDays(dayMap);
   // Persist any refreshed cookies so the session stays alive across chunks.
   try { await refreshSession(sid, scraper.cookieHeader()); } catch { /* non-fatal */ }
 
-  // Resume point for the client: the day after the last one we actually
-  // finished. If the time budget (or MAX_SPAN cap) cut this chunk short, the
-  // unfinished days come back on the next call so none are silently skipped.
-  const lastDone = scraped.length ? scraped[scraped.length - 1] : null;
-  const nextFrom = lastDone && lastDone < to ? addDays(lastDone, 1) : null;
-  return res.status(200).json({ scraped, errors, nextFrom });
+  // Resume point for the client. `scraped` is a contiguous run from `from`, so:
+  // - a failure  -> resume AT the failed day (retry it)
+  // - budget/cap -> resume after the last finished day
+  // - reached to -> null (done)
+  let nextFrom;
+  if (failed) nextFrom = failed.day;
+  else if (scraped.length && scraped[scraped.length - 1] < to) nextFrom = addDays(scraped[scraped.length - 1], 1);
+  else nextFrom = null;
+  return res.status(200).json({ scraped, failed, nextFrom });
 }
