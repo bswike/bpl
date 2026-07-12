@@ -9,6 +9,8 @@ import {
   Search,
   Crosshair,
   Trophy,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { buildModel, slimExportForStorage } from "./golf/data";
 import { Avatar } from "./golf/ui";
@@ -638,6 +640,21 @@ function GolferSearch({ peers, onSelect, canLookup, onLookup, onSearch }) {
   );
 }
 
+// Dark-mode toggle. Styled to sit on the dark-green header alongside Settings.
+function ThemeToggle({ dark, onToggle }) {
+  return (
+    <button
+      type="button"
+      title={dark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      onClick={onToggle}
+      className="w-9 h-9 rounded-full flex items-center justify-center border cursor-pointer transition-colors bg-transparent border-white/25 text-green-50 hover:border-white/60 hover:bg-white/5"
+    >
+      {dark ? <Sun size={16} /> : <Moon size={16} />}
+    </button>
+  );
+}
+
 function SettingsMenu({
   onDownload,
   onReset,
@@ -761,6 +778,12 @@ function SettingsMenu({
 
 export default function GolfApp() {
   const [data, setData] = useState(loadSaved);
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem("golf-theme") === "dark"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("golf-theme", darkMode ? "dark" : "light"); } catch { /* quota */ }
+  }, [darkMode]);
   const [tab, setTab] = useState("home");
   const [year, setYear] = useState("all");
   const [holesFilter, setHolesFilter] = useState("all");
@@ -1211,7 +1234,7 @@ export default function GolfApp() {
     const showGuestFeed =
       !showLanding && publicFeed !== null && publicFeed.length > 0;
     return (
-      <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col">
+      <main className={`min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col ${darkMode ? "golf-dark" : ""}`}>
         <header className="relative bg-gradient-to-br from-[#0a2417] via-[#123a26] to-[#1d5133] text-white shrink-0 w-full min-w-0">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 min-w-0 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4 min-w-0">
@@ -1232,15 +1255,18 @@ export default function GolfApp() {
                 </p>
               </div>
             </div>
-            {showGuestFeed && (
-              <button
-                type="button"
-                onClick={() => setShowLanding(true)}
-                className="text-[11px] uppercase tracking-wider bg-transparent border border-white/25 hover:border-white/60 hover:bg-white/5 px-4 py-1.5 rounded-full transition-colors cursor-pointer text-green-50"
-              >
-                Sign in
-              </button>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              <ThemeToggle dark={darkMode} onToggle={() => setDarkMode((v) => !v)} />
+              {showGuestFeed && (
+                <button
+                  type="button"
+                  onClick={() => setShowLanding(true)}
+                  className="text-[11px] uppercase tracking-wider bg-transparent border border-white/25 hover:border-white/60 hover:bg-white/5 px-4 py-1.5 rounded-full transition-colors cursor-pointer text-green-50"
+                >
+                  Sign in
+                </button>
+              )}
+            </div>
           </div>
           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#d4af37]/60 to-transparent" />
         </header>
@@ -1297,7 +1323,7 @@ export default function GolfApp() {
     : BOTTOM_NAV;
 
   return (
-    <main className="min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col">
+    <main className={`min-h-screen w-full min-w-0 overflow-x-hidden bg-[#f8faf8] text-gray-900 flex flex-col ${darkMode ? "golf-dark" : ""}`}>
       <header className="relative bg-gradient-to-br from-[#0a2417] via-[#123a26] to-[#1d5133] text-white shrink-0 w-full min-w-0">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-7 pb-6 sm:pb-0 min-w-0">
           <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 min-w-0">
@@ -1328,7 +1354,7 @@ export default function GolfApp() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4 shrink-0 pb-0.5 pr-12">
+            <div className="flex items-center gap-4 shrink-0 pb-0.5 pr-24">
               {g.handicap_index != null && (
                 <div className="text-right">
                   <div className="font-serif text-3xl sm:text-4xl leading-none text-[#e8d48a]">
@@ -1340,7 +1366,8 @@ export default function GolfApp() {
                 </div>
               )}
             </div>
-            <div className="absolute top-5 right-4 sm:right-6">
+            <div className="absolute top-5 right-4 sm:right-6 flex items-center gap-2">
+              <ThemeToggle dark={darkMode} onToggle={() => setDarkMode((v) => !v)} />
               <SettingsMenu
                 onDownload={handleDownload}
                 onReset={reset}
