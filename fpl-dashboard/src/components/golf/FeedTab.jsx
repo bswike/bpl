@@ -126,7 +126,7 @@ function FeedCard({ round: r, badges, onProfile, givers, gave, onKudos }) {
             <Stat label="Pars" value={r.counts.par} accent="text-green-600" />
             <Stat label="Bogeys" value={r.counts.bogey} accent="text-blue-500" />
             <Stat
-              label="Double bogey+"
+              label="Double+"
               value={r.counts.double + r.counts.triple}
               accent="text-purple-500"
             />

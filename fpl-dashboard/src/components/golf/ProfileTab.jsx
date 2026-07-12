@@ -53,7 +53,7 @@ function TrophyRoundDetail({ round: r }) {
               Bogeys <b>{r.counts.bogey}</b>
             </span>
             <span className="text-purple-600">
-              Double bogey+ <b>{r.counts.double + r.counts.triple}</b>
+              Double+ <b>{r.counts.double + r.counts.triple}</b>
             </span>
           </>
         )}
