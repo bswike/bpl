@@ -7,6 +7,7 @@ import GolfApp from './components/GolfApp.jsx';
 import MastersCalcutta from './components/MastersCalcutta.jsx';
 import Footie from './components/Footie.jsx';
 import Draft from './components/Draft.jsx';
+import Rounds from './components/Rounds.jsx';
 import { Analytics } from '@vercel/analytics/react';
 import './index.css';
 
@@ -21,6 +22,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/golf" element={<GolfApp />} />
         <Route path="/draft" element={<Draft />} />
         <Route path="/masters" element={<MastersCalcutta />} />
+        <Route path="/rounds" element={<Rounds />} />
       </Routes>
     </BrowserRouter>
     <Analytics />
