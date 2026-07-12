@@ -158,18 +158,32 @@ function RefreshPanel({ cov, onDone }) {
       let stuck = 0;
       let skipped = 0;
       while (cursor && cursor <= target) {
-        if (++guard > 900) throw new Error("Refresh didn't finish — try again.");
-        const r = await fetch("/api/rounds-scan", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from: cursor, to: target }),
-        });
-        if (r.status === 401) throw new Error("Your Suntree session expired — log in and try again.");
-        if (!r.ok) {
-          const j = await r.json().catch(() => ({}));
-          throw new Error(j.error || `Refresh failed near ${cursor}`);
+        if (++guard > 1200) throw new Error("Refresh didn't finish — try again.");
+
+        let j;
+        try {
+          const r = await fetch("/api/rounds-scan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ from: cursor, to: target }),
+          });
+          if (r.status === 401) throw new Error("__session__");
+          if (!r.ok) throw new Error(`__http_${r.status}__`);
+          j = await r.json();
+        } catch (reqErr) {
+          // Only a genuine session expiry should stop the whole run.
+          if (reqErr.message === "__session__") {
+            throw new Error("Your Suntree session expired — log in and try again.");
+          }
+          // A dropped connection ("Failed to fetch") or a 5xx is transient over
+          // a long run — and any days the server finished before the hiccup are
+          // already cached. Pause and retry the same point a few times, then
+          // skip past it, so one blip can't abort a refresh that's working.
+          if (++stuck >= 6) { cursor = addDays(cursor, 1); stuck = 0; skipped++; continue; }
+          await new Promise((res2) => setTimeout(res2, 1500));
+          continue;
         }
-        const j = await r.json();
+
         doneDays += j.scraped?.length || 0;
         setProgress({ done: Math.min(doneDays, totalDays), total: totalDays });
 
@@ -177,8 +191,8 @@ function RefreshPanel({ cov, onDone }) {
         const next = j.nextFrom;
         if (!next) { cursor = null; break; }        // reached the end
         if (next > prev) { cursor = next; stuck = 0; continue; } // made progress
-        // No forward progress: this day keeps failing (usually transient
-        // throttling). Pause and retry a few times, then skip it so one bad
+        // No forward progress: a day keeps failing server-side (usually
+        // transient throttling). Retry a few times, then skip it so one bad
         // day can't stall the whole refresh.
         if (++stuck >= 4) { cursor = addDays(prev, 1); stuck = 0; skipped++; }
         else await new Promise((res2) => setTimeout(res2, 1200));
