@@ -51,3 +51,82 @@ html, body {
 .live-dot {
   animation: live-pulse 1.5s ease-in-out infinite;
 }
+
+/* ============================ /golf dark mode ============================ */
+/* The golf dashboard is authored entirely in light Tailwind utilities. Rather
+   than add dark: variants to ~600 call sites, we scope a palette remap under
+   .golf-dark (applied to the page <main>) that maps its neutral/accent classes
+   onto the slate + emerald tokens used across the rest of swikle.com. Kept in
+   one place so the theme stays consistent and is easy to tune. */
+.golf-dark {
+  background-color: #0f172a !important; /* slate-900 page */
+  color: #f1f5f9 !important;            /* slate-100 text */
+  color-scheme: dark;
+}
+.golf-dark select { color-scheme: dark; }
+
+/* surfaces */
+.golf-dark .bg-white { background-color: #1e293b !important; }   /* card */
+.golf-dark .bg-gray-50 { background-color: #172032 !important; } /* sunken */
+.golf-dark .bg-gray-100 { background-color: #334155 !important; }/* bars/tracks */
+.golf-dark .bg-gray-200 { background-color: #334155 !important; }/* skeletons */
+.golf-dark .bg-gray-50\/50,
+.golf-dark .bg-gray-50\/60,
+.golf-dark .bg-gray-50\/80 { background-color: rgba(51, 65, 85, 0.45) !important; }
+.golf-dark .hover\:bg-gray-50:hover,
+.golf-dark .hover\:bg-white:hover { background-color: #24324a !important; }
+
+/* borders */
+.golf-dark .border-gray-200 { border-color: #334155 !important; }
+.golf-dark .border-gray-100 { border-color: #26344b !important; }
+.golf-dark .border-gray-50 { border-color: #1e293b !important; }
+.golf-dark .border-gray-300 { border-color: #475569 !important; }
+.golf-dark .border-white { border-color: #334155 !important; }
+.golf-dark .hover\:border-gray-300:hover { border-color: #64748b !important; }
+
+/* neutral text */
+.golf-dark .text-gray-900 { color: #f1f5f9 !important; }
+.golf-dark .text-gray-800 { color: #e2e8f0 !important; }
+.golf-dark .text-gray-700 { color: #cbd5e1 !important; }
+.golf-dark .text-gray-600 { color: #94a3b8 !important; }
+.golf-dark .text-gray-500 { color: #94a3b8 !important; }
+.golf-dark .text-gray-400 { color: #64748b !important; }
+.golf-dark .text-gray-300 { color: #475569 !important; }
+.golf-dark .hover\:text-gray-700:hover { color: #e2e8f0 !important; }
+.golf-dark .hover\:text-gray-600:hover { color: #cbd5e1 !important; }
+
+/* green accents that would disappear on dark -> emerald (keep text-green-50/100,
+   which are light greens sitting on the dark green header) */
+.golf-dark .text-green-900 { color: #6ee7b7 !important; }
+.golf-dark .text-green-800 { color: #34d399 !important; }
+.golf-dark .text-green-700 { color: #34d399 !important; }
+.golf-dark .text-green-600 { color: #34d399 !important; }
+.golf-dark .bg-green-50 { background-color: rgba(52, 211, 153, 0.12) !important; }
+.golf-dark .bg-green-100 { background-color: rgba(52, 211, 153, 0.16) !important; }
+
+/* red / amber / blue accents -> brightened for dark */
+.golf-dark .text-red-700,
+.golf-dark .text-red-600,
+.golf-dark .text-red-500 { color: #f87171 !important; }
+.golf-dark .bg-red-50 { background-color: rgba(248, 113, 113, 0.12) !important; }
+.golf-dark .text-amber-800,
+.golf-dark .text-amber-700,
+.golf-dark .text-amber-600 { color: #fbbf24 !important; }
+.golf-dark .bg-amber-50,
+.golf-dark .bg-amber-100 { background-color: rgba(251, 191, 36, 0.13) !important; }
+.golf-dark .border-amber-200 { border-color: rgba(251, 191, 36, 0.30) !important; }
+.golf-dark .text-blue-700,
+.golf-dark .text-blue-500 { color: #60a5fa !important; }
+.golf-dark .bg-blue-50 { background-color: rgba(96, 165, 250, 0.13) !important; }
+
+/* placeholders + softened shadows (drop-shadows read as bright halos on dark) */
+.golf-dark input::placeholder,
+.golf-dark textarea::placeholder { color: #64748b; }
+.golf-dark .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.4) !important; }
+.golf-dark .shadow-lg { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important; }
+
+/* charts: SVG presentation-attribute colors (author CSS overrides the attrs) */
+.golf-dark svg [stroke="#e5e7eb"] { stroke: #334155 !important; } /* gridlines */
+.golf-dark svg [stroke="#d1d5db"] { stroke: #3b4a63 !important; } /* axes */
+.golf-dark svg [stroke="#15803d"] { stroke: #34d399 !important; } /* score line */
+.golf-dark svg [fill="#9ca3af"] { fill: #94a3b8 !important; }     /* axis labels */
