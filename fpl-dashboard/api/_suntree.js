@@ -200,26 +200,40 @@ function extractFormState(html) {
   };
   const txtDateName = findName("txtDate");
   const autoRefreshName = findName("autoRefresh");
+  // The RadAjaxManager id must be echoed back as RadAJAXControlID or the server
+  // renders an empty delta instead of the tee sheet. Parse it; fall back to the
+  // known value for this site.
+  const radMatch = html.match(/RadAjaxManager,[\s\S]{0,400}?"uniqueID":"([^"]+)"/);
   return {
     ceViewState: val("__CEVIEWSTATE"),
     viewState: val("__VIEWSTATE"),
     tssm: val("ctl00_TSSM"),
     txtDateName,
     autoRefreshName,
-    // Grab every hidden input so ClientState / dropdown defaults ride along.
+    radAjaxId: radMatch ? radMatch[1] : "defaultRAM",
+    // Grab the form's hidden/data inputs so ClientState / dropdown defaults ride along.
     hidden: collectInputs(html),
   };
 }
 
 function collectInputs(html) {
   const out = {};
-  const re = /<input\b[^>]*\bname="([^"]+)"[^>]*>/g;
+  const re = /<input\b[^>]*>/g;
   let m;
   while ((m = re.exec(html))) {
     const tag = m[0];
-    const name = m[1];
+    const nm = tag.match(/\bname="([^"]+)"/);
+    if (!nm) continue;
+    // Only include what a browser would actually serialize. Command buttons
+    // (submit/button/image) would masquerade as the clicked control and make
+    // ASP.NET run a different code path (returning an empty delta), and
+    // unchecked checkboxes/radios are never sent.
+    const typeMatch = tag.match(/\btype="([^"]+)"/);
+    const type = (typeMatch ? typeMatch[1] : "text").toLowerCase();
+    if (type === "submit" || type === "button" || type === "image" || type === "reset") continue;
+    if ((type === "checkbox" || type === "radio") && !/\bchecked\b/.test(tag)) continue;
     const vm = tag.match(/\bvalue="([^"]*)"/);
-    out[name] = vm ? vm[1] : "";
+    out[nm[1]] = vm ? vm[1] : "";
   }
   // Selects: keep the option marked selected (fallback: first option).
   const sre = /<select\b[^>]*\bname="([^"]+)"[^>]*>([\s\S]*?)<\/select>/g;
@@ -304,7 +318,7 @@ async function attachTeeSheet(jar) {
       params.set("__EVENTTARGET", state.autoRefreshName);
       params.set("__EVENTARGUMENT", "");
       params.set("__ASYNCPOST", "true");
-      params.set("RadAJAXControlID", "");
+      params.set("RadAJAXControlID", state.radAjaxId);
       params.set(state.txtDateName, mdy);
       params.set("txtDate", mdy);
 
