@@ -16,6 +16,11 @@ const yearStart = () => `${todayISO().slice(0, 4)}-01-01`;
 function daysInclusive(from, to) {
   return Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1;
 }
+function addDays(iso, n) {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 
 export default function Rounds() {
   const [name, setName] = useState("");
@@ -150,8 +155,10 @@ function RefreshPanel({ cov, onDone }) {
       let cursor = since;
       let doneDays = 0;
       let guard = 0;
+      let stuck = 0;
+      let skipped = 0;
       while (cursor && cursor <= target) {
-        if (++guard > 500) throw new Error("Refresh didn't finish — try again.");
+        if (++guard > 900) throw new Error("Refresh didn't finish — try again.");
         const r = await fetch("/api/rounds-scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -165,11 +172,21 @@ function RefreshPanel({ cov, onDone }) {
         const j = await r.json();
         doneDays += j.scraped?.length || 0;
         setProgress({ done: Math.min(doneDays, totalDays), total: totalDays });
+
         const prev = cursor;
-        cursor = j.nextFrom;
-        if (cursor && cursor <= prev) break; // no forward progress — stop rather than loop
+        const next = j.nextFrom;
+        if (!next) { cursor = null; break; }        // reached the end
+        if (next > prev) { cursor = next; stuck = 0; continue; } // made progress
+        // No forward progress: this day keeps failing (usually transient
+        // throttling). Pause and retry a few times, then skip it so one bad
+        // day can't stall the whole refresh.
+        if (++stuck >= 4) { cursor = addDays(prev, 1); stuck = 0; skipped++; }
+        else await new Promise((res2) => setTimeout(res2, 1200));
       }
-      setMsg(`Updated ${fmtDay(since)} – ${fmtDay(target)}.`);
+      setMsg(
+        `Updated ${fmtDay(since)} – ${fmtDay(target)}.` +
+        (skipped ? ` (${skipped} day${skipped === 1 ? "" : "s"} couldn't be read — refresh again to retry.)` : "")
+      );
       onDone?.();
     } catch (e2) {
       setErr(e2.message);
