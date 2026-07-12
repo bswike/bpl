@@ -203,36 +203,33 @@ export default function FeedTab({
     const map = {};
     for (const list of Object.values(groupBy(entries, (r) => r.ownerId))) {
       const firstName = list[0]?.golfer?.first_name || "Their";
-      // Best-round honors require a full-length course (par 70+) AND all 18
-      // holes actually played — scaled-up partial rounds don't qualify.
-      const honors = list.filter(
-        (r) => r.played === 18 && !(r.par != null && r.par < 70)
-      );
-      const bestEver = honors.length ? Math.min(...honors.map((r) => r.ags)) : null;
+      // Best-round honors use handicap differential (lower is better) so 9s,
+      // tees, and course difficulty compare fairly.
+      const honors = list.filter((r) => r.diff != null);
+      const bestEver = honors.length ? Math.min(...honors.map((r) => r.diff)) : null;
       const yearTop3 = {};
-      for (const r of honors) (yearTop3[r.year] = yearTop3[r.year] || []).push(r.ags);
+      for (const r of honors) (yearTop3[r.year] = yearTop3[r.year] || []).push(r.diff);
       for (const y of Object.keys(yearTop3)) {
         yearTop3[y] = [...new Set(yearTop3[y])].sort((a, b) => a - b).slice(0, 3);
       }
       const bestByCourse = {};
       const courseCount = {};
       for (const r of list) {
-        if (r.played !== 18) continue;
-        bestByCourse[r.courseKey] = Math.min(bestByCourse[r.courseKey] ?? Infinity, r.ags);
+        if (r.diff == null) continue;
+        bestByCourse[r.courseKey] = Math.min(bestByCourse[r.courseKey] ?? Infinity, r.diff);
         courseCount[r.courseKey] = (courseCount[r.courseKey] || 0) + 1;
       }
       for (const r of list) {
         const out = [];
         if (r.counts?.ace) out.push("🎯 Hole-in-one!");
         const top3 = yearTop3[r.year] || [];
-        const honored = r.played === 18 && !(r.par != null && r.par < 70);
-        if (honored && r.ags === bestEver) out.push("🏆 All-time best");
-        else if (honored && r.ags === top3[0]) out.push(`🎖️ Best of ${r.year}`);
-        else if (honored && r.ags === top3[1]) out.push(`🥈 2nd best of ${r.year}`);
-        else if (honored && r.ags === top3[2]) out.push(`🥉 3rd best of ${r.year}`);
+        if (r.diff != null && r.diff === bestEver) out.push("🏆 All-time best");
+        else if (r.diff != null && r.diff === top3[0]) out.push(`🎖️ Best of ${r.year}`);
+        else if (r.diff != null && r.diff === top3[1]) out.push(`🥈 2nd best of ${r.year}`);
+        else if (r.diff != null && r.diff === top3[2]) out.push(`🥉 3rd best of ${r.year}`);
         else if (
-          r.played === 18 &&
-          r.ags === bestByCourse[r.courseKey] &&
+          r.diff != null &&
+          r.diff === bestByCourse[r.courseKey] &&
           courseCount[r.courseKey] >= 3
         )
           out.push(`📍 ${firstName}'s course best`);
