@@ -9,8 +9,11 @@ import { loadSession, refreshSession, deleteSession, upsertDays } from "./_round
 export const maxDuration = 60;
 
 const COOKIE = "rounds_sid";
-const MAX_SPAN = 10; // days attempted per request; the client resumes via nextFrom
-const TIME_BUDGET_MS = 50_000;
+// Keep each request short: long (~50s) responses are the ones prone to having
+// their connection dropped mid-flight ("Failed to fetch"). Smaller chunks come
+// back quickly and the client just resumes via nextFrom.
+const MAX_SPAN = 6; // days attempted per request
+const TIME_BUDGET_MS = 40_000;
 
 const isISO = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d);
 function addDays(iso, n) {
