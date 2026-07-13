@@ -131,17 +131,19 @@ function handicapIndexAsOf(rounds, asOf) {
   return Math.round((avg + pick.adj) * 10 + 1e-9) / 10;
 }
 
-// Current index, season low, and recent trend (change over the last ~5 rounds).
+// Current index, low H.I., and recent trend (change over the last ~5 rounds).
 function handicapSeason(rounds) {
   const today = new Date().toISOString().slice(0, 10);
-  const year = today.slice(0, 4);
   const current = handicapIndexAsOf(rounds, today);
   if (current == null) return null;
 
-  const points = new Set([`${year}-01-01`, today]);
+  // Low H.I. = the lowest index over the last 365 days, matching what GHIN
+  // shows. (Calendar-year would miss a lower index set late in the prior year.)
+  const cutoff = isoDaysAgo(365);
+  const points = new Set([cutoff, today]);
   for (const r of rounds) {
     const d = (r.date || "").slice(0, 10);
-    if (d.slice(0, 4) === year) points.add(d);
+    if (d >= cutoff && d <= today) points.add(d);
   }
   let low = current;
   for (const d of points) {
@@ -179,7 +181,6 @@ function parseHcp(v) {
 }
 
 function HandicapBoard({ rows }) {
-  const year = new Date().getFullYear();
   const ranked = useMemo(
     () =>
       rows
@@ -212,7 +213,7 @@ function HandicapBoard({ rows }) {
   return (
     <Card
       title="Handicaps"
-      right={<span className="text-xs text-gray-400">index · low {year} · trend</span>}
+      right={<span className="text-xs text-gray-400">index · low H.I. · trend</span>}
     >
       <div className="overflow-x-auto -mx-1 px-1">
         <table className="w-full text-sm border-collapse">
@@ -259,8 +260,8 @@ function HandicapBoard({ rows }) {
         </table>
       </div>
       <p className="text-[11px] text-gray-400 mt-2">
-        Index is the golfer’s official GHIN Handicap Index. “Low” is their best this season (estimated
-        from posted rounds, so ±0.1), and trend is the change over the last ~5 rounds — ▼ green means dropping.
+        Index is the golfer’s official GHIN Handicap Index. “Low” is their lowest index over the last 12
+        months (estimated from posted rounds, so ±0.1), and trend is the change over the last ~5 rounds — ▼ green means dropping.
       </p>
     </Card>
   );
