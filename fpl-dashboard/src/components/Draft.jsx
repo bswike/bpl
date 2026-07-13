@@ -114,6 +114,19 @@ const BR_COLS = [
   { key: "sf", label: "Semis" },
   { key: "final", label: "Final" },
 ];
+const BRACKET_COL_W = [188, 172, 172, 172, 172];
+const BRACKET_CONN_W = 12;
+
+function bracketOffsetForRound(roundKey) {
+  const idx = BR_COLS.findIndex((c) => c.key === roundKey);
+  if (idx <= 0) return 0;
+  let x = 0;
+  for (let i = 0; i < idx; i++) {
+    x += BRACKET_COL_W[i];
+    x += BRACKET_CONN_W;
+  }
+  return x;
+}
 
 // Winner/loser feeds for matches 89-104 (R32 = 73-88 come straight from groups).
 const FEEDS = {
@@ -521,8 +534,24 @@ function BracketGrid({
   hideControls = false,
   fillHeight = false,
   onMatchClick = null,
+  focusRound = null,
 }) {
   const isMobile = useIsMobile();
+  const scrollRef = useRef(null);
+  const focusX = focusRound ? bracketOffsetForRound(focusRound) : 0;
+  const panToRound = useCallback(
+    (roundKey) => {
+      const off = bracketOffsetForRound(roundKey);
+      const inst = zoomRef?.current;
+      if (isMobile && inst?.setTransform) {
+        const s = inst.transformState?.scale ?? 1;
+        inst.setTransform(-off * s, 0, s, 200);
+      } else if (scrollRef.current) {
+        scrollRef.current.scrollLeft = off;
+      }
+    },
+    [isMobile, zoomRef]
+  );
   // When we fill the available space (e.g. the Bracket tab), measure the real
   // height left under the header/tabs instead of guessing from innerHeight —
   // otherwise the bottom of the tree (final game) gets clipped by the browser
@@ -600,6 +629,11 @@ function BracketGrid({
     };
   };
 
+  useLayoutEffect(() => {
+    if (!focusRound || isMobile || !scrollRef.current) return;
+    scrollRef.current.scrollLeft = focusX;
+  }, [focusRound, focusX, isMobile, data]);
+
   if (!data?.bracket?.length) {
     return (
       <p className="text-center text-slate-500 py-12">
@@ -623,7 +657,24 @@ function BracketGrid({
                   className="flex flex-col shrink-0"
                   style={{ width: ci === 0 ? 188 : 172 }}
                 >
-                  <div className="text-center text-[9px] uppercase tracking-wider text-slate-500 font-semibold mb-1 h-4">
+                  <div
+                    role={!editable ? "button" : undefined}
+                    tabIndex={!editable ? 0 : undefined}
+                    onClick={!editable ? () => panToRound(col.key) : undefined}
+                    onKeyDown={
+                      !editable
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ")
+                              panToRound(col.key);
+                          }
+                        : undefined
+                    }
+                    className={`text-center text-[9px] uppercase tracking-wider font-semibold mb-1 h-4 ${
+                      !editable
+                        ? "text-slate-500 cursor-pointer hover:text-cyan-400 transition-colors"
+                        : "text-slate-500"
+                    }`}
+                  >
                     {col.label}
                   </div>
                   <div
@@ -707,15 +758,16 @@ function BracketGrid({
       const TREE_H = BRACKET_COL_H + 24;
       const measuredH = availH || Math.round(window.innerHeight * 0.8);
       const fScale = Math.max(0.25, Math.min(1, measuredH / TREE_H));
+      const initX = focusRound ? -focusX * fScale : 0;
       return (
         <div className="h-full min-h-0 flex flex-col">
           <div ref={viewportRef} className="flex-1 min-h-0 overflow-hidden">
             {availH > 0 && (
               <TransformWrapper
                 ref={zoomRef}
-                key={`fh${Math.round(fScale * 100)}-${measuredH}`}
+                key={`fh${Math.round(fScale * 100)}-${measuredH}-${focusRound || "all"}`}
                 initialScale={fScale}
-                initialPositionX={0}
+                initialPositionX={initX}
                 initialPositionY={0}
                 minScale={Math.min(0.25, fScale)}
                 maxScale={2.6}
@@ -743,13 +795,14 @@ function BracketGrid({
     // The viewport is sized to the *exact* fitted tree height so there's no
     // vertical slack for the pan library to re-settle (avoids a jump on swipe).
     const { fitScale, wrapperH } = computeMobileFit();
+    const initX = focusRound ? -focusX * fitScale : 0;
     return (
       <div className="space-y-2">
         <TransformWrapper
           ref={zoomRef}
-          key={`z${Math.round(fitScale * 100)}`}
+          key={`z${Math.round(fitScale * 100)}-${focusRound || "all"}`}
           initialScale={fitScale}
-          initialPositionX={0}
+          initialPositionX={initX}
           initialPositionY={0}
           minScale={Math.min(0.25, fitScale)}
           maxScale={2.6}
@@ -779,7 +832,12 @@ function BracketGrid({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setTransform(0, 0, fitScale, 200)}
+                    onClick={() => {
+                      const off = focusRound
+                        ? bracketOffsetForRound(focusRound)
+                        : 0;
+                      setTransform(-off * fitScale, 0, fitScale, 200);
+                    }}
                     className={btn}
                   >
                     <Maximize className="w-4 h-4" />
@@ -804,10 +862,19 @@ function BracketGrid({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2">
-        <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
-          ← swipe sideways for all rounds →
-        </div>
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto overscroll-x-contain -mx-4 px-4 pb-2"
+      >
+        {focusRound ? (
+          <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
+            Tap a round label to jump · scroll for earlier rounds
+          </div>
+        ) : (
+          <div className="text-[10px] text-cyan-500/70 font-medium mb-1">
+            ← scroll sideways for all rounds →
+          </div>
+        )}
         {tree}
       </div>
     </div>
@@ -1254,6 +1321,17 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
     return { ...m, homeCount, awayCount };
   }, [data, list]);
 
+  const sortedList = useMemo(() => {
+    if (!Array.isArray(list)) return list;
+    return [...list].sort(
+      (a, b) =>
+        b.points - a.points ||
+        b.goals - a.goals ||
+        (b.max ?? 0) - (a.max ?? 0) ||
+        String(a.name).localeCompare(String(b.name))
+    );
+  }, [list]);
+
   const open = async (id) => {
     setOpenId(id);
     setLoadingOne(true);
@@ -1496,7 +1574,7 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
           fill ? "flex-1 min-h-0 flex flex-col" : ""
         }`}
       >
-        {list.length === 0 ? (
+        {sortedList.length === 0 ? (
           <p className="text-center text-slate-500 py-12 text-sm">
             No brackets submitted yet. Fill one out and hit save.
           </p>
@@ -1512,7 +1590,7 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
               {!revealed && <span className="w-[52px] shrink-0" />}
             </div>
 
-            {list.map((b, i) => {
+            {sortedList.map((b, i) => {
               const pills = livePillsFor(b);
               const leadingNow = pills.some((p) => p.status === "leading");
               const atRisk = atRiskFor(b);
@@ -1544,7 +1622,7 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                   fill ? "flex-1 min-h-0 overflow-hidden" : ""
                 } ${leadingNow ? "border-l-2 border-l-emerald-500/70" : ""} ${
                   i % 2 ? "bg-slate-800/20" : ""
-                } ${i < list.length - 1 ? "border-b border-slate-700/30" : ""}`}
+                } ${i < sortedList.length - 1 ? "border-b border-slate-700/30" : ""}`}
               >
                 <div className="w-6 flex justify-center shrink-0">
                   {i < 3 ? (
@@ -1773,14 +1851,16 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                   </button>
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      const { fitScale } = computeMobileFit();
+                      const off = bracketOffsetForRound("sf");
                       zoomRef.current?.setTransform(
+                        -off * fitScale,
                         0,
-                        0,
-                        computeMobileFit().fitScale,
+                        fitScale,
                         200
-                      )
-                    }
+                      );
+                    }}
                     className="flex items-center justify-center w-7 h-7 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700"
                   >
                     <Maximize className="w-3.5 h-3.5" />
@@ -1840,6 +1920,7 @@ function SavedTab({ data, refreshKey, onEdit, fill = false }) {
                 followPicks
                 zoomRef={zoomRef}
                 hideControls
+                focusRound="sf"
                 onMatchClick={setMatchNo}
               />
             )}
@@ -1904,6 +1985,7 @@ function LiveBracketTab({ data, zoomRef }) {
         zoomRef={zoomRef}
         hideControls
         fillHeight={isMobile}
+        focusRound="sf"
         onMatchClick={setSelectedNo}
       />
       {selectedNo != null && (
@@ -2093,26 +2175,6 @@ export default function Draft() {
   const [editTarget, setEditTarget] = useState(null);
   const isMobile = useIsMobile();
   const liveZoomRef = useRef(null);
-  const swipeStart = useRef(null);
-
-  // Swipe navigation between the Standings and Bracket tabs on mobile. A left
-  // swipe on Standings jumps to the Bracket; a left-edge right-swipe on the
-  // Bracket returns (edge start so it doesn't fight the zoom/pan canvas).
-  const onSwipeStart = (e) => {
-    if (!isMobile || !revealed || e.touches.length !== 1) return;
-    swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  };
-  const onSwipeEnd = (e) => {
-    const s = swipeStart.current;
-    swipeStart.current = null;
-    if (!s || !isMobile || !revealed) return;
-    const t = e.changedTouches[0];
-    const dx = t.clientX - s.x;
-    const dy = t.clientY - s.y;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    if (view === "saved" && dx < 0) setView("live");
-    else if (view === "live" && dx > 0 && s.x < 30) setView("saved");
-  };
 
   // Flip to revealed/locked state when the deadline passes.
   useEffect(() => {
@@ -2330,7 +2392,16 @@ export default function Draft() {
               </button>
               <button
                 type="button"
-                onClick={() => liveZoomRef.current?.resetTransform(200)}
+                onClick={() => {
+                  const inst = liveZoomRef.current;
+                  if (!inst?.setTransform) {
+                    inst?.resetTransform?.(200);
+                    return;
+                  }
+                  const s = inst.transformState?.scale ?? 1;
+                  const off = bracketOffsetForRound("sf");
+                  inst.setTransform(-off * s, 0, s, 200);
+                }}
                 className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/60 bg-slate-800/70 text-slate-200 active:bg-slate-700"
               >
                 <Maximize className="w-4 h-4" />
@@ -2343,8 +2414,6 @@ export default function Draft() {
           className={
             isMobile ? "flex-1 min-h-0 flex flex-col overflow-hidden" : ""
           }
-          onTouchStart={onSwipeStart}
-          onTouchEnd={onSwipeEnd}
         >
           {loading ? (
             <div className="py-24">
