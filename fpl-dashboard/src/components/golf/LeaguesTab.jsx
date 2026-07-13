@@ -230,11 +230,11 @@ function HandicapBoard({ rows }) {
               const atLow = r.current <= r.low + 0.05;
               return (
                 <tr key={r.member.ghin} className="border-t border-gray-100">
-                  <td className="py-2">
+                  <td className="py-2 w-full max-w-0">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-4 text-right text-xs text-gray-400 tabular-nums">{i + 1}</span>
+                      <span className="w-4 text-right text-xs text-gray-400 tabular-nums shrink-0">{i + 1}</span>
                       <Avatar golfer={r.member} size="sm" />
-                      <span className="truncate font-semibold text-gray-900">
+                      <span className="truncate font-semibold text-gray-900 text-[13px]">
                         {r.member.first_name} {r.member.last_name}
                       </span>
                     </div>
