@@ -518,7 +518,8 @@ function MembersCard({
             Sign in to GHIN again to search and add golfers.
           </div>
         ))}
-      <div className="space-y-1 mt-3">
+      {edit && (
+        <div className="space-y-1 mt-3">
         {league.members.map((m) => (
           <div key={m.ghin} className="flex items-center gap-3 py-1.5 min-w-0">
             <Avatar golfer={m} size="sm" />
@@ -578,7 +579,8 @@ function MembersCard({
             )}
           </div>
         ))}
-      </div>
+        </div>
+      )}
     </Card>
   );
 }
