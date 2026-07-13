@@ -126,7 +126,9 @@ function handicapIndexAsOf(rounds, asOf) {
     .sort((a, b) => a - b)
     .slice(0, pick.count);
   const avg = lowest.reduce((x, y) => x + y, 0) / lowest.length;
-  return Math.floor((avg + pick.adj) * 10) / 10; // WHS truncates to 1 decimal
+  // WHS rounds the index to the nearest tenth (the tiny epsilon keeps values
+  // like 13.65 from landing on 13.6 due to float error).
+  return Math.round((avg + pick.adj) * 10 + 1e-9) / 10;
 }
 
 // Current index, season low, and recent trend (change over the last ~5 rounds).
