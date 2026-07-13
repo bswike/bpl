@@ -235,8 +235,11 @@ function HandicapBoard({ rows }) {
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="w-4 text-right text-xs text-gray-400 tabular-nums shrink-0">{i + 1}</span>
                       <Avatar golfer={r.member} size="sm" />
-                      <span className="truncate font-semibold text-gray-900 text-[13px]">
-                        {r.member.first_name} {r.member.last_name}
+                      <span className="flex items-center gap-1.5 min-w-0 font-semibold text-gray-900 text-[13px]">
+                        <span className="truncate">
+                          {r.member.first_name} {r.member.last_name}
+                        </span>
+                        <TeamDot team={r.member.team} />
                       </span>
                     </div>
                   </td>
