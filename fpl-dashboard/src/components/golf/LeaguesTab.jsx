@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildModel, fmtToPar, inDateRange, beforeDate } from "./data";
 import { Avatar, Card, HolesBadge, Scorecard } from "./ui";
+import TripSimPanel from "./TripSimPanel";
 
 /** Private mini-leagues (golf trips). v1: owner-only — you create leagues,
  *  add friends found via GHIN search, and see a leaderboard built from
@@ -178,6 +179,26 @@ function parseHcp(v) {
   if (s.startsWith("+")) return -parseFloat(s.slice(1));
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : null;
+}
+
+function tripRoster(rows, team) {
+  return rows
+    .filter((r) => r.member.team === team)
+    .map((r) => {
+      const season = handicapSeason(r.rounds);
+      const official = parseHcp(r.hcp);
+      const current = official != null ? official : season?.current;
+      let low = season?.low;
+      if (low == null || (current != null && low > current)) low = current;
+      if (current == null) return null;
+      return {
+        name: r.member.first_name || r.member.last_name || "?",
+        current,
+        low: low ?? current,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.current - b.current);
 }
 
 function HandicapBoard({ rows }) {
@@ -1349,6 +1370,14 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myGolfer, 
 
       <HandicapBoard rows={rows} />
 
+      {league.teams && (
+        <TripSimPanel
+          teamAName={league.teams.a.name}
+          teamBName={league.teams.b.name}
+          blueRoster={tripRoster(rows, "a")}
+          redRoster={tripRoster(rows, "b")}
+        />
+      )}
       {league.teams && (
         <TeamsCard league={league} rows={rows} onRename={renameTeams} />
       )}
