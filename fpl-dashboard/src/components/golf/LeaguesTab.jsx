@@ -41,19 +41,35 @@ function TeamDot({ team }) {
   );
 }
 
-/** Form going into the trip: avg handicap differential of the last 5 rounds
- *  before the start date vs the 10 before those. Differentials normalize
- *  9- vs 18-hole rounds, so everyone compares fairly. Lower = better. */
+// Average of the BEST differentials in a window, dropping the worst ~third —
+// a robust mean. A plain average of the last few rounds lets one blow-up (or a
+// weird scramble round) wreck the number; leaning on the good rounds, the way a
+// handicap does, tracks how well someone is actually scoring.
+function robustMean(diffs) {
+  if (!diffs.length) return null;
+  const sorted = [...diffs].sort((a, b) => a - b); // best (lowest) first
+  // Keep the best ~65%, always dropping at least the single worst once there
+  // are 4+ rounds, so one disaster can't swing the result.
+  const keep = diffs.length >= 4 ? Math.max(3, Math.ceil(diffs.length * 0.65)) : diffs.length;
+  const kept = sorted.slice(0, keep);
+  return kept.reduce((x, y) => x + y, 0) / kept.length;
+}
+
+/** Recent form: a robust "best-of" scoring average over the last several rounds
+ *  (before the trip start, if any), compared to the stretch before it. Worst
+ *  rounds are dropped so a single blow-up doesn't skew it. Differentials
+ *  normalize 9- vs 18-hole rounds, so everyone compares fairly. Lower = better. */
 function formStats(rounds, start) {
   const before = start ? rounds.filter((r) => beforeDate(r.date, start)) : rounds;
   const diffs = before.map((r) => r.diff).filter((d) => d != null); // newest first
-  const avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
-  const recentAvg = avg(diffs.slice(0, 5));
-  const priorAvg = avg(diffs.slice(5, 15));
+  const recent = diffs.slice(0, 8);
+  const prior = diffs.slice(8, 18);
+  const recentAvg = robustMean(recent);
+  const priorAvg = robustMean(prior);
   return {
     recentAvg,
     delta: recentAvg != null && priorAvg != null ? recentAvg - priorAvg : null,
-    n: Math.min(diffs.length, 5),
+    n: recent.length,
     lastDate: before[0]?.date || null,
   };
 }
@@ -875,7 +891,7 @@ function FormCard({ league, rows }) {
   return (
     <Card
       title={heading}
-      right={<span className="text-xs text-gray-400">last 5 vs prior 10 diffs</span>}
+      right={<span className="text-xs text-gray-400">best recent rounds · worst dropped</span>}
     >
       {league.teams ? (
         <>
@@ -899,9 +915,9 @@ function FormCard({ league, rows }) {
         rankByForm(rows).map((row) => <FormRow key={row.member.ghin} row={row} />)
       )}
       <p className="text-[11px] text-gray-400 mt-2">
-        Avg handicap differential of the 5 most recent rounds
-        {league.start ? " before the trip" : ""} — lower is better. The trend
-        compares against the 10 rounds before those.
+        Average of a golfer’s best recent rounds{league.start ? " before the trip" : ""} — the
+        worst are dropped so one blow-up doesn’t skew it (handicap-style). Lower is better; the
+        trend compares this to the stretch before.
       </p>
     </Card>
   );
