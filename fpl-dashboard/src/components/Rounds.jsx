@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { Search, Flag, CalendarDays, MapPin, Loader2, RefreshCw, Lock, ChevronDown } from "lucide-react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { Search, Flag, CalendarDays, MapPin, Loader2, RefreshCw, Lock, ChevronDown, ShieldAlert, ShieldCheck } from "lucide-react";
+import { buildModel } from "./golf/data";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fmtMonth = (ym) => {
@@ -40,9 +41,24 @@ export default function Rounds() {
   }, []);
   useEffect(() => { loadCoverage(); }, [loadCoverage]);
 
+  // Published golfers from /golf (each carries full GHIN scores). Loaded lazily
+  // on the first lookup and reused, so Cap Patrol can compare booked vs posted.
+  const [feed, setFeed] = useState(null); // null = not loaded yet, [] = loaded
+  const feedTried = useRef(false);
+  const ensureFeed = useCallback(async () => {
+    if (feedTried.current) return;
+    feedTried.current = true;
+    try {
+      const r = await fetch("/api/golf-feed");
+      const j = await r.json();
+      setFeed(j.golfers || []);
+    } catch { setFeed([]); }
+  }, []);
+
   const run = useCallback(async () => {
     if (!name.trim()) return;
     setLoading(true); setError(null);
+    ensureFeed();
     try {
       const q = new URLSearchParams({ name: name.trim(), from, to });
       const res = await fetch(`/api/rounds?${q}`);
@@ -54,7 +70,7 @@ export default function Rounds() {
     } finally {
       setLoading(false);
     }
-  }, [name, from, to]);
+  }, [name, from, to, ensureFeed]);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 px-4 py-8">
@@ -116,6 +132,7 @@ export default function Rounds() {
         )}
 
         {data && <Results data={data} />}
+        {data && data.count > 0 && <CapPatrol data={data} feed={feed} />}
 
         <RefreshPanel cov={cov} onDone={() => { loadCoverage(); if (name.trim()) run(); }} />
       </div>
@@ -270,6 +287,145 @@ function RefreshPanel({ cov, onDone }) {
           )}
         </form>
       )}
+    </div>
+  );
+}
+
+// Cap Patrol — did they post the rounds they booked? Compares this person's
+// Suntree tee-time bookings (from the lookup) against their GHIN-posted Suntree
+// rounds (from the public golf feed). A booked round with no matching GHIN post
+// is a "cap patrol" flag — played but not posted.
+const norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+const COURSE_KEY = { "Classic Course": "suntree-classic", "Challenge Course": "suntree-challenge" };
+
+function CapPatrol({ data, feed }) {
+  const names = (data.matchedNames?.length ? data.matchedNames : [data.query.name]).filter(Boolean);
+
+  const golfer = useMemo(() => {
+    if (!feed || !names.length) return null;
+    const targets = names.map(norm);
+    return (
+      feed.find((g) =>
+        targets.includes(norm(`${g.golfer?.first_name || ""} ${g.golfer?.last_name || ""}`))
+      ) || null
+    );
+  }, [feed, names]);
+
+  const result = useMemo(() => {
+    if (!golfer) return null;
+    const { from, to } = data.query;
+    const cFrom = data.coverage.cacheMinDay && data.coverage.cacheMinDay > from ? data.coverage.cacheMinDay : from;
+    const cTo = data.coverage.cacheMaxDay && data.coverage.cacheMaxDay < to ? data.coverage.cacheMaxDay : to;
+    const inRange = (d) => d >= cFrom && d <= cTo;
+
+    const ghin = buildModel(golfer)
+      .rounds.filter(
+        (r) => (r.courseKey === "suntree-classic" || r.courseKey === "suntree-challenge") && inRange((r.date || "").slice(0, 10))
+      )
+      .map((r) => ({ date: (r.date || "").slice(0, 10), courseKey: r.courseKey, taken: false }));
+
+    const bookings = data.rounds
+      .filter((b) => inRange(b.date))
+      .map((b) => ({ ...b, courseKey: COURSE_KEY[b.course] || null }))
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+    const unposted = [];
+    for (const b of bookings) {
+      // Prefer an exact date+course match, then any Suntree post that day
+      // (handles a course-label mismatch between GHIN and the tee sheet).
+      let m = ghin.find((g) => !g.taken && g.date === b.date && g.courseKey === b.courseKey) ||
+              ghin.find((g) => !g.taken && g.date === b.date);
+      if (m) m.taken = true;
+      else unposted.push(b);
+    }
+    return {
+      name: `${golfer.golfer.first_name || ""} ${golfer.golfer.last_name || ""}`.trim(),
+      booked: bookings.length,
+      posted: bookings.length - unposted.length,
+      unposted,
+      postedUnbooked: ghin.filter((g) => !g.taken).length,
+      cFrom, cTo,
+    };
+  }, [golfer, data]);
+
+  // Still loading the golf feed.
+  if (feed === null) {
+    return (
+      <div className="mt-4 bg-slate-800/40 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-400 flex items-center gap-2">
+        <Loader2 className="w-4 h-4 animate-spin" /> Cap Patrol — checking GHIN posts…
+      </div>
+    );
+  }
+
+  // Loaded, but this person hasn't published to the golf feed.
+  if (!result) {
+    return (
+      <div className="mt-4 bg-slate-800/40 border border-slate-700 rounded-xl px-4 py-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+          <ShieldAlert className="w-4 h-4 text-slate-400" /> Cap Patrol
+        </div>
+        <p className="text-xs text-slate-400 mt-1">
+          No GHIN data for {names[0]} — Cap Patrol can only check golfers who’ve published to the{" "}
+          <a href="/golf" className="text-emerald-400 hover:underline">golf feed</a>.
+        </p>
+      </div>
+    );
+  }
+
+  const clean = result.unposted.length === 0;
+  return (
+    <div className={`mt-4 rounded-xl border ${clean ? "border-emerald-800/50 bg-emerald-900/15" : "border-amber-800/50 bg-amber-900/15"}`}>
+      <div className="px-4 py-3 flex items-center gap-2 border-b border-slate-700/50">
+        {clean ? <ShieldCheck className="w-4 h-4 text-emerald-400" /> : <ShieldAlert className="w-4 h-4 text-amber-400" />}
+        <span className="text-sm font-semibold text-slate-100">Cap Patrol</span>
+        <span className="text-xs text-slate-400">· {result.name}</span>
+      </div>
+
+      <div className="px-4 py-3">
+        <div className="flex items-center gap-4 text-center">
+          <Stat n={result.booked} label="Booked" />
+          <span className="text-slate-600">→</span>
+          <Stat n={result.posted} label="Posted" tone="emerald" />
+          <span className="text-slate-600">=</span>
+          <Stat n={result.unposted.length} label="Unposted" tone={clean ? "emerald" : "amber"} />
+        </div>
+
+        {clean ? (
+          <p className="text-sm text-emerald-300 mt-3">
+            All caught up — every booked round is posted to GHIN. ✓
+          </p>
+        ) : (
+          <div className="mt-3">
+            <p className="text-sm text-amber-200">
+              {result.unposted.length} round{result.unposted.length === 1 ? "" : "s"} booked at Suntree with no matching GHIN post:
+            </p>
+            <div className="mt-2 space-y-1">
+              {result.unposted.map((b, i) => (
+                <div key={i} className="flex justify-between text-xs bg-slate-900/40 rounded px-2.5 py-1.5">
+                  <span className="text-slate-200">{fmtDay(b.date)}</span>
+                  <span className="text-slate-400">{b.time || ""} · {b.course}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+          Booked over {fmtDay(result.cFrom)} – {fmtDay(result.cTo)}. A booked tee time isn’t proof a round was played —
+          no-shows and cancellations happen — so treat flags as “worth a look,” not a conviction.
+          {result.postedUnbooked > 0 && ` (${result.postedUnbooked} GHIN Suntree post${result.postedUnbooked === 1 ? "" : "s"} had no booking under this name.)`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ n, label, tone }) {
+  const color = tone === "emerald" ? "text-emerald-300" : tone === "amber" ? "text-amber-300" : "text-slate-100";
+  return (
+    <div className="flex-1">
+      <div className={`text-2xl font-bold ${color}`}>{n}</div>
+      <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
     </div>
   );
 }
