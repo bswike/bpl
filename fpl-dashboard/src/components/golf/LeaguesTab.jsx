@@ -167,13 +167,36 @@ function hcpTrend(delta) {
   return { text: "steady", cls: "text-gray-400", arrow: "◆" };
 }
 
+// GHIN's handicap_index arrives as a string ("12.0"); plus handicaps show as
+// "+2.4" and are better than scratch (i.e. negative).
+function parseHcp(v) {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  if (s.startsWith("+")) return -parseFloat(s.slice(1));
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : null;
+}
+
 function HandicapBoard({ rows }) {
   const year = new Date().getFullYear();
   const ranked = useMemo(
     () =>
       rows
-        .map((r) => ({ member: r.member, ...(handicapSeason(r.rounds) || {}) }))
-        .filter((r) => r.current != null)
+        .map((r) => {
+          const season = handicapSeason(r.rounds); // computed current/low/trend
+          const official = parseHcp(r.hcp); // GHIN's exact current index
+          if (season == null && official == null) return null;
+          // Prefer GHIN's official index for "current" — my from-scratch calc
+          // can't see caps or exceptional-score reductions, so it drifts ±0.1
+          // on some golfers. The low history isn't in the export, so estimate
+          // it from rounds and clamp it to the current index (low ≤ current).
+          const current = official != null ? official : season?.current;
+          let low = season?.low;
+          if (low == null || (current != null && low > current)) low = current;
+          return { member: r.member, current, low, trend: season?.trend ?? null };
+        })
+        .filter((r) => r && r.current != null)
         .sort((a, b) => a.current - b.current),
     [rows]
   );
@@ -236,8 +259,8 @@ function HandicapBoard({ rows }) {
         </table>
       </div>
       <p className="text-[11px] text-gray-400 mt-2">
-        WHS-style index estimated from posted rounds (avg of the lowest 8 of the last 20). “Low” is the
-        season’s best; trend is the change over the last ~5 rounds — ▼ green means the index is dropping.
+        Index is the golfer’s official GHIN Handicap Index. “Low” is their best this season (estimated
+        from posted rounds, so ±0.1), and trend is the change over the last ~5 rounds — ▼ green means dropping.
       </p>
     </Card>
   );
@@ -629,11 +652,40 @@ function memberStats(rounds, start, end) {
   };
 }
 
+function isoDaysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+// Selectable ranges for the leaderboard. A trip league leads with its window.
+function leaderboardRanges(league) {
+  const today = new Date().toISOString().slice(0, 10);
+  const year = today.slice(0, 4);
+  const list = [
+    { key: "all", label: "All time", from: null, to: null },
+    { key: "ytd", label: year, from: `${year}-01-01`, to: today },
+    { key: "90", label: "90 days", from: isoDaysAgo(90), to: today },
+    { key: "30", label: "30 days", from: isoDaysAgo(30), to: today },
+  ];
+  if (league.start || league.end) {
+    list.unshift({ key: "trip", label: "Trip", from: league.start || null, to: league.end || null });
+  }
+  return list;
+}
+
 function Leaderboard({ league, rows }) {
   const [metric, setMetric] = useState("toPar");
+  const presets = useMemo(() => leaderboardRanges(league), [league]);
+  const [range, setRange] = useState(presets[0]); // trip window if any, else all-time
+
   const ranked = useMemo(() => {
+    const withStats = rows.map((row) => ({
+      ...row,
+      stats: memberStats(row.rounds, range.from, range.to),
+    }));
     const val = (row) => (metric === "diff" ? row.stats.avgDiff : row.stats.avgToPar);
-    return [...rows].sort((a, b) => {
+    return withStats.sort((a, b) => {
       if (a.stats.n === 0 && b.stats.n === 0) return 0;
       if (a.stats.n === 0) return 1;
       if (b.stats.n === 0) return -1;
@@ -643,12 +695,15 @@ function Leaderboard({ league, rows }) {
       if (vb == null) return -1;
       return va - vb;
     });
-  }, [rows, metric]);
+  }, [rows, metric, range]);
+
+  const setCustom = (patch) =>
+    setRange((r) => ({ key: "custom", label: "Custom", from: r.from, to: r.to, ...patch }));
   const medal = ["bg-amber-100 text-amber-800 border-amber-300", "bg-gray-100 text-gray-600 border-gray-300", "bg-orange-100 text-orange-800 border-orange-200"];
 
   return (
     <Card
-      title={`Leaderboard · ${fmtRange(league.start, league.end)}`}
+      title={`Leaderboard · ${fmtRange(range.from, range.to)}`}
       right={
         <div className="flex rounded-lg overflow-hidden border border-gray-200 text-[11px] font-semibold">
           {[
@@ -671,6 +726,39 @@ function Leaderboard({ league, rows }) {
         </div>
       }
     >
+      <div className="mb-3 space-y-2">
+        <div className="flex flex-wrap gap-1.5">
+          {presets.map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setRange(p)}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border cursor-pointer transition-colors ${
+                range.key === p.key
+                  ? "bg-green-700 text-white border-green-700"
+                  : "bg-white text-gray-500 border-gray-200 hover:border-green-400"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-gray-400">
+          <input
+            type="date"
+            value={range.from || ""}
+            onChange={(e) => setCustom({ from: e.target.value || null })}
+            className="px-2 py-1 border border-gray-200 rounded-lg bg-white text-gray-900 text-xs outline-none focus:ring-2 focus:ring-green-600"
+          />
+          <span>to</span>
+          <input
+            type="date"
+            value={range.to || ""}
+            onChange={(e) => setCustom({ to: e.target.value || null })}
+            className="px-2 py-1 border border-gray-200 rounded-lg bg-white text-gray-900 text-xs outline-none focus:ring-2 focus:ring-green-600"
+          />
+        </div>
+      </div>
       {ranked.map((row, i) => {
         const s = row.stats;
         const played = s.n > 0;
@@ -1040,7 +1128,7 @@ function TripFeed({ league, rows }) {
 
 /* ---------- league detail ---------- */
 
-function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, ghinToken, onSearch }) {
+function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myGolfer, myRounds, ghinToken, onSearch }) {
   // ghin -> { loading, error, rounds }
   const [data, setData] = useState({});
   const loadingRef = useRef(new Set());
@@ -1097,9 +1185,10 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
           });
           const body = await res.json().catch(() => ({}));
           if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+          const built = buildModel(body);
           setData((prev) => ({
             ...prev,
-            [ghin]: { rounds: buildModel(body).rounds },
+            [ghin]: { rounds: built.rounds, hcp: built.golfer?.handicap_index ?? null },
           }));
         } catch (err) {
           setData((prev) => ({
@@ -1118,17 +1207,21 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
     () =>
       league.members.map((m) => {
         const ghin = String(m.ghin);
-        const d = ghin === myGhin ? { rounds: myRounds } : data[ghin] || {};
+        const d =
+          ghin === myGhin
+            ? { rounds: myRounds, hcp: myGolfer?.handicap_index ?? null }
+            : data[ghin] || {};
         return {
           member: m,
           rounds: d.rounds || [],
+          hcp: d.hcp ?? null,
           loading: !!d.loading,
           error: d.error || null,
           stats: memberStats(d.rounds || [], league.start, league.end),
           form: formStats(d.rounds || [], league.start),
         };
       }),
-    [league, data, myGhin, myRounds]
+    [league, data, myGhin, myGolfer, myRounds]
   );
 
   const existing = useMemo(
@@ -1295,6 +1388,7 @@ export default function LeaguesTab({ myGhin, myGolfer, myRounds, ghinToken, onSe
         <LeagueDetail
           league={selected}
           myGhin={myGhin}
+          myGolfer={myGolfer}
           myRounds={myRounds}
           ghinToken={ghinToken}
           onSearch={onSearch}
