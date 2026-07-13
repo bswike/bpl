@@ -77,6 +77,154 @@ function fmtRange(start, end) {
   return start ? `From ${f(start)}` : `Through ${f(end)}`;
 }
 
+/* ---------- handicap index (WHS-style, estimated from posted differentials) ---------- */
+
+// How many of the most recent 20 differentials to average, with the WHS
+// low-round adjustments, based on how many qualifying rounds a golfer has.
+function whsPick(n) {
+  if (n < 3) return null;
+  if (n === 3) return { count: 1, adj: -2.0 };
+  if (n === 4) return { count: 1, adj: -1.0 };
+  if (n === 5) return { count: 1, adj: 0 };
+  if (n === 6) return { count: 2, adj: -1.0 };
+  if (n <= 8) return { count: 2, adj: 0 };
+  if (n <= 11) return { count: 3, adj: 0 };
+  if (n <= 14) return { count: 4, adj: 0 };
+  if (n <= 16) return { count: 5, adj: 0 };
+  if (n <= 18) return { count: 6, adj: 0 };
+  if (n === 19) return { count: 7, adj: 0 };
+  return { count: 8, adj: 0 };
+}
+
+// Handicap index as it would have stood on `asOf` (ISO date): average of the
+// lowest N differentials among the 20 most recent rounds up to that day.
+function handicapIndexAsOf(rounds, asOf) {
+  const elig = rounds
+    .filter((r) => r.diff != null && (r.date || "").slice(0, 10) <= asOf)
+    .sort((a, b) => ((a.date || "") < (b.date || "") ? 1 : -1)) // newest first
+    .slice(0, 20);
+  const pick = whsPick(elig.length);
+  if (!pick) return null;
+  const lowest = elig
+    .map((r) => r.diff)
+    .sort((a, b) => a - b)
+    .slice(0, pick.count);
+  const avg = lowest.reduce((x, y) => x + y, 0) / lowest.length;
+  return Math.floor((avg + pick.adj) * 10) / 10; // WHS truncates to 1 decimal
+}
+
+// Current index, season low, and recent trend (change over the last ~5 rounds).
+function handicapSeason(rounds) {
+  const today = new Date().toISOString().slice(0, 10);
+  const year = today.slice(0, 4);
+  const current = handicapIndexAsOf(rounds, today);
+  if (current == null) return null;
+
+  const points = new Set([`${year}-01-01`, today]);
+  for (const r of rounds) {
+    const d = (r.date || "").slice(0, 10);
+    if (d.slice(0, 4) === year) points.add(d);
+  }
+  let low = current;
+  for (const d of points) {
+    const idx = handicapIndexAsOf(rounds, d);
+    if (idx != null && idx < low) low = idx;
+  }
+
+  const newestFirst = rounds
+    .filter((r) => r.diff != null)
+    .slice()
+    .sort((a, b) => ((a.date || "") < (b.date || "") ? 1 : -1));
+  const ref = newestFirst[Math.min(5, newestFirst.length - 1)];
+  const past = ref ? handicapIndexAsOf(rounds, (ref.date || "").slice(0, 10)) : null;
+  const trend = past != null ? Math.round((current - past) * 10) / 10 : null;
+  return { current, low, trend };
+}
+
+// For handicaps, a dropping index is good: ▼ green = improving, ▲ red = rising.
+function hcpTrend(delta) {
+  if (delta == null) return { text: "—", cls: "text-gray-400", arrow: "" };
+  if (delta <= -0.2) return { text: Math.abs(delta).toFixed(1), cls: "text-green-600", arrow: "▼" };
+  if (delta >= 0.2) return { text: delta.toFixed(1), cls: "text-red-500", arrow: "▲" };
+  return { text: "steady", cls: "text-gray-400", arrow: "◆" };
+}
+
+function HandicapBoard({ rows }) {
+  const year = new Date().getFullYear();
+  const ranked = useMemo(
+    () =>
+      rows
+        .map((r) => ({ member: r.member, ...(handicapSeason(r.rounds) || {}) }))
+        .filter((r) => r.current != null)
+        .sort((a, b) => a.current - b.current),
+    [rows]
+  );
+
+  if (!ranked.length) {
+    return (
+      <Card title="Handicaps">
+        <p className="text-sm text-gray-400">Handicaps show up once members’ rounds have loaded.</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card
+      title="Handicaps"
+      right={<span className="text-xs text-gray-400">index · low {year} · trend</span>}
+    >
+      <div className="overflow-x-auto -mx-1 px-1">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-wide text-gray-400">
+              <th className="text-left font-bold pb-2">Golfer</th>
+              <th className="text-right font-bold pb-2 px-2">Index</th>
+              <th className="text-right font-bold pb-2 px-2">Low</th>
+              <th className="text-right font-bold pb-2 pl-2">Trend</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ranked.map((r, i) => {
+              const t = hcpTrend(r.trend);
+              const atLow = r.current <= r.low + 0.05;
+              return (
+                <tr key={r.member.ghin} className="border-t border-gray-100">
+                  <td className="py-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-4 text-right text-xs text-gray-400 tabular-nums">{i + 1}</span>
+                      <Avatar golfer={r.member} size="sm" />
+                      <span className="truncate font-semibold text-gray-900">
+                        {r.member.first_name} {r.member.last_name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="text-right px-2 font-mono font-bold text-gray-900 tabular-nums">
+                    {r.current.toFixed(1)}
+                  </td>
+                  <td
+                    className={`text-right px-2 font-mono tabular-nums ${
+                      atLow ? "text-green-600 font-bold" : "text-gray-500"
+                    }`}
+                  >
+                    {r.low.toFixed(1)}
+                  </td>
+                  <td className={`text-right pl-2 font-mono text-xs whitespace-nowrap ${t.cls}`}>
+                    {t.arrow} {t.text}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[11px] text-gray-400 mt-2">
+        WHS-style index estimated from posted rounds (avg of the lowest 8 of the last 20). “Low” is the
+        season’s best; trend is the change over the last ~5 rounds — ▼ green means the index is dropping.
+      </p>
+    </Card>
+  );
+}
+
 /* ---------- create league form ---------- */
 
 function CreateLeague({ onCreated, self }) {
@@ -345,15 +493,31 @@ function MembersCard({
   onRemove,
   onAssign,
 }) {
+  // Roster is locked (read-only) once the league is set up; a fresh league
+  // (just you) opens in edit mode so you can add people, and the Edit toggle
+  // brings the controls back when you need to change the lineup.
+  const [edit, setEdit] = useState(league.members.length <= 1);
   return (
-    <Card title={`Golfers · ${league.members.length}`}>
-      {ghinToken ? (
-        <AddMember onSearch={onSearch} existing={existing} onAdd={onAdd} compact />
-      ) : (
-        <div className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 mb-3">
-          Sign in to GHIN again to search and add golfers.
-        </div>
-      )}
+    <Card
+      title={`Golfers · ${league.members.length}`}
+      right={
+        <button
+          type="button"
+          onClick={() => setEdit((v) => !v)}
+          className="text-xs font-semibold text-green-700 bg-transparent border-none cursor-pointer hover:underline px-1"
+        >
+          {edit ? "Done" : "Edit roster"}
+        </button>
+      }
+    >
+      {edit &&
+        (ghinToken ? (
+          <AddMember onSearch={onSearch} existing={existing} onAdd={onAdd} compact />
+        ) : (
+          <div className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 mb-3">
+            Sign in to GHIN again to search and add golfers.
+          </div>
+        ))}
       <div className="space-y-1 mt-3">
         {league.members.map((m) => (
           <div key={m.ghin} className="flex items-center gap-3 py-1.5 min-w-0">
@@ -369,31 +533,40 @@ function MembersCard({
                 {m.club_name ? `${m.club_name} · ` : ""}GHIN #{m.ghin}
               </div>
             </div>
-            {league.teams && (
-              <div className="flex gap-1 shrink-0">
-                {["a", "b"].map((t) => {
-                  const on = m.team === t;
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      title={
-                        on
-                          ? `Remove from ${league.teams[t].name}`
-                          : `Put on ${league.teams[t].name}`
-                      }
-                      onClick={() => onAssign(m.ghin, on ? null : t)}
-                      className={`max-w-24 truncate text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border cursor-pointer transition-colors ${
-                        on ? TEAM_STYLES[t].active : TEAM_STYLES[t].idle
-                      }`}
-                    >
-                      {league.teams[t].name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {String(m.ghin) !== myGhin && (
+            {league.teams &&
+              (edit ? (
+                <div className="flex gap-1 shrink-0">
+                  {["a", "b"].map((t) => {
+                    const on = m.team === t;
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        title={
+                          on
+                            ? `Remove from ${league.teams[t].name}`
+                            : `Put on ${league.teams[t].name}`
+                        }
+                        onClick={() => onAssign(m.ghin, on ? null : t)}
+                        className={`max-w-24 truncate text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border cursor-pointer transition-colors ${
+                          on ? TEAM_STYLES[t].active : TEAM_STYLES[t].idle
+                        }`}
+                      >
+                        {league.teams[t].name}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                m.team && (
+                  <span
+                    className={`shrink-0 max-w-24 truncate text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border ${TEAM_STYLES[m.team].active}`}
+                  >
+                    {league.teams[m.team].name}
+                  </span>
+                )
+              ))}
+            {edit && String(m.ghin) !== myGhin && (
               <button
                 type="button"
                 onClick={() => onRemove(m.ghin)}
@@ -1056,6 +1229,8 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myRounds, 
         onRemove={removeMember}
         onAssign={assignTeam}
       />
+
+      <HandicapBoard rows={rows} />
 
       {league.teams && (
         <TeamsCard league={league} rows={rows} onRename={renameTeams} />
