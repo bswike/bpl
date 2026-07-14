@@ -3,7 +3,7 @@
 // Triggered by Vercel Cron (see vercel.json). Guarded by CRON_SECRET so it
 // can't be run by outsiders.
 import { publishGolfer } from "./_golf.js";
-import { fetchGhinData } from "./_ghinClient.js";
+import { fetchGhinData, isGhinLiveEnabled, isGhinSignInBlocked } from "./_ghinClient.js";
 import { listVaultCredentials, vaultConfigured } from "./_vault.js";
 
 function authorized(req) {
@@ -16,6 +16,9 @@ function authorized(req) {
 
 export default async function handler(req, res) {
   if (!authorized(req)) return res.status(401).json({ error: "Unauthorized" });
+  if (!isGhinLiveEnabled()) {
+    return res.status(200).json({ ok: true, synced: 0, note: "GHIN live sync disabled" });
+  }
   if (!vaultConfigured()) {
     return res.status(200).json({ ok: true, synced: 0, note: "vault not configured" });
   }
@@ -23,6 +26,10 @@ export default async function handler(req, res) {
   const creds = await listVaultCredentials();
   const results = [];
   for (const c of creds) {
+    if (isGhinSignInBlocked(c.ghin)) {
+      results.push({ ghin: c.ghin, ok: false, reason: "sign-in blocked" });
+      continue;
+    }
     try {
       const { golfer, scores } = await fetchGhinData({
         email: c.email,

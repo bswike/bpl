@@ -21,6 +21,7 @@ import CoursesTab from "./golf/CoursesTab";
 import BirdiesTab from "./golf/BirdiesTab";
 import ShotPatternTab from "./golf/ShotPatternTab";
 import LeaguesTab from "./golf/LeaguesTab";
+import { GHIN_LIVE_ENABLED, GHIN_LIVE_OFF_MSG, GHIN_SIGNIN_BLOCKED_MSG, isGhinSignInBlocked } from "./golf/ghinLive";
 
 // Leagues are in private beta while being built — only these GHINs see the tab.
 const LEAGUES_BETA_GHINS = new Set(["11514629"]);
@@ -227,6 +228,17 @@ function LandingPage({ onLoad }) {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError(null);
+    const ghin =
+      ghinNumber.trim() || String(loadSaved()?.golfer?.ghin_number || "");
+    if (isGhinSignInBlocked(ghin)) {
+      const saved = loadSaved();
+      if (saved?.scores?.length) {
+        onLoad(saved, { share, viaLogin: false });
+        return;
+      }
+      setError(GHIN_SIGNIN_BLOCKED_MSG);
+      return;
+    }
     setLoading(true);
     setLoadingMsg("Authenticating with GHIN...");
     try {
@@ -896,7 +908,7 @@ export default function GolfApp() {
   // While signed in with a live GHIN token, silently pull the latest rounds
   // for everyone already on the public feed so the feed isn't stale.
   useEffect(() => {
-    if (!ghinToken || !publicFeed?.length) return;
+    if (!GHIN_LIVE_ENABLED || !ghinToken || !publicFeed?.length) return;
     const ghins = publicFeed
       .map((g) => String(g.golfer?.ghin_number ?? ""))
       .filter((g) => g && g !== myGhin)
@@ -1012,6 +1024,10 @@ export default function GolfApp() {
   // Live "look up a friend" — uses this session's GHIN token, shows a private
   // read-only profile, never publishes. Returns true on success.
   const runLookup = async (ghinNumber) => {
+    if (!GHIN_LIVE_ENABLED) {
+      window.alert(GHIN_LIVE_OFF_MSG);
+      return false;
+    }
     if (!ghinToken) {
       window.alert("Your GHIN session expired — sign in again to look up golfers.");
       return false;
@@ -1046,6 +1062,10 @@ export default function GolfApp() {
   // GHIN-wide name search for the lookup box. Returns matches, or null when
   // the search couldn't run (expired token, network trouble).
   const runGhinSearch = async (query, state) => {
+    if (!GHIN_LIVE_ENABLED) {
+      window.alert(GHIN_LIVE_OFF_MSG);
+      return null;
+    }
     if (!ghinToken) return null;
     try {
       const res = await fetch("/api/golf-search", {
