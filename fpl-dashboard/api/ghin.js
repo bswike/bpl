@@ -1,7 +1,12 @@
 // POST /api/ghin — logs into GHIN, returns the golfer's scores, sets a session
 // cookie, and (optionally) enrolls the golfer in the encrypted sync vault.
 import { signSession, sessionCookie } from "./_golf.js";
-import { fetchGhinData } from "./_ghinClient.js";
+import {
+  fetchGhinData,
+  GHIN_SIGNIN_BLOCKED_MSG,
+  isGhinSignInBlocked,
+  isGhinSignInEmailBlocked,
+} from "./_ghinClient.js";
 import { enrollVault, vaultConfigured } from "./_vault.js";
 
 export default async function handler(req, res) {
@@ -15,6 +20,11 @@ export default async function handler(req, res) {
     const { email, password, ghinNumber, keepSynced } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required." });
+    }
+
+    const explicitGhin = String(ghinNumber || "").trim();
+    if (isGhinSignInBlocked(explicitGhin) || isGhinSignInEmailBlocked(email)) {
+      return res.status(503).json({ error: GHIN_SIGNIN_BLOCKED_MSG });
     }
 
     const { token, resolvedId, golfer, scores } = await fetchGhinData({
@@ -66,6 +76,9 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("GHIN API error:", err);
     const message = err instanceof Error ? err.message : "Unexpected error";
+    if (message === GHIN_SIGNIN_BLOCKED_MSG) {
+      return res.status(503).json({ error: message });
+    }
     return res.status(500).json({ error: message });
   }
 }

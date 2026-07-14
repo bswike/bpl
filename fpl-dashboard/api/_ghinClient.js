@@ -3,6 +3,48 @@
 const API_BASE = "https://api2.ghin.com/api/v1";
 const SOURCE = "GHINcom";
 
+/** Live peer/background GHIN calls (refresh, lookup, search, cron, enrichment). */
+export function isGhinLiveEnabled() {
+  const v = String(process.env.GHIN_LIVE || "").toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+export const GHIN_LIVE_OFF_MSG =
+  "Live GHIN lookups are paused — showing published scores only.";
+
+function ghinSignInBlocklist() {
+  const raw = process.env.GHIN_SIGNIN_BLOCKLIST || "11514629";
+  return new Set(
+    raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  );
+}
+
+function ghinSignInBlockedEmails() {
+  const raw = process.env.GHIN_SIGNIN_BLOCKED_EMAILS || "";
+  return new Set(
+    raw
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+export function isGhinSignInBlocked(ghin) {
+  const g = String(ghin || "").trim();
+  return g && ghinSignInBlocklist().has(g);
+}
+
+export function isGhinSignInEmailBlocked(email) {
+  const e = String(email || "").trim().toLowerCase();
+  return e && ghinSignInBlockedEmails().has(e);
+}
+
+export const GHIN_SIGNIN_BLOCKED_MSG =
+  "GHIN sign-in is paused for this account. Use saved scores or upload a JSON export.";
+
 async function getFirebaseSessionToken() {
   try {
     const res = await fetch(
@@ -428,12 +470,21 @@ export async function attachCourseData(token, scores, { maxCourses = 100 } = {})
 
 /** Full login + fetch. Returns the shape /api/ghin and the cron both need. */
 export async function fetchGhinData({ email, password, ghinNumber }) {
+  const explicit = String(ghinNumber || "").trim();
+  if (isGhinSignInBlocked(explicit) || isGhinSignInEmailBlocked(email)) {
+    throw new Error(GHIN_SIGNIN_BLOCKED_MSG);
+  }
   const sessionToken = await getFirebaseSessionToken();
   const { token, golferIdHint } = await loginToGhin(email, password, sessionToken);
   const resolvedId = await resolveGolferId(token, email, ghinNumber, golferIdHint);
+  if (isGhinSignInBlocked(resolvedId)) {
+    throw new Error(GHIN_SIGNIN_BLOCKED_MSG);
+  }
   const golferInfo = await fetchGolfer(token, resolvedId);
   const scores = await fetchAllScores(token, resolvedId);
-  await attachCourseData(token, scores);
+  if (isGhinLiveEnabled()) {
+    await attachCourseData(token, scores);
+  }
 
   return {
     token,

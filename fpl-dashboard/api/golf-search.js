@@ -4,6 +4,7 @@
 // can pick the right person to look up. Requires a golf_session cookie so
 // this can't be used as an open GHIN proxy.
 import { sessionFromReq } from "./_golf.js";
+import { GHIN_LIVE_OFF_MSG, isGhinLiveEnabled } from "./_ghinClient.js";
 
 const API_BASE = "https://api2.ghin.com/api/v1";
 const SOURCE = "GHINcom";
@@ -35,6 +36,9 @@ export default async function handler(req, res) {
 
   if (!sessionFromReq(req)) {
     return res.status(401).json({ error: "Sign in to search for golfers." });
+  }
+  if (!isGhinLiveEnabled()) {
+    return res.status(503).json({ error: GHIN_LIVE_OFF_MSG });
   }
   const { token, query, state } = req.body || {};
   if (!token) {

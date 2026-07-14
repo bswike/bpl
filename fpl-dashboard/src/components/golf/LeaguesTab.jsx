@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { buildModel, fmtToPar, inDateRange, beforeDate } from "./data";
 import { Avatar, Card, HolesBadge, Scorecard } from "./ui";
 import TripSimPanel from "./TripSimPanel";
+import { GHIN_LIVE_ENABLED } from "./ghinLive";
 
 /** Private mini-leagues (golf trips). v1: owner-only — you create leagues,
  *  add friends found via GHIN search, and see a leaderboard built from
@@ -1195,6 +1196,7 @@ function LeagueDetail({ league, onBack, onChanged, onDeleted, myGhin, myGolfer, 
   };
 
   useEffect(() => {
+    if (!GHIN_LIVE_ENABLED) return;
     for (const m of league.members) {
       const ghin = String(m.ghin);
       if (ghin === myGhin || data[ghin] || loadingRef.current.has(ghin)) continue;

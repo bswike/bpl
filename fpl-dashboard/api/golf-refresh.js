@@ -6,7 +6,12 @@
 // them to sign in again or for the daily sync. Nothing is written server-side.
 // Requires a golf_session cookie so this can't be used as an open GHIN proxy.
 import { sessionFromReq, slimExport } from "./_golf.js";
-import { attachCourseData, hydrateRedactedScores } from "./_ghinClient.js";
+import {
+  attachCourseData,
+  GHIN_LIVE_OFF_MSG,
+  hydrateRedactedScores,
+  isGhinLiveEnabled,
+} from "./_ghinClient.js";
 
 const API_BASE = "https://api2.ghin.com/api/v1";
 const SOURCE = "GHINcom";
@@ -37,6 +42,10 @@ export default async function handler(req, res) {
   // Must be signed in (anti-abuse) and supply a live GHIN token.
   if (!sessionFromReq(req)) {
     return res.status(401).json({ error: "Sign in to refresh the feed." });
+  }
+  if (!isGhinLiveEnabled()) {
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json({ scores: {}, disabled: true, message: GHIN_LIVE_OFF_MSG });
   }
   const { token, ghins } = req.body || {};
   if (!token) {
