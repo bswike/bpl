@@ -7,6 +7,7 @@ const browser = await chromium.launch({ channel: "chrome", headless: true, args:
 const page = await browser.newPage({ viewport: { width: 1280, height: 850 } });
 page.on("pageerror", (e) => console.log("[pageerror]", String(e).slice(0, 300)));
 
+await page.addInitScript(() => localStorage.setItem("swikle-hcp", "12"));
 await page.goto(URL);
 await page.waitForSelector("gmp-map-3d", { timeout: 30000 });
 await page.locator("button", { hasText: /^5Par 5$/ }).first().click();

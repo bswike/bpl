@@ -88,15 +88,50 @@ function interp(table, x) {
   return table[table.length - 1][1];
 }
 
-// expected strokes to hole out from `distYds` with a given lie
-export function expectedStrokes(lie, distYds) {
+// ---------------------------------------------------------------------------
+// Handicap adjustment. Broadie: PGA tee shots E = 2.38 + 0.0041d, a 90s-shooter
+// (~18 hcp) E = 2.79 + 0.0066d -> the skill gap grows with distance:
+// gap_tee(d) = 0.41 + 0.0025d. We use analogous per-lie gap functions and blend
+// linearly by handicap: alpha=0 is the PGA baseline, alpha=1 the 18-hcp golfer.
+// ---------------------------------------------------------------------------
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+export function skillAlpha(handicap) {
+  // PGA pros play ~2 strokes better than scratch per round on a normal course
+  return (clamp(handicap, -5, 40) + 2) / 20;
+}
+
+const GAP = {
+  tee: (d) => 0.41 + 0.0025 * d, // exact, from Broadie's regressions
+  fairway: (d) => 0.3 + 0.0025 * d,
+  rough: (d) => 0.4 + 0.0028 * d,
+  sand: (d) => 0.55 + 0.003 * d, // amateurs struggle most from sand
+  greenFt: (ft) => 0.02 + 0.006 * ft,
+};
+
+// expected strokes to hole out from `distYds` with a given lie.
+// alpha: skill blend (0 = PGA Tour, 1 = 18-handicap), from skillAlpha().
+export function expectedStrokes(lie, distYds, alpha = 0) {
   switch (lie) {
-    case "green": return interp(T_GREEN_FT, distYds * 3);
-    case "tee": return interp(T_TEE, distYds);
-    case "fairway": return interp(T_FAIRWAY, distYds);
-    case "sand": return interp(T_SAND, distYds);
-    default: return interp(T_ROUGH, distYds); // rough / water-drop / recovery
+    case "green": return interp(T_GREEN_FT, distYds * 3) + alpha * GAP.greenFt(distYds * 3);
+    case "tee": return interp(T_TEE, distYds) + alpha * GAP.tee(distYds);
+    case "fairway": return interp(T_FAIRWAY, distYds) + alpha * GAP.fairway(distYds);
+    case "sand": return interp(T_SAND, distYds) + alpha * GAP.sand(distYds);
+    default: return interp(T_ROUGH, distYds) + alpha * GAP.rough(distYds); // rough / water-drop
   }
+}
+
+// dispersion widens with handicap: ~7% lateral (1-sigma) for scratch,
+// ~14% for an 18-handicap
+export function dispersionFor(handicap) {
+  const lateral = 0.07 + 0.0035 * clamp(handicap, 0, 40);
+  return { lateral, depth: lateral * 0.6 };
+}
+
+// typical full drive by handicap
+export function defaultDrive(handicap) {
+  return clamp(Math.round(270 - 2.2 * clamp(handicap, -5, 40)), 180, 285);
 }
 
 // ---------------------------------------------------------------------------
@@ -180,16 +215,17 @@ const SAMPLE_PATTERN = (() => {
 
 // Evaluate one planned shot with dispersion.
 //   origin/aim/pin: [lat,lng]; originLie: 'tee'|'fairway'|... ; par for tee table
-export function evaluateShot({ origin, originLie, aim, pin, par, classify }) {
+//   alpha: skill blend from skillAlpha(); disp: dispersion from dispersionFor()
+export function evaluateShot({ origin, originLie, aim, pin, par, classify, alpha = 0, disp = DISPERSION }) {
   const shotM = distMeters(origin, aim);
   const shotYds = shotM / YD_TO_M;
   const heading = bearing(origin, aim);
-  const sigLatM = shotM * DISPERSION.lateral;
-  const sigDepM = shotM * DISPERSION.depth;
+  const sigLatM = shotM * disp.lateral;
+  const sigDepM = shotM * disp.depth;
 
   const originDistYds = distMeters(origin, pin) / YD_TO_M;
   const originTable = originLie === "tee" && par < 4 ? "fairway" : originLie;
-  const eOrigin = expectedStrokes(originTable, originDistYds);
+  const eOrigin = expectedStrokes(originTable, originDistYds, alpha);
 
   let eZone = 0;
   const pcts = { green: 0, fairway: 0, rough: 0, sand: 0, water: 0, ob: 0 };
@@ -200,9 +236,9 @@ export function evaluateShot({ origin, originLie, aim, pin, par, classify }) {
     pcts[lie] += s.w;
     const dYds = distMeters(pt, pin) / YD_TO_M;
     let e;
-    if (lie === "water") e = 1 + expectedStrokes("rough", dYds); // penalty drop
+    if (lie === "water") e = 1 + expectedStrokes("rough", dYds, alpha); // penalty drop
     else if (lie === "ob") e = 1 + eOrigin; // stroke and distance
-    else e = expectedStrokes(lie, dYds);
+    else e = expectedStrokes(lie, dYds, alpha);
     eZone += s.w * e;
   }
 
@@ -210,19 +246,19 @@ export function evaluateShot({ origin, originLie, aim, pin, par, classify }) {
 }
 
 // Evaluate the whole planned chain: aims = [[lat,lng]...], last aim targets pin area.
-export function evaluateChain({ teePos, teePathYds, aims, pin, par, classify }) {
+export function evaluateChain({ teePos, teePathYds, aims, pin, par, classify, alpha = 0, disp = DISPERSION }) {
   const shots = [];
   let origin = teePos;
   let originLie = "tee";
   for (let k = 0; k < aims.length; k++) {
-    const res = evaluateShot({ origin, originLie, aim: aims[k], pin, par, classify });
+    const res = evaluateShot({ origin, originLie, aim: aims[k], pin, par, classify, alpha, disp });
     shots.push(res);
     origin = aims[k];
     const lie = classify(aims[k]);
     originLie = lie === "water" || lie === "ob" ? "rough" : lie;
   }
   const baselineTable = par >= 4 ? "tee" : "fairway";
-  const baseline = expectedStrokes(baselineTable, teePathYds);
+  const baseline = expectedStrokes(baselineTable, teePathYds, alpha);
   const totalSg = shots.reduce((s, x) => s + x.sg, 0);
   return { shots, baseline, expected: baseline - totalSg };
 }

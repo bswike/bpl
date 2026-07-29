@@ -7,7 +7,9 @@ import {
   buildClassifier,
   evaluateChain,
   defaultAims,
-  DISPERSION,
+  skillAlpha,
+  dispersionFor,
+  defaultDrive,
   cameraState,
   screenToGround,
   groundToScreen,
@@ -119,6 +121,24 @@ export default function CourseMap() {
   const [teeIdx, setTeeIdx] = useState(0);
   const [aims, setAims] = useState(null); // null -> defaults for hole/tee
   const [grabbing, setGrabbing] = useState(false);
+  const [handicap, setHandicap] = useState(() => {
+    const v = typeof localStorage !== "undefined" ? localStorage.getItem("swikle-hcp") : null;
+    return v == null || v === "" ? null : Number(v);
+  });
+  const [hcpModal, setHcpModal] = useState(handicap == null);
+  const [hcpDraft, setHcpDraft] = useState(handicap ?? 12);
+
+  const saveHandicap = useCallback((h) => {
+    const v = Math.max(-5, Math.min(40, Math.round(h)));
+    setHandicap(v);
+    setHcpModal(false);
+    setAims(null); // re-plan with new distances/dispersion
+    try { localStorage.setItem("swikle-hcp", String(v)); } catch { /* noop */ }
+  }, []);
+
+  const hcp = handicap ?? 12;
+  const alpha = useMemo(() => skillAlpha(hcp), [hcp]);
+  const disp = useMemo(() => dispersionFor(hcp), [hcp]);
 
   const selectHole = useCallback((num) => {
     setHole(num);
@@ -132,8 +152,8 @@ export default function CourseMap() {
 
   const effectiveAims = useMemo(() => {
     if (!selected || !tee) return null;
-    return aims ?? defaultAims(tee, selected.par, selected.pin);
-  }, [selected, tee, aims]);
+    return aims ?? defaultAims(tee, selected.par, selected.pin, defaultDrive(hcp));
+  }, [selected, tee, aims, hcp]);
 
   const evalResult = useMemo(() => {
     if (!selected || !tee || !effectiveAims || !classify) return null;
@@ -144,8 +164,10 @@ export default function CourseMap() {
       pin: selected.pin ?? tee.path[tee.path.length - 1],
       par: selected.par,
       classify,
+      alpha,
+      disp,
     });
-  }, [selected, tee, effectiveAims, classify]);
+  }, [selected, tee, effectiveAims, classify, alpha, disp]);
 
   // --- boot ---
   useEffect(() => {
@@ -313,7 +335,7 @@ export default function CourseMap() {
       const head = bearing(from, aim);
       return {
         aim,
-        ellipse: ellipsePath(aim, head, shotM * DISPERSION.lateral, shotM * DISPERSION.depth),
+        ellipse: ellipsePath(aim, head, shotM * disp.lateral, shotM * disp.depth),
         mid: [(from[0] + aim[0]) / 2, (from[1] + aim[1]) / 2],
         text: `${Math.round(shotM / YD_TO_M)} yds`,
       };
@@ -377,7 +399,7 @@ export default function CourseMap() {
       handles.push(handle);
     }
     planRef.current = { count: segs.length, line, ellipses, labels, labelTexts, handles };
-  }, [selected, tee, effectiveAims, status]);
+  }, [selected, tee, effectiveAims, disp, status]);
 
   // --- dragging aim points (pointer events + camera raycast) ---
   const aimsRef = useRef(null);
@@ -500,7 +522,7 @@ export default function CourseMap() {
   }
 
   return (
-    <div className="h-[100dvh] bg-slate-950 text-gray-100 flex flex-col overflow-hidden">
+    <div className="relative h-[100dvh] bg-slate-950 text-gray-100 flex flex-col overflow-hidden">
       <div className="relative flex-1" style={grabbing ? { cursor: "grabbing" } : undefined}>
         <div ref={containerRef} className="absolute inset-0" />
 
@@ -525,6 +547,14 @@ export default function CourseMap() {
                   Par {selected.par} &middot; {tee?.yards ?? selected.yards} yds &middot; HCP {selected.hcp}
                 </div>
               )}
+              <button
+                onClick={() => { setHcpDraft(hcp); setHcpModal(true); }}
+                className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-slate-800 px-2 py-0.5 text-[11px] font-bold text-emerald-300 hover:bg-slate-700"
+                title="Change your handicap"
+              >
+                You: {handicap == null ? "set handicap" : `${hcp} hcp`}
+                <span className="text-gray-500">&#9998;</span>
+              </button>
             </div>
             {selected && (
               <div className="flex flex-col gap-2 pointer-events-auto">
@@ -618,7 +648,7 @@ export default function CourseMap() {
                     </span>
                   </div>
                   <div className="text-[10px] text-gray-500 mt-1">
-                    Drag the <span className="text-emerald-400">&#9679;</span> targets to re-plan shots &middot; SG vs PGA baseline
+                    Drag the <span className="text-emerald-400">&#9679;</span> targets to re-plan shots &middot; SG vs your {hcp}-hcp baseline
                   </div>
                 </div>
               )}
@@ -626,6 +656,54 @@ export default function CourseMap() {
           </div>
         )}
       </div>
+
+      {/* handicap modal */}
+      {hcpModal && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-6">
+          <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-5">
+            <div className="text-[11px] uppercase tracking-widest text-emerald-400 font-semibold">
+              Suntree CC &middot; Challenge
+            </div>
+            <h2 className="text-lg font-bold mt-1">What&apos;s your handicap?</h2>
+            <p className="text-xs text-gray-400 mt-1">
+              Yardages, dispersion, and strokes gained will be tuned to your game.
+            </p>
+            <div className="flex items-center gap-3 mt-4">
+              <input
+                type="range"
+                min={-5}
+                max={36}
+                step={1}
+                value={hcpDraft}
+                onChange={(e) => setHcpDraft(Number(e.target.value))}
+                className="flex-1 accent-emerald-500"
+              />
+              <span className="w-16 text-center text-xl font-bold text-emerald-400">
+                {hcpDraft < 0 ? `+${-hcpDraft}` : hcpDraft}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {[0, 5, 10, 15, 20, 25].map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setHcpDraft(v)}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
+                    hcpDraft === v ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {v === 0 ? "Scratch" : v}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => saveHandicap(hcpDraft)}
+              className="w-full mt-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 py-2 text-sm font-bold text-white"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* hole selector strip */}
       <div className="bg-slate-950 border-t border-slate-800 px-2 py-2 safe-area-bottom">
