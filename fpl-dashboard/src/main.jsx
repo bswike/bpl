@@ -1,4 +1,4 @@
-import React, { StrictMode } from 'react';
+import React, { StrictMode, Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import App from './App.jsx';
@@ -8,6 +8,8 @@ import MastersCalcutta from './components/MastersCalcutta.jsx';
 import Footie from './components/Footie.jsx';
 import Draft from './components/Draft.jsx';
 import Rounds from './components/Rounds.jsx';
+
+const CourseMap = lazy(() => import('./components/CourseMap.jsx'));
 import { Analytics } from '@vercel/analytics/react';
 import './index.css';
 
@@ -23,6 +25,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/draft" element={<Draft />} />
         <Route path="/masters" element={<MastersCalcutta />} />
         <Route path="/rounds" element={<Rounds />} />
+        <Route
+          path="/map"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+              <CourseMap />
+            </Suspense>
+          }
+        />
       </Routes>
     </BrowserRouter>
     <Analytics />
