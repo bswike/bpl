@@ -112,29 +112,39 @@ export default function CourseMap() {
   const mapRef = useRef(null);
   const libRef = useRef(null);
   const overlaysRef = useRef([]);
+  const holeMarkersRef = useRef([]);
   const dataRef = useRef(null);
   const lastFlownHole = useRef(undefined);
   const dragRef = useRef(null); // { idx, groundZ }
-  const [status, setStatus] = useState(MAPS_KEY ? "loading" : "nokey");
+  const [status, setStatus] = useState(MAPS_KEY ? "idle" : "nokey");
   const [course, setCourse] = useState(null);
   const [hole, setHole] = useState(null);
   const [teeIdx, setTeeIdx] = useState(0);
   const [aims, setAims] = useState(null); // null -> defaults for hole/tee
   const [grabbing, setGrabbing] = useState(false);
+  const [screen, setScreen] = useState("menu");
+  const [manifest, setManifest] = useState(null);
+  const [courseSlug, setCourseSlug] = useState(null);
   const [handicap, setHandicap] = useState(() => {
     const v = typeof localStorage !== "undefined" ? localStorage.getItem("swikle-hcp") : null;
     return v == null || v === "" ? null : Number(v);
   });
-  const [hcpModal, setHcpModal] = useState(handicap == null);
   const [hcpDraft, setHcpDraft] = useState(handicap ?? 12);
 
   const saveHandicap = useCallback((h) => {
     const v = Math.max(-5, Math.min(40, Math.round(h)));
     setHandicap(v);
-    setHcpModal(false);
     setAims(null); // re-plan with new distances/dispersion
     try { localStorage.setItem("swikle-hcp", String(v)); } catch { /* noop */ }
+    return v;
   }, []);
+
+  const startCourse = useCallback((slug, h) => {
+    saveHandicap(h);
+    setCourseSlug(slug);
+    setScreen("map");
+    try { localStorage.setItem("swikle-course", slug); } catch { /* noop */ }
+  }, [saveHandicap]);
 
   const hcp = handicap ?? 12;
   const alpha = useMemo(() => skillAlpha(hcp), [hcp]);
@@ -169,15 +179,29 @@ export default function CourseMap() {
     });
   }, [selected, tee, effectiveAims, classify, alpha, disp]);
 
-  // --- boot ---
+  // --- boot: menu manifest + optional ?course= deep link ---
   useEffect(() => {
-    if (!MAPS_KEY) return;
+    fetch("/data/courses.json")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setManifest)
+      .catch(() => setManifest([]));
+    const slug = new URLSearchParams(window.location.search).get("course");
+    if (slug) {
+      setCourseSlug(slug);
+      setScreen("map");
+    }
+  }, []);
+
+  // --- load / switch course ---
+  useEffect(() => {
+    if (!MAPS_KEY || !courseSlug) return;
     let cancelled = false;
     (async () => {
       try {
+        setStatus("loading");
         const [lib, data] = await Promise.all([
           loadGoogleMaps(MAPS_KEY),
-          fetch("/data/suntree-challenge.json").then((r) => {
+          fetch(`/data/${courseSlug}.json`).then((r) => {
             if (!r.ok) throw new Error("course data missing");
             return r.json();
           }),
@@ -186,21 +210,42 @@ export default function CourseMap() {
         libRef.current = lib;
         dataRef.current = data;
         setCourse(data);
+        setHole(null);
+        setTeeIdx(0);
+        setAims(null);
+        lastFlownHole.current = undefined; // force overview flight
 
         const { Map3DElement, MapMode, Marker3DElement, Marker3DInteractiveElement, AltitudeMode, PinElement } = lib;
-        const map = new Map3DElement({
-          center: { ...data.center, altitude: 0 },
-          range: 2000,
-          tilt: 50,
-          heading: 0,
-          ...(MapMode ? { mode: MapMode.SATELLITE } : {}),
-        });
-        map.style.width = "100%";
-        map.style.height = "100%";
-        containerRef.current.innerHTML = "";
-        containerRef.current.appendChild(map);
-        mapRef.current = map;
+        let map = mapRef.current;
+        if (!map) {
+          map = new Map3DElement({
+            center: { ...data.center, altitude: 0 },
+            range: 2000,
+            tilt: 50,
+            heading: 0,
+            ...(MapMode ? { mode: MapMode.SATELLITE } : {}),
+          });
+          map.style.width = "100%";
+          map.style.height = "100%";
+          containerRef.current.innerHTML = "";
+          containerRef.current.appendChild(map);
+          mapRef.current = map;
 
+          // debug hooks for headless calibration tests
+          if (import.meta.env.DEV) {
+            window.__tgv = {
+              map,
+              cameraState: () => cameraState(map, containerRef.current.clientWidth, containerRef.current.clientHeight),
+              screenToGround: (x, y, z = 0) =>
+                screenToGround(cameraState(map, containerRef.current.clientWidth, containerRef.current.clientHeight), x, y, z),
+              groundToScreen: (pt, z = 0) =>
+                groundToScreen(cameraState(map, containerRef.current.clientWidth, containerRef.current.clientHeight), pt, z),
+            };
+          }
+        }
+
+        for (const m of holeMarkersRef.current) m.remove();
+        holeMarkersRef.current = [];
         const MarkerClass = Marker3DInteractiveElement || Marker3DElement;
         for (const h of data.holes) {
           const marker = new MarkerClass({
@@ -222,18 +267,7 @@ export default function CourseMap() {
           }
           marker.addEventListener("gmp-click", () => selectHole(h.num));
           map.appendChild(marker);
-        }
-
-        // debug hooks for headless calibration tests
-        if (import.meta.env.DEV) {
-          window.__tgv = {
-            map,
-            cameraState: () => cameraState(map, containerRef.current.clientWidth, containerRef.current.clientHeight),
-            screenToGround: (x, y, z = 0) =>
-              screenToGround(cameraState(map, containerRef.current.clientWidth, containerRef.current.clientHeight), x, y, z),
-            groundToScreen: (pt, z = 0) =>
-              groundToScreen(cameraState(map, containerRef.current.clientWidth, containerRef.current.clientHeight), pt, z),
-          };
+          holeMarkersRef.current.push(marker);
         }
 
         setStatus("ready");
@@ -243,7 +277,7 @@ export default function CourseMap() {
       }
     })();
     return () => { cancelled = true; };
-  }, [selectHole]);
+  }, [courseSlug, selectHole]);
 
   // --- hole features + camera (hole changes only) ---
   useEffect(() => {
@@ -304,7 +338,7 @@ export default function CourseMap() {
         durationMillis: 2200,
       });
     }
-  }, [hole, status]);
+  }, [hole, status, course]);
 
   // --- shot plan overlays: mutate in place while dragging ---
   const planRef = useRef(null); // { count, line, ellipses[], labels[], labelTexts[], handles[] }
@@ -503,7 +537,7 @@ export default function CourseMap() {
     return (
       <div className="min-h-screen bg-slate-950 text-gray-100 flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-slate-900 border border-slate-700 rounded-2xl p-6">
-          <h1 className="text-xl font-bold mb-2">Suntree CC &middot; 3D Course View</h1>
+          <h1 className="text-xl font-bold mb-2">3D Course View</h1>
           {status === "nokey" ? (
             <p className="text-sm text-gray-400">
               A Google Maps API key is required. Add it as{" "}
@@ -511,10 +545,18 @@ export default function CourseMap() {
               <code className="text-cyan-400">.env.local</code> (and in Vercel env settings), then rebuild.
             </p>
           ) : (
-            <p className="text-sm text-gray-400">
-              Failed to load the map. Check the browser console — most likely the API key is invalid
-              or the Maps JavaScript API isn&apos;t enabled for it.
-            </p>
+            <>
+              <p className="text-sm text-gray-400">
+                Failed to load the course. Check the browser console — most likely the API key is invalid
+                or the Maps JavaScript API isn&apos;t enabled for it.
+              </p>
+              <button
+                onClick={() => { setStatus("idle"); setCourseSlug(null); setScreen("menu"); }}
+                className="mt-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm font-bold text-white"
+              >
+                Back to menu
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -537,41 +579,50 @@ export default function CourseMap() {
           <div className="flex items-start justify-between gap-2">
             <div className="bg-slate-950/80 backdrop-blur rounded-xl px-4 py-2.5 pointer-events-auto">
               <div className="text-[11px] uppercase tracking-widest text-emerald-400 font-semibold">
-                Suntree Country Club
+                {course?.course ?? "3D Course View"}
               </div>
               <div className="text-lg font-bold leading-tight">
-                {selected ? `Hole ${selected.num}` : "Challenge Course"}
+                {selected ? `Hole ${selected.num}` : course?.location ?? ""}
               </div>
               {selected && (
                 <div className="text-xs text-gray-400 mt-0.5">
-                  Par {selected.par} &middot; {tee?.yards ?? selected.yards} yds &middot; HCP {selected.hcp}
+                  Par {selected.par} &middot; {tee?.yards ?? selected.yards} yds
+                  {selected.hcp != null && <> &middot; HCP {selected.hcp}</>}
                 </div>
               )}
               <button
-                onClick={() => { setHcpDraft(hcp); setHcpModal(true); }}
+                onClick={() => { setHcpDraft(hcp); setScreen("menu"); }}
                 className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-slate-800 px-2 py-0.5 text-[11px] font-bold text-emerald-300 hover:bg-slate-700"
-                title="Change your handicap"
+                title="Change your handicap or course"
               >
                 You: {handicap == null ? "set handicap" : `${hcp} hcp`}
                 <span className="text-gray-500">&#9998;</span>
               </button>
             </div>
-            {selected && (
-              <div className="flex flex-col gap-2 pointer-events-auto">
-                <button
-                  onClick={() => selectHole(null)}
-                  className="bg-slate-950/80 backdrop-blur rounded-lg px-3 py-2 text-xs font-semibold text-gray-300 hover:text-white"
-                >
-                  Overview
-                </button>
-                <button
-                  onClick={orbitGreen}
-                  className="bg-emerald-600/90 backdrop-blur rounded-lg px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
-                >
-                  Orbit green
-                </button>
-              </div>
-            )}
+            <div className="flex flex-col gap-2 pointer-events-auto">
+              <button
+                onClick={() => { setHcpDraft(hcp); setScreen("menu"); }}
+                className="bg-slate-950/80 backdrop-blur rounded-lg px-3 py-2 text-xs font-semibold text-gray-300 hover:text-white"
+              >
+                Courses
+              </button>
+              {selected && (
+                <>
+                  <button
+                    onClick={() => selectHole(null)}
+                    className="bg-slate-950/80 backdrop-blur rounded-lg px-3 py-2 text-xs font-semibold text-gray-300 hover:text-white"
+                  >
+                    Overview
+                  </button>
+                  <button
+                    onClick={orbitGreen}
+                    className="bg-emerald-600/90 backdrop-blur rounded-lg px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+                  >
+                    Orbit green
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -657,50 +708,117 @@ export default function CourseMap() {
         )}
       </div>
 
-      {/* handicap modal */}
-      {hcpModal && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-6">
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-5">
-            <div className="text-[11px] uppercase tracking-widest text-emerald-400 font-semibold">
-              Suntree CC &middot; Challenge
+      {/* menu screen: handicap + course selection */}
+      {screen === "menu" && (
+        <div className="absolute inset-0 z-50 overflow-y-auto bg-slate-950">
+          <div className="min-h-full flex items-center justify-center p-6">
+            <div className="w-full max-w-md">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="text-[11px] uppercase tracking-widest text-emerald-400 font-semibold">
+                    Swikle Golf
+                  </div>
+                  <h1 className="text-2xl font-bold mt-0.5">3D Course Scout</h1>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Photorealistic flyovers with shot planning tuned to your game.
+                  </p>
+                </div>
+                {course && (
+                  <button
+                    onClick={() => { saveHandicap(hcpDraft); setScreen("map"); }}
+                    className="rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-bold text-gray-300"
+                    title="Back to the map"
+                  >
+                    &#10005;
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-5 bg-slate-900 border border-slate-700 rounded-2xl p-5">
+                <h2 className="text-sm font-bold">What&apos;s your handicap?</h2>
+                <div className="flex items-center gap-3 mt-3">
+                  <input
+                    type="range"
+                    min={-5}
+                    max={36}
+                    step={1}
+                    value={hcpDraft}
+                    onChange={(e) => setHcpDraft(Number(e.target.value))}
+                    className="flex-1 accent-emerald-500"
+                  />
+                  <span className="w-14 text-center text-xl font-bold text-emerald-400">
+                    {hcpDraft < 0 ? `+${-hcpDraft}` : hcpDraft}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {[0, 5, 10, 15, 20, 25].map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setHcpDraft(v)}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
+                        hcpDraft === v ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      {v === 0 ? "Scratch" : v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <h2 className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold mb-2">
+                  Pick a course
+                </h2>
+                {manifest == null && (
+                  <div className="text-sm text-gray-500 animate-pulse py-4 text-center">Loading courses&hellip;</div>
+                )}
+                <div className="flex flex-col gap-2">
+                  {(manifest ?? []).map((c) =>
+                    c.available ? (
+                      <button
+                        key={c.slug}
+                        onClick={() => startCourse(c.slug, hcpDraft)}
+                        className={`text-left rounded-2xl border p-4 transition-colors ${
+                          c.slug === courseSlug
+                            ? "bg-emerald-950/60 border-emerald-600"
+                            : "bg-slate-900 border-slate-700 hover:border-emerald-600"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-bold">{c.name}</div>
+                            <div className="text-xs text-gray-400 mt-0.5">
+                              {c.location} &middot; {c.holes} holes &middot; Par {c.par} &middot;{" "}
+                              {c.yards.toLocaleString()} yds
+                            </div>
+                          </div>
+                          <span className="shrink-0 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">
+                            {c.slug === courseSlug ? "Resume" : "Play"}
+                          </span>
+                        </div>
+                      </button>
+                    ) : (
+                      <div
+                        key={c.slug}
+                        className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4 opacity-60"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-bold text-gray-400">{c.name}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {c.location} &middot; {c.note ?? "Coming soon"}
+                            </div>
+                          </div>
+                          <span className="shrink-0 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-bold text-gray-500">
+                            Soon
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
             </div>
-            <h2 className="text-lg font-bold mt-1">What&apos;s your handicap?</h2>
-            <p className="text-xs text-gray-400 mt-1">
-              Yardages, dispersion, and strokes gained will be tuned to your game.
-            </p>
-            <div className="flex items-center gap-3 mt-4">
-              <input
-                type="range"
-                min={-5}
-                max={36}
-                step={1}
-                value={hcpDraft}
-                onChange={(e) => setHcpDraft(Number(e.target.value))}
-                className="flex-1 accent-emerald-500"
-              />
-              <span className="w-16 text-center text-xl font-bold text-emerald-400">
-                {hcpDraft < 0 ? `+${-hcpDraft}` : hcpDraft}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {[0, 5, 10, 15, 20, 25].map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setHcpDraft(v)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
-                    hcpDraft === v ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
-                  }`}
-                >
-                  {v === 0 ? "Scratch" : v}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => saveHandicap(hcpDraft)}
-              className="w-full mt-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 py-2 text-sm font-bold text-white"
-            >
-              Save
-            </button>
           </div>
         </div>
       )}

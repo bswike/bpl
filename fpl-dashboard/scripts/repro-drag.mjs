@@ -1,7 +1,7 @@
 // Real mouse-drag repro: drag the drive slider slowly and screenshot mid-drag.
 import { chromium } from "playwright";
 
-const URL = process.argv[2] || "http://localhost:5199/map";
+const URL = process.argv[2] || "http://localhost:5199/map?course=suntree-challenge";
 const browser = await chromium.launch({ channel: "chrome", headless: true, args: ["--use-angle=metal"] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 850 } });
 page.on("pageerror", (e) => console.log("[pageerror]", String(e).slice(0, 300)));

@@ -1,0 +1,36 @@
+[
+  {
+    "slug": "suntree-challenge",
+    "name": "Suntree CC — Challenge",
+    "location": "Melbourne, FL",
+    "available": true,
+    "holes": 18,
+    "par": 72,
+    "yards": 6905
+  },
+  {
+    "slug": "suntree-classic",
+    "name": "Suntree CC — Classic",
+    "location": "Melbourne, FL",
+    "available": true,
+    "holes": 18,
+    "par": 72,
+    "yards": 6699
+  },
+  {
+    "slug": "chaska-town",
+    "name": "Chaska Town Course",
+    "location": "Chaska, MN",
+    "available": true,
+    "holes": 18,
+    "par": 72,
+    "yards": 6757
+  },
+  {
+    "slug": "sparrows-point",
+    "name": "Sparrows Point CC",
+    "location": "Dundalk, MD",
+    "available": false,
+    "note": "Not yet mapped in OpenStreetMap"
+  }
+]
