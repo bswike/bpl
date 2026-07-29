@@ -219,7 +219,7 @@ export default function CourseMap() {
         let map = mapRef.current;
         if (!map) {
           map = new Map3DElement({
-            center: { ...data.center, altitude: 0 },
+            center: { ...data.center, altitude: data.elevM ?? 0 },
             range: 2000,
             tilt: 50,
             heading: 0,
@@ -297,7 +297,7 @@ export default function CourseMap() {
     if (hole == null) {
       if (flyNeeded) {
         map.flyCameraTo({
-          endCamera: { center: { ...data.center, altitude: 0 }, range: 2000, tilt: 50, heading: 0 },
+          endCamera: { center: { ...data.center, altitude: data.elevM ?? 0 }, range: 2000, tilt: 50, heading: 0 },
           durationMillis: 2000,
         });
       }
@@ -330,7 +330,7 @@ export default function CourseMap() {
       const mid = [(t.pos[0] + target[0]) / 2, (t.pos[1] + target[1]) / 2];
       map.flyCameraTo({
         endCamera: {
-          center: { lat: mid[0], lng: mid[1], altitude: 0 },
+          center: { lat: mid[0], lng: mid[1], altitude: h.elevM ?? data.elevM ?? 0 },
           heading: bearing(t.pos, target),
           tilt: 66,
           range: Math.max(300, lengthM * 1.5),
@@ -527,7 +527,7 @@ export default function CourseMap() {
     const h = data.holes.find((x) => x.num === hole);
     const target = h.pin || h.line[h.line.length - 1];
     map.flyCameraAround({
-      camera: { center: { lat: target[0], lng: target[1], altitude: 0 }, tilt: 60, range: 160 },
+      camera: { center: { lat: target[0], lng: target[1], altitude: h.elevM ?? data.elevM ?? 0 }, tilt: 60, range: 160 },
       durationMillis: 16000,
       repeatCount: 1,
     });

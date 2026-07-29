@@ -141,6 +141,16 @@ const FEATURE_TYPES = new Set(["fairway", "green", "tee", "bunker", "water_hazar
 const MAX_ASSIGN_DIST = 150;
 const round6 = (v) => Number(v.toFixed(6));
 
+// ground elevation (m above sea level) for camera targets — the 3D Maps
+// camera uses absolute altitudes, so aiming at 0 is underground inland
+async function elevations(points) {
+  const lat = points.map((p) => p[0].toFixed(5)).join(",");
+  const lon = points.map((p) => p[1].toFixed(5)).join(",");
+  const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`);
+  if (!res.ok) throw new Error(`elevation HTTP ${res.status}`);
+  return (await res.json()).elevation;
+}
+
 async function overpass(query) {
   for (let attempt = 1; attempt <= 3; attempt++) {
     const res = await fetch("https://overpass-api.de/api/interpreter", {
@@ -285,11 +295,23 @@ out geom;`;
       lat: allPts.reduce((s, p) => s + p[0], 0) / allPts.length,
       lng: allPts.reduce((s, p) => s + p[1], 0) / allPts.length,
     };
+
+    // ground elevations: course center + each hole's midpoint (camera targets)
+    const holeMids = holes.map((h) => {
+      const t = h.tees[0]?.pos ?? h.line[0];
+      const end = h.pin ?? h.line[h.line.length - 1];
+      return [(t[0] + end[0]) / 2, (t[1] + end[1]) / 2];
+    });
+    const elevs = await elevations([[center.lat, center.lng], ...holeMids]);
+    const elevM = Math.round(elevs[0]);
+    holes.forEach((h, i) => { h.elevM = Math.round(elevs[i + 1]); });
+
     const out = {
       course: course.name,
       location: course.location,
       source: "OpenStreetMap (ODbL) via Overpass API, fetched " + new Date().toISOString().slice(0, 10),
       center,
+      elevM,
       holes,
       features: courseFeatures,
       boundary,
