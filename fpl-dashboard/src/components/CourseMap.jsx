@@ -130,6 +130,10 @@ export default function CourseMap() {
     return v == null || v === "" ? null : Number(v);
   });
   const [hcpDraft, setHcpDraft] = useState(handicap ?? 12);
+  // strokes-gained panel: collapsed by default on small screens
+  const [sgOpen, setSgOpen] = useState(
+    () => typeof window === "undefined" || !window.matchMedia("(max-width: 640px)").matches
+  );
 
   const saveHandicap = useCallback((h) => {
     const v = Math.max(-5, Math.min(40, Math.round(h)));
@@ -627,17 +631,64 @@ export default function CourseMap() {
         </div>
 
         {/* tee box + strokes gained panel */}
-        {selected && (
+        {selected && !sgOpen && (
+          <div className="absolute bottom-2 left-3 right-3 pointer-events-none flex flex-col gap-2 items-start">
+            <button
+              onClick={() => setSgOpen(true)}
+              className="bg-slate-950/85 backdrop-blur rounded-xl px-3 py-2 pointer-events-auto max-w-sm w-full sm:w-auto flex items-center gap-3 text-left"
+            >
+              <span className="shrink-0 rounded-lg bg-emerald-600 px-2 py-1 text-center">
+                <span className="block text-[9px] font-bold leading-tight text-emerald-100">
+                  {TEE_NAMES[Math.min(teeIdx, selected.tees.length - 1)] ?? "T"}
+                </span>
+                <span className="block text-xs font-bold leading-tight text-white">{tee?.yards}</span>
+              </span>
+              {evalResult ? (
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[9px] uppercase tracking-widest text-gray-500 font-semibold">
+                    Expected score
+                  </span>
+                  <span className="block text-sm font-bold leading-tight">
+                    {evalResult.expected.toFixed(2)}
+                    <span
+                      className={`ml-1.5 text-xs font-bold ${
+                        evalResult.expected <= selected.par ? "text-emerald-400" : "text-amber-400"
+                      }`}
+                    >
+                      ({evalResult.expected - selected.par >= 0 ? "+" : ""}
+                      {(evalResult.expected - selected.par).toFixed(2)})
+                    </span>
+                  </span>
+                </span>
+              ) : (
+                <span className="flex-1" />
+              )}
+              <span className="shrink-0 text-[10px] uppercase tracking-widest font-semibold text-emerald-300">
+                Details &#9652;
+              </span>
+            </button>
+          </div>
+        )}
+        {selected && sgOpen && (
           <div className="absolute bottom-2 left-3 right-3 pointer-events-none flex flex-col gap-2 items-start">
             <div className="bg-slate-950/85 backdrop-blur rounded-xl px-3 py-2 pointer-events-auto max-w-sm w-full sm:w-auto">
               <div className="flex items-center justify-between gap-4 mb-1.5">
                 <div className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold">Tee box</div>
-                <button
-                  onClick={() => setAims(null)}
-                  className="text-[10px] uppercase tracking-widest font-semibold text-gray-400 hover:text-white"
-                >
-                  Reset shots
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setAims(null)}
+                    className="text-[10px] uppercase tracking-widest font-semibold text-gray-400 hover:text-white"
+                  >
+                    Reset shots
+                  </button>
+                  <button
+                    onClick={() => setSgOpen(false)}
+                    className="text-[10px] uppercase tracking-widest font-semibold text-emerald-300 hover:text-white"
+                    title="Collapse panel"
+                  >
+                    Hide &#9662;
+                  </button>
+                </div>
               </div>
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
                 {selected.tees.map((t, i) => (
