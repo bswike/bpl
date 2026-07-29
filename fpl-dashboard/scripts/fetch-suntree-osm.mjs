@@ -135,18 +135,67 @@ for (const n of nodes) {
   pins.push({ hole: hole.num, lat: Number(n.lat.toFixed(6)), lon: Number(n.lon.toFixed(6)) });
 }
 
+// Build the "playing path" from a tee: tee centroid -> hole centerline beyond
+// the tee's projection -> pin/green. Used for yardages and landing points.
+function playingPath(teePos, line, pin) {
+  // find the projection of the tee onto the centerline (as cumulative distance)
+  let bestSeg = 0, bestDist = Infinity, bestT = 0;
+  for (let i = 0; i < line.length - 1; i++) {
+    const a = line[i], b = line[i + 1];
+    const scale = mPerDegLng((a.lat + b.lat) / 2);
+    const ax = a.lon * scale, ay = a.lat * M_PER_DEG_LAT;
+    const bx = b.lon * scale, by = b.lat * M_PER_DEG_LAT;
+    const px = teePos.lon * scale, py = teePos.lat * M_PER_DEG_LAT;
+    const dx = bx - ax, dy = by - ay;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const d = Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    if (d < bestDist) { bestDist = d; bestSeg = i; bestT = t; }
+  }
+  const path = [teePos];
+  for (let i = bestSeg + 1; i < line.length; i++) path.push(line[i]);
+  // skip the partially-passed vertex if the tee projects almost onto it
+  if (bestT < 0.95 && bestSeg + 1 < line.length) {
+    // keep as is: first centerline point after projection already included
+  }
+  if (pin) path.push(pin);
+  // drop near-duplicate consecutive points
+  return path.filter((p, i) => i === 0 || distMeters(p, path[i - 1]) > 5);
+}
+
 const M_TO_YD = 1.09361;
 const holes = allHoles
   .filter((h) => h.course === "Challenge")
   .sort((a, b) => a.num - b.num)
-  .map((h) => ({
-    num: h.num,
-    par: h.par,
-    hcp: h.hcp,
-    yards: Math.round(lineLengthMeters(h.line) * M_TO_YD),
-    line: h.line.map((c) => [Number(c.lat.toFixed(6)), Number(c.lon.toFixed(6))]),
-    pin: pins.find((p) => p.hole === h.num) ? [pins.find((p) => p.hole === h.num).lat, pins.find((p) => p.hole === h.num).lon] : null,
-  }));
+  .map((h) => {
+    const pinNode = pins.find((p) => p.hole === h.num);
+    const pin = pinNode ? { lat: pinNode.lat, lon: pinNode.lon } : null;
+
+    // tee sets for this hole: centroid of each tee polygon + playing path/yards
+    const tees = features
+      .filter((f) => f.type === "tee" && f.hole === h.num)
+      .map((f) => {
+        const c = centroid(f.coords.map(([lat, lon]) => ({ lat, lon })));
+        const path = playingPath(c, h.line, pin);
+        return {
+          pos: [Number(c.lat.toFixed(6)), Number(c.lon.toFixed(6))],
+          yards: Math.round(lineLengthMeters(path) * M_TO_YD),
+          path: path.map((p) => [Number(p.lat.toFixed(6)), Number(p.lon.toFixed(6))]),
+        };
+      })
+      .sort((a, b) => b.yards - a.yards);
+
+    return {
+      num: h.num,
+      par: h.par,
+      hcp: h.hcp,
+      yards: Math.round(lineLengthMeters(h.line) * M_TO_YD),
+      line: h.line.map((c) => [Number(c.lat.toFixed(6)), Number(c.lon.toFixed(6))]),
+      pin: pin ? [pin.lat, pin.lon] : null,
+      tees,
+    };
+  });
 
 const allPts = holes.flatMap((h) => h.line);
 const center = {
