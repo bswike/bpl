@@ -263,6 +263,26 @@ export function evaluateChain({ teePos, teePathYds, aims, pin, par, classify, al
   return { shots, baseline, expected: baseline - totalSg };
 }
 
+// Re-plan the remaining shots from an arbitrary position, inserting layups
+// while the pin is out of reach for this player. Always ends at the pin.
+export function replanFrom(pos, pin, driveYds = 250) {
+  const target = pin ? [...pin] : null;
+  if (!target) return [];
+  const maxM = driveYds * YD_TO_M;
+  const aims = [];
+  let cur = pos;
+  for (let guard = 0; guard < 8; guard++) {
+    const remM = distMeters(cur, target);
+    if (remM <= maxM) break;
+    // full swing toward the pin, but leave a comfortable wedge when laying up
+    const stepM = Math.max(Math.min(maxM * 0.95, remM - 90 * YD_TO_M), maxM * 0.4);
+    cur = offsetPoint(cur, bearing(cur, target), stepM);
+    aims.push(cur);
+  }
+  aims.push(target);
+  return aims;
+}
+
 // default aim points for a tee: drive (par 4/5), layup (par 5), then pin
 export function defaultAims(tee, par, pin, driveYds = 250) {
   const path = tee.path;

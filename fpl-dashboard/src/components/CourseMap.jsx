@@ -7,6 +7,7 @@ import {
   buildClassifier,
   evaluateChain,
   defaultAims,
+  replanFrom,
   skillAlpha,
   dispersionFor,
   defaultDrive,
@@ -442,6 +443,10 @@ export default function CourseMap() {
   // --- dragging aim points (pointer events + camera raycast) ---
   const aimsRef = useRef(null);
   aimsRef.current = effectiveAims;
+  const planCtxRef = useRef(null);
+  planCtxRef.current = selected && tee
+    ? { pin: selected.pin ?? tee.path[tee.path.length - 1], driveYds: defaultDrive(hcp) }
+    : null;
   useEffect(() => {
     const el = containerRef.current;
     const map = mapRef.current;
@@ -504,11 +509,28 @@ export default function CourseMap() {
     };
 
     const onUp = (e) => {
-      if (!dragRef.current) return;
+      const drag = dragRef.current;
+      if (!drag) return;
       dragRef.current = null;
       setGrabbing(false);
       e.stopPropagation();
       try { el.releasePointerCapture(e.pointerId); } catch { /* noop */ }
+
+      // re-plan the shots after the dropped aim: insert layups if the pin is
+      // now out of reach, drop shots that are no longer needed
+      const ctx = planCtxRef.current;
+      if (!ctx) return;
+      setAims((prev) => {
+        const base = prev ?? aimsRef.current;
+        if (!base) return prev;
+        const dropped = base[drag.idx];
+        const isLast = drag.idx === base.length - 1;
+        const remYds = distMeters(dropped, ctx.pin) / YD_TO_M;
+        // nudging the final aim around the green is intentional — leave it
+        if (isLast && remYds <= 45) return base;
+        const tail = replanFrom(dropped, ctx.pin, ctx.driveYds);
+        return [...base.slice(0, drag.idx + 1), ...tail];
+      });
     };
 
     // capture phase so the map's own camera-pan handlers never see the drag
