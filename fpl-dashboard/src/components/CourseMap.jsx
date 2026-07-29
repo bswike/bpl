@@ -135,7 +135,8 @@ function planShots(tee, par) {
   const totalM = pathLengthM(path);
   const targets = []; // distances (m) along path where each shot lands
   if (par >= 4) {
-    const driveM = Math.min(tee.driveYds * YD_TO_M, totalM * 0.75);
+    // cap the drive so at least a 20yd pitch remains
+    const driveM = Math.min(tee.driveYds * YD_TO_M, totalM - 20 * YD_TO_M);
     targets.push(driveM);
     if (par >= 5) {
       const remainingM = totalM - driveM;
@@ -254,16 +255,16 @@ export default function CourseMap() {
     return () => { cancelled = true; };
   }, [selectHole]);
 
-  // --- draw overlays + fly camera when selection changes ---
+  // --- hole features + camera: redrawn only when the hole changes ---
   useEffect(() => {
     const map = mapRef.current;
     const lib = libRef.current;
     const data = dataRef.current;
     if (!map || !lib || !data || status !== "ready") return;
 
-    const { Polyline3DElement, Polygon3DElement, Marker3DElement, AltitudeMode } = lib;
+    const { Polygon3DElement, AltitudeMode } = lib;
 
-    // clear previous hole overlays
+    // clear previous hole's feature overlays
     for (const el of overlaysRef.current) el.remove();
     overlaysRef.current = [];
 
@@ -271,7 +272,6 @@ export default function CourseMap() {
     lastFlownHole.current = hole;
 
     if (hole == null) {
-      // overview: fly out over the whole course
       if (flyNeeded) {
         map.flyCameraTo({
           endCamera: { center: { ...data.center, altitude: 0 }, range: 2000, tilt: 50, heading: 0 },
@@ -283,9 +283,7 @@ export default function CourseMap() {
 
     const h = data.holes.find((x) => x.num === hole);
     if (!h) return;
-    const tee = h.tees[Math.min(teeIdx, h.tees.length - 1)];
 
-    // this hole's features
     for (const f of data.features) {
       if (f.hole !== h.num) continue;
       const style = FEATURE_STYLES[f.type];
@@ -302,62 +300,115 @@ export default function CourseMap() {
       overlaysRef.current.push(poly);
     }
 
-    if (tee) {
-      const plan = planShots({ ...tee, driveYds }, h.par);
+    if (flyNeeded) {
+      const tee = h.tees[0] ?? { pos: h.line[0], path: h.line };
+      const target = h.pin || tee.path[tee.path.length - 1];
+      const lengthM = distMeters(tee.pos, target);
+      const mid = [(tee.pos[0] + target[0]) / 2, (tee.pos[1] + target[1]) / 2];
+      map.flyCameraTo({
+        endCamera: {
+          center: { lat: mid[0], lng: mid[1], altitude: 0 },
+          heading: bearing(tee.pos, target),
+          tilt: 66,
+          range: Math.max(300, lengthM * 1.5),
+        },
+        durationMillis: 2200,
+      });
+    }
+  }, [hole, status]);
 
-      // shot path: straight segments tee -> landing(s) -> green
-      const line = new Polyline3DElement({
-        path: plan.points.map(toLatLng),
-        strokeColor: "#ffffffe6",
-        strokeWidth: 5,
+  // --- shot plan: mutated in place so slider drags don't churn 3D elements ---
+  const planRef = useRef(null); // { key, line, ellipses[], labels[], labelTexts[] }
+  useEffect(() => {
+    const map = mapRef.current;
+    const lib = libRef.current;
+    const data = dataRef.current;
+    if (!map || !lib || !data || status !== "ready") return;
+
+    const { Polyline3DElement, Polygon3DElement, Marker3DElement, AltitudeMode } = lib;
+
+    const teardown = () => {
+      const pr = planRef.current;
+      if (!pr) return;
+      pr.line.remove();
+      for (const el of pr.ellipses) el.remove();
+      for (const el of pr.labels) el.remove();
+      planRef.current = null;
+    };
+
+    const h = hole != null && data.holes.find((x) => x.num === hole);
+    const tee = h && h.tees[Math.min(teeIdx, h.tees.length - 1)];
+    if (!h || !tee) {
+      teardown();
+      return;
+    }
+
+    const plan = planShots({ ...tee, driveYds }, h.par);
+    const shotGeom = plan.shots.map((shot) => {
+      const aM = shot.yds * YD_TO_M * 0.09; // lateral half-width ~9%
+      const bM = shot.yds * YD_TO_M * 0.055; // depth half-length ~5.5%
+      const mid = [(shot.from[0] + shot.to[0]) / 2, (shot.from[1] + shot.to[1]) / 2];
+      return {
+        ellipsePath: ellipse(shot.to, shot.heading, aM, bM),
+        labelPos: { lat: mid[0], lng: mid[1], altitude: 15 },
+        labelText: `${shot.yds} yds`,
+      };
+    });
+
+    const key = `${hole}:${teeIdx}`;
+    const pr = planRef.current;
+
+    if (pr && pr.key === key && pr.ellipses.length === plan.shots.length) {
+      // fast path: update geometry on the existing elements
+      pr.line.path = plan.points.map(toLatLng);
+      shotGeom.forEach((g, i) => {
+        pr.ellipses[i].path = g.ellipsePath;
+        pr.labels[i].position = g.labelPos;
+        if (pr.labelTexts[i] !== g.labelText) {
+          pr.labels[i].querySelector("template")?.remove();
+          pr.labels[i].append(yardageChip(g.labelText));
+          pr.labelTexts[i] = g.labelText;
+        }
+      });
+      return;
+    }
+
+    // slow path: (re)build the plan elements
+    teardown();
+    const line = new Polyline3DElement({
+      path: plan.points.map(toLatLng),
+      strokeColor: "#ffffffe6",
+      strokeWidth: 5,
+      altitudeMode: AltitudeMode.CLAMP_TO_GROUND,
+      drawsOccludedSegments: true,
+    });
+    map.appendChild(line);
+
+    const ellipses = [];
+    const labels = [];
+    const labelTexts = [];
+    for (const g of shotGeom) {
+      const disp = new Polygon3DElement({
+        path: g.ellipsePath,
+        fillColor: "#ffffff30",
+        strokeColor: "#ffffffcc",
+        strokeWidth: 2,
         altitudeMode: AltitudeMode.CLAMP_TO_GROUND,
         drawsOccludedSegments: true,
       });
-      map.appendChild(line);
-      overlaysRef.current.push(line);
+      map.appendChild(disp);
+      ellipses.push(disp);
 
-      for (const shot of plan.shots) {
-        // dispersion ellipse at each target, scaled to shot length
-        const aM = shot.yds * YD_TO_M * 0.09; // lateral half-width ~9%
-        const bM = shot.yds * YD_TO_M * 0.055; // depth half-length ~5.5%
-        const disp = new Polygon3DElement({
-          path: ellipse(shot.to, shot.heading, aM, bM),
-          fillColor: "#ffffff30",
-          strokeColor: "#ffffffcc",
-          strokeWidth: 2,
-          altitudeMode: AltitudeMode.CLAMP_TO_GROUND,
-          drawsOccludedSegments: true,
-        });
-        map.appendChild(disp);
-        overlaysRef.current.push(disp);
-
-        // yardage label floating over the middle of the segment (text chip, no pin)
-        const mid = [(shot.from[0] + shot.to[0]) / 2, (shot.from[1] + shot.to[1]) / 2];
-        const label = new Marker3DElement({
-          position: { lat: mid[0], lng: mid[1], altitude: 15 },
-          altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
-        });
-        label.append(yardageChip(`${shot.yds} yds`));
-        map.appendChild(label);
-        overlaysRef.current.push(label);
-      }
-
-      // camera: stand behind the selected tee looking down the hole
-      if (flyNeeded) {
-        const target = h.pin || tee.path[tee.path.length - 1];
-        const lengthM = distMeters(tee.pos, target);
-        const mid = [(tee.pos[0] + target[0]) / 2, (tee.pos[1] + target[1]) / 2];
-        map.flyCameraTo({
-          endCamera: {
-            center: { lat: mid[0], lng: mid[1], altitude: 0 },
-            heading: bearing(tee.pos, target),
-            tilt: 66,
-            range: Math.max(300, lengthM * 1.5),
-          },
-          durationMillis: 2200,
-        });
-      }
+      const label = new Marker3DElement({
+        position: g.labelPos,
+        altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
+      });
+      label.append(yardageChip(g.labelText));
+      map.appendChild(label);
+      labels.push(label);
+      labelTexts.push(g.labelText);
     }
+    planRef.current = { key, line, ellipses, labels, labelTexts };
   }, [hole, teeIdx, driveYds, status]);
 
   const orbitGreen = useCallback(() => {
