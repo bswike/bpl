@@ -36,9 +36,27 @@ function loadGoogleMaps(key) {
         : (d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)));
     })({ key, v: "beta" });
     /* eslint-enable */
-    window.google.maps.importLibrary("maps3d").then(resolve, reject);
+    Promise.all([
+      window.google.maps.importLibrary("maps3d"),
+      window.google.maps.importLibrary("marker"), // PinElement for custom pins
+    ]).then(([maps3d, marker]) => resolve({ ...maps3d, PinElement: marker.PinElement }), reject);
   });
   return mapsLoaded;
+}
+
+// small dark "chip" with text, used for floating yardage labels
+function yardageChip(text) {
+  const w = text.length * 9 + 18;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg.setAttribute("width", String(w));
+  svg.setAttribute("height", "28");
+  svg.innerHTML =
+    `<rect x="1" y="1" width="${w - 2}" height="26" rx="13" fill="#020617" fill-opacity="0.85" stroke="#ffffff" stroke-opacity="0.35"/>` +
+    `<text x="${w / 2}" y="19" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700" font-family="Helvetica, Arial, sans-serif">${text}</text>`;
+  const tmpl = document.createElement("template");
+  tmpl.content.append(svg);
+  return tmpl;
 }
 
 // ---- geo helpers (equirectangular approx, fine at course scale) ----
@@ -189,7 +207,7 @@ export default function CourseMap() {
         dataRef.current = data;
         setCourse(data);
 
-        const { Map3DElement, MapMode, Marker3DElement, Marker3DInteractiveElement, AltitudeMode } = lib;
+        const { Map3DElement, MapMode, Marker3DElement, Marker3DInteractiveElement, AltitudeMode, PinElement } = lib;
         const map = new Map3DElement({
           center: { ...data.center, altitude: 0 },
           range: 2000,
@@ -210,8 +228,19 @@ export default function CourseMap() {
             position: { lat: h.line[0][0], lng: h.line[0][1], altitude: 12 },
             altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
             extruded: true,
-            label: String(h.num),
           });
+          if (PinElement) {
+            const pin = new PinElement({
+              background: "#059669",
+              borderColor: "#022c22",
+              glyphColor: "#ffffff",
+              glyph: String(h.num),
+              scale: 1.0,
+            });
+            marker.append(pin.element ?? pin);
+          } else {
+            marker.label = String(h.num);
+          }
           marker.addEventListener("gmp-click", () => selectHole(h.num));
           map.appendChild(marker);
         }
@@ -302,13 +331,13 @@ export default function CourseMap() {
         map.appendChild(disp);
         overlaysRef.current.push(disp);
 
-        // yardage label floating over the middle of the segment
+        // yardage label floating over the middle of the segment (text chip, no pin)
         const mid = [(shot.from[0] + shot.to[0]) / 2, (shot.from[1] + shot.to[1]) / 2];
         const label = new Marker3DElement({
           position: { lat: mid[0], lng: mid[1], altitude: 15 },
           altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
-          label: `${shot.yds} yds`,
         });
+        label.append(yardageChip(`${shot.yds} yds`));
         map.appendChild(label);
         overlaysRef.current.push(label);
       }
