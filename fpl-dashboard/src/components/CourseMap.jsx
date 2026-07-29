@@ -1,16 +1,27 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import {
+  YD_TO_M,
+  bearing,
+  distMeters,
+  ellipsePath,
+  buildClassifier,
+  evaluateChain,
+  defaultAims,
+  DISPERSION,
+  cameraState,
+  screenToGround,
+  groundToScreen,
+  calibrateGroundZ,
+} from "./courseMapEngine";
 
 // ---------------------------------------------------------------------------
 // 3D course viewer for Suntree CC (Challenge) built on Google's Photorealistic
-// 3D Maps (Map3DElement). Course geometry comes from OpenStreetMap, baked into
-// /data/suntree-challenge.json by scripts/fetch-suntree-osm.mjs.
-// Features: per-hole flyovers, tee box selection, shot planning with landing
-// points + dispersion ellipses, segment yardages.
+// 3D Maps. Course geometry from OpenStreetMap (baked JSON). Features: per-hole
+// flyovers, tee selection, draggable shot plan with live strokes-gained.
 // ---------------------------------------------------------------------------
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-// Official Google Maps JS API bootstrap (importLibrary loader)
 let mapsLoaded = null;
 function loadGoogleMaps(key) {
   if (mapsLoaded) return mapsLoaded;
@@ -38,7 +49,7 @@ function loadGoogleMaps(key) {
     /* eslint-enable */
     Promise.all([
       window.google.maps.importLibrary("maps3d"),
-      window.google.maps.importLibrary("marker"), // PinElement for custom pins
+      window.google.maps.importLibrary("marker"),
     ]).then(([maps3d, marker]) => resolve({ ...maps3d, PinElement: marker.PinElement }), reject);
   });
   return mapsLoaded;
@@ -59,109 +70,23 @@ function yardageChip(text) {
   return tmpl;
 }
 
-// ---- geo helpers (equirectangular approx, fine at course scale) ----
-const M_PER_DEG_LAT = 111320;
-const YD_TO_M = 0.9144;
-const toRad = (d) => (d * Math.PI) / 180;
-const toDeg = (r) => (r * 180) / Math.PI;
+// drag handle: white ring with emerald core
+function handleGlyph() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg.setAttribute("width", "26");
+  svg.setAttribute("height", "26");
+  svg.innerHTML =
+    `<circle cx="13" cy="13" r="11" fill="#020617" fill-opacity="0.55" stroke="#ffffff" stroke-width="2.5"/>` +
+    `<circle cx="13" cy="13" r="4.5" fill="#34d399"/>`;
+  const tmpl = document.createElement("template");
+  tmpl.content.append(svg);
+  return tmpl;
+}
+
 const toLatLng = (pair) => ({ lat: pair[0], lng: pair[1] });
 
-function bearing(a, b) {
-  // a, b: [lat, lng]
-  const [lat1, lng1] = [toRad(a[0]), toRad(a[1])];
-  const [lat2, lng2] = [toRad(b[0]), toRad(b[1])];
-  const dLng = lng2 - lng1;
-  const y = Math.sin(dLng) * Math.cos(lat2);
-  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
-  return (toDeg(Math.atan2(y, x)) + 360) % 360;
-}
-
-function distMeters(a, b) {
-  const dy = (b[0] - a[0]) * M_PER_DEG_LAT;
-  const dx = (b[1] - a[1]) * M_PER_DEG_LAT * Math.cos(toRad((a[0] + b[0]) / 2));
-  return Math.hypot(dx, dy);
-}
-
-// move from point along heading (deg) by dist meters -> [lat, lng]
-function offset(p, headingDeg, distM) {
-  const th = toRad(headingDeg);
-  const dLat = (distM * Math.cos(th)) / M_PER_DEG_LAT;
-  const dLng = (distM * Math.sin(th)) / (M_PER_DEG_LAT * Math.cos(toRad(p[0])));
-  return [p[0] + dLat, p[1] + dLng];
-}
-
-// walk `distM` meters along a polyline path; returns { point, heading }
-function pointAlong(path, distM) {
-  let remaining = distM;
-  for (let i = 0; i < path.length - 1; i++) {
-    const seg = distMeters(path[i], path[i + 1]);
-    if (remaining <= seg) {
-      const t = seg === 0 ? 0 : remaining / seg;
-      const point = [
-        path[i][0] + (path[i + 1][0] - path[i][0]) * t,
-        path[i][1] + (path[i + 1][1] - path[i][1]) * t,
-      ];
-      return { point, heading: bearing(path[i], path[i + 1]) };
-    }
-    remaining -= seg;
-  }
-  const last = path[path.length - 1];
-  const prev = path[path.length - 2] || last;
-  return { point: last, heading: bearing(prev, last) };
-}
-
-function pathLengthM(path) {
-  let total = 0;
-  for (let i = 0; i < path.length - 1; i++) total += distMeters(path[i], path[i + 1]);
-  return total;
-}
-
-// dispersion ellipse polygon: lateral half-width a, depth half-length b (meters)
-function ellipse(center, headingDeg, aM, bM, n = 36) {
-  const pts = [];
-  for (let i = 0; i <= n; i++) {
-    const phi = (i / n) * 2 * Math.PI;
-    const lateral = aM * Math.sin(phi); // across the line of play
-    const depth = bM * Math.cos(phi); // along the line of play
-    const p1 = offset(center, headingDeg, depth);
-    pts.push(toLatLng(offset(p1, headingDeg + 90, lateral)));
-  }
-  return pts;
-}
-
-// plan shots from a tee: returns { points: [[lat,lng]...], shots: [{from,to,yds,heading}] }
-function planShots(tee, par) {
-  const path = tee.path;
-  const totalM = pathLengthM(path);
-  const targets = []; // distances (m) along path where each shot lands
-  if (par >= 4) {
-    // cap the drive so at least a 20yd pitch remains
-    const driveM = Math.min(tee.driveYds * YD_TO_M, totalM - 20 * YD_TO_M);
-    targets.push(driveM);
-    if (par >= 5) {
-      const remainingM = totalM - driveM;
-      const approachM = 100 * YD_TO_M; // leave a 100yd approach
-      if (remainingM > 220 * YD_TO_M) targets.push(totalM - approachM);
-    }
-  }
-  targets.push(totalM); // final shot to the green
-
-  const points = [path[0]];
-  const shots = [];
-  let prevM = 0;
-  let prevPt = path[0];
-  for (const d of targets) {
-    const { point, heading } = pointAlong(path, d);
-    const yds = Math.round((d - prevM) / YD_TO_M);
-    shots.push({ from: prevPt, to: point, yds, heading: bearing(prevPt, point) || heading });
-    points.push(point);
-    prevM = d;
-    prevPt = point;
-  }
-  return { points, shots };
-}
-
-// hex8 colors (#RRGGBBAA) — the 3D Maps API doesn't accept css color names/rgba()
+// hex8 colors — the 3D Maps API doesn't accept css color names/rgba()
 const FEATURE_STYLES = {
   green: { fill: "#34d39961", stroke: "#34d399f2" },
   fairway: { fill: "#4ade8024", stroke: "#4ade808c" },
@@ -171,26 +96,58 @@ const FEATURE_STYLES = {
 };
 
 const TEE_NAMES = ["I", "II", "III", "IV", "V", "VI"];
+const LIE_LABELS = { fairway: "fwy", green: "green", rough: "rgh", sand: "sand", water: "wtr", ob: "OB" };
+const LIE_COLORS = { fairway: "#4ade80", green: "#34d399", rough: "#a3a3a3", sand: "#facc15", water: "#38bdf8", ob: "#f87171" };
+
+function sgColor(sg) {
+  if (sg >= 0.03) return "text-emerald-400";
+  if (sg <= -0.15) return "text-red-400";
+  return "text-gray-300";
+}
 
 export default function CourseMap() {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
-  const libRef = useRef(null); // maps3d library classes
-  const overlaysRef = useRef([]); // per-hole overlay elements
+  const libRef = useRef(null);
+  const overlaysRef = useRef([]);
   const dataRef = useRef(null);
   const lastFlownHole = useRef(undefined);
+  const dragRef = useRef(null); // { idx, groundZ }
   const [status, setStatus] = useState(MAPS_KEY ? "loading" : "nokey");
   const [course, setCourse] = useState(null);
-  const [hole, setHole] = useState(null); // null = course overview
+  const [hole, setHole] = useState(null);
   const [teeIdx, setTeeIdx] = useState(0);
-  const [driveYds, setDriveYds] = useState(250);
+  const [aims, setAims] = useState(null); // null -> defaults for hole/tee
+  const [grabbing, setGrabbing] = useState(false);
 
   const selectHole = useCallback((num) => {
     setHole(num);
     setTeeIdx(0);
+    setAims(null);
   }, []);
 
-  // --- boot: load data + maps, create the 3D map ---
+  const selected = course?.holes.find((x) => x.num === hole);
+  const tee = selected?.tees[Math.min(teeIdx, (selected?.tees.length ?? 1) - 1)];
+  const classify = useMemo(() => (course ? buildClassifier(course) : null), [course]);
+
+  const effectiveAims = useMemo(() => {
+    if (!selected || !tee) return null;
+    return aims ?? defaultAims(tee, selected.par, selected.pin);
+  }, [selected, tee, aims]);
+
+  const evalResult = useMemo(() => {
+    if (!selected || !tee || !effectiveAims || !classify) return null;
+    return evaluateChain({
+      teePos: tee.pos,
+      teePathYds: tee.yards,
+      aims: effectiveAims,
+      pin: selected.pin ?? tee.path[tee.path.length - 1],
+      par: selected.par,
+      classify,
+    });
+  }, [selected, tee, effectiveAims, classify]);
+
+  // --- boot ---
   useEffect(() => {
     if (!MAPS_KEY) return;
     let cancelled = false;
@@ -222,7 +179,6 @@ export default function CourseMap() {
         containerRef.current.appendChild(map);
         mapRef.current = map;
 
-        // hole-number markers at each tee (interactive variant supports clicks)
         const MarkerClass = Marker3DInteractiveElement || Marker3DElement;
         for (const h of data.holes) {
           const marker = new MarkerClass({
@@ -246,6 +202,18 @@ export default function CourseMap() {
           map.appendChild(marker);
         }
 
+        // debug hooks for headless calibration tests
+        if (import.meta.env.DEV) {
+          window.__tgv = {
+            map,
+            cameraState: () => cameraState(map, containerRef.current.clientWidth, containerRef.current.clientHeight),
+            screenToGround: (x, y, z = 0) =>
+              screenToGround(cameraState(map, containerRef.current.clientWidth, containerRef.current.clientHeight), x, y, z),
+            groundToScreen: (pt, z = 0) =>
+              groundToScreen(cameraState(map, containerRef.current.clientWidth, containerRef.current.clientHeight), pt, z),
+          };
+        }
+
         setStatus("ready");
       } catch (e) {
         console.error(e);
@@ -255,7 +223,7 @@ export default function CourseMap() {
     return () => { cancelled = true; };
   }, [selectHole]);
 
-  // --- hole features + camera: redrawn only when the hole changes ---
+  // --- hole features + camera (hole changes only) ---
   useEffect(() => {
     const map = mapRef.current;
     const lib = libRef.current;
@@ -264,7 +232,6 @@ export default function CourseMap() {
 
     const { Polygon3DElement, AltitudeMode } = lib;
 
-    // clear previous hole's feature overlays
     for (const el of overlaysRef.current) el.remove();
     overlaysRef.current = [];
 
@@ -301,14 +268,14 @@ export default function CourseMap() {
     }
 
     if (flyNeeded) {
-      const tee = h.tees[0] ?? { pos: h.line[0], path: h.line };
-      const target = h.pin || tee.path[tee.path.length - 1];
-      const lengthM = distMeters(tee.pos, target);
-      const mid = [(tee.pos[0] + target[0]) / 2, (tee.pos[1] + target[1]) / 2];
+      const t = h.tees[0] ?? { pos: h.line[0], path: h.line };
+      const target = h.pin || t.path[t.path.length - 1];
+      const lengthM = distMeters(t.pos, target);
+      const mid = [(t.pos[0] + target[0]) / 2, (t.pos[1] + target[1]) / 2];
       map.flyCameraTo({
         endCamera: {
           center: { lat: mid[0], lng: mid[1], altitude: 0 },
-          heading: bearing(tee.pos, target),
+          heading: bearing(t.pos, target),
           tilt: 66,
           range: Math.max(300, lengthM * 1.5),
         },
@@ -317,13 +284,12 @@ export default function CourseMap() {
     }
   }, [hole, status]);
 
-  // --- shot plan: mutated in place so slider drags don't churn 3D elements ---
-  const planRef = useRef(null); // { key, line, ellipses[], labels[], labelTexts[] }
+  // --- shot plan overlays: mutate in place while dragging ---
+  const planRef = useRef(null); // { count, line, ellipses[], labels[], labelTexts[], handles[] }
   useEffect(() => {
     const map = mapRef.current;
     const lib = libRef.current;
-    const data = dataRef.current;
-    if (!map || !lib || !data || status !== "ready") return;
+    if (!map || !lib || status !== "ready") return;
 
     const { Polyline3DElement, Polygon3DElement, Marker3DElement, AltitudeMode } = lib;
 
@@ -331,52 +297,48 @@ export default function CourseMap() {
       const pr = planRef.current;
       if (!pr) return;
       pr.line.remove();
-      for (const el of pr.ellipses) el.remove();
-      for (const el of pr.labels) el.remove();
+      for (const el of [...pr.ellipses, ...pr.labels, ...pr.handles]) el.remove();
       planRef.current = null;
     };
 
-    const h = hole != null && data.holes.find((x) => x.num === hole);
-    const tee = h && h.tees[Math.min(teeIdx, h.tees.length - 1)];
-    if (!h || !tee) {
+    if (!selected || !tee || !effectiveAims) {
       teardown();
       return;
     }
 
-    const plan = planShots({ ...tee, driveYds }, h.par);
-    const shotGeom = plan.shots.map((shot) => {
-      const aM = shot.yds * YD_TO_M * 0.09; // lateral half-width ~9%
-      const bM = shot.yds * YD_TO_M * 0.055; // depth half-length ~5.5%
-      const mid = [(shot.from[0] + shot.to[0]) / 2, (shot.from[1] + shot.to[1]) / 2];
+    const points = [tee.pos, ...effectiveAims];
+    const segs = effectiveAims.map((aim, i) => {
+      const from = points[i];
+      const shotM = distMeters(from, aim);
+      const head = bearing(from, aim);
       return {
-        ellipsePath: ellipse(shot.to, shot.heading, aM, bM),
-        labelPos: { lat: mid[0], lng: mid[1], altitude: 15 },
-        labelText: `${shot.yds} yds`,
+        aim,
+        ellipse: ellipsePath(aim, head, shotM * DISPERSION.lateral, shotM * DISPERSION.depth),
+        mid: [(from[0] + aim[0]) / 2, (from[1] + aim[1]) / 2],
+        text: `${Math.round(shotM / YD_TO_M)} yds`,
       };
     });
 
-    const key = `${hole}:${teeIdx}`;
     const pr = planRef.current;
-
-    if (pr && pr.key === key && pr.ellipses.length === plan.shots.length) {
-      // fast path: update geometry on the existing elements
-      pr.line.path = plan.points.map(toLatLng);
-      shotGeom.forEach((g, i) => {
-        pr.ellipses[i].path = g.ellipsePath;
-        pr.labels[i].position = g.labelPos;
-        if (pr.labelTexts[i] !== g.labelText) {
+    if (pr && pr.count === segs.length) {
+      // fast path (dragging): update geometry in place
+      pr.line.path = points.map(toLatLng);
+      segs.forEach((g, i) => {
+        pr.ellipses[i].path = g.ellipse.map(toLatLng);
+        pr.labels[i].position = { lat: g.mid[0], lng: g.mid[1], altitude: 15 };
+        pr.handles[i].position = { lat: g.aim[0], lng: g.aim[1], altitude: 1 };
+        if (pr.labelTexts[i] !== g.text) {
           pr.labels[i].querySelector("template")?.remove();
-          pr.labels[i].append(yardageChip(g.labelText));
-          pr.labelTexts[i] = g.labelText;
+          pr.labels[i].append(yardageChip(g.text));
+          pr.labelTexts[i] = g.text;
         }
       });
       return;
     }
 
-    // slow path: (re)build the plan elements
     teardown();
     const line = new Polyline3DElement({
-      path: plan.points.map(toLatLng),
+      path: points.map(toLatLng),
       strokeColor: "#ffffffe6",
       strokeWidth: 5,
       altitudeMode: AltitudeMode.CLAMP_TO_GROUND,
@@ -384,12 +346,10 @@ export default function CourseMap() {
     });
     map.appendChild(line);
 
-    const ellipses = [];
-    const labels = [];
-    const labelTexts = [];
-    for (const g of shotGeom) {
+    const ellipses = [], labels = [], labelTexts = [], handles = [];
+    for (const g of segs) {
       const disp = new Polygon3DElement({
-        path: g.ellipsePath,
+        path: g.ellipse.map(toLatLng),
         fillColor: "#ffffff30",
         strokeColor: "#ffffffcc",
         strokeWidth: 2,
@@ -400,16 +360,109 @@ export default function CourseMap() {
       ellipses.push(disp);
 
       const label = new Marker3DElement({
-        position: g.labelPos,
+        position: { lat: g.mid[0], lng: g.mid[1], altitude: 15 },
         altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
       });
-      label.append(yardageChip(g.labelText));
+      label.append(yardageChip(g.text));
       map.appendChild(label);
       labels.push(label);
-      labelTexts.push(g.labelText);
+      labelTexts.push(g.text);
+
+      const handle = new Marker3DElement({
+        position: { lat: g.aim[0], lng: g.aim[1], altitude: 1 },
+        altitudeMode: AltitudeMode.RELATIVE_TO_GROUND,
+      });
+      handle.append(handleGlyph());
+      map.appendChild(handle);
+      handles.push(handle);
     }
-    planRef.current = { key, line, ellipses, labels, labelTexts };
-  }, [hole, teeIdx, driveYds, status]);
+    planRef.current = { count: segs.length, line, ellipses, labels, labelTexts, handles };
+  }, [selected, tee, effectiveAims, status]);
+
+  // --- dragging aim points (pointer events + camera raycast) ---
+  const aimsRef = useRef(null);
+  aimsRef.current = effectiveAims;
+  useEffect(() => {
+    const el = containerRef.current;
+    const map = mapRef.current;
+    if (!el || !map || status !== "ready") return;
+
+    const HIT_PX = 34;
+
+    const hitTest = (x, y) => {
+      const a = aimsRef.current;
+      if (!a) return -1;
+      const cam = cameraState(map, el.clientWidth, el.clientHeight);
+      let best = -1, bestD = HIT_PX;
+      a.forEach((aim, i) => {
+        const px = groundToScreen(cam, aim, cam.centerAlt);
+        if (!px) return;
+        const d = Math.hypot(px[0] - x, px[1] - y);
+        if (d < bestD) { bestD = d; best = i; }
+      });
+      return best;
+    };
+
+    const onDown = (e) => {
+      if (e.button != null && e.button !== 0) return;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const idx = hitTest(x, y);
+      if (idx < 0) return;
+      const cam = cameraState(map, el.clientWidth, el.clientHeight);
+      const groundZ = calibrateGroundZ(cam, x, y, aimsRef.current[idx]);
+      dragRef.current = { idx, groundZ };
+      setGrabbing(true);
+      e.stopPropagation();
+      e.preventDefault();
+      try { el.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    };
+
+    const onMove = (e) => {
+      const drag = dragRef.current;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      if (!drag) {
+        // hover cursor feedback
+        el.style.cursor = hitTest(x, y) >= 0 ? "grab" : "";
+        return;
+      }
+      e.stopPropagation();
+      e.preventDefault();
+      const cam = cameraState(map, el.clientWidth, el.clientHeight);
+      const pt = screenToGround(cam, x, y, drag.groundZ);
+      if (!pt) return;
+      setAims((prev) => {
+        const base = prev ?? aimsRef.current;
+        if (!base) return prev;
+        const next = base.slice();
+        next[drag.idx] = pt;
+        return next;
+      });
+    };
+
+    const onUp = (e) => {
+      if (!dragRef.current) return;
+      dragRef.current = null;
+      setGrabbing(false);
+      e.stopPropagation();
+      try { el.releasePointerCapture(e.pointerId); } catch { /* noop */ }
+    };
+
+    // capture phase so the map's own camera-pan handlers never see the drag
+    el.addEventListener("pointerdown", onDown, { capture: true });
+    el.addEventListener("pointermove", onMove, { capture: true });
+    el.addEventListener("pointerup", onUp, { capture: true });
+    el.addEventListener("pointercancel", onUp, { capture: true });
+    return () => {
+      el.removeEventListener("pointerdown", onDown, { capture: true });
+      el.removeEventListener("pointermove", onMove, { capture: true });
+      el.removeEventListener("pointerup", onUp, { capture: true });
+      el.removeEventListener("pointercancel", onUp, { capture: true });
+    };
+  }, [status]);
 
   const orbitGreen = useCallback(() => {
     const map = mapRef.current;
@@ -418,20 +471,12 @@ export default function CourseMap() {
     const h = data.holes.find((x) => x.num === hole);
     const target = h.pin || h.line[h.line.length - 1];
     map.flyCameraAround({
-      camera: {
-        center: { lat: target[0], lng: target[1], altitude: 0 },
-        tilt: 60,
-        range: 160,
-      },
+      camera: { center: { lat: target[0], lng: target[1], altitude: 0 }, tilt: 60, range: 160 },
       durationMillis: 16000,
       repeatCount: 1,
     });
   }, [hole]);
 
-  const selected = course?.holes.find((x) => x.num === hole);
-  const selectedTee = selected?.tees[Math.min(teeIdx, (selected?.tees.length ?? 1) - 1)];
-
-  // ---- no-key / error screens ----
   if (status === "nokey" || status === "error") {
     return (
       <div className="min-h-screen bg-slate-950 text-gray-100 flex items-center justify-center p-6">
@@ -441,13 +486,12 @@ export default function CourseMap() {
             <p className="text-sm text-gray-400">
               A Google Maps API key is required. Add it as{" "}
               <code className="text-cyan-400">VITE_GOOGLE_MAPS_API_KEY</code> in{" "}
-              <code className="text-cyan-400">.env.local</code> (and in Vercel env settings), then
-              rebuild.
+              <code className="text-cyan-400">.env.local</code> (and in Vercel env settings), then rebuild.
             </p>
           ) : (
             <p className="text-sm text-gray-400">
-              Failed to load the map. Check the browser console — most likely the API key is
-              invalid or the Maps JavaScript API isn&apos;t enabled for it.
+              Failed to load the map. Check the browser console — most likely the API key is invalid
+              or the Maps JavaScript API isn&apos;t enabled for it.
             </p>
           )}
         </div>
@@ -457,8 +501,7 @@ export default function CourseMap() {
 
   return (
     <div className="h-[100dvh] bg-slate-950 text-gray-100 flex flex-col overflow-hidden">
-      {/* map */}
-      <div className="relative flex-1">
+      <div className="relative flex-1" style={grabbing ? { cursor: "grabbing" } : undefined}>
         <div ref={containerRef} className="absolute inset-0" />
 
         {status === "loading" && (
@@ -479,8 +522,7 @@ export default function CourseMap() {
               </div>
               {selected && (
                 <div className="text-xs text-gray-400 mt-0.5">
-                  Par {selected.par} &middot; {selectedTee?.yards ?? selected.yards} yds &middot;
-                  {" "}HCP {selected.hcp}
+                  Par {selected.par} &middot; {tee?.yards ?? selected.yards} yds &middot; HCP {selected.hcp}
                 </div>
               )}
             </div>
@@ -503,56 +545,83 @@ export default function CourseMap() {
           </div>
         </div>
 
-        {/* tee + drive controls */}
+        {/* tee box + strokes gained panel */}
         {selected && (
           <div className="absolute bottom-2 left-3 right-3 pointer-events-none flex flex-col gap-2 items-start">
-            <div className="bg-slate-950/80 backdrop-blur rounded-xl px-3 py-2 pointer-events-auto max-w-full">
-              <div className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold mb-1.5">
-                Tee box
+            <div className="bg-slate-950/85 backdrop-blur rounded-xl px-3 py-2 pointer-events-auto max-w-sm w-full sm:w-auto">
+              <div className="flex items-center justify-between gap-4 mb-1.5">
+                <div className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold">Tee box</div>
+                <button
+                  onClick={() => setAims(null)}
+                  className="text-[10px] uppercase tracking-widest font-semibold text-gray-400 hover:text-white"
+                >
+                  Reset shots
+                </button>
               </div>
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
                 {selected.tees.map((t, i) => (
                   <button
                     key={i}
-                    onClick={() => setTeeIdx(i)}
+                    onClick={() => { setTeeIdx(i); setAims(null); }}
                     className={`shrink-0 rounded-lg px-2.5 py-1.5 text-center transition-colors ${
                       i === Math.min(teeIdx, selected.tees.length - 1)
                         ? "bg-emerald-600 text-white"
                         : "bg-slate-800 text-gray-400 hover:text-white"
                     }`}
                   >
-                    <div className="text-[10px] font-bold leading-tight opacity-80">
-                      {TEE_NAMES[i] ?? i + 1}
-                    </div>
+                    <div className="text-[10px] font-bold leading-tight opacity-80">{TEE_NAMES[i] ?? i + 1}</div>
                     <div className="text-xs font-bold leading-tight">{t.yards}</div>
                   </button>
                 ))}
               </div>
-              {selected.par >= 4 && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold">
-                    Drive
-                  </span>
-                  <input
-                    type="range"
-                    min={180}
-                    max={320}
-                    step={5}
-                    value={driveYds}
-                    onChange={(e) => setDriveYds(Number(e.target.value))}
-                    className="w-36 accent-emerald-500"
-                  />
-                  <span className="text-xs font-bold text-emerald-400 w-14">{driveYds} yds</span>
+
+              {evalResult && (
+                <div className="mt-2 border-t border-slate-800 pt-2">
+                  {evalResult.shots.map((s, i) => (
+                    <div key={i} className="flex items-center gap-2 py-0.5 text-xs">
+                      <span className="w-4 text-gray-500 font-bold">{i + 1}</span>
+                      <span className="w-14 font-semibold">{s.shotYds} yds</span>
+                      <span className={`w-14 font-bold ${sgColor(s.sg)}`}>
+                        {s.sg >= 0 ? "+" : ""}{s.sg.toFixed(2)}
+                      </span>
+                      <span className="flex-1 flex gap-1.5 text-[10px] text-gray-400 overflow-hidden whitespace-nowrap">
+                        {Object.entries(s.pcts)
+                          .filter(([, v]) => v >= 0.03)
+                          .sort((a, b) => b[1] - a[1])
+                          .slice(0, 3)
+                          .map(([lie, v]) => (
+                            <span key={lie}>
+                              <span
+                                className="inline-block w-1.5 h-1.5 rounded-full mr-0.5"
+                                style={{ background: LIE_COLORS[lie] }}
+                              />
+                              {Math.round(v * 100)}% {LIE_LABELS[lie]}
+                            </span>
+                          ))}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-800">
+                    <span className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold">
+                      Expected score
+                    </span>
+                    <span className="text-sm font-bold">
+                      {evalResult.expected.toFixed(2)}
+                      <span
+                        className={`ml-1.5 text-xs font-bold ${
+                          evalResult.expected <= selected.par ? "text-emerald-400" : "text-amber-400"
+                        }`}
+                      >
+                        ({evalResult.expected - selected.par >= 0 ? "+" : ""}
+                        {(evalResult.expected - selected.par).toFixed(2)} vs par)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-1">
+                    Drag the <span className="text-emerald-400">&#9679;</span> targets to re-plan shots &middot; SG vs PGA baseline
+                  </div>
                 </div>
               )}
-            </div>
-
-            {/* legend */}
-            <div className="bg-slate-950/70 backdrop-blur rounded-lg px-3 py-1.5 flex gap-3 text-[10px] text-gray-300 pointer-events-none">
-              <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#34d399" }} />Green</span>
-              <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#facc15" }} />Sand</span>
-              <span><span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: "#38bdf8" }} />Water</span>
-              <span><span className="inline-block w-2 h-2 rounded-full mr-1 border border-white/70" style={{ background: "#ffffff30" }} />Dispersion</span>
             </div>
           </div>
         )}

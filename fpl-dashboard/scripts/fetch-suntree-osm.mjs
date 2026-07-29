@@ -19,6 +19,8 @@ const QUERY = `
 (
   way["golf"](${BBOX});
   node["golf"](${BBOX});
+  relation["golf"](${BBOX});
+  relation(1230389);
 );
 out geom;
 `;
@@ -126,6 +128,24 @@ for (const w of ways) {
   });
 }
 
+// golf features mapped as multipolygon relations (most Suntree fairways!)
+for (const rel of data.elements) {
+  if (rel.type !== "relation" || !rel.tags?.golf || !rel.members) continue;
+  const golf = rel.tags.golf;
+  if (!FEATURE_TYPES.has(golf)) continue;
+  for (const ring of stitchOuterRings(rel)) {
+    if (ring.length < 4) continue;
+    const coords = ring.map(([lat, lon]) => ({ lat, lon }));
+    const { hole, dist } = nearestHole(centroid(coords));
+    if (!hole || hole.course !== "Challenge" || dist > MAX_ASSIGN_DIST) continue;
+    features.push({
+      type: golf.includes("water_hazard") ? "water" : golf,
+      hole: hole.num,
+      coords: coords.map((c) => [Number(c.lat.toFixed(6)), Number(c.lon.toFixed(6))]),
+    });
+  }
+}
+
 // pins (green node markers)
 const pins = [];
 for (const n of nodes) {
@@ -197,6 +217,40 @@ const holes = allHoles
     };
   });
 
+// --- course boundary (relation outer ways stitched into rings) for OB detection ---
+function stitchOuterRings(relation) {
+  const segs = relation.members
+    .filter((m) => m.type === "way" && m.role !== "inner" && m.geometry)
+    .map((m) => m.geometry.map((g) => [g.lat, g.lon]));
+  const rings = [];
+  while (segs.length) {
+    let ring = segs.shift();
+    let extended = true;
+    while (extended) {
+      extended = false;
+      const end = ring[ring.length - 1];
+      for (let i = 0; i < segs.length; i++) {
+        const s = segs[i];
+        const near = (a, b) => Math.abs(a[0] - b[0]) < 1e-7 && Math.abs(a[1] - b[1]) < 1e-7;
+        if (near(s[0], end)) { ring = ring.concat(s.slice(1)); segs.splice(i, 1); extended = true; break; }
+        if (near(s[s.length - 1], end)) { ring = ring.concat(s.slice(0, -1).reverse()); segs.splice(i, 1); extended = true; break; }
+      }
+    }
+    rings.push(ring);
+  }
+  return rings;
+}
+
+const courseRel = data.elements.find((e) => e.type === "relation" && e.id === 1230389);
+let boundary = [];
+if (courseRel) {
+  const rings = stitchOuterRings(courseRel).sort((a, b) => b.length - a.length);
+  boundary = rings.map((ring) => ring.map(([lat, lon]) => [Number(lat.toFixed(6)), Number(lon.toFixed(6))]));
+  console.log(`Boundary: ${boundary.length} ring(s), sizes ${boundary.map((r) => r.length).join(",")}`);
+} else {
+  console.warn("WARNING: course boundary relation not found");
+}
+
 const allPts = holes.flatMap((h) => h.line);
 const center = {
   lat: allPts.reduce((s, p) => s + p[0], 0) / allPts.length,
@@ -209,6 +263,7 @@ const out = {
   center,
   holes,
   features,
+  boundary,
 };
 
 mkdirSync(dirname(OUT_PATH), { recursive: true });
