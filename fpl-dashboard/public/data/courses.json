@@ -27,6 +27,91 @@
     "yards": 6757
   },
   {
+    "slug": "minerals",
+    "name": "Minerals Golf Course",
+    "location": "Vernon, NJ",
+    "available": true,
+    "holes": 9,
+    "par": 31,
+    "yards": 2310,
+    "trip": {
+      "name": "Crystal Springs '26",
+      "order": 1,
+      "date": "Thu 8/20",
+      "tees": "Blue",
+      "par": 31,
+      "yards": 2044
+    }
+  },
+  {
+    "slug": "crystal-springs",
+    "name": "Crystal Springs GC",
+    "location": "Hamburg, NJ",
+    "available": true,
+    "holes": 18,
+    "par": 72,
+    "yards": 6591,
+    "trip": {
+      "name": "Crystal Springs '26",
+      "order": 2,
+      "date": "Fri 8/21",
+      "tees": "Blue",
+      "par": 72,
+      "yards": 6134
+    }
+  },
+  {
+    "slug": "wild-turkey",
+    "name": "Wild Turkey GC",
+    "location": "Hamburg, NJ",
+    "available": true,
+    "holes": 18,
+    "par": 71,
+    "yards": 6871,
+    "trip": {
+      "name": "Crystal Springs '26",
+      "order": 3,
+      "date": "Fri 8/21",
+      "tees": "Blue",
+      "par": 71,
+      "yards": 6515
+    }
+  },
+  {
+    "slug": "black-bear",
+    "name": "Black Bear GC",
+    "location": "Franklin, NJ",
+    "available": true,
+    "holes": 18,
+    "par": 72,
+    "yards": 6057,
+    "trip": {
+      "name": "Crystal Springs '26",
+      "order": 4,
+      "date": "Sat 8/22",
+      "tees": "Black",
+      "par": 72,
+      "yards": 6397
+    }
+  },
+  {
+    "slug": "ballyowen",
+    "name": "Ballyowen GC",
+    "location": "Hamburg, NJ",
+    "available": true,
+    "holes": 18,
+    "par": 72,
+    "yards": 6908,
+    "trip": {
+      "name": "Crystal Springs '26",
+      "order": 5,
+      "date": "Sun 8/23",
+      "tees": "Gold",
+      "par": 72,
+      "yards": 6414
+    }
+  },
+  {
     "slug": "sparrows-point",
     "name": "Sparrows Point CC",
     "location": "Dundalk, MD",

@@ -11,12 +11,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = resolve(join(__dirname, "..", "public", "data"));
 
 // --- course registry -------------------------------------------------------
-// Each fetch group shares one Overpass query (bbox + boundary relation).
+// Each fetch group shares one Overpass query (bbox + boundary elements).
 // holeRef: regex on the OSM hole way's ref tag; capture group 1 = hole number.
+// When two courses in a group share numeric refs, holes are disambiguated by
+// pinWays (explicit ref -> OSM way id) then assignBoundary containment.
+// trip: menu metadata for the "Crystal Springs '26" trip section.
 const FETCH_GROUPS = [
   {
     bbox: "28.2023,-80.6968,28.2299,-80.6795",
-    boundaryRelation: 1230389,
+    boundaries: [{ type: "relation", id: 1230389 }],
     courses: [
       {
         slug: "suntree-challenge",
@@ -34,7 +37,7 @@ const FETCH_GROUPS = [
   },
   {
     bbox: "44.8242,-93.6425,44.8348,-93.6181",
-    boundaryRelation: 3227780,
+    boundaries: [{ type: "relation", id: 3227780 }],
     courses: [
       {
         slug: "chaska-town",
@@ -44,6 +47,85 @@ const FETCH_GROUPS = [
         // OSM has no pars/handicaps for Chaska; from the official scorecard
         parOverride: { 1: 4, 2: 4, 3: 4, 4: 3, 5: 4, 6: 3, 7: 5, 8: 4, 9: 5, 10: 4, 11: 4, 12: 3, 13: 4, 14: 3, 15: 5, 16: 4, 17: 4, 18: 5 },
         hcpOverride: { 1: 7, 2: 3, 3: 17, 4: 15, 5: 5, 6: 13, 7: 1, 8: 9, 9: 11, 10: 8, 11: 4, 12: 16, 13: 2, 14: 14, 15: 12, 16: 18, 17: 6, 18: 10 },
+      },
+    ],
+  },
+  // --- Crystal Springs Resort, NJ (trip '26) --------------------------------
+  {
+    bbox: "41.176,-74.531,41.1845,-74.515",
+    boundaries: [
+      { type: "way", id: 231765279 },
+      { type: "way", id: 231765336 },
+      { type: "way", id: 231765322 },
+    ],
+    courses: [
+      {
+        slug: "minerals",
+        name: "Minerals Golf Course",
+        location: "Vernon, NJ",
+        holeRef: /^(\d+)$/,
+        parOverride: { 1: 4, 2: 3, 3: 4, 4: 3, 5: 4, 6: 3, 7: 4, 8: 3, 9: 3 },
+        hcpOverride: { 1: 9, 2: 11, 3: 7, 4: 3, 5: 13, 6: 5, 7: 1, 8: 17, 9: 15 },
+        trip: { name: "Crystal Springs '26", order: 1, date: "Thu 8/20", tees: "Blue", par: 31, yards: 2044 },
+      },
+    ],
+  },
+  {
+    // Crystal Springs + Wild Turkey share a clubhouse; holes 1/2/18 of each
+    // interleave there, so they're pinned to exact OSM way ids
+    bbox: "41.140,-74.572,41.1635,-74.540",
+    boundaries: [
+      { type: "way", id: 55327237 },
+      { type: "way", id: 55327296 },
+    ],
+    courses: [
+      {
+        slug: "crystal-springs",
+        name: "Crystal Springs GC",
+        location: "Hamburg, NJ",
+        holeRef: /^(\d+)$/,
+        assignBoundary: [55327296],
+        pinWays: { 1: 1112197695, 2: 1112197696, 18: 1112200603 },
+        parOverride: { 1: 5, 2: 4, 3: 4, 4: 5, 5: 3, 6: 4, 7: 4, 8: 5, 9: 3, 10: 4, 11: 3, 12: 5, 13: 3, 14: 5, 15: 3, 16: 4, 17: 4, 18: 4 },
+        hcpOverride: { 1: 7, 2: 3, 3: 1, 4: 11, 5: 17, 6: 9, 7: 13, 8: 5, 9: 15, 10: 10, 11: 14, 12: 6, 13: 16, 14: 2, 15: 18, 16: 4, 17: 8, 18: 12 },
+        trip: { name: "Crystal Springs '26", order: 2, date: "Fri 8/21", tees: "Blue", par: 72, yards: 6134 },
+      },
+      {
+        slug: "wild-turkey",
+        name: "Wild Turkey GC",
+        location: "Hamburg, NJ",
+        holeRef: /^(\d+)$/,
+        assignBoundary: [55327237],
+        pinWays: { 1: 1124056276, 2: 1124063838, 18: 1124739116 },
+        parOverride: { 1: 4, 2: 3, 3: 5, 4: 4, 5: 4, 6: 4, 7: 3, 8: 5, 9: 4, 10: 3, 11: 5, 12: 4, 13: 4, 14: 3, 15: 4, 16: 3, 17: 5, 18: 4 },
+        hcpOverride: { 1: 11, 2: 17, 3: 5, 4: 1, 5: 3, 6: 13, 7: 7, 8: 15, 9: 9, 10: 10, 11: 2, 12: 14, 13: 16, 14: 12, 15: 4, 16: 18, 17: 8, 18: 6 },
+        trip: { name: "Crystal Springs '26", order: 3, date: "Fri 8/21", tees: "Blue", par: 71, yards: 6515 },
+      },
+    ],
+  },
+  {
+    bbox: "41.106,-74.583,41.126,-74.564",
+    boundaries: [{ type: "way", id: 220048565 }],
+    courses: [
+      {
+        slug: "black-bear",
+        name: "Black Bear GC",
+        location: "Franklin, NJ",
+        holeRef: /^(\d+)$/,
+        trip: { name: "Crystal Springs '26", order: 4, date: "Sat 8/22", tees: "Black", par: 72, yards: 6397 },
+      },
+    ],
+  },
+  {
+    bbox: "41.130,-74.592,41.145,-74.576",
+    boundaries: [{ type: "way", id: 220048569 }],
+    courses: [
+      {
+        slug: "ballyowen",
+        name: "Ballyowen GC",
+        location: "Hamburg, NJ",
+        holeRef: /^(\d+)$/,
+        trip: { name: "Crystal Springs '26", order: 5, date: "Sun 8/23", tees: "Gold", par: 72, yards: 6414 },
       },
     ],
   },
@@ -168,14 +250,26 @@ async function overpass(query) {
   throw new Error("Overpass failed after 3 attempts");
 }
 
+function pointInRing(pt, ring) {
+  // pt: {lat, lon}; ring: [[lat, lon], ...]
+  let c = false;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [y1, x1] = ring[i];
+    const [y2, x2] = ring[i + 1];
+    if ((y1 > pt.lat) !== (y2 > pt.lat) && pt.lon < ((x2 - x1) * (pt.lat - y1)) / (y2 - y1) + x1) c = !c;
+  }
+  return c;
+}
+
 async function bakeGroup(group) {
+  const boundaryClauses = group.boundaries.map((b) => `  ${b.type}(${b.id});`).join("\n");
   const query = `
 [out:json][timeout:90];
 (
   way["golf"](${group.bbox});
   node["golf"](${group.bbox});
   relation["golf"](${group.bbox});
-  relation(${group.boundaryRelation});
+${boundaryClauses}
 );
 out geom;`;
   console.log(`Fetching bbox ${group.bbox} ...`);
@@ -185,22 +279,67 @@ out geom;`;
   const ways = data.elements.filter((e) => e.type === "way" && e.geometry);
   const nodes = data.elements.filter((e) => e.type === "node");
 
+  // boundary rings, by element id and flattened for output
+  const ringsById = {};
+  for (const b of group.boundaries) {
+    const el = data.elements.find((e) => e.type === b.type && e.id === b.id);
+    if (!el) { console.warn(`  WARNING: boundary ${b.type}/${b.id} not found`); continue; }
+    ringsById[b.id] =
+      b.type === "way"
+        ? [el.geometry.map((g) => [g.lat, g.lon])]
+        : stitchOuterRings(el);
+  }
+  const boundary = Object.values(ringsById)
+    .flat()
+    .sort((a, b) => b.length - a.length)
+    .map((ring) => ring.map(([lat, lon]) => [round6(lat), round6(lon)]));
+
+  // pinned way ids: wayId -> { course, num }
+  const pinnedOwner = new Map();
+  for (const c of group.courses) {
+    for (const [num, wid] of Object.entries(c.pinWays ?? {})) pinnedOwner.set(wid, { course: c, num: Number(num) });
+  }
+
   // holes across ALL courses in the group (so features assign to the right one)
   const allHoles = [];
   for (const w of ways) {
     if (w.tags.golf !== "hole" || !w.tags.ref) continue;
-    for (const course of group.courses) {
-      const m = w.tags.ref.match(course.holeRef);
-      if (!m) continue;
-      allHoles.push({
-        slug: course.slug,
-        num: Number(m[1]),
-        par: course.parOverride?.[Number(m[1])] ?? (Number(w.tags.par) || null),
-        hcp: course.hcpOverride?.[Number(m[1])] ?? (Number(w.tags.handicap) || null),
-        line: w.geometry.map((g) => ({ lat: g.lat, lon: g.lon })),
-      });
-      break;
+    let course = null, num = null;
+    const pinned = pinnedOwner.get(w.id);
+    if (pinned) {
+      course = pinned.course;
+      num = pinned.num;
+    } else {
+      let cands = [];
+      for (const c of group.courses) {
+        const m = w.tags.ref.match(c.holeRef);
+        if (!m) continue;
+        const n = Number(m[1]);
+        if (c.pinWays?.[n] && c.pinWays[n] !== w.id) continue; // this ref is pinned to another way
+        cands.push({ c, n });
+      }
+      if (cands.length > 1) {
+        const mid = w.geometry[Math.floor(w.geometry.length / 2)];
+        const inBoundary = cands.filter(({ c }) =>
+          (c.assignBoundary ?? []).some((id) => ringsById[id]?.some((ring) => pointInRing({ lat: mid.lat, lon: mid.lon }, ring)))
+        );
+        if (inBoundary.length === 1) cands = inBoundary;
+      }
+      if (cands.length === 1) {
+        course = cands[0].c;
+        num = cands[0].n;
+      } else if (cands.length > 1) {
+        console.warn(`  WARNING: ambiguous hole way ${w.id} ref=${w.tags.ref}, skipped`);
+      }
     }
+    if (!course) continue;
+    allHoles.push({
+      slug: course.slug,
+      num,
+      par: course.parOverride?.[num] ?? (Number(w.tags.par) || null),
+      hcp: course.hcpOverride?.[num] ?? (Number(w.tags.handicap) || null),
+      line: w.geometry.map((g) => ({ lat: g.lat, lon: g.lon })),
+    });
   }
 
   const nearestHole = (p) => {
@@ -244,14 +383,6 @@ out geom;`;
     if (!hole || dist > MAX_ASSIGN_DIST) continue;
     pins.push({ slug: hole.slug, hole: hole.num, lat: round6(n.lat), lon: round6(n.lon) });
   }
-
-  // boundary
-  const boundaryRel = data.elements.find((e) => e.type === "relation" && e.id === group.boundaryRelation);
-  const boundary = boundaryRel
-    ? stitchOuterRings(boundaryRel)
-        .sort((a, b) => b.length - a.length)
-        .map((ring) => ring.map(([lat, lon]) => [round6(lat), round6(lon)]))
-    : [];
 
   // emit one JSON per course
   const manifest = [];
@@ -328,6 +459,7 @@ out geom;`;
       holes: holes.length,
       par,
       yards,
+      ...(course.trip ? { trip: course.trip } : {}),
     });
   }
   return manifest;

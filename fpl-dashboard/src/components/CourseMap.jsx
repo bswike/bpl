@@ -807,6 +807,47 @@ export default function CourseMap() {
                 )}
               </div>
 
+              {(() => {
+                const trip = (manifest ?? []).filter((c) => c.trip && c.available).sort((a, b) => a.trip.order - b.trip.order);
+                if (!trip.length) return null;
+                return (
+                  <div className="mt-5">
+                    <h2 className="text-[10px] uppercase tracking-widest text-amber-400 font-semibold mb-2">
+                      {trip[0].trip.name}
+                    </h2>
+                    <div className="flex flex-col gap-2">
+                      {trip.map((c) => (
+                        <button
+                          key={c.slug}
+                          onClick={() => startCourse(c.slug, hcpDraft)}
+                          className={`text-left rounded-2xl border p-4 transition-colors ${
+                            c.slug === courseSlug
+                              ? "bg-amber-950/40 border-amber-500"
+                              : "bg-slate-900 border-slate-700 hover:border-amber-500"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                                {c.trip.date}
+                              </div>
+                              <div className="text-sm font-bold mt-0.5">{c.name}</div>
+                              <div className="text-xs text-gray-400 mt-0.5">
+                                {c.trip.tees} tees &middot; Par {c.trip.par} &middot;{" "}
+                                {c.trip.yards.toLocaleString()} yds
+                              </div>
+                            </div>
+                            <span className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white">
+                              {c.slug === courseSlug ? "Resume" : "Play"}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="mt-5 bg-slate-900 border border-slate-700 rounded-2xl p-5">
                 <h2 className="text-sm font-bold">What&apos;s your handicap?</h2>
                 <div className="flex items-center gap-3 mt-3">
@@ -840,13 +881,13 @@ export default function CourseMap() {
 
               <div className="mt-4">
                 <h2 className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold mb-2">
-                  Pick a course
+                  More courses
                 </h2>
                 {manifest == null && (
                   <div className="text-sm text-gray-500 animate-pulse py-4 text-center">Loading courses&hellip;</div>
                 )}
                 <div className="flex flex-col gap-2">
-                  {(manifest ?? []).map((c) =>
+                  {(manifest ?? []).filter((c) => !(c.trip && c.available)).map((c) =>
                     c.available ? (
                       <button
                         key={c.slug}
