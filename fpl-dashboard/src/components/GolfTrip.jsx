@@ -425,14 +425,20 @@ function Scorecard({ m, pars, highlight }) {
   };
   const hlRow = individual ? rows.find((r) => r.name === highlight) : null;
   const hlTeammates = hlRow ? rows.filter((r) => r.side === hlRow.side).length : 0;
-  let countedTotal = 0;
+  let countedSolo = 0;
+  let countedPush = 0;
   let countedWon = 0;
   if (hlRow && hlTeammates >= 2) {
     for (let i = 0; i < 18; i++) {
-      if (isCounting(hlRow, i)) {
-        countedTotal++;
-        if (winners[i] === hlRow.side) countedWon++;
-      }
+      if (hlRow.gross[i] == null) continue;
+      const mates = rows.filter((x) => x.side === hlRow.side && x.gross[i] != null);
+      if (!mates.length) continue;
+      const best = Math.min(...mates.map((x) => x.gross[i] - x.dots[i]));
+      if (hlRow.gross[i] - hlRow.dots[i] !== best) continue;
+      const withPartner = mates.filter((x) => x.gross[i] - x.dots[i] === best).length > 1;
+      if (withPartner) countedPush += 1;
+      else countedSolo += 1;
+      if (winners[i] === hlRow.side) countedWon += 1;
     }
   }
   const halves = [
@@ -515,11 +521,10 @@ function Scorecard({ m, pars, highlight }) {
           </div>
         );
       })}
-      {hlRow && hlTeammates >= 2 && (
+      {hlRow && hlTeammates >= 2 && (countedSolo + countedPush > 0) && (
         <div className="mt-1.5 text-[10px] text-emerald-300">
           <span className="inline-block w-3 h-3 rounded-md bg-emerald-500/25 align-[-2px] mr-1.5" />
-          {firstLast(highlight)}'s ball counted on {countedTotal} holes
-          {countedWon > 0 && ` — won ${countedWon} of them`}
+          {firstLast(highlight)}'s ball · {countedSolo} solo · {countedPush} with partner · won {countedWon}
         </div>
       )}
       {combined && (
