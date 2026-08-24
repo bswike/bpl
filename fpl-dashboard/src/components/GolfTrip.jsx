@@ -168,18 +168,29 @@ function findMatch(rounds, playerName, m) {
   return null;
 }
 
+function matchRoundLabel(m) {
+  if (/scramble/i.test(m.format)) return "Black Bear — Scramble";
+  if (/pinehurst/i.test(m.format) && /black bear/i.test(m.round)) return "Black Bear — Pinehurst";
+  return m.round;
+}
+
 function PlayerDetail({ p, rounds }) {
   const [openRound, setOpenRound] = useState(null);
   const grouped = useMemo(() => {
     const order = new Map((rounds || []).map((r, i) => [r.label, i]));
     const map = new Map();
     for (const m of p.matches) {
-      if (!map.has(m.round)) map.set(m.round, []);
-      map.get(m.round).push({ m, found: findMatch(rounds, p.name, m) });
+      const label = matchRoundLabel(m);
+      const key = `${m.round}::${m.format}`;
+      if (!map.has(key)) map.set(key, { label, round: m.round, items: [] });
+      map.get(key).items.push({ m, found: findMatch(rounds, p.name, m) });
     }
-    return [...map.entries()]
-      .sort((a, b) => (order.get(a[0]) ?? 99) - (order.get(b[0]) ?? 99))
-      .map(([round, items]) => ({ round, items }));
+    return [...map.values()].sort((a, b) => {
+      const d = (order.get(a.round) ?? 99) - (order.get(b.round) ?? 99);
+      if (d) return d;
+      const rank = (fmt) => (/scramble/i.test(fmt) ? 0 : /pinehurst/i.test(fmt) ? 1 : 2);
+      return rank(a.items[0]?.m.format || "") - rank(b.items[0]?.m.format || "");
+    });
   }, [p.matches, p.name, rounds]);
 
   return (
@@ -194,15 +205,16 @@ function PlayerDetail({ p, rounds }) {
         <div>
           <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">Rounds — tap one for the scorecard</div>
           <div className="space-y-1.5">
-            {grouped.map(({ round, items }) => {
-              const open = openRound === round;
+            {grouped.map(({ label, round, items }) => {
+              const key = `${round}::${items[0]?.m.format}`;
+              const open = openRound === key;
               const hasCard = items.some((x) => x.found?.mt?.card);
               return (
-                <div key={round} className="rounded-lg border border-slate-700/80 overflow-hidden">
+                <div key={key} className="rounded-lg border border-slate-700/80 overflow-hidden">
                   <button
                     type="button"
                     className={`w-full flex items-center gap-2 px-2 py-1.5 text-left ${hasCard ? "hover:bg-slate-700/40" : ""} ${open ? "bg-slate-700/40" : ""}`}
-                    onClick={() => hasCard && setOpenRound(open ? null : round)}
+                    onClick={() => hasCard && setOpenRound(open ? null : key)}
                   >
                     <span className="flex gap-0.5 shrink-0">
                       {items.map((x, i) => (
@@ -221,7 +233,7 @@ function PlayerDetail({ p, rounds }) {
                       ))}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="text-gray-100 font-medium block truncate">{round}</span>
+                      <span className="text-gray-100 font-medium block truncate">{label}</span>
                       <span className="text-gray-500">
                         {items.map((x) => {
                           const vs = x.m.partner ? `w/ ${firstLast(x.m.partner)} vs ${x.m.opp}` : `vs ${x.m.opp}`;
@@ -236,12 +248,7 @@ function PlayerDetail({ p, rounds }) {
                     <div className="px-1.5 pb-2 pt-1 border-t border-slate-700/80">
                       {items.map((x, i) =>
                         x.found?.mt?.card ? (
-                          <div key={i}>
-                            {items.length > 1 && (
-                              <div className="text-[10px] uppercase tracking-wider text-gray-500 px-1 mt-1.5 mb-0.5">{x.m.format}</div>
-                            )}
-                            <Scorecard m={x.found.mt} pars={x.found.pars} highlight={p.name} />
-                          </div>
+                          <Scorecard key={i} m={x.found.mt} pars={x.found.pars} highlight={p.name} />
                         ) : null
                       )}
                     </div>
