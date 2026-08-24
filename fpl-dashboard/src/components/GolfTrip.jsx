@@ -1077,19 +1077,19 @@ const TABS = [
   { id: "stats", label: "Stats", icon: BarChart3 },
 ];
 
-function ThemeToggle({ gg, onToggle }) {
+function ThemeToggle({ dark, onToggle }) {
   return (
     <button
       type="button"
-      aria-pressed={gg}
+      aria-pressed={dark}
       onClick={onToggle}
       className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold leading-tight text-right border ${
-        gg
-          ? "gg-toggle-on bg-emerald-600 text-white border-emerald-600"
+        dark
+          ? "bg-slate-800 text-white border-slate-600"
           : "bg-slate-900 border-slate-700 text-gray-400 hover:text-white"
       }`}
     >
-      Golf Genius
+      Dark
       <span className="block font-medium opacity-80">mode</span>
     </button>
   );
@@ -1101,9 +1101,9 @@ export default function GolfTrip() {
   const [tab, setTab] = useState("standings");
   const [gg, setGg] = useState(() => {
     try {
-      return localStorage.getItem("golftrip-theme") === "gg";
+      return localStorage.getItem("golftrip-dark") !== "1";
     } catch {
-      return false;
+      return true;
     }
   });
 
@@ -1116,7 +1116,7 @@ export default function GolfTrip() {
 
   useEffect(() => {
     try {
-      localStorage.setItem("golftrip-theme", gg ? "gg" : "dark");
+      localStorage.setItem("golftrip-dark", gg ? "0" : "1");
     } catch {
       /* ignore */
     }
@@ -1167,7 +1167,7 @@ export default function GolfTrip() {
                 </a>
               </div>
             </div>
-            <ThemeToggle gg={gg} onToggle={() => setGg((v) => !v)} />
+            <ThemeToggle dark={!gg} onToggle={() => setGg((v) => !v)} />
           </div>
         </header>
 

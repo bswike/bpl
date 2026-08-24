@@ -97,6 +97,3 @@
 .gg-theme .text-slate-300 { color: #555 !important; }
 .gg-theme .text-violet-300 { color: #6a1b9a !important; }
 .gg-theme .bg-violet-500 { background-color: #7b1fa2 !important; }
-
-/* active toggle stays white-on-green */
-.gg-theme .gg-toggle-on { color: #fff !important; }
