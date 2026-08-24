@@ -148,14 +148,14 @@ def parse_leaderboard(doc, kind):
         nz = [c for c in cs if c]
         if len(nz) < 3 or not re.fullmatch(r"T?\d+", nz[0]):
             continue
-        name = ""
+        # team games list both partners as links in the row; join them all
+        links = []
         for td in raw_tds:
-            m = re.search(r"<a[^>]*>(.*?)</a>", td, re.S)
-            if m and strip_tags(m.group(1)):
-                name = strip_tags(m.group(1))
-                break
-        if not name:
-            name = nz[1]
+            for m in re.finditer(r"<a[^>]*>(.*?)</a>", td, re.S):
+                t = strip_tags(m.group(1))
+                if t and t not in links:
+                    links.append(t)
+        name = " + ".join(links) if links else nz[1]
         purse = next((money(c) for c in nz if c.startswith("$")), None)
         nums = [c for c in nz[1:] if re.fullmatch(r"[+-]?\d+", c)]
         if kind == "quota":
@@ -265,12 +265,49 @@ for tr in table_rows(w["players"]):
     if len(cs) == 2 and re.fullmatch(r"[+]?\d+\.\d", cs[1]):
         roster[cs[0]] = cs[1]
 
-# trip standings: name -> purse, avg net
+# trip standings: name -> purse, avg net, member_id (for the purse-breakdown page)
 standings = {}
-for tr in table_rows(w["points"]):
+for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", clean(w["points"]), re.S):
     cs = [c for c in cells(tr) if c]
     if len(cs) >= 3 and cs[1].startswith("$"):
-        standings[cs[0]] = {"purse": money(cs[1]), "avgNet": float(cs[2])}
+        mid = re.search(r"member_info\?member_id=(\d+)", tr)
+        standings[cs[0]] = {"purse": money(cs[1]), "avgNet": float(cs[2]), "memberId": mid.group(1) if mid else None}
+
+
+def purse_category(tournament_name):
+    n = tournament_name.lower()
+    if "skins" in n:
+        return "Skins"
+    if "quota" in n:
+        return "Quota"
+    if "ctp" in n:
+        return "CTP"
+    if "drive" in n:
+        return "Long Drive"
+    if "net-low" in n or "net low" in n:
+        return "Net-Low"
+    return "Other"
+
+
+def fetch_purse_breakdown(member_id):
+    """Official per-tournament purse from the player's member_info page.
+
+    Round-header rows (with gross/net columns) repeat the sum of their
+    sub-rows, so only 2-cell (name, $) rows are counted — that also makes
+    the trip-long net-low count exactly once (it shows $0 inside rounds
+    and its real payout under 'Completed Multi-Round Tournaments')."""
+    doc = get(f"{BASE}/leagues/{LEAGUE}/widgets/season_points/member_info?member_id={member_id}&page_id=13005150146655174918")
+    by = {}
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", clean(doc), re.S):
+        cs = [c for c in cells(tr) if c and c != "\u00a0"]
+        if len(cs) == 3 and cs[1] == "$":  # name | $ | amount rendered as separate cells
+            cs = [cs[0], f"${cs[2]}"]
+        if len(cs) == 2 and cs[1].startswith("$") and not cs[0].startswith("Total"):
+            amt = money(cs[1])
+            if amt:
+                cat = purse_category(cs[0])
+                by[cat] = round(by.get(cat, 0) + amt, 2)
+    return by
 
 # team standings
 teams = []
@@ -284,6 +321,16 @@ for tr in table_rows(w["teams"]):
             "total": float(cs[3]),
             "purse": money(cs[4]),
         })
+
+# official purse breakdown per player (skins / quota / CTP / long drive / net-low)
+print(f"Fetching purse breakdowns for {len(standings)} players...")
+purse_by = {}
+for name, s in standings.items():
+    if s["memberId"]:
+        purse_by[name] = fetch_purse_breakdown(s["memberId"])
+        total = round(sum(purse_by[name].values()), 2)
+        ok = "" if abs(total - (s["purse"] or 0)) < 0.02 else f"  MISMATCH vs GG total ${s['purse']}"
+        print(f"  {name:24} ${total:<8} {purse_by[name]}{ok}")
 
 # scoring distribution: name -> [eagle, birdie, par, bogey, double, triple+]
 dist = {}
@@ -337,6 +384,7 @@ def P(name):
         players[name] = {
             "name": name, "team": None, "hi": roster.get(name),
             "purse": standings.get(name, {}).get("purse", 0.0),
+            "purseBy": purse_by.get(name, {}),
             "avgNet": standings.get(name, {}).get("avgNet"),
             "w": 0, "l": 0, "t": 0, "matchPts": 0.0,
             "skins": 0, "skinsPurse": 0.0, "skinDetails": [],
@@ -350,7 +398,7 @@ def P(name):
 for rnd in rounds:
     for t in rnd["tournaments"]:
         for row in t.get("rows", []):
-            if "player" in row:
+            if "player" in row and " + " not in row["player"]:
                 row["player"] = resolve(row["player"])
 
 netlow = None

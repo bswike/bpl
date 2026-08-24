@@ -99,6 +99,30 @@ const SORTS = {
   net: (a, b) => (a.avgNet ?? 999) - (b.avgNet ?? 999),
 };
 
+const PURSE_CATS = [
+  ["Skins", "bg-emerald-500", "text-emerald-300"],
+  ["Quota", "bg-sky-500", "text-sky-300"],
+  ["CTP", "bg-violet-500", "text-violet-300"],
+  ["Long Drive", "bg-amber-500", "text-amber-300"],
+  ["Net-Low", "bg-rose-500", "text-rose-300"],
+  ["Other", "bg-slate-500", "text-gray-300"],
+];
+
+function PurseChips({ purseBy }) {
+  const items = PURSE_CATS.filter(([cat]) => purseBy?.[cat] > 0);
+  if (!items.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map(([cat, , text]) => (
+        <span key={cat} className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[11px]">
+          <span className="text-gray-400">{cat}</span>{" "}
+          <span className={`font-semibold tabular-nums ${text}`}>{fmtMoney(purseBy[cat])}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function PlayerDetail({ p }) {
   return (
     <div className="px-3 pb-3 pt-1 space-y-3 text-xs">
@@ -106,8 +130,8 @@ function PlayerDetail({ p }) {
         {p.hi != null && <span>HI <span className="text-gray-200 font-semibold">{p.hi}</span></span>}
         {p.avgNet != null && <span>Avg net <span className="text-gray-200 font-semibold">{p.avgNet}</span></span>}
         <span>Match pts <span className="text-gray-200 font-semibold">{p.matchPts.toFixed(1)}</span></span>
-        {p.skins > 0 && <span>Skins purse <span className="text-gray-200 font-semibold">{fmtMoney(p.skinsPurse)}</span></span>}
       </div>
+      <PurseChips purseBy={p.purseBy} />
       {p.matches.length > 0 && (
         <div>
           <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">Matches</div>
@@ -450,7 +474,15 @@ function MoneyList({ players }) {
   const max = rows[0]?.purse || 1;
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-      <div className="text-sm font-semibold text-gray-100 mb-2.5">Money leaders</div>
+      <div className="text-sm font-semibold text-gray-100 mb-1">Money leaders</div>
+      <div className="text-[11px] text-gray-500 mb-2">All winnings: skins, quota, CTP, long drive, net-low</div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3">
+        {PURSE_CATS.filter(([cat]) => rows.some((p) => p.purseBy?.[cat] > 0)).map(([cat, bg]) => (
+          <span key={cat} className="flex items-center gap-1 text-[10px] text-gray-400">
+            <span className={`w-2 h-2 rounded-sm ${bg}`} /> {cat}
+          </span>
+        ))}
+      </div>
       <div className="space-y-1.5">
         {rows.map((p) => (
           <div key={p.name} className="flex items-center gap-2">
@@ -458,8 +490,12 @@ function MoneyList({ players }) {
               <TeamDot team={p.team} />
               <span className="truncate">{firstLast(p.name)}</span>
             </span>
-            <div className="flex-1 h-3.5 rounded overflow-hidden bg-slate-800">
-              <div className="h-full bg-emerald-500/80" style={{ width: `${(p.purse / max) * 100}%` }} />
+            <div className="flex-1 h-3.5 rounded overflow-hidden flex bg-slate-800">
+              {PURSE_CATS.map(([cat, bg]) =>
+                p.purseBy?.[cat] > 0 ? (
+                  <div key={cat} className={bg} style={{ width: `${(p.purseBy[cat] / max) * 100}%` }} title={`${cat}: ${fmtMoney(p.purseBy[cat])}`} />
+                ) : null
+              )}
             </div>
             <span className="w-16 text-right text-[11px] tabular-nums text-emerald-300 font-semibold">{fmtMoney(p.purse)}</span>
           </div>
