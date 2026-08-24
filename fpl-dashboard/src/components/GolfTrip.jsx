@@ -95,6 +95,7 @@ function TeamBanner({ teams }) {
 const SORTS = {
   purse: (a, b) => (b.purse || 0) - (a.purse || 0),
   record: (a, b) => b.w - a.w || a.l - b.l || (b.purse || 0) - (a.purse || 0),
+  pts: (a, b) => b.matchPts - a.matchPts || b.w - a.w,
   skins: (a, b) => b.skins - a.skins || (b.skinsPurse || 0) - (a.skinsPurse || 0),
   net: (a, b) => (a.avgNet ?? 999) - (b.avgNet ?? 999),
 };
@@ -204,7 +205,8 @@ function Standings({ players }) {
           <tr className="border-b border-slate-700/70 text-left text-[11px] uppercase tracking-wider">
             <th className="py-2 pl-3 pr-1 text-gray-500 font-semibold w-7">#</th>
             <th className="py-2 px-2 text-gray-500 font-semibold">Player</th>
-            <Th id="record">W-L-T</Th>
+            <Th id="record" className="!px-1">W-L-T</Th>
+            <Th id="pts" className="text-right !px-1">Pts</Th>
             <Th id="skins" className="text-center hidden sm:table-cell">Skins</Th>
             <Th id="net" className="text-right hidden sm:table-cell">Avg Net</Th>
             <Th id="purse" className="text-right pr-3">Purse</Th>
@@ -235,7 +237,8 @@ function PlayerRows({ p, rank, open, onToggle }) {
             {open ? <ChevronUp size={13} className="text-gray-500 shrink-0" /> : <ChevronDown size={13} className="text-gray-600 shrink-0" />}
           </span>
         </td>
-        <td className="py-2 px-2"><Record p={p} /></td>
+        <td className="py-2 px-1"><Record p={p} /></td>
+        <td className="py-2 px-1 text-right tabular-nums text-gray-300">{p.matchPts ? p.matchPts.toFixed(1) : "—"}</td>
         <td className="py-2 px-2 text-center tabular-nums text-gray-300 hidden sm:table-cell">{p.skins || "—"}</td>
         <td className="py-2 px-2 text-right tabular-nums text-gray-300 hidden sm:table-cell">{p.avgNet ?? "—"}</td>
         <td className={`py-2 px-2 pr-3 text-right tabular-nums font-semibold ${p.purse ? "text-emerald-300" : "text-gray-600"}`}>
@@ -244,7 +247,7 @@ function PlayerRows({ p, rank, open, onToggle }) {
       </tr>
       {open && (
         <tr className="border-b border-slate-800 bg-slate-800/40">
-          <td colSpan={6}><PlayerDetail p={p} /></td>
+          <td colSpan={7}><PlayerDetail p={p} /></td>
         </tr>
       )}
     </>
