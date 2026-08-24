@@ -42,9 +42,19 @@ const fmtMoney = (n) =>
   n == null ? "—" : `$${Number(n).toFixed(2).replace(/\.00$/, "")}`;
 
 const firstLast = (name) => {
+  if (name.includes(" + ")) return name.split(" + ").map(firstLast).join(" + ");
   const parts = name.split(" ");
   return parts.length > 1 ? `${parts[0][0]}. ${parts.slice(1).join(" ")}` : name;
 };
+
+const lastName = (name) => {
+  if (name.includes(" + ")) return name.split(" + ").map(lastName).join("+");
+  const parts = name.trim().split(" ");
+  return parts[parts.length - 1];
+};
+
+const nameOnCard = (rowName, player) =>
+  rowName === player || rowName.split(" + ").map((s) => s.trim()).includes(player);
 
 function TeamDot({ team }) {
   if (!team) return <span className="inline-block w-2 h-2 rounded-full bg-slate-600 shrink-0" />;
@@ -134,39 +144,101 @@ function PurseChips({ purseBy }) {
   );
 }
 
-function PlayerDetail({ p }) {
+// Resolve a player's match summary back to the full match object (with
+// scorecard) in the rounds data. A player appears at most once per tournament.
+function findMatch(rounds, playerName, m) {
+  for (const r of rounds || []) {
+    if (r.label !== m.round) continue;
+    for (const t of r.tournaments) {
+      if (t.type !== "match" || t.name !== m.format) continue;
+      const mt = t.matches.find((x) => x.playersL.includes(playerName) || x.playersR.includes(playerName));
+      if (mt) return { mt, pars: r.pars };
+    }
+  }
+  return null;
+}
+
+function PlayerDetail({ p, rounds }) {
+  const [openRound, setOpenRound] = useState(null);
+  const grouped = useMemo(() => {
+    const order = new Map((rounds || []).map((r, i) => [r.label, i]));
+    const map = new Map();
+    for (const m of p.matches) {
+      if (!map.has(m.round)) map.set(m.round, []);
+      map.get(m.round).push({ m, found: findMatch(rounds, p.name, m) });
+    }
+    return [...map.entries()]
+      .sort((a, b) => (order.get(a[0]) ?? 99) - (order.get(b[0]) ?? 99))
+      .map(([round, items]) => ({ round, items }));
+  }, [p.matches, p.name, rounds]);
+
   return (
-    <div className="px-3 pb-3 pt-1 space-y-3 text-xs">
+    <div className="px-3 pb-3 pt-1 space-y-3 text-xs" onClick={(e) => e.stopPropagation()}>
       <div className="flex flex-wrap gap-x-5 gap-y-1 text-gray-400">
         {p.hi != null && <span>HI <span className="text-gray-200 font-semibold">{p.hi}</span></span>}
         {p.avgNet != null && <span>Avg net <span className="text-gray-200 font-semibold">{p.avgNet}</span></span>}
         <span>Match pts <span className="text-gray-200 font-semibold">{p.matchPts.toFixed(1)}</span></span>
       </div>
       <PurseChips purseBy={p.purseBy} />
-      {p.matches.length > 0 && (
+      {grouped.length > 0 && (
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">Matches</div>
-          <div className="space-y-1">
-            {p.matches.map((m, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span
-                  className={`w-5 h-5 rounded flex items-center justify-center font-bold shrink-0 ${
-                    m.outcome === "W"
-                      ? "bg-emerald-500/20 text-emerald-300"
-                      : m.outcome === "L"
-                        ? "bg-rose-500/20 text-rose-300"
-                        : "bg-slate-700 text-gray-300"
-                  }`}
-                >
-                  {m.outcome}
-                </span>
-                <span className="text-gray-300 min-w-0">
-                  {m.partner ? `w/ ${firstLast(m.partner)} ` : ""}vs {m.opp}
-                  {m.result && m.result !== "Tied" && <span className="text-gray-500"> · {m.result}</span>}
-                  <span className="text-gray-600"> · {m.round}</span>
-                </span>
-              </div>
-            ))}
+          <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">Rounds — tap one for the scorecard</div>
+          <div className="space-y-1.5">
+            {grouped.map(({ round, items }) => {
+              const open = openRound === round;
+              const hasCard = items.some((x) => x.found?.mt?.card);
+              return (
+                <div key={round} className="rounded-lg border border-slate-700/80 overflow-hidden">
+                  <button
+                    type="button"
+                    className={`w-full flex items-center gap-2 px-2 py-1.5 text-left ${hasCard ? "hover:bg-slate-700/40" : ""} ${open ? "bg-slate-700/40" : ""}`}
+                    onClick={() => hasCard && setOpenRound(open ? null : round)}
+                  >
+                    <span className="flex gap-0.5 shrink-0">
+                      {items.map((x, i) => (
+                        <span
+                          key={i}
+                          className={`w-5 h-5 rounded flex items-center justify-center font-bold ${
+                            x.m.outcome === "W"
+                              ? "bg-emerald-500/20 text-emerald-300"
+                              : x.m.outcome === "L"
+                                ? "bg-rose-500/20 text-rose-300"
+                                : "bg-slate-700 text-gray-300"
+                          }`}
+                        >
+                          {x.m.outcome}
+                        </span>
+                      ))}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="text-gray-100 font-medium block truncate">{round}</span>
+                      <span className="text-gray-500">
+                        {items.map((x) => {
+                          const vs = x.m.partner ? `w/ ${firstLast(x.m.partner)} vs ${x.m.opp}` : `vs ${x.m.opp}`;
+                          const res = x.m.result && x.m.result !== "Tied" ? ` · ${x.m.result}` : "";
+                          return vs + res;
+                        }).join("  ·  ")}
+                      </span>
+                    </span>
+                    {hasCard && (open ? <ChevronUp size={14} className="text-gray-400 shrink-0" /> : <ChevronDown size={14} className="text-gray-500 shrink-0" />)}
+                  </button>
+                  {open && hasCard && (
+                    <div className="px-1.5 pb-2 pt-1 border-t border-slate-700/80">
+                      {items.map((x, i) =>
+                        x.found?.mt?.card ? (
+                          <div key={i}>
+                            {items.length > 1 && (
+                              <div className="text-[10px] uppercase tracking-wider text-gray-500 px-1 mt-1.5 mb-0.5">{x.m.format}</div>
+                            )}
+                            <Scorecard m={x.found.mt} pars={x.found.pars} highlight={p.name} />
+                          </div>
+                        ) : null
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -192,7 +264,7 @@ function PlayerDetail({ p }) {
   );
 }
 
-function Standings({ players }) {
+function Standings({ players, rounds }) {
   const [sort, setSort] = useState("record");
   const [open, setOpen] = useState(null);
   const sorted = useMemo(() => [...players].sort(SORTS[sort]), [players, sort]);
@@ -224,7 +296,7 @@ function Standings({ players }) {
         </thead>
         <tbody>
           {sorted.map((p, i) => (
-            <PlayerRows key={p.name} p={p} rank={i + 1} open={open === p.name} onToggle={() => setOpen(open === p.name ? null : p.name)} />
+            <PlayerRows key={p.name} p={p} rounds={rounds} rank={i + 1} open={open === p.name} onToggle={() => setOpen(open === p.name ? null : p.name)} />
           ))}
         </tbody>
       </table>
@@ -232,7 +304,7 @@ function Standings({ players }) {
   );
 }
 
-function PlayerRows({ p, rank, open, onToggle }) {
+function PlayerRows({ p, rounds, rank, open, onToggle }) {
   return (
     <>
       <tr
@@ -256,8 +328,8 @@ function PlayerRows({ p, rank, open, onToggle }) {
         </td>
       </tr>
       {open && (
-        <tr className="border-b border-slate-800 bg-slate-800/40">
-          <td colSpan={7}><PlayerDetail p={p} /></td>
+        <tr className="border-b border-slate-800 bg-slate-800/40" onClick={(e) => e.stopPropagation()}>
+          <td colSpan={7}><PlayerDetail p={p} rounds={rounds} /></td>
         </tr>
       )}
     </>
@@ -268,7 +340,7 @@ function PlayerRows({ p, rank, open, onToggle }) {
 
 /* ---------------- scorecard ---------------- */
 
-function ScoreCell({ gross, dots, par }) {
+function ScoreCell({ gross, dots, par, counted }) {
   if (gross == null) return <div className="h-8" />;
   const diff = par == null ? null : gross - par;
   const shape =
@@ -286,7 +358,7 @@ function ScoreCell({ gross, dots, par }) {
     </span>
   );
   return (
-    <div className="relative flex items-center justify-center h-8">
+    <div className={`relative flex items-center justify-center h-8 ${counted ? "bg-emerald-500/25 rounded-md ring-1 ring-emerald-400/40" : ""}`}>
       {shape === "eagle" || shape === "double" ? (
         <span className={`p-[2px] flex items-center justify-center ${shape === "eagle" ? circle : square}`}>{core}</span>
       ) : (
@@ -299,9 +371,33 @@ function ScoreCell({ gross, dots, par }) {
   );
 }
 
-function Scorecard({ m, pars }) {
+function Scorecard({ m, pars, highlight }) {
   const { rows, winners } = m.card;
-  const grid = { display: "grid", gridTemplateColumns: "3.4rem repeat(9, minmax(0, 1fr)) 2.2rem" };
+  const grid = { display: "grid", gridTemplateColumns: "4.6rem repeat(9, minmax(0, 1fr)) 1.9rem" };
+
+  const individual = highlight && rows.some((r) => r.name === highlight);
+  const combined = highlight && !individual && rows.some((r) => nameOnCard(r.name, highlight));
+
+  // In 2v2 best-ball, mark holes where this player's net was the team's best.
+  const isCounting = (r, i) => {
+    if (!individual || r.name !== highlight || r.gross[i] == null) return false;
+    const mates = rows.filter((x) => x.side === r.side && x.gross[i] != null);
+    if (rows.filter((x) => x.side === r.side).length < 2) return false;
+    const best = Math.min(...mates.map((x) => x.gross[i] - x.dots[i]));
+    return r.gross[i] - r.dots[i] === best;
+  };
+  const hlRow = individual ? rows.find((r) => r.name === highlight) : null;
+  const hlTeammates = hlRow ? rows.filter((r) => r.side === hlRow.side).length : 0;
+  let countedTotal = 0;
+  let countedWon = 0;
+  if (hlRow && hlTeammates >= 2) {
+    for (let i = 0; i < 18; i++) {
+      if (isCounting(hlRow, i)) {
+        countedTotal++;
+        if (winners[i] === hlRow.side) countedWon++;
+      }
+    }
+  }
   const halves = [
     { start: 0, label: "Out" },
     { start: 9, label: "In" },
@@ -344,14 +440,15 @@ function Scorecard({ m, pars }) {
             {rows.map((r) => {
               const tot = idx.reduce((a, i) => a + (r.gross[i] || 0), 0);
               const team = r.side === "L" ? m.teamL : m.teamR;
+              const mine = highlight && nameOnCard(r.name, highlight);
               return (
-                <div key={r.name} style={grid}>
+                <div key={r.name} style={grid} className={highlight && !mine ? "opacity-45" : ""}>
                   <div className="flex items-center gap-1 pl-1 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${TEAM[team]?.dot || "bg-slate-600"}`} />
-                    <span className="text-[9px] text-gray-300 truncate">{firstLast(r.name)}</span>
+                    <span className={`text-[9px] truncate ${mine ? "text-white font-semibold" : "text-gray-300"}`}>{lastName(r.name)}</span>
                   </div>
                   {idx.map((i) => (
-                    <ScoreCell key={i} gross={r.gross[i]} dots={r.dots[i]} par={pars?.[i]} />
+                    <ScoreCell key={i} gross={r.gross[i]} dots={r.dots[i]} par={pars?.[i]} counted={isCounting(r, i)} />
                   ))}
                   <div className="flex items-center justify-center text-[10px] tabular-nums text-gray-300 font-semibold">
                     {tot || ""}
@@ -362,6 +459,18 @@ function Scorecard({ m, pars }) {
           </div>
         );
       })}
+      {hlRow && hlTeammates >= 2 && (
+        <div className="mt-1.5 text-[10px] text-emerald-300">
+          <span className="inline-block w-3 h-3 rounded-md bg-emerald-500/25 align-[-2px] mr-1.5" />
+          {firstLast(highlight)}'s ball counted on {countedTotal} holes
+          {countedWon > 0 && ` — won ${countedWon} of them`}
+        </div>
+      )}
+      {combined && (
+        <div className="mt-1.5 text-[10px] text-gray-500">
+          Combined team score — individual balls aren't recorded for this format
+        </div>
+      )}
       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 pt-1.5 border-t border-slate-800 text-[9px] text-gray-500">
         <span className="flex items-center gap-1">
           <span className="w-3 h-3 rounded-full border border-emerald-300/90" /> birdie
@@ -845,7 +954,7 @@ export default function GolfTrip() {
           ))}
         </nav>
 
-        {tab === "standings" && <Standings players={data.players} />}
+        {tab === "standings" && <Standings players={data.players} rounds={data.rounds} />}
         {tab === "rounds" && <Rounds rounds={data.rounds} />}
         {tab === "stats" && <Stats data={data} />}
 
