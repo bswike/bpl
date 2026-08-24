@@ -536,6 +536,11 @@ for rnd in rounds:
 for name in roster:
     P(name)
 
+# GG's team-standings "Total Purse" only counts a subset of games.
+# Use the sum of official per-player purses (skins/quota/CTP/LD/net-low).
+for t in teams:
+    t["purse"] = round(sum(p["purse"] or 0 for p in players.values() if p.get("team") == t["name"]), 2)
+
 out = {
     "trip": {
         "name": "Crystal Springs '26",

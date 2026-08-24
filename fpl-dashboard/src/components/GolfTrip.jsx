@@ -38,8 +38,14 @@ const TEAM = {
   },
 };
 
-const fmtMoney = (n) =>
-  n == null ? "—" : `$${Number(n).toFixed(2).replace(/\.00$/, "")}`;
+const fmtMoney = (n) => {
+  if (n == null) return "—";
+  const v = Number(n);
+  const rounded = Math.abs(v % 1) < 0.005 ? v.toFixed(0) : v.toFixed(2);
+  const [a, b] = rounded.split(".");
+  const withCommas = a.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return b ? `$${withCommas}.${b}` : `$${withCommas}`;
+};
 
 const firstLast = (name) => {
   if (name.includes(" + ")) return name.split(" + ").map(firstLast).join(" + ");
@@ -75,10 +81,14 @@ function Record({ p }) {
 
 /* ---------------- team score banner ---------------- */
 
-function TeamBanner({ teams }) {
+function TeamBanner({ teams, players }) {
   const south = teams.find((t) => t.name === "South");
   const north = teams.find((t) => t.name === "North");
   if (!south || !north) return null;
+  const purseOf = (name) =>
+    (players || []).filter((p) => p.team === name).reduce((s, p) => s + (p.purse || 0), 0);
+  const southPurse = purseOf("South");
+  const northPurse = purseOf("North");
   const total = south.total + north.total || 1;
   const leader = south.total === north.total ? null : south.total > north.total ? south : north;
   return (
@@ -103,8 +113,8 @@ function TeamBanner({ teams }) {
         <div className="bg-sky-500" style={{ width: `${(north.total / total) * 100}%` }} />
       </div>
       <div className="flex justify-between mt-1.5 text-[11px] text-gray-500">
-        <span>Team purse {fmtMoney(south.purse)}</span>
-        <span>Team purse {fmtMoney(north.purse)}</span>
+        <span>Team purse {fmtMoney(southPurse)}</span>
+        <span>Team purse {fmtMoney(northPurse)}</span>
       </div>
     </div>
   );
@@ -954,7 +964,7 @@ export default function GolfTrip() {
           </div>
         </header>
 
-        <TeamBanner teams={data.teams} />
+        <TeamBanner teams={data.teams} players={data.players} />
 
         <nav className="flex gap-1.5 my-4 sm:my-5">
           {TABS.map(({ id, label, icon: Icon }) => (
