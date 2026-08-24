@@ -397,17 +397,58 @@ const roundTournaments = (r) =>
     .filter((t) => t.type !== "netlow" && t.type !== "empty")
     .sort((a, b) => (TYPE_ORDER[a.type] ?? 9) - (TYPE_ORDER[b.type] ?? 9));
 
-function Rounds({ rounds }) {
+// South/North points earned in this round's team matches, for the collapsed header
+function roundScore(r) {
+  let L = 0, R = 0, any = false;
+  for (const t of r.tournaments) {
+    if (t.type === "match" && t.totals) {
+      L += t.totals.L;
+      R += t.totals.R;
+      any = true;
+    }
+  }
+  return any ? { L: +L.toFixed(1), R: +R.toFixed(1) } : null;
+}
+
+function RoundCard({ r, open, onToggle }) {
+  const score = roundScore(r);
   return (
-    <div className="space-y-4">
-      {rounds.map((r) => (
-        <div key={r.id} className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-          <div className="flex items-baseline justify-between mb-2.5">
-            <div className="font-semibold text-gray-100 text-sm sm:text-base">{r.label}</div>
-            <div className="text-[11px] text-gray-500 shrink-0 ml-2">{r.date}</div>
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden">
+      <button className="w-full flex items-center gap-3 p-3.5 sm:p-4 text-left hover:bg-slate-800/50" onClick={onToggle}>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-gray-100 text-sm sm:text-base truncate">{r.label}</div>
+          <div className="text-[11px] text-gray-500 mt-0.5">{r.date}</div>
+        </div>
+        {score && (
+          <div className="shrink-0 text-xs sm:text-sm font-semibold tabular-nums whitespace-nowrap">
+            <span className={score.L > score.R ? "text-rose-300" : "text-rose-400/60"}>{score.L}</span>
+            <span className="text-gray-600 mx-1">–</span>
+            <span className={score.R > score.L ? "text-sky-300" : "text-sky-400/60"}>{score.R}</span>
           </div>
+        )}
+        {open ? <ChevronUp size={16} className="text-gray-400 shrink-0" /> : <ChevronDown size={16} className="text-gray-500 shrink-0" />}
+      </button>
+      {open && (
+        <div className="px-3.5 sm:px-4 pb-3.5 sm:pb-4 border-t border-slate-800 pt-3">
           {roundTournaments(r).map((t) => <Tournament key={t.id} t={t} />)}
         </div>
+      )}
+    </div>
+  );
+}
+
+function Rounds({ rounds }) {
+  const [open, setOpen] = useState(() => new Set(rounds.length ? [rounds[0].id] : []));
+  const toggle = (id) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  return (
+    <div className="space-y-3">
+      {rounds.map((r) => (
+        <RoundCard key={r.id} r={r} open={open.has(r.id)} onToggle={() => toggle(r.id)} />
       ))}
     </div>
   );
