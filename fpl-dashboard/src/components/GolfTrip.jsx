@@ -841,7 +841,7 @@ function lowsFromOfficial(label, players, needle) {
   return gross && net ? { label, gross, net } : null;
 }
 
-function lowsFromMatches(label, tournaments) {
+function lowsFromMatches(label, tournaments, includeNet = true) {
   const rows = [];
   for (const t of tournaments) {
     for (const m of t.matches || []) {
@@ -857,8 +857,8 @@ function lowsFromMatches(label, tournaments) {
     }
   }
   const gross = bestScore(rows, "gross");
-  const net = bestScore(rows, "net");
-  return gross && net ? { label, gross, net } : null;
+  if (!gross) return null;
+  return { label, gross, net: includeNet ? bestScore(rows, "net") : null };
 }
 
 function roundLows(rounds, players) {
@@ -868,14 +868,14 @@ function roundLows(rounds, players) {
     const front = matches.filter((t) => /front/i.test(t.name));
     const back = matches.filter((t) => /back/i.test(t.name));
     if (front.length && back.length) {
-      out.push(lowsFromMatches("Black Bear — Scramble", front));
-      out.push(lowsFromMatches("Black Bear — Pinehurst", back));
+      out.push(lowsFromMatches("Black Bear — Scramble", front, false));
+      out.push(lowsFromMatches("Black Bear — Pinehurst", back, false));
     } else if (/crystal springs/i.test(r.label)) {
       out.push(lowsFromOfficial(r.label, players, "Crystal Springs"));
     } else if (/1v1/i.test(r.label)) {
       out.push(lowsFromOfficial(r.label, players, "1v1"));
     } else {
-      out.push(lowsFromMatches(r.label, matches));
+      out.push(lowsFromMatches(r.label, matches, false));
     }
   }
   return out.filter(Boolean);
@@ -938,41 +938,43 @@ function Superlatives({ players, rounds }) {
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 sm:p-4">
-      <div className="text-sm font-semibold text-gray-100 mb-2">Round lows</div>
-      <div className="space-y-2.5">
-        {lows.map((r) => (
-          <div key={r.label}>
-            <div className="text-[11px] text-gray-500 font-medium truncate">{r.label}</div>
-            <div className="mt-0.5 space-y-0.5 text-xs">
-              {[
-                ["G", r.gross],
-                ["N", r.net],
-              ].map(([kind, block]) => (
-                <div key={kind}>
-                  <span className="text-gray-500">{kind} </span>
-                  <span className="tabular-nums font-semibold text-white">{block.v}</span>
-                  {block.names.length > 1 && (
-                    <span className="ml-1.5 text-[10px] uppercase tracking-wider text-amber-300">tied</span>
-                  )}
-                  <span className="text-emerald-300"> {names(block)}</span>
-                </div>
-              ))}
+    <div className="bg-slate-900 border border-slate-700 rounded-xl p-3.5 sm:p-4">
+      <div className="text-sm font-semibold text-gray-100 mb-3">Round lows</div>
+      <div className="space-y-3">
+        {lows.map((r) => {
+          const stats = r.net ? [["Gross", r.gross], ["Net", r.net]] : [["Gross", r.gross]];
+          return (
+            <div key={r.label} className="rounded-lg bg-slate-800/50 px-3.5 py-3">
+              <div className="text-[11px] text-gray-400 font-medium truncate mb-1.5">{r.label}</div>
+              <div className={r.net ? "grid grid-cols-2 gap-3" : ""}>
+                {stats.map(([kind, block]) => (
+                  <div key={kind} className={!r.net ? "flex items-baseline gap-2 flex-wrap" : ""}>
+                    {r.net && <div className="text-[10px] uppercase tracking-wider text-gray-500">{kind}</div>}
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-xl font-bold tabular-nums text-white">{block.v}</span>
+                      {block.names.length > 1 && (
+                        <span className="text-[10px] uppercase tracking-wider text-amber-300">tied</span>
+                      )}
+                    </div>
+                    <div className={`text-xs text-emerald-300 ${r.net ? "mt-0.5" : ""}`}>{names(block)}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      <div className="mt-3 pt-3 border-t border-slate-800 space-y-1.5">
-        {fun.map((f) => (
-          <div key={f.label} className="flex items-baseline justify-between gap-3 text-xs">
-            <span className="text-gray-400 shrink-0">{f.label}</span>
-            <span className="text-right min-w-0">
-              {f.value != null && <span className="tabular-nums font-semibold text-white mr-1.5">{f.value}</span>}
-              <span className="text-emerald-300">{f.who}</span>
-              {f.hint && <span className="block text-[10px] text-gray-600">{f.hint}</span>}
-            </span>
-          </div>
-        ))}
+      <div className="mt-4 pt-3 border-t border-slate-800">
+        <div className="grid grid-cols-2 gap-2">
+          {fun.map((f) => (
+            <div key={f.label} className={`rounded-lg bg-slate-800/50 px-3.5 py-3 ${f.value == null || f.hint ? "col-span-2" : ""}`}>
+              <div className="text-[10px] uppercase tracking-wider text-gray-500">{f.label}</div>
+              {f.value != null && <div className="text-xl font-bold tabular-nums text-white mt-0.5">{f.value}</div>}
+              <div className="text-xs text-emerald-300 mt-0.5">{f.who}</div>
+              {f.hint && <div className="text-[10px] text-gray-600 mt-0.5">{f.hint}</div>}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
