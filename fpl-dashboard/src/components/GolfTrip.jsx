@@ -380,9 +380,37 @@ function ScoreCell({ gross, dots, par, counted }) {
   );
 }
 
+function holeStatus(winners) {
+  const played = [];
+  for (let i = 0; i < 18; i++) if (winners[i]) played.push(i);
+  const start = played[0] ?? 0;
+  const last = played[played.length - 1] ?? -1;
+  const end = start < 9 && last >= 9 ? 18 : start >= 9 ? 18 : 9;
+  const out = Array(18).fill(null);
+  let l = 0;
+  let r = 0;
+  let closed = false;
+  for (let i = 0; i < 18; i++) {
+    const w = winners[i];
+    if (!w || closed) continue;
+    if (w === "L") l += 1;
+    else if (w === "R") r += 1;
+    const lead = Math.abs(l - r);
+    const who = l === r ? null : l > r ? "L" : "R";
+    const remaining = end - i - 1;
+    if (!who) out[i] = { label: "AS", who: null };
+    else if (remaining > 0 && lead > remaining) {
+      out[i] = { label: `${lead} & ${remaining}`, who };
+      closed = true;
+    } else out[i] = { label: `${lead} up`, who };
+  }
+  return out;
+}
+
 function Scorecard({ m, pars, highlight }) {
   const { rows, winners } = m.card;
   const grid = { display: "grid", gridTemplateColumns: "4.6rem repeat(9, minmax(0, 1fr)) 1.9rem" };
+  const status = holeStatus(winners);
 
   const individual = highlight && rows.some((r) => r.name === highlight);
   const combined = highlight && !individual && rows.some((r) => nameOnCard(r.name, highlight));
@@ -465,6 +493,25 @@ function Scorecard({ m, pars, highlight }) {
                 </div>
               );
             })}
+            <div style={grid} className="mt-0.5">
+              <div className="flex items-center pl-1 text-[9px] uppercase tracking-wider text-gray-500 font-semibold">Match</div>
+              {idx.map((i) => {
+                const s = status[i];
+                if (!s) return <div key={i} />;
+                const team = s.who === "L" ? m.teamL : s.who === "R" ? m.teamR : null;
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-center h-5 px-0.5 rounded-sm text-[8px] font-bold leading-none text-center ${
+                      team ? TEAM[team]?.text : "text-gray-400"
+                    } ${s.who === "L" ? TEAM[m.teamL]?.cell : s.who === "R" ? TEAM[m.teamR]?.cell : ""}`}
+                  >
+                    {s.label}
+                  </div>
+                );
+              })}
+              <div />
+            </div>
           </div>
         );
       })}
