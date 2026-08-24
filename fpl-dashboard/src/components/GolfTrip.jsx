@@ -679,6 +679,21 @@ function roundScore(r) {
   return any ? { L: +L.toFixed(1), R: +R.toFixed(1) } : null;
 }
 
+function splitRounds(rounds) {
+  const out = [];
+  for (const r of rounds) {
+    const front = r.tournaments.filter((t) => /front/i.test(t.name));
+    const back = r.tournaments.filter((t) => /back/i.test(t.name));
+    if (front.some((t) => t.type === "match") && back.some((t) => t.type === "match")) {
+      out.push({ ...r, id: `${r.id}-scramble`, label: "Black Bear — Scramble", tournaments: front });
+      out.push({ ...r, id: `${r.id}-pinehurst`, label: "Black Bear — Pinehurst", tournaments: back });
+    } else {
+      out.push(r);
+    }
+  }
+  return out;
+}
+
 function RoundCard({ r, open, onToggle }) {
   const score = roundScore(r);
   return (
@@ -707,7 +722,8 @@ function RoundCard({ r, open, onToggle }) {
 }
 
 function Rounds({ rounds }) {
-  const [open, setOpen] = useState(() => new Set(rounds.length ? [rounds[0].id] : []));
+  const list = useMemo(() => splitRounds(rounds), [rounds]);
+  const [open, setOpen] = useState(() => new Set());
   const toggle = (id) =>
     setOpen((prev) => {
       const next = new Set(prev);
@@ -716,7 +732,7 @@ function Rounds({ rounds }) {
     });
   return (
     <div className="space-y-3">
-      {rounds.map((r) => (
+      {list.map((r) => (
         <RoundCard key={r.id} r={r} open={open.has(r.id)} onToggle={() => toggle(r.id)} />
       ))}
     </div>
