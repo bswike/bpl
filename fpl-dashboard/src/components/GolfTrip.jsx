@@ -7,15 +7,7 @@ import {
   BarChart3,
   Flag,
   ExternalLink,
-  Medal,
-  Sparkles,
-  Flame,
-  Bird,
-  Target,
-  Zap,
-  TrendingUp,
   Crosshair,
-  Square,
 } from "lucide-react";
 
 // Team colors match Golf Genius (South red / North blue)
@@ -798,9 +790,6 @@ function NetLow({ netlow }) {
   );
 }
 
-// Round names on the breakdown pages look like "Crystal Springs - 2v2 Matchplay"
-const courseOf = (roundName) => roundName.split(" - ")[0];
-
 function clutchCounts(rounds) {
   const counts = {};
   for (const r of rounds || []) {
@@ -830,111 +819,152 @@ function clutchCounts(rounds) {
   return counts;
 }
 
+function shortWho(name) {
+  if (name.includes(" + ")) return name.split(" + ").map(lastName).join(" + ");
+  return firstLast(name);
+}
+
+function bestScore(rows, key) {
+  if (!rows.length) return null;
+  const v = Math.min(...rows.map((r) => r[key]));
+  return { v, names: rows.filter((r) => r[key] === v).map((r) => r.name) };
+}
+
+function lowsFromOfficial(label, players, needle) {
+  const rows = [];
+  for (const p of players) {
+    for (const s of p.scores || []) {
+      if (s.holes === 18 && s.round.includes(needle)) rows.push({ name: p.name, gross: s.gross, net: s.net });
+    }
+  }
+  const gross = bestScore(rows, "gross");
+  const net = bestScore(rows, "net");
+  return gross && net ? { label, gross, net } : null;
+}
+
+function lowsFromMatches(label, tournaments) {
+  const rows = [];
+  for (const t of tournaments) {
+    for (const m of t.matches || []) {
+      for (const row of m.card?.rows || []) {
+        const holes = row.gross.map((g, i) => (g == null ? null : { g, n: g - row.dots[i] })).filter(Boolean);
+        if (!holes.length) continue;
+        rows.push({
+          name: row.name,
+          gross: holes.reduce((a, h) => a + h.g, 0),
+          net: holes.reduce((a, h) => a + h.n, 0),
+        });
+      }
+    }
+  }
+  const gross = bestScore(rows, "gross");
+  const net = bestScore(rows, "net");
+  return gross && net ? { label, gross, net } : null;
+}
+
+function roundLows(rounds, players) {
+  const out = [];
+  for (const r of rounds || []) {
+    const matches = r.tournaments.filter((t) => t.type === "match");
+    const front = matches.filter((t) => /front/i.test(t.name));
+    const back = matches.filter((t) => /back/i.test(t.name));
+    if (front.length && back.length) {
+      out.push(lowsFromMatches("Black Bear — Scramble", front));
+      out.push(lowsFromMatches("Black Bear — Pinehurst", back));
+    } else if (/crystal springs/i.test(r.label)) {
+      out.push(lowsFromOfficial(r.label, players, "Crystal Springs"));
+    } else if (/1v1/i.test(r.label)) {
+      out.push(lowsFromOfficial(r.label, players, "1v1"));
+    } else {
+      out.push(lowsFromMatches(r.label, matches));
+    }
+  }
+  return out.filter(Boolean);
+}
+
 function Superlatives({ players, rounds }) {
-  const tiles = useMemo(() => {
-    const t = [];
-    const entries = [];
-    players.forEach((p) => (p.scores || []).forEach((s) => {
-      if (s.holes === 18) entries.push({ p, s });
-    }));
+  const { lows, fun } = useMemo(() => {
     const pick = (arr, f, best) => {
       const v = best(...arr.map(f));
       return { v, list: arr.filter((x) => f(x) === v) };
     };
-    const scoreWho = ({ list }) =>
-      list.map((e) => `${firstLast(e.p.name)} · ${courseOf(e.s.round)}`).join("  &  ");
     const distWho = ({ list }) => list.map((e) => firstLast(e.name)).join(" & ");
-
-    if (entries.length) {
-      const lg = pick(entries, (e) => e.s.gross, Math.min);
-      t.push({ icon: Medal, label: "Low gross", value: lg.v, who: scoreWho(lg) });
-      const ln = pick(entries, (e) => e.s.net, Math.min);
-      t.push({ icon: Sparkles, label: "Low net", value: ln.v, who: scoreWho(ln) });
-    }
-
+    const fun = [];
     const withDist = players.filter((p) => p.dist && p.dist.reduce((a, b) => a + b, 0) > 0);
     if (withDist.length) {
       const birdies = pick(withDist, (p) => p.dist[1], Math.max);
-      if (birdies.v > 0) t.push({ icon: Flame, label: "Most birdies", value: birdies.v, who: distWho(birdies) });
+      if (birdies.v > 0) fun.push({ label: "Most birdies", value: birdies.v, who: distWho(birdies) });
       const eagles = withDist.filter((p) => p.dist[0] > 0);
       if (eagles.length)
-        t.push({
-          icon: Bird,
+        fun.push({
           label: "Eagle club",
           value: eagles.reduce((a, p) => a + p.dist[0], 0),
           who: eagles.map((p) => firstLast(p.name)).join(" & "),
         });
       const pars = pick(withDist, (p) => p.dist[2], Math.max);
-      t.push({ icon: Target, label: "Most pars", value: pars.v, who: distWho(pars) });
+      fun.push({ label: "Most pars", value: pars.v, who: distWho(pars) });
       const bogeys = pick(withDist, (p) => p.dist[3], Math.max);
-      if (bogeys.v > 0) t.push({ icon: Square, label: "Most bogeys", value: bogeys.v, who: distWho(bogeys) });
+      if (bogeys.v > 0) fun.push({ label: "Most bogeys", value: bogeys.v, who: distWho(bogeys) });
     }
-
     const counted = clutchCounts(rounds);
     const teamOf = Object.fromEntries(players.map((p) => [p.name, p.team]));
-    const clutchLines = ["South", "North"].map((team) => {
+    const clutch = ["South", "North"].map((team) => {
       const names = Object.keys(counted).filter((n) => teamOf[n] === team);
       if (!names.length) return null;
       const best = Math.max(...names.map((n) => counted[n]));
-      const who = names.filter((n) => counted[n] === best);
-      return { team, best, who };
+      return { team, best, who: names.filter((n) => counted[n] === best) };
     }).filter(Boolean);
-    if (clutchLines.length) {
-      t.push({
-        icon: Zap,
+    if (clutch.length) {
+      fun.push({
         label: "Clutch gene",
-        lines: clutchLines.map((c) => ({
-          team: c.team,
-          text: `${c.who.map(firstLast).join(" & ")} · ${c.best}`,
-        })),
-        sub: "holes their ball counted · 2v2 & 1v1",
+        who: clutch.map((c) => `${c.who.map(firstLast).join(" & ")} ${c.best}`).join("  ·  "),
+        hint: "holes their ball counted, 2v2 & 1v1",
       });
     }
-
     const twoRounds = players.filter((p) => (p.scores || []).filter((s) => s.holes === 18).length >= 2);
     if (twoRounds.length) {
       const bb = pick(twoRounds, (p) => {
         const s = p.scores.filter((x) => x.holes === 18);
         return s[0].net - s[s.length - 1].net;
       }, Math.max);
-      if (bb.v > 0)
-        t.push({
-          icon: TrendingUp,
-          label: "Bounce back",
-          value: `-${bb.v}`,
-          who: distWho(bb),
-          sub: "net improvement, Crystal Springs → Black Bear",
-        });
+      if (bb.v > 0) fun.push({ label: "Bounce back", value: `-${bb.v}`, who: distWho(bb), hint: "net, Crystal Springs → Black Bear" });
     }
-    return t;
+    return { lows: roundLows(rounds, players), fun };
   }, [players, rounds]);
 
+  const names = (block) => block.names.map(shortWho).join(" & ");
+
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-      <div className="text-sm font-semibold text-gray-100 mb-1">Trip superlatives</div>
-      <div className="text-[11px] text-gray-500 mb-3">From the individually-scored rounds (Crystal Springs & Black Bear)</div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {tiles.map((tile) => (
-          <div key={tile.label} className={`bg-slate-800/60 rounded-xl p-3 ${tile.lines ? "col-span-2 sm:col-span-1" : ""}`}>
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-gray-500">
-              <tile.icon size={12} /> {tile.label}
-            </div>
-            {tile.lines ? (
-              <div className="mt-1.5 space-y-1">
-                {tile.lines.map((line) => (
-                  <div key={line.team} className="text-sm font-semibold">
-                    <span className={TEAM[line.team]?.text || "text-gray-300"}>{line.team}</span>
-                    <span className="text-emerald-300"> · {line.text}</span>
-                  </div>
-                ))}
+    <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 sm:p-4">
+      <div className="text-sm font-semibold text-gray-100 mb-2">Round lows</div>
+      <div className="space-y-2.5">
+        {lows.map((r) => (
+          <div key={r.label}>
+            <div className="text-[11px] text-gray-500 font-medium truncate">{r.label}</div>
+            <div className="grid grid-cols-2 gap-x-3 text-xs mt-0.5">
+              <div>
+                <span className="text-gray-500">G </span>
+                <span className="tabular-nums font-semibold text-white">{r.gross.v}</span>
+                <span className="text-emerald-300"> {names(r.gross)}</span>
               </div>
-            ) : (
-              <>
-                <div className="text-2xl font-bold text-white mt-1 tabular-nums">{tile.value}</div>
-                <div className="text-xs text-emerald-300 font-medium mt-0.5">{tile.who}</div>
-              </>
-            )}
-            {tile.sub && <div className="text-[10px] text-gray-500 mt-0.5">{tile.sub}</div>}
+              <div>
+                <span className="text-gray-500">N </span>
+                <span className="tabular-nums font-semibold text-white">{r.net.v}</span>
+                <span className="text-emerald-300"> {names(r.net)}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 pt-3 border-t border-slate-800 space-y-1.5">
+        {fun.map((f) => (
+          <div key={f.label} className="flex items-baseline justify-between gap-3 text-xs">
+            <span className="text-gray-400 shrink-0">{f.label}</span>
+            <span className="text-right min-w-0">
+              {f.value != null && <span className="tabular-nums font-semibold text-white mr-1.5">{f.value}</span>}
+              <span className="text-emerald-300">{f.who}</span>
+              {f.hint && <span className="block text-[10px] text-gray-600">{f.hint}</span>}
+            </span>
           </div>
         ))}
       </div>
