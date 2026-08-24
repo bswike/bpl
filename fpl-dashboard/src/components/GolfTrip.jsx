@@ -732,46 +732,72 @@ function Rounds({ rounds }) {
 
 /* ---------------- stats tab ---------------- */
 
-const DIST_COLORS = ["bg-yellow-400", "bg-emerald-500", "bg-sky-500", "bg-slate-500", "bg-orange-500", "bg-rose-600"];
-const DIST_LABELS = ["Eagle", "Birdie", "Par", "Bogey", "Double", "Triple+"];
+const DIST_COLS = [
+  { id: 0, label: "E", title: "Eagle", text: "text-yellow-400" },
+  { id: 1, label: "B", title: "Birdie", text: "text-emerald-400" },
+  { id: 2, label: "Par", title: "Par", text: "text-sky-400" },
+  { id: 3, label: "Bog", title: "Bogey", text: "text-slate-300" },
+  { id: 4, label: "Dbl", title: "Double", text: "text-orange-400" },
+  { id: 5, label: "3+", title: "Triple+", text: "text-rose-400" },
+];
 
 function ScoringDist({ players }) {
+  const [sort, setSort] = useState(1);
   const rows = useMemo(() => {
     return players
       .filter((p) => p.dist && p.dist.reduce((a, b) => a + b, 0) > 0)
-      .map((p) => {
-        const total = p.dist.reduce((a, b) => a + b, 0);
-        return { ...p, total, good: (p.dist[0] + p.dist[1] + p.dist[2]) / total };
-      })
-      .sort((a, b) => b.good - a.good);
-  }, [players]);
+      .sort((a, b) => (b.dist[sort] - a.dist[sort]) || a.name.localeCompare(b.name));
+  }, [players, sort]);
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-      <div className="text-sm font-semibold text-gray-100 mb-1">Scoring distribution</div>
-      <div className="text-[11px] text-gray-500 mb-3">All trip holes · sorted by % of holes at par or better</div>
-      <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3">
-        {DIST_LABELS.map((l, i) => (
-          <span key={l} className="flex items-center gap-1 text-[10px] text-gray-400">
-            <span className={`w-2 h-2 rounded-sm ${DIST_COLORS[i]}`} /> {l}
-          </span>
-        ))}
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden">
+      <div className="px-3.5 sm:px-4 pt-3.5 pb-2">
+        <div className="text-sm font-semibold text-gray-100">Scoring distribution</div>
+        <div className="text-[11px] text-gray-500">All trip holes · tap a column to sort</div>
       </div>
-      <div className="space-y-1.5">
-        {rows.map((p) => (
-          <div key={p.name} className="flex items-center gap-2">
-            <span className="w-28 sm:w-36 text-xs text-gray-300 truncate flex items-center gap-1.5">
-              <TeamDot team={p.team} />
-              <span className="truncate">{firstLast(p.name)}</span>
-            </span>
-            <div className="flex-1 h-4 rounded overflow-hidden flex bg-slate-800">
-              {p.dist.map((n, i) =>
-                n > 0 ? <div key={i} className={DIST_COLORS[i]} style={{ width: `${(n / p.total) * 100}%` }} title={`${DIST_LABELS[i]}: ${n}`} /> : null
-              )}
-            </div>
-            <span className="w-10 text-right text-[11px] tabular-nums text-gray-400">{Math.round(p.good * 100)}%</span>
-          </div>
-        ))}
-      </div>
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-t border-slate-800 text-left text-[10px] uppercase tracking-wider">
+            <th className="py-2 pl-3.5 sm:pl-4 pr-2 text-gray-500 font-semibold">Player</th>
+            {DIST_COLS.map((c) => (
+              <th
+                key={c.id}
+                title={c.title}
+                onClick={() => setSort(c.id)}
+                className={`py-2 px-1 font-semibold text-right cursor-pointer select-none whitespace-nowrap ${
+                  sort === c.id ? "text-emerald-300" : "text-gray-500 hover:text-gray-300"
+                } ${c.id === 5 ? "pr-3.5 sm:pr-4" : ""}`}
+              >
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => (
+            <tr key={p.name} className="border-t border-slate-800">
+              <td className="py-1.5 pl-3.5 sm:pl-4 pr-2">
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <TeamDot team={p.team} />
+                  <span className="text-gray-200 truncate">{firstLast(p.name)}</span>
+                </span>
+              </td>
+              {DIST_COLS.map((c) => {
+                const n = p.dist[c.id];
+                return (
+                  <td
+                    key={c.id}
+                    className={`py-1.5 px-1 text-right tabular-nums ${
+                      n ? c.text : "text-gray-700"
+                    } ${sort === c.id ? "font-semibold" : ""} ${c.id === 5 ? "pr-3.5 sm:pr-4" : ""}`}
+                  >
+                    {n || "—"}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
