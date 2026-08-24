@@ -743,17 +743,20 @@ const DIST_COLS = [
 ];
 
 function ScoringDist({ players }) {
-  const [sort, setSort] = useState(1);
+  const [sort, setSort] = useState(2);
   const rows = useMemo(() => {
     return players
       .filter((p) => p.dist && p.dist.reduce((a, b) => a + b, 0) > 0)
       .sort((a, b) => (b.dist[sort] - a.dist[sort]) || a.name.localeCompare(b.name));
   }, [players, sort]);
+  const sortedBy = DIST_COLS[sort];
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden">
       <div className="px-3.5 sm:px-4 pt-3.5 pb-2">
         <div className="text-sm font-semibold text-gray-100">Scoring distribution</div>
-        <div className="text-[11px] text-gray-500">All trip holes · tap a column to sort</div>
+        <div className="text-[11px] text-gray-500">
+          All trip holes · sorted by {sortedBy.title.toLowerCase()}s · tap a heading to sort
+        </div>
       </div>
       <table className="w-full text-xs">
         <thead>
@@ -762,13 +765,19 @@ function ScoringDist({ players }) {
             {DIST_COLS.map((c) => (
               <th
                 key={c.id}
-                title={c.title}
+                title={`Sort by ${c.title}`}
                 onClick={() => setSort(c.id)}
                 className={`py-2 px-1 font-semibold text-right cursor-pointer select-none whitespace-nowrap ${
                   sort === c.id ? "text-emerald-300" : "text-gray-500 hover:text-gray-300"
                 } ${c.id === 5 ? "pr-3.5 sm:pr-4" : ""}`}
               >
-                {c.label}
+                <span className="inline-flex items-center justify-end gap-0.5">
+                  {c.label}
+                  <ChevronDown
+                    size={11}
+                    className={sort === c.id ? "opacity-100" : "opacity-25"}
+                  />
+                </span>
               </th>
             ))}
           </tr>
