@@ -12,10 +12,10 @@ import {
   Flame,
   Bird,
   Target,
-  Snowflake,
+  Coins,
   TrendingUp,
   Crosshair,
-  Skull,
+  Shield,
 } from "lucide-react";
 
 // Team colors match Golf Genius (South red / North blue)
@@ -785,8 +785,20 @@ function Superlatives({ players }) {
       t.push({ icon: Medal, label: "Low gross", value: lg.v, who: scoreWho(lg) });
       const ln = pick(entries, (e) => e.s.net, Math.min);
       t.push({ icon: Sparkles, label: "Low net", value: ln.v, who: scoreWho(ln) });
-      const hg = pick(entries, (e) => e.s.gross, Math.max);
-      t.push({ icon: Snowflake, label: "High gross", value: hg.v, who: scoreWho(hg) });
+    }
+
+    const withRec = players.filter((p) => p.w + p.l + p.t > 0);
+    if (withRec.length) {
+      const unbeaten = withRec.filter((p) => p.l === 0);
+      const champ = unbeaten.length
+        ? pick(unbeaten, (p) => p.w * 10 - p.t, Math.max)
+        : pick(withRec, (p) => p.w * 10 - p.l, Math.max);
+      t.push({
+        icon: Shield,
+        label: unbeaten.length ? "Undefeated" : "Best record",
+        value: `${champ.list[0].w}-${champ.list[0].l}-${champ.list[0].t}`,
+        who: distWho(champ),
+      });
     }
 
     const withDist = players.filter((p) => p.dist && p.dist.reduce((a, b) => a + b, 0) > 0);
@@ -803,8 +815,12 @@ function Superlatives({ players }) {
         });
       const pars = pick(withDist, (p) => p.dist[2], Math.max);
       t.push({ icon: Target, label: "Most pars", value: pars.v, who: distWho(pars) });
-      const wreck = pick(withDist, (p) => p.dist[4] + p.dist[5], Math.max);
-      t.push({ icon: Skull, label: "Doubles or worse", value: wreck.v, who: distWho(wreck) });
+    }
+
+    const skinners = players.filter((p) => p.skins > 0);
+    if (skinners.length) {
+      const king = pick(skinners, (p) => p.skins, Math.max);
+      t.push({ icon: Coins, label: "Skin king", value: king.v, who: distWho(king) });
     }
 
     const twoRounds = players.filter((p) => (p.scores || []).filter((s) => s.holes === 18).length >= 2);
