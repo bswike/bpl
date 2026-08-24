@@ -7,7 +7,6 @@ import {
   BarChart3,
   Flag,
   ExternalLink,
-  Crosshair,
 } from "lucide-react";
 
 // Team colors match Golf Genius (South red / North blue)
@@ -972,39 +971,11 @@ function Superlatives({ players, rounds }) {
   );
 }
 
-function Prizes({ rounds }) {
-  const wins = [];
-  for (const r of rounds)
-    for (const t of r.tournaments)
-      if (t.type === "list")
-        for (const row of t.rows)
-          wins.push({ event: t.name.replace(/^RD\d+ - /i, ""), course: r.course, ...row });
-  if (!wins.length) return null;
-  return (
-    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-      <div className="text-sm font-semibold text-gray-100 mb-2.5 flex items-center gap-1.5">
-        <Crosshair size={15} className="text-amber-300" /> Closest to the pin & long drives
-      </div>
-      <div className="space-y-1">
-        {wins.map((w, i) => (
-          <div key={i} className="flex justify-between items-baseline text-xs">
-            <span className="text-gray-200 font-medium">
-              {w.player} <span className="text-gray-500">· {w.event}</span>
-            </span>
-            <span className="text-emerald-300 tabular-nums shrink-0 ml-2">{fmtMoney(w.purse)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function Stats({ data }) {
   return (
     <div className="space-y-4">
       <Superlatives players={data.players} rounds={data.rounds} />
       <NetLow netlow={data.netlow} />
-      <Prizes rounds={data.rounds} />
       <ScoringDist players={data.players} />
     </div>
   );
