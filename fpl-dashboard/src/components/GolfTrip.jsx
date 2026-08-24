@@ -12,10 +12,10 @@ import {
   Flame,
   Bird,
   Target,
-  Coins,
+  Zap,
   TrendingUp,
   Crosshair,
-  Shield,
+  Square,
 } from "lucide-react";
 
 // Team colors match Golf Genius (South red / North blue)
@@ -785,7 +785,36 @@ function NetLow({ netlow }) {
 // Round names on the breakdown pages look like "Crystal Springs - 2v2 Matchplay"
 const courseOf = (roundName) => roundName.split(" - ")[0];
 
-function Superlatives({ players }) {
+function clutchCounts(rounds) {
+  const counts = {};
+  for (const r of rounds || []) {
+    for (const t of r.tournaments) {
+      if (t.type !== "match") continue;
+      for (const m of t.matches) {
+        const rows = m.card?.rows;
+        if (!rows || rows.some((row) => row.name.includes(" + "))) continue;
+        for (const side of ["L", "R"]) {
+          const mates = rows.filter((row) => row.side === side);
+          for (let h = 0; h < 18; h++) {
+            const scored = mates.filter((row) => row.gross[h] != null);
+            if (!scored.length) continue;
+            if (mates.length === 1) {
+              counts[scored[0].name] = (counts[scored[0].name] || 0) + 1;
+            } else {
+              const best = Math.min(...scored.map((row) => row.gross[h] - row.dots[h]));
+              for (const row of scored) {
+                if (row.gross[h] - row.dots[h] === best) counts[row.name] = (counts[row.name] || 0) + 1;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return counts;
+}
+
+function Superlatives({ players, rounds }) {
   const tiles = useMemo(() => {
     const t = [];
     const entries = [];
@@ -807,20 +836,6 @@ function Superlatives({ players }) {
       t.push({ icon: Sparkles, label: "Low net", value: ln.v, who: scoreWho(ln) });
     }
 
-    const withRec = players.filter((p) => p.w + p.l + p.t > 0);
-    if (withRec.length) {
-      const unbeaten = withRec.filter((p) => p.l === 0);
-      const champ = unbeaten.length
-        ? pick(unbeaten, (p) => p.w * 10 - p.t, Math.max)
-        : pick(withRec, (p) => p.w * 10 - p.l, Math.max);
-      t.push({
-        icon: Shield,
-        label: unbeaten.length ? "Undefeated" : "Best record",
-        value: `${champ.list[0].w}-${champ.list[0].l}-${champ.list[0].t}`,
-        who: distWho(champ),
-      });
-    }
-
     const withDist = players.filter((p) => p.dist && p.dist.reduce((a, b) => a + b, 0) > 0);
     if (withDist.length) {
       const birdies = pick(withDist, (p) => p.dist[1], Math.max);
@@ -835,12 +850,29 @@ function Superlatives({ players }) {
         });
       const pars = pick(withDist, (p) => p.dist[2], Math.max);
       t.push({ icon: Target, label: "Most pars", value: pars.v, who: distWho(pars) });
+      const bogeys = pick(withDist, (p) => p.dist[3], Math.max);
+      if (bogeys.v > 0) t.push({ icon: Square, label: "Most bogeys", value: bogeys.v, who: distWho(bogeys) });
     }
 
-    const skinners = players.filter((p) => p.skins > 0);
-    if (skinners.length) {
-      const king = pick(skinners, (p) => p.skins, Math.max);
-      t.push({ icon: Coins, label: "Skin king", value: king.v, who: distWho(king) });
+    const counted = clutchCounts(rounds);
+    const teamOf = Object.fromEntries(players.map((p) => [p.name, p.team]));
+    const clutchLines = ["South", "North"].map((team) => {
+      const names = Object.keys(counted).filter((n) => teamOf[n] === team);
+      if (!names.length) return null;
+      const best = Math.max(...names.map((n) => counted[n]));
+      const who = names.filter((n) => counted[n] === best);
+      return { team, best, who };
+    }).filter(Boolean);
+    if (clutchLines.length) {
+      t.push({
+        icon: Zap,
+        label: "Clutch gene",
+        lines: clutchLines.map((c) => ({
+          team: c.team,
+          text: `${c.who.map(firstLast).join(" & ")} · ${c.best}`,
+        })),
+        sub: "holes their ball counted · 2v2 & 1v1",
+      });
     }
 
     const twoRounds = players.filter((p) => (p.scores || []).filter((s) => s.holes === 18).length >= 2);
@@ -859,7 +891,7 @@ function Superlatives({ players }) {
         });
     }
     return t;
-  }, [players]);
+  }, [players, rounds]);
 
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
@@ -867,12 +899,25 @@ function Superlatives({ players }) {
       <div className="text-[11px] text-gray-500 mb-3">From the individually-scored rounds (Crystal Springs & Black Bear)</div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {tiles.map((tile) => (
-          <div key={tile.label} className="bg-slate-800/60 rounded-xl p-3">
+          <div key={tile.label} className={`bg-slate-800/60 rounded-xl p-3 ${tile.lines ? "col-span-2 sm:col-span-1" : ""}`}>
             <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-gray-500">
               <tile.icon size={12} /> {tile.label}
             </div>
-            <div className="text-2xl font-bold text-white mt-1 tabular-nums">{tile.value}</div>
-            <div className="text-xs text-emerald-300 font-medium mt-0.5">{tile.who}</div>
+            {tile.lines ? (
+              <div className="mt-1.5 space-y-1">
+                {tile.lines.map((line) => (
+                  <div key={line.team} className="text-sm font-semibold">
+                    <span className={TEAM[line.team]?.text || "text-gray-300"}>{line.team}</span>
+                    <span className="text-emerald-300"> · {line.text}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-white mt-1 tabular-nums">{tile.value}</div>
+                <div className="text-xs text-emerald-300 font-medium mt-0.5">{tile.who}</div>
+              </>
+            )}
             {tile.sub && <div className="text-[10px] text-gray-500 mt-0.5">{tile.sub}</div>}
           </div>
         ))}
@@ -911,7 +956,7 @@ function Prizes({ rounds }) {
 function Stats({ data }) {
   return (
     <div className="space-y-4">
-      <Superlatives players={data.players} />
+      <Superlatives players={data.players} rounds={data.rounds} />
       <NetLow netlow={data.netlow} />
       <Prizes rounds={data.rounds} />
       <ScoringDist players={data.players} />
