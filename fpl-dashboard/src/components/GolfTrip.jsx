@@ -577,7 +577,15 @@ function MatchRow({ m, pars }) {
       >
         {side(m.teamL, m.playersL, m.ptsL, m.winner === "left")}
         <div className="shrink-0 w-[4.75rem] text-center py-2">
-          <div className={`text-xs font-bold ${m.winner === "tie" ? "text-gray-300" : "text-amber-300"}`}>
+          <div
+            className={`text-xs font-bold ${
+              m.winner === "left"
+                ? TEAM[m.teamL]?.text || "text-gray-300"
+                : m.winner === "right"
+                  ? TEAM[m.teamR]?.text || "text-gray-300"
+                  : "text-gray-300"
+            }`}
+          >
             {m.result || (m.winner === "tie" ? "Tied" : "")}
           </div>
           {hasCard && (
