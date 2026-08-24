@@ -1,33 +1,33 @@
-/* Golf Genius portal theme: same layout, GG light green/gray chrome.
-   Overrides the dark Tailwind tokens used in GolfTrip.jsx. */
+/* Golf Genius portal theme: same layout, GG light gray/white chrome.
+   Green is only for actions and accents — not a wash on surfaces. */
 
 .gg-theme {
-  background-color: #dfe6d8 !important;
-  color: #1e2a18 !important;
+  background-color: #f2f2f2 !important;
+  color: #222 !important;
   color-scheme: light;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 /* surfaces */
 .gg-theme .bg-slate-950,
-.gg-theme .bg-slate-950\/70 { background-color: #dfe6d8 !important; }
+.gg-theme .bg-slate-950\/70 { background-color: #f2f2f2 !important; }
 .gg-theme .bg-slate-900 {
   background-color: #fff !important;
-  box-shadow: 0 1px 2px rgba(40, 60, 30, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 .gg-theme .bg-slate-800,
 .gg-theme .bg-slate-800\/40,
 .gg-theme .bg-slate-800\/50,
-.gg-theme .bg-slate-800\/60 { background-color: #f3f6ef !important; }
+.gg-theme .bg-slate-800\/60 { background-color: #f7f7f7 !important; }
 .gg-theme .hover\:bg-slate-800\/60:hover,
 .gg-theme .hover\:bg-slate-800\/70:hover,
-.gg-theme .active\:bg-slate-800:active { background-color: #e7eedf !important; }
+.gg-theme .active\:bg-slate-800:active { background-color: #eee !important; }
 .gg-theme .bg-slate-700,
 .gg-theme .bg-slate-700\/40,
 .gg-theme .bg-slate-700\/60,
-.gg-theme .hover\:bg-slate-700\/40:hover { background-color: #e4eadc !important; }
-.gg-theme .bg-slate-600 { background-color: #9aa890 !important; }
-.gg-theme .bg-slate-500 { background-color: #7a8670 !important; }
+.gg-theme .hover\:bg-slate-700\/40:hover { background-color: #eee !important; }
+.gg-theme .bg-slate-600 { background-color: #999 !important; }
+.gg-theme .bg-slate-500 { background-color: #777 !important; }
 
 /* borders */
 .gg-theme .border-slate-800,
@@ -36,28 +36,28 @@
 .gg-theme .border-slate-700\/80,
 .gg-theme .border-slate-600,
 .gg-theme .border-slate-400\/70,
-.gg-theme .divide-slate-800 > :not([hidden]) ~ :not([hidden]) { border-color: #c5d0bc !important; }
+.gg-theme .divide-slate-800 > :not([hidden]) ~ :not([hidden]) { border-color: #ddd !important; }
 
 /* text */
 .gg-theme .text-gray-100,
 .gg-theme .text-gray-200,
-.gg-theme .text-white { color: #1e2a18 !important; }
-.gg-theme .text-gray-300 { color: #2f3d28 !important; }
-.gg-theme .text-gray-400 { color: #5c6b55 !important; }
-.gg-theme .text-gray-500 { color: #6b7764 !important; }
-.gg-theme .text-gray-600 { color: #7a8670 !important; }
-.gg-theme .text-gray-700 { color: #9aa890 !important; }
-.gg-theme .hover\:text-gray-300:hover { color: #2f3d28 !important; }
-.gg-theme .hover\:text-white:hover { color: #2f4a22 !important; }
+.gg-theme .text-white { color: #222 !important; }
+.gg-theme .text-gray-300 { color: #333 !important; }
+.gg-theme .text-gray-400 { color: #555 !important; }
+.gg-theme .text-gray-500 { color: #666 !important; }
+.gg-theme .text-gray-600 { color: #888 !important; }
+.gg-theme .text-gray-700 { color: #aaa !important; }
+.gg-theme .hover\:text-gray-300:hover { color: #111 !important; }
+.gg-theme .hover\:text-white:hover { color: #111 !important; }
 
-/* GG green (tabs, wins, purse, links) */
+/* GG green (tabs, wins, purse, links only) */
 .gg-theme .bg-emerald-600 {
   background-color: #4e7d32 !important;
   color: #fff !important;
 }
 .gg-theme .bg-emerald-500 { background-color: #5a8c32 !important; }
 .gg-theme .bg-emerald-500\/20,
-.gg-theme .bg-emerald-500\/25 { background-color: #e4f0d4 !important; }
+.gg-theme .bg-emerald-500\/25 { background-color: #eef5e8 !important; }
 .gg-theme .text-emerald-300,
 .gg-theme .text-emerald-400 { color: #3d6a1f !important; }
 .gg-theme .hover\:text-emerald-300:hover { color: #2f4a22 !important; }
@@ -68,7 +68,7 @@
 .gg-theme .text-amber-300 { color: #9a7b12 !important; }
 .gg-theme .bg-amber-500 { background-color: #c4a035 !important; }
 
-/* South red / North blue — GG team colors, a bit punchier on white */
+/* South red / North blue */
 .gg-theme .text-rose-300,
 .gg-theme .text-rose-400,
 .gg-theme .text-rose-400\/60 { color: #c62828 !important; }
@@ -94,9 +94,9 @@
 /* scoring dist accents on white */
 .gg-theme .text-yellow-400 { color: #b8860b !important; }
 .gg-theme .text-orange-400 { color: #d35400 !important; }
-.gg-theme .text-slate-300 { color: #5a6354 !important; }
+.gg-theme .text-slate-300 { color: #555 !important; }
 .gg-theme .text-violet-300 { color: #6a1b9a !important; }
 .gg-theme .bg-violet-500 { background-color: #7b1fa2 !important; }
 
-/* active Genius toggle stays white-on-green */
+/* active toggle stays white-on-green */
 .gg-theme .gg-toggle-on { color: #fff !important; }

@@ -1083,13 +1083,14 @@ function ThemeToggle({ gg, onToggle }) {
       type="button"
       aria-pressed={gg}
       onClick={onToggle}
-      className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border ${
+      className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold leading-tight text-right border ${
         gg
           ? "gg-toggle-on bg-emerald-600 text-white border-emerald-600"
           : "bg-slate-900 border-slate-700 text-gray-400 hover:text-white"
       }`}
     >
-      Genius
+      Golf Genius
+      <span className="block font-medium opacity-80">mode</span>
     </button>
   );
 }
@@ -1119,7 +1120,7 @@ export default function GolfTrip() {
     } catch {
       /* ignore */
     }
-    const bg = gg ? "#dfe6d8" : "";
+    const bg = gg ? "#f2f2f2" : "";
     document.documentElement.style.backgroundColor = bg;
     document.body.style.backgroundColor = bg;
     return () => {
