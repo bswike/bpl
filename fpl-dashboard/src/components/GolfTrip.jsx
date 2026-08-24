@@ -8,6 +8,7 @@ import {
   Flag,
   ExternalLink,
 } from "lucide-react";
+import "./GolfTrip.css";
 
 // Team colors match Golf Genius (South red / North blue)
 const TEAM = {
@@ -815,33 +816,68 @@ function NetLow({ netlow }) {
   );
 }
 
-function clutchCounts(rounds) {
-  const counts = {};
+function matchCards(rounds) {
+  const out = [];
   for (const r of rounds || []) {
     for (const t of r.tournaments) {
       if (t.type !== "match") continue;
       for (const m of t.matches) {
         const rows = m.card?.rows;
         if (!rows || rows.some((row) => row.name.includes(" + "))) continue;
-        for (const side of ["L", "R"]) {
-          const mates = rows.filter((row) => row.side === side);
-          for (let h = 0; h < 18; h++) {
-            const scored = mates.filter((row) => row.gross[h] != null);
-            if (!scored.length) continue;
-            if (mates.length === 1) {
-              counts[scored[0].name] = (counts[scored[0].name] || 0) + 1;
-            } else {
-              const best = Math.min(...scored.map((row) => row.gross[h] - row.dots[h]));
-              for (const row of scored) {
-                if (row.gross[h] - row.dots[h] === best) counts[row.name] = (counts[row.name] || 0) + 1;
-              }
-            }
-          }
+        out.push(rows);
+      }
+    }
+  }
+  return out;
+}
+
+function clutchCounts(rounds) {
+  const counts = {};
+  for (const rows of matchCards(rounds)) {
+    for (const side of ["L", "R"]) {
+      const mates = rows.filter((row) => row.side === side);
+      if (mates.length < 2) continue;
+      for (let h = 0; h < 18; h++) {
+        const scored = mates.filter((row) => row.gross[h] != null);
+        if (!scored.length) continue;
+        const best = Math.min(...scored.map((row) => row.gross[h] - row.dots[h]));
+        for (const row of scored) {
+          if (row.gross[h] - row.dots[h] === best) counts[row.name] = (counts[row.name] || 0) + 1;
         }
       }
     }
   }
   return counts;
+}
+
+function holeWPCounts(rounds) {
+  const counts = {};
+  for (const rows of matchCards(rounds)) {
+    for (const side of ["L", "R"]) {
+      const mine = rows.filter((row) => row.side === side);
+      const opp = rows.filter((row) => row.side === (side === "L" ? "R" : "L"));
+      for (const row of mine) {
+        for (let h = 0; h < 18; h++) {
+          if (row.gross[h] == null) continue;
+          const oppScored = opp.filter((x) => x.gross[h] != null);
+          if (!oppScored.length) continue;
+          const myNet = row.gross[h] - row.dots[h];
+          const oppBest = Math.min(...oppScored.map((x) => x.gross[h] - x.dots[h]));
+          if (myNet <= oppBest) counts[row.name] = (counts[row.name] || 0) + 1;
+        }
+      }
+    }
+  }
+  return counts;
+}
+
+function teamLeaders(counts, teamOf) {
+  return ["South", "North"].map((team) => {
+    const names = Object.keys(counts).filter((n) => teamOf[n] === team);
+    if (!names.length) return null;
+    const best = Math.max(...names.map((n) => counts[n]));
+    return { team, best, who: names.filter((n) => counts[n] === best) };
+  }).filter(Boolean);
 }
 
 function shortWho(name) {
@@ -949,18 +985,22 @@ function Superlatives({ players, rounds }) {
       if (bogeys.v > 0) fun.push({ label: "Most bogeys", value: bogeys.v, who: distWho(bogeys) });
     }
     const counted = clutchCounts(rounds);
+    const holeWP = holeWPCounts(rounds);
     const teamOf = Object.fromEntries(players.map((p) => [p.name, p.team]));
-    const clutch = ["South", "North"].map((team) => {
-      const names = Object.keys(counted).filter((n) => teamOf[n] === team);
-      if (!names.length) return null;
-      const best = Math.max(...names.map((n) => counted[n]));
-      return { team, best, who: names.filter((n) => counted[n] === best) };
-    }).filter(Boolean);
+    const clutch = teamLeaders(counted, teamOf);
     if (clutch.length) {
       fun.push({
         label: "Clutch gene",
         who: clutch.map((c) => `${c.who.map(firstLast).join(", ")} ${c.best}`).join("  ·  "),
-        hint: "holes their ball counted, 2v2 & 1v1",
+        hint: "2v2 matchplay · holes their ball counted",
+      });
+    }
+    const wp = teamLeaders(holeWP, teamOf);
+    if (wp.length) {
+      fun.push({
+        label: "Won or pushed",
+        who: wp.map((c) => `${c.who.map(firstLast).join(", ")} ${c.best}`).join("  ·  "),
+        hint: "individual holes vs the other side, 2v2 & 1v1",
       });
     }
     const twoRounds = players.filter((p) => (p.scores || []).filter((s) => s.holes === 18).length >= 2);
@@ -1037,10 +1077,34 @@ const TABS = [
   { id: "stats", label: "Stats", icon: BarChart3 },
 ];
 
+function ThemeToggle({ gg, onToggle }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={gg}
+      onClick={onToggle}
+      className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border ${
+        gg
+          ? "gg-toggle-on bg-emerald-600 text-white border-emerald-600"
+          : "bg-slate-900 border-slate-700 text-gray-400 hover:text-white"
+      }`}
+    >
+      Genius
+    </button>
+  );
+}
+
 export default function GolfTrip() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("standings");
+  const [gg, setGg] = useState(() => {
+    try {
+      return localStorage.getItem("golftrip-theme") === "gg";
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     fetch("/data/golftrip-nj26.json")
@@ -1049,38 +1113,60 @@ export default function GolfTrip() {
       .catch((e) => setError(e.message));
   }, []);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("golftrip-theme", gg ? "gg" : "dark");
+    } catch {
+      /* ignore */
+    }
+    const bg = gg ? "#dfe6d8" : "";
+    document.documentElement.style.backgroundColor = bg;
+    document.body.style.backgroundColor = bg;
+    return () => {
+      document.documentElement.style.backgroundColor = "";
+      document.body.style.backgroundColor = "";
+    };
+  }, [gg]);
+
+  const shell = `min-h-screen bg-slate-950 text-gray-100 ${gg ? "gg-theme" : ""}`;
+
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 text-gray-100 flex items-center justify-center p-6">
+      <div className={`${shell} flex items-center justify-center p-6`}>
         <div className="max-w-md w-full bg-slate-900 border border-slate-700 rounded-2xl p-6 text-sm text-gray-300">
           Couldn't load trip data ({error}).
         </div>
       </div>
     );
   }
-  if (!data) return <div className="min-h-screen bg-slate-950" />;
+  if (!data) return <div className={shell} />;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-gray-100">
+    <div className={shell}>
       <div className="max-w-3xl mx-auto px-3 sm:px-6 py-5 sm:py-8">
         <header className="mb-4 sm:mb-5">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-amber-300 font-semibold mb-1">
-            <Flag size={12} /> Buddies trip
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold">{data.trip.name}</h1>
-          <div className="text-xs sm:text-sm text-gray-400 mt-1 flex flex-wrap items-center gap-x-2">
-            <span>{data.trip.dates}</span>
-            <span className="text-gray-700">·</span>
-            <span>{data.trip.location}</span>
-            <span className="text-gray-700">·</span>
-            <a
-              href={`https://www.golfgenius.com/ggid/${data.trip.ggid}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300"
-            >
-              Golf Genius <ExternalLink size={11} />
-            </a>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-amber-300 font-semibold mb-1">
+                <Flag size={12} /> Buddies trip
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold">{data.trip.name}</h1>
+              <div className="text-xs sm:text-sm text-gray-400 mt-1 flex flex-wrap items-center gap-x-2">
+                <span>{data.trip.dates}</span>
+                <span className="text-gray-700">·</span>
+                <span>{data.trip.location}</span>
+                <span className="text-gray-700">·</span>
+                <a
+                  href={`https://www.golfgenius.com/ggid/${data.trip.ggid}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300"
+                >
+                  Golf Genius <ExternalLink size={11} />
+                </a>
+              </div>
+            </div>
+            <ThemeToggle gg={gg} onToggle={() => setGg((v) => !v)} />
           </div>
         </header>
 
