@@ -26,6 +26,7 @@ const TEAM = {
     bar: "bg-rose-500",
     chip: "bg-rose-500/15 text-rose-300 border border-rose-500/30",
     win: "bg-rose-500/15 border-rose-500/40",
+    cell: "bg-rose-500/30",
   },
   North: {
     text: "text-sky-400",
@@ -33,6 +34,7 @@ const TEAM = {
     bar: "bg-sky-500",
     chip: "bg-sky-500/15 text-sky-300 border border-sky-500/30",
     win: "bg-sky-500/15 border-sky-500/40",
+    cell: "bg-sky-500/30",
   },
 };
 
@@ -264,7 +266,126 @@ function PlayerRows({ p, rank, open, onToggle }) {
 
 /* ---------------- rounds tab ---------------- */
 
-function MatchRow({ m }) {
+/* ---------------- scorecard ---------------- */
+
+function ScoreCell({ gross, dots, par }) {
+  if (gross == null) return <div className="h-8" />;
+  const diff = par == null ? null : gross - par;
+  const shape =
+    diff == null ? null : diff <= -2 ? "eagle" : diff === -1 ? "birdie" : diff === 1 ? "bogey" : diff >= 2 ? "double" : null;
+  const circle = "rounded-full border border-emerald-300/90";
+  const square = "border border-rose-400/80";
+  const bogey = "border border-slate-400/70";
+  const core = (
+    <span
+      className={`w-[18px] h-[18px] flex items-center justify-center text-[10px] sm:text-[11px] tabular-nums text-gray-100 ${
+        shape === "birdie" || shape === "eagle" ? circle : shape === "bogey" ? bogey : shape === "double" ? square : ""
+      }`}
+    >
+      {gross}
+    </span>
+  );
+  return (
+    <div className="relative flex items-center justify-center h-8">
+      {shape === "eagle" || shape === "double" ? (
+        <span className={`p-[2px] flex items-center justify-center ${shape === "eagle" ? circle : square}`}>{core}</span>
+      ) : (
+        core
+      )}
+      {dots > 0 && (
+        <span className="absolute top-0.5 right-0 text-amber-300 text-[8px] leading-none">{"\u2022".repeat(dots)}</span>
+      )}
+    </div>
+  );
+}
+
+function Scorecard({ m, pars }) {
+  const { rows, winners } = m.card;
+  const grid = { display: "grid", gridTemplateColumns: "3.4rem repeat(9, minmax(0, 1fr)) 2.2rem" };
+  const halves = [
+    { start: 0, label: "Out" },
+    { start: 9, label: "In" },
+  ].filter(({ start }) => rows.some((r) => r.gross.slice(start, start + 9).some((g) => g != null)));
+
+  const winCell = (i) => {
+    const w = winners[i];
+    if (w === "L") return TEAM[m.teamL]?.cell || "bg-slate-700";
+    if (w === "R") return TEAM[m.teamR]?.cell || "bg-slate-700";
+    if (w === "T") return "bg-slate-700/60";
+    return "";
+  };
+
+  return (
+    <div className="mt-1.5 mb-2 rounded-xl bg-slate-950/60 border border-slate-800 p-2">
+      {halves.map(({ start, label }) => {
+        const idx = Array.from({ length: 9 }, (_, k) => start + k);
+        return (
+          <div key={label} className="mb-1.5 last:mb-0">
+            <div style={grid} className="text-[9px] uppercase tracking-wider text-gray-500">
+              <div className="flex items-center pl-1">Hole</div>
+              {idx.map((i) => (
+                <div key={i} className={`flex items-center justify-center h-5 rounded-sm font-semibold text-gray-300 ${winCell(i)}`}>
+                  {i + 1}
+                </div>
+              ))}
+              <div className="flex items-center justify-center">{label}</div>
+            </div>
+            {pars && (
+              <div style={grid} className="text-[9px] text-gray-500 border-b border-slate-800">
+                <div className="flex items-center pl-1 uppercase tracking-wider">Par</div>
+                {idx.map((i) => (
+                  <div key={i} className="flex items-center justify-center h-4 tabular-nums">{pars[i] ?? ""}</div>
+                ))}
+                <div className="flex items-center justify-center tabular-nums">
+                  {pars.slice(start, start + 9).every((p) => p != null) ? pars.slice(start, start + 9).reduce((a, b) => a + b, 0) : ""}
+                </div>
+              </div>
+            )}
+            {rows.map((r) => {
+              const tot = idx.reduce((a, i) => a + (r.gross[i] || 0), 0);
+              const team = r.side === "L" ? m.teamL : m.teamR;
+              return (
+                <div key={r.name} style={grid}>
+                  <div className="flex items-center gap-1 pl-1 min-w-0">
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${TEAM[team]?.dot || "bg-slate-600"}`} />
+                    <span className="text-[9px] text-gray-300 truncate">{firstLast(r.name)}</span>
+                  </div>
+                  {idx.map((i) => (
+                    <ScoreCell key={i} gross={r.gross[i]} dots={r.dots[i]} par={pars?.[i]} />
+                  ))}
+                  <div className="flex items-center justify-center text-[10px] tabular-nums text-gray-300 font-semibold">
+                    {tot || ""}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 pt-1.5 border-t border-slate-800 text-[9px] text-gray-500">
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded-full border border-emerald-300/90" /> birdie
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="p-[1.5px] rounded-full border border-emerald-300/90"><span className="w-2 h-2 block rounded-full border border-emerald-300/90" /></span> eagle
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-3 h-3 border border-slate-400/70" /> bogey
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="p-[1.5px] border border-rose-400/80"><span className="w-2 h-2 block border border-rose-400/80" /></span> double+
+        </span>
+        <span className="flex items-center gap-1"><span className="text-amber-300">•</span> stroke</span>
+        <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${TEAM[m.teamL]?.cell}`} /> {m.teamL} won hole</span>
+        <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${TEAM[m.teamR]?.cell}`} /> {m.teamR} won hole</span>
+      </div>
+    </div>
+  );
+}
+
+function MatchRow({ m, pars }) {
+  const [open, setOpen] = useState(false);
+  const hasCard = !!m.card;
   const side = (team, names, pts, won) => (
     <div className={`flex-1 rounded-lg px-2 py-1.5 border ${won ? TEAM[team]?.win || "border-slate-700" : "border-transparent"}`}>
       <div className={`text-[10px] font-semibold uppercase tracking-wider ${TEAM[team]?.text || "text-gray-500"}`}>
@@ -276,14 +397,25 @@ function MatchRow({ m }) {
     </div>
   );
   return (
-    <div className="flex items-center gap-2">
-      {side(m.teamL, m.playersL, m.ptsL, m.winner === "left")}
-      <div className="shrink-0 w-14 text-center">
-        <div className={`text-[11px] font-bold ${m.winner === "tie" ? "text-gray-400" : "text-amber-300"}`}>
-          {m.result || (m.winner === "tie" ? "Tied" : "")}
+    <div>
+      <div
+        className={`flex items-center gap-2 rounded-lg ${hasCard ? "cursor-pointer hover:bg-slate-800/40" : ""}`}
+        onClick={() => hasCard && setOpen(!open)}
+      >
+        {side(m.teamL, m.playersL, m.ptsL, m.winner === "left")}
+        <div className="shrink-0 w-14 text-center">
+          <div className={`text-[11px] font-bold ${m.winner === "tie" ? "text-gray-400" : "text-amber-300"}`}>
+            {m.result || (m.winner === "tie" ? "Tied" : "")}
+          </div>
+          {hasCard && (
+            <div className="flex justify-center text-gray-600 mt-0.5">
+              {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </div>
+          )}
         </div>
+        {side(m.teamR, m.playersR, m.ptsR, m.winner === "right")}
       </div>
-      {side(m.teamR, m.playersR, m.ptsR, m.winner === "right")}
+      {open && hasCard && <Scorecard m={m} pars={pars} />}
     </div>
   );
 }
@@ -313,7 +445,7 @@ function MiniTable({ head, rows }) {
   );
 }
 
-function Tournament({ t }) {
+function Tournament({ t, pars }) {
   const [expanded, setExpanded] = useState(false);
   if (t.type === "empty") return null;
 
@@ -321,7 +453,7 @@ function Tournament({ t }) {
   if (t.type === "match") {
     body = (
       <div className="space-y-1.5">
-        {t.matches.map((m, i) => <MatchRow key={i} m={m} />)}
+        {t.matches.map((m, i) => <MatchRow key={i} m={m} pars={pars} />)}
         {t.totals && (
           <div className="flex justify-between text-[11px] font-semibold pt-1 px-1 text-gray-400">
             <span className="text-rose-300">South {t.totals.L}</span>
@@ -438,7 +570,7 @@ function RoundCard({ r, open, onToggle }) {
       </button>
       {open && (
         <div className="px-3.5 sm:px-4 pb-3.5 sm:pb-4 border-t border-slate-800 pt-3">
-          {roundTournaments(r).map((t) => <Tournament key={t.id} t={t} />)}
+          {roundTournaments(r).map((t) => <Tournament key={t.id} t={t} pars={r.pars} />)}
         </div>
       )}
     </div>

@@ -26,12 +26,13 @@ WIDGETS = {
     "results": f"{BASE}/leagues/{LEAGUE}/widgets/tournament_results?shared=false",
 }
 
-# pretty labels for rounds (option labels in the portal are truncated)
+# pretty labels for rounds (option labels in the portal are truncated);
+# slug links to our baked course data for per-hole pars
 ROUND_META = {
-    "12538967499066065276": {"ord": 1, "label": "Crystal Springs — 2v2 Matchplay", "course": "Crystal Springs GC", "date": "Fri, Aug 21"},
-    "12538968697496158591": {"ord": 2, "label": "Wild Turkey — 2v2 Pinehurst", "course": "Wild Turkey GC", "date": "Fri, Aug 21"},
-    "12538967509098840445": {"ord": 3, "label": "Black Bear — 2v2 Scramble / Pinehurst", "course": "Black Bear GC", "date": "Sat, Aug 22"},
-    "12538968708502012288": {"ord": 4, "label": "Black Bear — 1v1 Matchplay", "course": "Black Bear GC", "date": "Sat, Aug 22"},
+    "12538967499066065276": {"ord": 1, "label": "Crystal Springs — 2v2 Matchplay", "course": "Crystal Springs GC", "date": "Fri, Aug 21", "slug": "crystal-springs"},
+    "12538968697496158591": {"ord": 2, "label": "Wild Turkey — 2v2 Pinehurst", "course": "Wild Turkey GC", "date": "Fri, Aug 21", "slug": "wild-turkey"},
+    "12538967509098840445": {"ord": 3, "label": "Black Bear — 2v2 Scramble / Pinehurst", "course": "Black Bear GC", "date": "Sat, Aug 22", "slug": "black-bear"},
+    "12538968708502012288": {"ord": 4, "label": "Black Bear — 1v1 Matchplay", "course": "Black Bear GC", "date": "Sat, Aug 22", "slug": "black-bear"},
 }
 
 cj = http.cookiejar.CookieJar()
@@ -104,6 +105,8 @@ def parse_matches(doc):
                 winner = "left"
             elif "winning-z" in name_tds[1][0]:
                 winner = "right"
+        agg1 = re.search(r"data-aggregate-id='(\d+)'", attrs)
+        agg2 = re.search(r"data-aggregate2-id='(\d+)'", attrs)
         matches.append({
             "teamL": team_l.strip(),
             "playersL": [p.strip() for p in players_l.split("+")],
@@ -113,6 +116,7 @@ def parse_matches(doc):
             "winner": winner,
             "ptsL": float(points[0]) if points else None,
             "ptsR": float(points[-1]) if len(points) > 1 else None,
+            "aggs": [agg1.group(1), agg2.group(1)] if agg1 and agg2 else None,
         })
     totals = None
     for tr in table_rows(doc):
@@ -229,6 +233,64 @@ def parse_teamnet(doc):
                 "purse": purse,
             })
     return rows
+
+
+def parse_scorecard(doc, players_l, players_r):
+    """Hole-by-hole card from a /tournaments2/details/ page.
+
+    Rows are 'Name (strokes)' with per-hole cells like '●6' (stroke dot +
+    gross). Hole winners are computed from net best-ball, which reproduces
+    GG's running match status exactly."""
+    doc = clean(doc)
+    best = None
+    for tbl in re.findall(r"<table[^>]*>(.*?)</table>", doc, re.S):
+        if re.search(r">\s*Out\s*<", tbl) and re.search(r"\(\d+\)", tbl):
+            best = tbl  # the scorecard fragment is the last such table
+    if not best:
+        return None
+    header = None
+    player_rows = []
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", best, re.S):
+        cs = [strip_tags(td) for td in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, re.S)]
+        if not cs:
+            continue
+        if "Out" in cs and "In" in cs:
+            header = cs
+            continue
+        m = re.match(r"^(.*?)\s*\((\d+)\)$", cs[0])
+        if header and m and cs[0] not in ("Match", "Net Score"):
+            player_rows.append((m.group(1), int(m.group(2)), cs))
+    if not header or not player_rows:
+        return None
+    hole_cols = [(i, int(hl)) for i, hl in enumerate(header) if hl.isdigit() and 1 <= int(hl) <= 18]
+
+    rows = []
+    for name, hcp, cs in player_rows:
+        side = "L" if any(p in name for p in players_l) else "R" if any(p in name for p in players_r) else None
+        if side is None or len(cs) != len(header):
+            continue
+        gross = [None] * 18
+        dots = [0] * 18
+        for i, h in hole_cols:
+            cell = cs[i]
+            digits = re.sub(r"[^0-9]", "", cell)
+            if digits:
+                gross[h - 1] = int(digits)
+                dots[h - 1] = cell.count("\u25cf")
+        rows.append({"side": side, "name": name, "hcp": hcp, "gross": gross, "dots": dots})
+    if not rows or not any(r["side"] == "L" for r in rows) or not any(r["side"] == "R" for r in rows):
+        return None
+
+    winners = [None] * 18
+    for h in range(18):
+        nets = {}
+        for side in ("L", "R"):
+            vals = [r["gross"][h] - r["dots"][h] for r in rows if r["side"] == side and r["gross"][h] is not None]
+            if vals:
+                nets[side] = min(vals)
+        if "L" in nets and "R" in nets:
+            winners[h] = "L" if nets["L"] < nets["R"] else "R" if nets["R"] < nets["L"] else "T"
+    return {"rows": rows, "winners": winners}
 
 
 def classify_and_parse(doc):
@@ -368,13 +430,25 @@ for rid, opt_label in options:
         if tid not in [t[0] for t in tids]:
             tids.append((tid, ri, name))
     meta = ROUND_META.get(rid, {"ord": 99, "label": strip_tags(opt_label), "course": "", "date": ""})
-    rnd = {"id": rid, **meta, "tournaments": []}
+    rnd = {"id": rid, **{k: v for k, v in meta.items() if k != "slug"}, "tournaments": []}
+    if meta.get("slug"):
+        course_file = OUT.parent / f"{meta['slug']}.json"
+        if course_file.exists():
+            course = json.loads(course_file.read_text())
+            pars = {h["num"]: h.get("par") for h in course.get("holes", [])}
+            rnd["pars"] = [pars.get(n) for n in range(1, 19)]
     for tid, ri, name in tids:
         if tid in seen_tids:
             kind, data = seen_tids[tid]
         else:
             doc = get(f"{BASE}/v2tournaments/{tid}?called_from=widgets%2Ftournament_results&player_stats_for_portal=true&round_index={ri}")
             kind, data = classify_and_parse(doc)
+            if kind == "match":
+                for mt in data["matches"]:
+                    if mt.get("aggs"):
+                        detail = get(f"{BASE}/tournaments2/details/{mt['aggs'][0]}?aggregate2_id={mt['aggs'][1]}")
+                        mt["card"] = parse_scorecard(detail, mt["playersL"], mt["playersR"])
+                    mt.pop("aggs", None)
             seen_tids[tid] = (kind, data)
             print(f"  [{meta['label'][:34]:36}] {name[:42]:44} -> {kind} ({len(data.get('matches', data.get('rows', []))) if data else 0})")
         rnd["tournaments"].append({"id": tid, "name": name, "type": kind, **data})
