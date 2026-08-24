@@ -1128,12 +1128,308 @@ function Superlatives({ players, rounds }) {
   );
 }
 
+function hiOf(p) {
+  const n = Number(p.hi);
+  return Number.isFinite(n) ? n : null;
+}
+
+function winPct(p) {
+  const n = (p.w || 0) + (p.l || 0) + (p.t || 0);
+  return n ? (p.w + 0.5 * p.t) / n : 0;
+}
+
+function hiBand(hi) {
+  if (hi <= 5) return "0–5";
+  if (hi <= 10) return "6–10";
+  if (hi <= 15) return "11–15";
+  if (hi <= 20) return "16–20";
+  return "21+";
+}
+
+const HI_BANDS = ["0–5", "6–10", "11–15", "16–20", "21+"];
+
+function nameJitter(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 33 + name.charCodeAt(i)) >>> 0;
+  return ((h % 9) - 4) * 1.5;
+}
+
+function beeswarm(players, maxHi) {
+  const sorted = [...players].sort((a, b) => hiOf(a) - hiOf(b) || a.name.localeCompare(b.name));
+  const dots = [];
+  const minDist = 0.04;
+  for (const p of sorted) {
+    const x = hiOf(p) / maxHi;
+    const used = new Set();
+    for (const d of dots) {
+      if (Math.abs(d.x - x) < minDist) used.add(d.lane);
+    }
+    let lane = 0;
+    if (used.has(0)) {
+      let k = 1;
+      while (used.has(k) && used.has(-k)) k += 1;
+      lane = used.has(k) ? -k : k;
+    }
+    dots.push({ p, x, lane });
+  }
+  return { dots, maxLane: Math.max(1, ...dots.map((d) => Math.abs(d.lane))) };
+}
+
+function HandicapLab({ players, rounds }) {
+  const data = useMemo(() => {
+    const active = players.filter((p) => hiOf(p) != null && (p.w || 0) + (p.l || 0) + (p.t || 0) > 0);
+    if (!active.length) return null;
+    const bands = HI_BANDS.map((label) => {
+      const list = active.filter((p) => hiBand(hiOf(p)) === label);
+      const w = list.reduce((s, p) => s + p.w, 0);
+      const l = list.reduce((s, p) => s + p.l, 0);
+      const t = list.reduce((s, p) => s + p.t, 0);
+      const n = w + l + t;
+      const champ = [...list].sort((a, b) => winPct(b) - winPct(a) || (a.l || 0) - (b.l || 0))[0];
+      return { label, list, w, l, t, n, pct: n ? (w + 0.5 * t) / n : 0, champ };
+    }).filter((b) => b.list.length);
+    const hiBy = Object.fromEntries(active.map((p) => [p.name, hiOf(p)]));
+    const duels = [];
+    for (const r of rounds || []) {
+      for (const t of r.tournaments) {
+        if (t.type !== "match") continue;
+        for (const m of t.matches || []) {
+          if (m.playersL.length !== 1 || m.playersR.length !== 1 || m.winner === "tie") continue;
+          const winner = m.winner === "left" ? m.playersL[0] : m.playersR[0];
+          const loser = m.winner === "left" ? m.playersR[0] : m.playersL[0];
+          if (hiBy[winner] == null || hiBy[loser] == null) continue;
+          duels.push({
+            winner,
+            loser,
+            result: m.result,
+            gap: hiBy[winner] - hiBy[loser],
+            winnerHi: hiBy[winner],
+            loserHi: hiBy[loser],
+          });
+        }
+      }
+    }
+    const upsets = duels.filter((d) => d.gap >= 1).sort((a, b) => b.gap - a.gap);
+    const best = [...active].sort((a, b) => winPct(b) - winPct(a) || hiOf(b) - hiOf(a))[0];
+    const worstHi = [...active].sort((a, b) => hiOf(a) - hiOf(b))[0];
+    const bestNet = [...active].filter((p) => p.avgNet != null).sort((a, b) => a.avgNet - b.avgNet)[0];
+    const cold = [...bands]
+      .filter((b) => b.label !== "21+")
+      .sort((a, b) => a.pct - b.pct)[0] || [...bands].sort((a, b) => a.pct - b.pct)[0];
+    return { active, bands, upsets, best, worstHi, bestNet, cold };
+  }, [players, rounds]);
+
+  if (!data) return null;
+  const maxHi = Math.max(26, ...data.active.map((p) => hiOf(p)));
+  const swarm = beeswarm(data.active, maxHi);
+  const labeled = (() => {
+    const names = new Set();
+    const pick = [...data.active].sort((a, b) => winPct(b) - winPct(a) || hiOf(b) - hiOf(a))[0];
+    const sink = [...data.active].sort((a, b) => winPct(a) - winPct(b) || hiOf(b) - hiOf(a))[0];
+    const stick = [...data.active].sort((a, b) => hiOf(a) - hiOf(b))[0];
+    for (const p of [pick, sink, stick]) if (p) names.add(p.name);
+    return names;
+  })();
+
+  return (
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+      <div className="text-sm font-semibold text-gray-100">Handicap lab</div>
+      <div className="text-[11px] text-gray-500 mb-3">
+        Index from Golf Genius · {data.active.length} who teed it up
+      </div>
+
+      <div className="flex items-baseline justify-between gap-2 text-[10px] uppercase tracking-wider text-gray-500 mb-1.5">
+        <span>The field</span>
+        <span className="flex items-center gap-2.5 normal-case tracking-normal">
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-rose-400" /> South
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-sky-400" /> North
+          </span>
+        </span>
+      </div>
+      <div className="relative mb-1" style={{ height: `${28 + swarm.maxLane * 14}px` }}>
+        <div className="absolute inset-x-0 top-1/2 h-px bg-slate-600" />
+        {swarm.dots.map(({ p, x, lane }) => (
+          <span
+            key={p.name}
+            title={`${p.name} · ${hiOf(p).toFixed(1)} · ${p.w}-${p.l}-${p.t}`}
+            className={`absolute w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2 ring-1 ring-slate-900/80 ${TEAM[p.team]?.dot || "bg-slate-500"}`}
+            style={{ left: `${x * 100}%`, top: `calc(50% + ${lane * 11}px)` }}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between text-[9px] text-gray-600 mb-4">
+        <span>scratch</span>
+        <span>{Math.round(maxHi)}</span>
+      </div>
+
+      <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5">Records by index</div>
+      <table className="w-full text-xs mb-4">
+        <thead>
+          <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
+            <th className="py-1 pr-2 font-semibold">Band</th>
+            <th className="py-1 pr-2 font-semibold">Record</th>
+            <th className="py-1 pr-2 font-semibold w-[38%]">Win %</th>
+            <th className="py-1 font-semibold text-right">Best</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.bands.map((b) => (
+            <tr key={b.label} className="border-t border-slate-800">
+              <td className="py-1.5 pr-2">
+                <div className="font-medium text-gray-200">{b.label}</div>
+                <div className="text-[10px] text-gray-600">{b.list.length} players</div>
+              </td>
+              <td className="py-1.5 pr-2 tabular-nums text-gray-300 whitespace-nowrap">
+                {b.w}-{b.l}-{b.t}
+              </td>
+              <td className="py-1.5 pr-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="flex-1 h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${b.pct < 0.5 ? "bg-rose-500" : "bg-emerald-500"}`}
+                      style={{ width: `${Math.max(b.pct * 100, 4)}%` }}
+                    />
+                  </div>
+                  <span className={`tabular-nums w-8 text-right ${b.pct < 0.5 ? "text-rose-300" : "text-emerald-300"}`}>
+                    {Math.round(b.pct * 100)}%
+                  </span>
+                </div>
+              </td>
+              <td className="py-1.5 text-right">
+                {b.champ && (
+                  <>
+                    <div className="text-gray-200">{lastName(b.champ.name)}</div>
+                    <div className="text-[10px] text-gray-500 tabular-nums">
+                      {b.champ.w}-{b.champ.l}-{b.champ.t}
+                    </div>
+                  </>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5">Index vs match win %</div>
+      <div className="relative h-48 rounded-lg bg-slate-800/50 border border-slate-800 mb-1 overflow-hidden">
+        <div className="absolute left-8 right-3 top-3 bottom-5">
+          <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-slate-600" />
+          {data.active.map((p) => {
+            const left = (hiOf(p) / maxHi) * 100;
+            const bottom = Math.min(96, Math.max(4, winPct(p) * 100 + nameJitter(p.name)));
+            return (
+              <span
+                key={p.name}
+                title={`${firstLast(p.name)} · HI ${hiOf(p).toFixed(1)} · ${p.w}-${p.l}-${p.t}`}
+                className={`absolute w-2.5 h-2.5 rounded-full -translate-x-1/2 -translate-y-1/2 ring-1 ring-slate-900/60 ${TEAM[p.team]?.dot || "bg-slate-500"}`}
+                style={{ left: `${left}%`, bottom: `${bottom}%` }}
+              />
+            );
+          })}
+          {data.active
+            .filter((p) => labeled.has(p.name))
+            .map((p) => {
+              const left = (hiOf(p) / maxHi) * 100;
+              const bottom = Math.min(96, Math.max(4, winPct(p) * 100 + nameJitter(p.name)));
+              const flip = left > 62;
+              return (
+                <span
+                  key={`lbl-${p.name}`}
+                  className="absolute text-[9px] text-gray-400 whitespace-nowrap pointer-events-none"
+                  style={{
+                    left: flip ? "auto" : `${left}%`,
+                    right: flip ? `${100 - left}%` : "auto",
+                    bottom: `${bottom}%`,
+                    transform: flip ? "translate(-4px, -11px)" : "translate(8px, -11px)",
+                  }}
+                >
+                  {lastName(p.name).split("-")[0]}
+                </span>
+              );
+            })}
+        </div>
+        <div className="absolute left-1 top-2 text-[9px] text-gray-600">100%</div>
+        <div className="absolute left-1 top-1/2 -mt-2 text-[9px] text-gray-600">50%</div>
+        <div className="absolute left-1 bottom-3 text-[9px] text-gray-600">0%</div>
+      </div>
+      <div className="flex justify-between text-[9px] text-gray-600 mb-4 px-7">
+        <span>scratch</span>
+        <span>high index</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {data.best && (
+          <div className="rounded-lg bg-slate-800/50 px-3 py-2.5">
+            <div className="text-[10px] uppercase tracking-wider text-gray-500">Played out of his shoes</div>
+            <div className="text-sm font-semibold text-gray-100 mt-0.5">{firstLast(data.best.name)}</div>
+            <div className="text-[11px] text-emerald-300">
+              {data.best.w}-{data.best.l}-{data.best.t} from a {hiOf(data.best).toFixed(1)}
+            </div>
+          </div>
+        )}
+        {data.worstHi && (
+          <div className="rounded-lg bg-slate-800/50 px-3 py-2.5">
+            <div className="text-[10px] uppercase tracking-wider text-gray-500">Scratch tax</div>
+            <div className="text-sm font-semibold text-gray-100 mt-0.5">{firstLast(data.worstHi.name)}</div>
+            <div className="text-[11px] text-gray-400">
+              {data.worstHi.w}-{data.worstHi.l}-{data.worstHi.t} from a {hiOf(data.worstHi).toFixed(1)}
+            </div>
+          </div>
+        )}
+        {data.bestNet && (
+          <div className="rounded-lg bg-slate-800/50 px-3 py-2.5">
+            <div className="text-[10px] uppercase tracking-wider text-gray-500">Best avg net</div>
+            <div className="text-sm font-semibold text-gray-100 mt-0.5">{firstLast(data.bestNet.name)}</div>
+            <div className="text-[11px] text-sky-300">
+              {data.bestNet.avgNet} net · HI {hiOf(data.bestNet).toFixed(1)}
+            </div>
+          </div>
+        )}
+        {data.cold && (
+          <div className="rounded-lg bg-slate-800/50 px-3 py-2.5">
+            <div className="text-[10px] uppercase tracking-wider text-gray-500">Danger zone</div>
+            <div className="text-sm font-semibold text-gray-100 mt-0.5">{data.cold.label} indexes</div>
+            <div className="text-[11px] text-rose-300">
+              {data.cold.w}-{data.cold.l}-{data.cold.t} · {Math.round(data.cold.pct * 100)}%
+            </div>
+          </div>
+        )}
+      </div>
+
+      {data.upsets.length > 0 && (
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5">1v1 giant killers</div>
+          <div className="space-y-1">
+            {data.upsets.map((d) => (
+              <div key={`${d.winner}-${d.loser}`} className="flex items-baseline justify-between gap-2 text-xs">
+                <span className="text-gray-300 min-w-0 truncate">
+                  {firstLast(d.winner)}
+                  <span className="text-gray-500"> ({d.winnerHi.toFixed(1)})</span>
+                  {" beat "}
+                  {firstLast(d.loser)}
+                  <span className="text-gray-500"> ({d.loserHi.toFixed(1)})</span>
+                </span>
+                <span className="text-emerald-300 tabular-nums shrink-0">+{d.gap.toFixed(1)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="text-[10px] text-gray-600 mt-1">Index strokes the winner gave away and still won</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Stats({ data }) {
   return (
     <div className="space-y-4">
       <Superlatives players={data.players} rounds={data.rounds} />
       <NetLow netlow={data.netlow} />
       <ScoringDist players={data.players} />
+      <HandicapLab players={data.players} rounds={data.rounds} />
     </div>
   );
 }
