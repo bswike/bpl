@@ -422,13 +422,13 @@ function Scorecard({ m, pars, highlight }) {
   };
 
   return (
-    <div className="mt-1.5 mb-2 rounded-xl bg-slate-950/60 border border-slate-800 p-2">
+    <div className="mt-2 mb-1 rounded-md bg-slate-950/70 border border-slate-800 p-2">
       {halves.map(({ start, label }) => {
         const idx = Array.from({ length: 9 }, (_, k) => start + k);
         return (
-          <div key={label} className="mb-1.5 last:mb-0">
-            <div style={grid} className="text-[9px] uppercase tracking-wider text-gray-500">
-              <div className="flex items-center pl-1">Hole</div>
+          <div key={label} className={start === 0 && halves.length > 1 ? "mb-6" : halves.length > 1 ? "mt-6 pt-5 border-t border-slate-600" : ""}>
+            <div style={grid} className="text-[9px] uppercase tracking-wider text-gray-500 mb-0.5">
+              <div className="flex items-center pl-1 text-gray-400 font-semibold">{label === "Out" ? "Front" : label === "In" ? "Back" : "Hole"}</div>
               {idx.map((i) => (
                 <div key={i} className={`flex items-center justify-center h-5 rounded-sm font-semibold text-gray-300 ${winCell(i)}`}>
                   {i + 1}
@@ -506,34 +506,37 @@ function MatchRow({ m, pars }) {
   const [open, setOpen] = useState(false);
   const hasCard = !!m.card;
   const side = (team, names, pts, won) => (
-    <div className={`flex-1 rounded-lg px-2 py-1.5 border ${won ? TEAM[team]?.win || "border-slate-700" : "border-transparent"}`}>
+    <div className="flex-1 min-w-0 py-2">
       <div className={`text-[10px] font-semibold uppercase tracking-wider ${TEAM[team]?.text || "text-gray-500"}`}>
-        {team} {pts != null && <span className="text-gray-500 normal-case tracking-normal">· {pts} pts</span>}
+        {team}
+        {pts != null && <span className="text-gray-600 normal-case tracking-normal"> · {pts}</span>}
       </div>
       {names.map((n) => (
-        <div key={n} className={`text-xs sm:text-sm truncate ${won ? "text-white font-semibold" : "text-gray-400"}`}>{n}</div>
+        <div key={n} className={`text-xs sm:text-sm truncate ${won ? "text-white font-semibold" : "text-gray-500"}`}>{n}</div>
       ))}
     </div>
   );
   return (
     <div>
-      <div
-        className={`flex items-center gap-2 rounded-lg ${hasCard ? "cursor-pointer hover:bg-slate-800/40" : ""}`}
+      <button
+        type="button"
+        disabled={!hasCard}
+        className={`w-full flex items-center gap-2 text-left px-0.5 ${hasCard ? "cursor-pointer hover:bg-slate-800/70 active:bg-slate-800" : "cursor-default"} ${open ? "bg-slate-800/50" : ""}`}
         onClick={() => hasCard && setOpen(!open)}
       >
         {side(m.teamL, m.playersL, m.ptsL, m.winner === "left")}
-        <div className="shrink-0 w-14 text-center">
-          <div className={`text-[11px] font-bold ${m.winner === "tie" ? "text-gray-400" : "text-amber-300"}`}>
+        <div className="shrink-0 w-[4.75rem] text-center py-2">
+          <div className={`text-xs font-bold ${m.winner === "tie" ? "text-gray-300" : "text-amber-300"}`}>
             {m.result || (m.winner === "tie" ? "Tied" : "")}
           </div>
           {hasCard && (
-            <div className="flex justify-center text-gray-600 mt-0.5">
-              {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            <div className={`mt-0.5 text-[9px] uppercase tracking-wider ${open ? "text-emerald-400" : "text-gray-500"}`}>
+              {open ? "Hide" : "Scorecard"} {open ? <ChevronUp size={10} className="inline -mt-0.5" /> : <ChevronDown size={10} className="inline -mt-0.5" />}
             </div>
           )}
         </div>
         {side(m.teamR, m.playersR, m.ptsR, m.winner === "right")}
-      </div>
+      </button>
       {open && hasCard && <Scorecard m={m} pars={pars} />}
     </div>
   );
@@ -571,7 +574,7 @@ function Tournament({ t, pars }) {
   let body = null;
   if (t.type === "match") {
     body = (
-      <div className="space-y-1.5">
+      <div className="space-y-0 divide-y divide-slate-800">
         {t.matches.map((m, i) => <MatchRow key={i} m={m} pars={pars} />)}
         {t.totals && (
           <div className="flex justify-between text-[11px] font-semibold pt-1 px-1 text-gray-400">
@@ -672,8 +675,8 @@ function roundScore(r) {
 function RoundCard({ r, open, onToggle }) {
   const score = roundScore(r);
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden">
-      <button className="w-full flex items-center gap-3 p-3.5 sm:p-4 text-left hover:bg-slate-800/50" onClick={onToggle}>
+    <div className="bg-slate-900 border border-slate-700/80 rounded-lg overflow-hidden">
+      <button className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-slate-800/60" onClick={onToggle}>
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-gray-100 text-sm sm:text-base truncate">{r.label}</div>
           <div className="text-[11px] text-gray-500 mt-0.5">{r.date}</div>
@@ -688,7 +691,7 @@ function RoundCard({ r, open, onToggle }) {
         {open ? <ChevronUp size={16} className="text-gray-400 shrink-0" /> : <ChevronDown size={16} className="text-gray-500 shrink-0" />}
       </button>
       {open && (
-        <div className="px-3.5 sm:px-4 pb-3.5 sm:pb-4 border-t border-slate-800 pt-3">
+        <div className="px-3 pb-3 border-t border-slate-800 pt-1">
           {roundTournaments(r).map((t) => <Tournament key={t.id} t={t} pars={r.pars} />)}
         </div>
       )}
