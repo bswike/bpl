@@ -94,7 +94,7 @@ function TeamBanner({ teams }) {
 
 const SORTS = {
   purse: (a, b) => (b.purse || 0) - (a.purse || 0),
-  record: (a, b) => b.w - a.w || a.l - b.l || (b.purse || 0) - (a.purse || 0),
+  record: (a, b) => b.w - a.w || a.l - b.l || b.matchPts - a.matchPts,
   pts: (a, b) => b.matchPts - a.matchPts || b.w - a.w,
   skins: (a, b) => b.skins - a.skins || (b.skinsPurse || 0) - (a.skinsPurse || 0),
   net: (a, b) => (a.avgNet ?? 999) - (b.avgNet ?? 999),
@@ -183,7 +183,7 @@ function PlayerDetail({ p }) {
 }
 
 function Standings({ players }) {
-  const [sort, setSort] = useState("purse");
+  const [sort, setSort] = useState("record");
   const [open, setOpen] = useState(null);
   const sorted = useMemo(() => [...players].sort(SORTS[sort]), [players, sort]);
 
