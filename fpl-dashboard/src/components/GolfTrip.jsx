@@ -881,13 +881,30 @@ function roundLows(rounds, players) {
   return out.filter(Boolean);
 }
 
+function shortRound(label) {
+  return label.replace(/\s*[—-]\s*/g, " ").replace(/ Matchplay/g, "").replace(/2v2 /g, "");
+}
+
+function LowCell({ block }) {
+  if (!block) return <span className="text-gray-600">—</span>;
+  return (
+    <div className="leading-snug">
+      <span className="tabular-nums font-semibold text-gray-100">{block.v}</span>
+      {block.names.length > 1 && (
+        <span className="ml-1 text-[10px] uppercase tracking-wider text-amber-300">tied</span>
+      )}
+      <span className="text-[11px] text-gray-400"> {block.names.map(shortWho).join(", ")}</span>
+    </div>
+  );
+}
+
 function Superlatives({ players, rounds }) {
   const { lows, fun } = useMemo(() => {
     const pick = (arr, f, best) => {
       const v = best(...arr.map(f));
       return { v, list: arr.filter((x) => f(x) === v) };
     };
-    const distWho = ({ list }) => list.map((e) => firstLast(e.name)).join(" & ");
+    const distWho = ({ list }) => list.map((e) => firstLast(e.name)).join(", ");
     const fun = [];
     const withDist = players.filter((p) => p.dist && p.dist.reduce((a, b) => a + b, 0) > 0);
     if (withDist.length) {
@@ -898,7 +915,7 @@ function Superlatives({ players, rounds }) {
         fun.push({
           label: "Eagle club",
           value: eagles.reduce((a, p) => a + p.dist[0], 0),
-          who: eagles.map((p) => firstLast(p.name)).join(" & "),
+          who: eagles.map((p) => firstLast(p.name)).join(", "),
         });
       const pars = pick(withDist, (p) => p.dist[2], Math.max);
       fun.push({ label: "Most pars", value: pars.v, who: distWho(pars) });
@@ -916,7 +933,7 @@ function Superlatives({ players, rounds }) {
     if (clutch.length) {
       fun.push({
         label: "Clutch gene",
-        who: clutch.map((c) => `${c.who.map(firstLast).join(" & ")} ${c.best}`).join("  ·  "),
+        who: clutch.map((c) => `${c.who.map(firstLast).join(", ")} ${c.best}`).join("  ·  "),
         hint: "holes their ball counted, 2v2 & 1v1",
       });
     }
@@ -931,52 +948,48 @@ function Superlatives({ players, rounds }) {
     return { lows: roundLows(rounds, players), fun };
   }, [players, rounds]);
 
-  const names = (block) => {
-    const list = block.names.map(shortWho);
-    if (list.length === 1) return list[0];
-    return list.join(", ");
-  };
-
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-xl p-3.5 sm:p-4">
-      <div className="text-sm font-semibold text-gray-100 mb-3">Round lows</div>
-      <div className="space-y-3">
-        {lows.map((r) => {
-          const stats = r.net ? [["Gross", r.gross], ["Net", r.net]] : [["Gross", r.gross]];
-          return (
-            <div key={r.label} className="rounded-lg bg-slate-800/50 px-3.5 py-3">
-              <div className="text-[11px] text-gray-400 font-medium truncate mb-1.5">{r.label}</div>
-              <div className={r.net ? "grid grid-cols-2 gap-3" : ""}>
-                {stats.map(([kind, block]) => (
-                  <div key={kind} className={!r.net ? "flex items-baseline gap-2 flex-wrap" : ""}>
-                    {r.net && <div className="text-[10px] uppercase tracking-wider text-gray-500">{kind}</div>}
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-xl font-bold tabular-nums text-white">{block.v}</span>
-                      {block.names.length > 1 && (
-                        <span className="text-[10px] uppercase tracking-wider text-amber-300">tied</span>
-                      )}
-                    </div>
-                    <div className={`text-xs text-emerald-300 ${r.net ? "mt-0.5" : ""}`}>{names(block)}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+    <>
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+        <div className="text-sm font-semibold text-gray-100">Round lows</div>
+        <div className="text-[11px] text-gray-500 mb-2">Net only on Crystal Springs and Black Bear 1v1</div>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
+              <th className="py-1 pr-2 font-semibold">Round</th>
+              <th className="py-1 pr-2 font-semibold">Gross</th>
+              <th className="py-1 font-semibold">Net</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lows.map((r) => (
+              <tr key={r.label} className="border-t border-slate-800">
+                <td className="py-1.5 pr-2 text-gray-300">{shortRound(r.label)}</td>
+                <td className="py-1.5 pr-2"><LowCell block={r.gross} /></td>
+                <td className="py-1.5"><LowCell block={r.net} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <div className="mt-4 pt-3 border-t border-slate-800">
-        <div className="grid grid-cols-2 gap-2">
-          {fun.map((f) => (
-            <div key={f.label} className={`rounded-lg bg-slate-800/50 px-3.5 py-3 ${f.value == null || f.hint ? "col-span-2" : ""}`}>
-              <div className="text-[10px] uppercase tracking-wider text-gray-500">{f.label}</div>
-              {f.value != null && <div className="text-xl font-bold tabular-nums text-white mt-0.5">{f.value}</div>}
-              <div className="text-xs text-emerald-300 mt-0.5">{f.who}</div>
-              {f.hint && <div className="text-[10px] text-gray-600 mt-0.5">{f.hint}</div>}
-            </div>
-          ))}
-        </div>
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+        <div className="text-sm font-semibold text-gray-100 mb-2">Highlights</div>
+        <table className="w-full text-xs">
+          <tbody>
+            {fun.map((f) => (
+              <tr key={f.label} className="border-t border-slate-800 first:border-t-0">
+                <td className="py-1.5 pr-3 text-gray-400 whitespace-nowrap">{f.label}</td>
+                <td className="py-1.5 pr-3 tabular-nums font-semibold text-gray-100">{f.value ?? ""}</td>
+                <td className="py-1.5 text-gray-300 text-right">
+                  {f.who}
+                  {f.hint && <div className="text-[10px] text-gray-600">{f.hint}</div>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </div>
+    </>
   );
 }
 
