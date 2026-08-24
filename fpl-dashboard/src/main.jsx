@@ -10,6 +10,7 @@ import Draft from './components/Draft.jsx';
 import Rounds from './components/Rounds.jsx';
 
 const CourseMap = lazy(() => import('./components/CourseMap.jsx'));
+const GolfTrip = lazy(() => import('./components/GolfTrip.jsx'));
 import { Analytics } from '@vercel/analytics/react';
 import './index.css';
 
@@ -25,6 +26,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/draft" element={<Draft />} />
         <Route path="/masters" element={<MastersCalcutta />} />
         <Route path="/rounds" element={<Rounds />} />
+        <Route
+          path="/golftrip"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+              <GolfTrip />
+            </Suspense>
+          }
+        />
         <Route
           path="/map"
           element={
