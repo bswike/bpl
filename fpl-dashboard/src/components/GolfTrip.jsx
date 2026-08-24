@@ -755,7 +755,7 @@ function ScoringDist({ players }) {
       <div className="px-3.5 sm:px-4 pt-3.5 pb-2">
         <div className="text-sm font-semibold text-gray-100">Scoring distribution</div>
         <div className="text-[11px] text-gray-500">
-          All trip holes · sorted by {sortedBy.title.toLowerCase()}s · tap a heading to sort
+          All trip holes · sorted by {sortedBy.title} · tap a heading to sort
         </div>
       </div>
       <table className="w-full text-xs">
