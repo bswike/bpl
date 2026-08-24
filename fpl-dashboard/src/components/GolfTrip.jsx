@@ -931,7 +931,11 @@ function Superlatives({ players, rounds }) {
     return { lows: roundLows(rounds, players), fun };
   }, [players, rounds]);
 
-  const names = (block) => block.names.map(shortWho).join(" & ");
+  const names = (block) => {
+    const list = block.names.map(shortWho);
+    if (list.length === 1) return list[0];
+    return list.join(", ");
+  };
 
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 sm:p-4">
@@ -940,17 +944,20 @@ function Superlatives({ players, rounds }) {
         {lows.map((r) => (
           <div key={r.label}>
             <div className="text-[11px] text-gray-500 font-medium truncate">{r.label}</div>
-            <div className="grid grid-cols-2 gap-x-3 text-xs mt-0.5">
-              <div>
-                <span className="text-gray-500">G </span>
-                <span className="tabular-nums font-semibold text-white">{r.gross.v}</span>
-                <span className="text-emerald-300"> {names(r.gross)}</span>
-              </div>
-              <div>
-                <span className="text-gray-500">N </span>
-                <span className="tabular-nums font-semibold text-white">{r.net.v}</span>
-                <span className="text-emerald-300"> {names(r.net)}</span>
-              </div>
+            <div className="mt-0.5 space-y-0.5 text-xs">
+              {[
+                ["G", r.gross],
+                ["N", r.net],
+              ].map(([kind, block]) => (
+                <div key={kind}>
+                  <span className="text-gray-500">{kind} </span>
+                  <span className="tabular-nums font-semibold text-white">{block.v}</span>
+                  {block.names.length > 1 && (
+                    <span className="ml-1.5 text-[10px] uppercase tracking-wider text-amber-300">tied</span>
+                  )}
+                  <span className="text-emerald-300"> {names(block)}</span>
+                </div>
+              ))}
             </div>
           </div>
         ))}
