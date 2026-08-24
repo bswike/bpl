@@ -290,16 +290,31 @@ def purse_category(tournament_name):
 
 
 def fetch_purse_breakdown(member_id):
-    """Official per-tournament purse from the player's member_info page.
+    """Official per-tournament purse + per-round gross/net from member_info.
 
     Round-header rows (with gross/net columns) repeat the sum of their
-    sub-rows, so only 2-cell (name, $) rows are counted — that also makes
-    the trip-long net-low count exactly once (it shows $0 inside rounds
-    and its real payout under 'Completed Multi-Round Tournaments')."""
+    sub-rows, so only 2-cell (name, $) rows are counted for the purse —
+    that also makes the trip-long net-low count exactly once (it shows $0
+    inside rounds and its real payout under 'Completed Multi-Round
+    Tournaments'). Header rows themselves give gross/net for the rounds
+    with individual scoring (team formats show '---')."""
     doc = get(f"{BASE}/leagues/{LEAGUE}/widgets/season_points/member_info?member_id={member_id}&page_id=13005150146655174918")
     by = {}
+    scores = []
     for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", clean(doc), re.S):
         cs = [c for c in cells(tr) if c and c != "\u00a0"]
+        date_i = next((i for i, c in enumerate(cs) if re.fullmatch(r"[A-Z][a-z]{2} \d{1,2}, \d{4}", c)), None)
+        if date_i is not None and len(cs) >= date_i + 5:
+            # round header: date | round name | purse | gross | net | holes
+            gross, net, holes = cs[-3], cs[-2], cs[-1]
+            if re.fullmatch(r"\d+\.?\d*", gross) and re.fullmatch(r"\d+\.?\d*", net):
+                scores.append({
+                    "round": cs[date_i + 1],
+                    "gross": int(float(gross)),
+                    "net": int(float(net)),
+                    "holes": int(holes) if re.fullmatch(r"\d+", holes) else None,
+                })
+            continue
         if len(cs) == 3 and cs[1] == "$":  # name | $ | amount rendered as separate cells
             cs = [cs[0], f"${cs[2]}"]
         if len(cs) == 2 and cs[1].startswith("$") and not cs[0].startswith("Total"):
@@ -307,7 +322,7 @@ def fetch_purse_breakdown(member_id):
             if amt:
                 cat = purse_category(cs[0])
                 by[cat] = round(by.get(cat, 0) + amt, 2)
-    return by
+    return by, scores
 
 # team standings
 teams = []
@@ -325,12 +340,13 @@ for tr in table_rows(w["teams"]):
 # official purse breakdown per player (skins / quota / CTP / long drive / net-low)
 print(f"Fetching purse breakdowns for {len(standings)} players...")
 purse_by = {}
+scores_by = {}
 for name, s in standings.items():
     if s["memberId"]:
-        purse_by[name] = fetch_purse_breakdown(s["memberId"])
+        purse_by[name], scores_by[name] = fetch_purse_breakdown(s["memberId"])
         total = round(sum(purse_by[name].values()), 2)
         ok = "" if abs(total - (s["purse"] or 0)) < 0.02 else f"  MISMATCH vs GG total ${s['purse']}"
-        print(f"  {name:24} ${total:<8} {purse_by[name]}{ok}")
+        print(f"  {name:24} ${total:<8} scores={[(sc['gross'], sc['net']) for sc in scores_by[name]]}{ok}")
 
 # scoring distribution: name -> [eagle, birdie, par, bogey, double, triple+]
 dist = {}
@@ -385,6 +401,7 @@ def P(name):
             "name": name, "team": None, "hi": roster.get(name),
             "purse": standings.get(name, {}).get("purse", 0.0),
             "purseBy": purse_by.get(name, {}),
+            "scores": scores_by.get(name, []),
             "avgNet": standings.get(name, {}).get("avgNet"),
             "w": 0, "l": 0, "t": 0, "matchPts": 0.0,
             "skins": 0, "skinsPurse": 0.0, "skinDetails": [],

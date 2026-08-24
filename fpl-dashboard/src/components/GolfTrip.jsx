@@ -4,10 +4,18 @@ import {
   ChevronDown,
   ChevronUp,
   Swords,
-  Coins,
   BarChart3,
   Flag,
   ExternalLink,
+  Medal,
+  Sparkles,
+  Flame,
+  Bird,
+  Target,
+  Snowflake,
+  TrendingUp,
+  Crosshair,
+  Skull,
 } from "lucide-react";
 
 // Team colors match Golf Genius (South red / North blue)
@@ -513,35 +521,109 @@ function NetLow({ netlow }) {
   );
 }
 
-function MoneyList({ players }) {
-  const rows = players.filter((p) => p.purse > 0);
-  const max = rows[0]?.purse || 1;
+// Round names on the breakdown pages look like "Crystal Springs - 2v2 Matchplay"
+const courseOf = (roundName) => roundName.split(" - ")[0];
+
+function Superlatives({ players }) {
+  const tiles = useMemo(() => {
+    const t = [];
+    const entries = [];
+    players.forEach((p) => (p.scores || []).forEach((s) => {
+      if (s.holes === 18) entries.push({ p, s });
+    }));
+    const pick = (arr, f, best) => {
+      const v = best(...arr.map(f));
+      return { v, list: arr.filter((x) => f(x) === v) };
+    };
+    const scoreWho = ({ list }) =>
+      list.map((e) => `${firstLast(e.p.name)} · ${courseOf(e.s.round)}`).join("  &  ");
+    const distWho = ({ list }) => list.map((e) => firstLast(e.name)).join(" & ");
+
+    if (entries.length) {
+      const lg = pick(entries, (e) => e.s.gross, Math.min);
+      t.push({ icon: Medal, label: "Low gross", value: lg.v, who: scoreWho(lg) });
+      const ln = pick(entries, (e) => e.s.net, Math.min);
+      t.push({ icon: Sparkles, label: "Low net", value: ln.v, who: scoreWho(ln) });
+      const hg = pick(entries, (e) => e.s.gross, Math.max);
+      t.push({ icon: Snowflake, label: "High gross", value: hg.v, who: scoreWho(hg) });
+    }
+
+    const withDist = players.filter((p) => p.dist && p.dist.reduce((a, b) => a + b, 0) > 0);
+    if (withDist.length) {
+      const birdies = pick(withDist, (p) => p.dist[1], Math.max);
+      if (birdies.v > 0) t.push({ icon: Flame, label: "Most birdies", value: birdies.v, who: distWho(birdies) });
+      const eagles = withDist.filter((p) => p.dist[0] > 0);
+      if (eagles.length)
+        t.push({
+          icon: Bird,
+          label: "Eagle club",
+          value: eagles.reduce((a, p) => a + p.dist[0], 0),
+          who: eagles.map((p) => firstLast(p.name)).join(" & "),
+        });
+      const pars = pick(withDist, (p) => p.dist[2], Math.max);
+      t.push({ icon: Target, label: "Most pars", value: pars.v, who: distWho(pars) });
+      const wreck = pick(withDist, (p) => p.dist[4] + p.dist[5], Math.max);
+      t.push({ icon: Skull, label: "Doubles or worse", value: wreck.v, who: distWho(wreck) });
+    }
+
+    const twoRounds = players.filter((p) => (p.scores || []).filter((s) => s.holes === 18).length >= 2);
+    if (twoRounds.length) {
+      const bb = pick(twoRounds, (p) => {
+        const s = p.scores.filter((x) => x.holes === 18);
+        return s[0].net - s[s.length - 1].net;
+      }, Math.max);
+      if (bb.v > 0)
+        t.push({
+          icon: TrendingUp,
+          label: "Bounce back",
+          value: `-${bb.v}`,
+          who: distWho(bb),
+          sub: "net improvement, Crystal Springs → Black Bear",
+        });
+    }
+    return t;
+  }, [players]);
+
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-      <div className="text-sm font-semibold text-gray-100 mb-1">Money leaders</div>
-      <div className="text-[11px] text-gray-500 mb-2">All winnings: skins, quota, CTP, long drive, net-low</div>
-      <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3">
-        {PURSE_CATS.filter(([cat]) => rows.some((p) => p.purseBy?.[cat] > 0)).map(([cat, bg]) => (
-          <span key={cat} className="flex items-center gap-1 text-[10px] text-gray-400">
-            <span className={`w-2 h-2 rounded-sm ${bg}`} /> {cat}
-          </span>
+      <div className="text-sm font-semibold text-gray-100 mb-1">Trip superlatives</div>
+      <div className="text-[11px] text-gray-500 mb-3">From the individually-scored rounds (Crystal Springs & Black Bear)</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {tiles.map((tile) => (
+          <div key={tile.label} className="bg-slate-800/60 rounded-xl p-3">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-gray-500">
+              <tile.icon size={12} /> {tile.label}
+            </div>
+            <div className="text-2xl font-bold text-white mt-1 tabular-nums">{tile.value}</div>
+            <div className="text-xs text-emerald-300 font-medium mt-0.5">{tile.who}</div>
+            {tile.sub && <div className="text-[10px] text-gray-500 mt-0.5">{tile.sub}</div>}
+          </div>
         ))}
       </div>
-      <div className="space-y-1.5">
-        {rows.map((p) => (
-          <div key={p.name} className="flex items-center gap-2">
-            <span className="w-28 sm:w-36 text-xs text-gray-300 truncate flex items-center gap-1.5">
-              <TeamDot team={p.team} />
-              <span className="truncate">{firstLast(p.name)}</span>
+    </div>
+  );
+}
+
+function Prizes({ rounds }) {
+  const wins = [];
+  for (const r of rounds)
+    for (const t of r.tournaments)
+      if (t.type === "list")
+        for (const row of t.rows)
+          wins.push({ event: t.name.replace(/^RD\d+ - /i, ""), course: r.course, ...row });
+  if (!wins.length) return null;
+  return (
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+      <div className="text-sm font-semibold text-gray-100 mb-2.5 flex items-center gap-1.5">
+        <Crosshair size={15} className="text-amber-300" /> Closest to the pin & long drives
+      </div>
+      <div className="space-y-1">
+        {wins.map((w, i) => (
+          <div key={i} className="flex justify-between items-baseline text-xs">
+            <span className="text-gray-200 font-medium">
+              {w.player} <span className="text-gray-500">· {w.event}</span>
             </span>
-            <div className="flex-1 h-3.5 rounded overflow-hidden flex bg-slate-800">
-              {PURSE_CATS.map(([cat, bg]) =>
-                p.purseBy?.[cat] > 0 ? (
-                  <div key={cat} className={bg} style={{ width: `${(p.purseBy[cat] / max) * 100}%` }} title={`${cat}: ${fmtMoney(p.purseBy[cat])}`} />
-                ) : null
-              )}
-            </div>
-            <span className="w-16 text-right text-[11px] tabular-nums text-emerald-300 font-semibold">{fmtMoney(p.purse)}</span>
+            <span className="text-emerald-300 tabular-nums shrink-0 ml-2">{fmtMoney(w.purse)}</span>
           </div>
         ))}
       </div>
@@ -552,8 +634,9 @@ function MoneyList({ players }) {
 function Stats({ data }) {
   return (
     <div className="space-y-4">
+      <Superlatives players={data.players} />
       <NetLow netlow={data.netlow} />
-      <MoneyList players={data.players} />
+      <Prizes rounds={data.rounds} />
       <ScoringDist players={data.players} />
     </div>
   );
