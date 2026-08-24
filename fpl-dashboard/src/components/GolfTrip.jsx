@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import {
   Trophy,
   ChevronDown,
@@ -9,6 +10,11 @@ import {
   ExternalLink,
 } from "lucide-react";
 import "./GolfTrip.css";
+
+const TRIP_FILES = {
+  nj26: "/data/golftrip-nj26.json",
+  2025: "/data/golftrip-2025.json",
+};
 
 // Team colors match Golf Genius (South red / North blue)
 const TEAM = {
@@ -626,6 +632,15 @@ function MiniTable({ head, rows }) {
   );
 }
 
+function teamPts(matches) {
+  const pts = { South: 0, North: 0 };
+  for (const m of matches || []) {
+    if (m.teamL && m.ptsL != null) pts[m.teamL] = (pts[m.teamL] || 0) + m.ptsL;
+    if (m.teamR && m.ptsR != null) pts[m.teamR] = (pts[m.teamR] || 0) + m.ptsR;
+  }
+  return { L: +pts.South.toFixed(1), R: +pts.North.toFixed(1) };
+}
+
 function Tournament({ t, pars }) {
   const [expanded, setExpanded] = useState(false);
   if (t.type === "empty") return null;
@@ -635,11 +650,11 @@ function Tournament({ t, pars }) {
     body = (
       <div className="space-y-0 divide-y divide-slate-800">
         {t.matches.map((m, i) => <MatchRow key={i} m={m} pars={pars} />)}
-        {t.totals && (
+        {t.matches?.length > 0 && (
           <div className="flex justify-between text-[11px] font-semibold pt-1 px-1 text-gray-400">
-            <span className="text-rose-300">South {t.totals.L}</span>
+            <span className="text-rose-300">South {teamPts(t.matches).L}</span>
             <span className="uppercase tracking-widest text-gray-600">Totals</span>
-            <span className="text-sky-300">North {t.totals.R}</span>
+            <span className="text-sky-300">North {teamPts(t.matches).R}</span>
           </div>
         )}
       </div>
@@ -685,7 +700,7 @@ function Tournament({ t, pars }) {
     body = (
       <MiniTable
         head={["Pos", "Player", "To Par", "Rounds", "Total", "Purse"]}
-        rows={t.rows.map((r) => [r.pos, r.player, r.toPar, r.rounds.join(" / "), r.total, fmtMoney(r.purse)])}
+        rows={t.rows.map((r) => [r.pos, r.player, r.toPar, (r.rounds || []).join(" / ") || "—", r.total, fmtMoney(r.purse)])}
       />
     );
   } else if (t.type === "list") {
@@ -712,19 +727,20 @@ function Tournament({ t, pars }) {
 
 // Netlow is a trip-long game; show it in Stats instead of inside a round card.
 // Lead with the team matches, then the side games.
-const TYPE_ORDER = { match: 0, skins: 1, quota: 2, teamnet: 3, list: 4 };
-const roundTournaments = (r) =>
+const TYPE_ORDER = { match: 0, skins: 1, quota: 2, teamnet: 3, netlow: 4, list: 5 };
+const roundTournaments = (r, tripNetlow) =>
   r.tournaments
-    .filter((t) => t.type !== "netlow" && t.type !== "empty")
+    .filter((t) => t.type !== "empty" && !(t.type === "netlow" && tripNetlow))
     .sort((a, b) => (TYPE_ORDER[a.type] ?? 9) - (TYPE_ORDER[b.type] ?? 9));
 
 // South/North points earned in this round's team matches, for the collapsed header
 function roundScore(r) {
   let L = 0, R = 0, any = false;
   for (const t of r.tournaments) {
-    if (t.type === "match" && t.totals) {
-      L += t.totals.L;
-      R += t.totals.R;
+    if (t.type === "match" && t.matches?.length) {
+      const pts = teamPts(t.matches);
+      L += pts.L;
+      R += pts.R;
       any = true;
     }
   }
@@ -746,7 +762,7 @@ function splitRounds(rounds) {
   return out;
 }
 
-function RoundCard({ r, open, onToggle }) {
+function RoundCard({ r, open, onToggle, tripNetlow }) {
   const score = roundScore(r);
   return (
     <div className="bg-slate-900 border border-slate-700/80 rounded-lg overflow-hidden">
@@ -766,14 +782,14 @@ function RoundCard({ r, open, onToggle }) {
       </button>
       {open && (
         <div className="px-3 pb-3 border-t border-slate-800 pt-1">
-          {roundTournaments(r).map((t) => <Tournament key={t.id} t={t} pars={r.pars} />)}
+          {roundTournaments(r, tripNetlow).map((t) => <Tournament key={t.id} t={t} pars={r.pars} />)}
         </div>
       )}
     </div>
   );
 }
 
-function Rounds({ rounds }) {
+function Rounds({ rounds, netlow }) {
   const list = useMemo(() => splitRounds(rounds), [rounds]);
   const [open, setOpen] = useState(() => new Set());
   const toggle = (id) =>
@@ -785,7 +801,7 @@ function Rounds({ rounds }) {
   return (
     <div className="space-y-3">
       {list.map((r) => (
-        <RoundCard key={r.id} r={r} open={open.has(r.id)} onToggle={() => toggle(r.id)} />
+        <RoundCard key={r.id} r={r} open={open.has(r.id)} onToggle={() => toggle(r.id)} tripNetlow={!!netlow} />
       ))}
     </div>
   );
@@ -879,7 +895,7 @@ function NetLow({ netlow }) {
       <div className="text-sm font-semibold text-gray-100 mb-2.5">{netlow.name}</div>
       <MiniTable
         head={["Pos", "Player", "To Par", "Rounds", "Total", "Purse"]}
-        rows={netlow.rows.map((r) => [r.pos, r.player, r.toPar, r.rounds.join(" / "), r.total, fmtMoney(r.purse)])}
+        rows={netlow.rows.map((r) => [r.pos, r.player, r.toPar, (r.rounds || []).join(" / ") || "—", r.total, fmtMoney(r.purse)])}
       />
     </div>
   );
@@ -960,11 +976,13 @@ function bestScore(rows, key) {
   return { v, names: rows.filter((r) => r[key] === v).map((r) => r.name) };
 }
 
-function lowsFromOfficial(label, players, needle) {
+function lowsFromOfficial(label, players, needles) {
+  const tests = (Array.isArray(needles) ? needles : [needles]).map((n) => String(n).toLowerCase());
   const rows = [];
   for (const p of players) {
     for (const s of p.scores || []) {
-      if (s.holes === 18 && s.round.includes(needle)) rows.push({ name: p.name, gross: s.gross, net: s.net });
+      const rnd = (s.round || "").toLowerCase();
+      if (s.holes === 18 && tests.some((n) => rnd.includes(n))) rows.push({ name: p.name, gross: s.gross, net: s.net });
     }
   }
   const gross = bestScore(rows, "gross");
@@ -992,6 +1010,15 @@ function lowsFromMatches(label, tournaments, includeNet = true) {
   return { label, gross, net: includeNet ? bestScore(rows, "net") : null };
 }
 
+function officialNeedles(label) {
+  const l = label.toLowerCase();
+  if (/crystal/.test(l)) return ["crystal"];
+  if (/1v1/.test(l)) return ["1v1"];
+  if (/stroke|round 7/.test(l)) return ["stroke", "round 7"];
+  if (/stableford/.test(l)) return ["stableford"];
+  return null;
+}
+
 function roundLows(rounds, players) {
   const out = [];
   for (const r of rounds || []) {
@@ -999,15 +1026,21 @@ function roundLows(rounds, players) {
     const front = matches.filter((t) => /front/i.test(t.name));
     const back = matches.filter((t) => /back/i.test(t.name));
     if (front.length && back.length) {
-      out.push(lowsFromMatches("Black Bear — Scramble", front, false));
-      out.push(lowsFromMatches("Black Bear — Pinehurst", back, false));
-    } else if (/crystal springs/i.test(r.label)) {
-      out.push(lowsFromOfficial(r.label, players, "Crystal Springs"));
-    } else if (/1v1/i.test(r.label)) {
-      out.push(lowsFromOfficial(r.label, players, "1v1"));
-    } else {
-      out.push(lowsFromMatches(r.label, matches, false));
+      const fl = /scramble/i.test(front[0].name) ? "Black Bear — Scramble" : front[0].name;
+      const bl = /pinehurst/i.test(back[0].name) ? "Black Bear — Pinehurst" : back[0].name;
+      out.push(lowsFromMatches(fl, front, false));
+      out.push(lowsFromMatches(bl, back, false));
+      continue;
     }
+    const needles = officialNeedles(r.label);
+    if (needles) {
+      const official = lowsFromOfficial(r.label, players, needles);
+      if (official) {
+        out.push(official);
+        continue;
+      }
+    }
+    out.push(lowsFromMatches(r.label, matches, !/scramble|pinehurst|stableford/i.test(r.label)));
   }
   return out.filter(Boolean);
 }
@@ -1078,7 +1111,17 @@ function Superlatives({ players, rounds }) {
         const s = p.scores.filter((x) => x.holes === 18);
         return s[0].net - s[s.length - 1].net;
       }, Math.max);
-      if (bb.v > 0) fun.push({ label: "Bounce back", value: `-${bb.v}`, who: distWho(bb), hint: "net, Crystal Springs → Black Bear" });
+      if (bb.v > 0) {
+        const sample = twoRounds[0].scores.filter((x) => x.holes === 18);
+        const a = shortRound(sample[0]?.round || "");
+        const b = shortRound(sample[sample.length - 1]?.round || "");
+        fun.push({
+          label: "Bounce back",
+          value: `-${bb.v}`,
+          who: distWho(bb),
+          hint: a && b ? `net, ${a} → ${b}` : "net, first 18 to last 18",
+        });
+      }
     }
     return { lows: roundLows(rounds, players), fun };
   }, [players, rounds]);
@@ -1087,7 +1130,7 @@ function Superlatives({ players, rounds }) {
     <>
       <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
         <div className="text-sm font-semibold text-gray-100">Round lows</div>
-        <div className="text-[11px] text-gray-500 mb-2">Net only on Crystal Springs and Black Bear 1v1</div>
+        <div className="text-[11px] text-gray-500 mb-2">Net on rounds with individual scores — not scramble or Pinehurst</div>
         <table className="w-full text-xs">
           <thead>
             <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
@@ -1423,13 +1466,30 @@ function HandicapLab({ players, rounds }) {
   );
 }
 
-function Stats({ data }) {
+function Stats({ data, tripId }) {
   return (
     <div className="space-y-4">
       <Superlatives players={data.players} rounds={data.rounds} />
       <NetLow netlow={data.netlow} />
       <ScoringDist players={data.players} />
       <HandicapLab players={data.players} rounds={data.rounds} />
+      <div className="flex justify-center pt-1">
+        {tripId === "2025" ? (
+          <Link
+            to="/golftrip"
+            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-900 border border-slate-700 text-gray-500 hover:text-gray-200"
+          >
+            Crystal Springs '26
+          </Link>
+        ) : (
+          <Link
+            to="/golftrip/2025"
+            className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-900 border border-slate-700 text-gray-500 hover:text-gray-200"
+          >
+            2025 trip
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
@@ -1461,6 +1521,8 @@ function ThemeToggle({ dark, onToggle }) {
 }
 
 export default function GolfTrip() {
+  const { tripId } = useParams();
+  const src = TRIP_FILES[tripId] || TRIP_FILES.nj26;
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [tab, setTab] = useState("standings");
@@ -1473,11 +1535,13 @@ export default function GolfTrip() {
   });
 
   useEffect(() => {
-    fetch("/data/golftrip-nj26.json")
+    setData(null);
+    setError(null);
+    fetch(src)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then(setData)
       .catch((e) => setError(e.message));
-  }, []);
+  }, [src]);
 
   useEffect(() => {
     try {
@@ -1553,8 +1617,8 @@ export default function GolfTrip() {
         </nav>
 
         {tab === "standings" && <Standings players={data.players} rounds={data.rounds} />}
-        {tab === "rounds" && <Rounds rounds={data.rounds} />}
-        {tab === "stats" && <Stats data={data} />}
+        {tab === "rounds" && <Rounds rounds={data.rounds} netlow={data.netlow} />}
+        {tab === "stats" && <Stats data={data} tripId={tripId === "2025" ? "2025" : "nj26"} />}
 
         <footer className="mt-6 text-[10px] text-gray-600">
           Data from Golf Genius · updated {data.trip.fetched}

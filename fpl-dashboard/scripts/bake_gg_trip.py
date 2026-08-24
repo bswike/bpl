@@ -1,39 +1,85 @@
 #!/usr/bin/env python3
-# Scrapes the Golf Genius trip portal (GGID gtripnj26) and bakes results into
-# public/data/golftrip-nj26.json for the /golftrip page.
+# Scrapes a Golf Genius trip portal and bakes results into public/data/.
 #
-# Usage: python3 scripts/bake_gg_trip.py
+# Usage:
+#   python3 scripts/bake_gg_trip.py          # Crystal Springs '26
+#   python3 scripts/bake_gg_trip.py 2025     # Gull Lake '25
 
 import html as htmlmod
 import http.cookiejar
 import json
 import re
+import sys
 import time
 import urllib.request
 from datetime import date
 from pathlib import Path
 
 BASE = "https://www.golfgenius.com"
-GGID = "gtripnj26"
-LEAGUE = "12538093532713337087"
-OUT = Path(__file__).resolve().parent.parent / "public" / "data" / "golftrip-nj26.json"
+DATA = Path(__file__).resolve().parent.parent / "public" / "data"
 
-WIDGETS = {
-    "points": f"{BASE}/leagues/{LEAGUE}/widgets/season_points?page_id=13005150146655174918",
-    "teams": f"{BASE}/leagues/{LEAGUE}/widgets/team_standings?page_id=13005154129901797640",
-    "players": f"{BASE}/leagues/{LEAGUE}/widgets/players?page_id=12538093566536204534",
-    "stats": f"{BASE}/leagues/{LEAGUE}/widgets/player_stats?page_id=12538093569522548988",
-    "results": f"{BASE}/leagues/{LEAGUE}/widgets/tournament_results?shared=false",
+TRIPS = {
+    "nj26": {
+        "id": "nj26",
+        "ggid": "gtripnj26",
+        "league": "12538093532713337087",
+        "out": DATA / "golftrip-nj26.json",
+        "name": "Crystal Springs '26",
+        "dates": "Aug 20–23, 2026",
+        "location": "Crystal Springs Resort · Hamburg, NJ",
+        "widgets": {
+            "points": "season_points?page_id=13005150146655174918",
+            "teams": "team_standings?page_id=13005154129901797640",
+            "players": "players?page_id=12538093566536204534",
+            "stats": "player_stats?page_id=12538093569522548988",
+            "results": "tournament_results?shared=false",
+        },
+        "points_page": "13005150146655174918",
+        "rounds": {
+            "12538967499066065276": {"ord": 1, "label": "Crystal Springs — 2v2 Matchplay", "course": "Crystal Springs GC", "date": "Fri, Aug 21", "slug": "crystal-springs"},
+            "12538968697496158591": {"ord": 2, "label": "Wild Turkey — 2v2 Pinehurst", "course": "Wild Turkey GC", "date": "Fri, Aug 21", "slug": "wild-turkey"},
+            "12538967509098840445": {"ord": 3, "label": "Black Bear — 2v2 Scramble / Pinehurst", "course": "Black Bear GC", "date": "Sat, Aug 22", "slug": "black-bear"},
+            "12538968708502012288": {"ord": 4, "label": "Black Bear — 1v1 Matchplay", "course": "Black Bear GC", "date": "Sat, Aug 22", "slug": "black-bear"},
+        },
+    },
+    "2025": {
+        "id": "2025",
+        "ggid": "2024southgotthewin",
+        "league": "11813537078585606364",
+        "out": DATA / "golftrip-2025.json",
+        "name": "Gull Lake '25",
+        "dates": "Sep 4–7, 2025",
+        "location": "Gull Lake View · Augusta, MI",
+        "widgets": {
+            "points": "season_points?page_id=11813537115529036075",
+            "teams": "team_standings?page_id=11830973749937586480",
+            "players": "players?page_id=11813537112643354918",
+            "stats": "player_stats?page_id=11813537116401451308",
+            "results": "tournament_results?shared=false",
+        },
+        "points_page": "11813537115529036075",
+        "rounds": {
+            "11813567159731241074": {"ord": 1, "label": "2v2 Stableford", "course": "Gull Lake View", "date": "Thu, Sep 4"},
+            "11813567948193284211": {"ord": 2, "label": "2v2 Scramble", "course": "Gull Lake View", "date": "Thu, Sep 4"},
+            "11813568699175026804": {"ord": 3, "label": "Fri — 2v2 Matchplay", "course": "Gull Lake View", "date": "Fri, Sep 5"},
+            "11813569017573032053": {"ord": 4, "label": "Fri — 2v2 Pinehurst", "course": "Gull Lake View", "date": "Fri, Sep 5"},
+            "11813569274566426742": {"ord": 5, "label": "Sat — 2v2 Matchplay", "course": "Gull Lake View", "date": "Sat, Sep 6"},
+            "11813569556188774519": {"ord": 6, "label": "1v1 Matchplay", "course": "Gull Lake View", "date": "Sat, Sep 6"},
+            "11813569796841160824": {"ord": 7, "label": "Stroke Play", "course": "Gull Lake View", "date": "Sun, Sep 7"},
+        },
+    },
 }
 
-# pretty labels for rounds (option labels in the portal are truncated);
-# slug links to our baked course data for per-hole pars
-ROUND_META = {
-    "12538967499066065276": {"ord": 1, "label": "Crystal Springs — 2v2 Matchplay", "course": "Crystal Springs GC", "date": "Fri, Aug 21", "slug": "crystal-springs"},
-    "12538968697496158591": {"ord": 2, "label": "Wild Turkey — 2v2 Pinehurst", "course": "Wild Turkey GC", "date": "Fri, Aug 21", "slug": "wild-turkey"},
-    "12538967509098840445": {"ord": 3, "label": "Black Bear — 2v2 Scramble / Pinehurst", "course": "Black Bear GC", "date": "Sat, Aug 22", "slug": "black-bear"},
-    "12538968708502012288": {"ord": 4, "label": "Black Bear — 1v1 Matchplay", "course": "Black Bear GC", "date": "Sat, Aug 22", "slug": "black-bear"},
-}
+TRIP_KEY = sys.argv[1] if len(sys.argv) > 1 else "nj26"
+if TRIP_KEY not in TRIPS:
+    sys.exit(f"Unknown trip {TRIP_KEY!r}. Choose: {', '.join(TRIPS)}")
+TRIP = TRIPS[TRIP_KEY]
+GGID = TRIP["ggid"]
+LEAGUE = TRIP["league"]
+OUT = TRIP["out"]
+ROUND_META = TRIP["rounds"]
+WIDGETS = {k: f"{BASE}/leagues/{LEAGUE}/widgets/{q}" for k, q in TRIP["widgets"].items()}
+POINTS_PAGE = TRIP["points_page"]
 
 cj = http.cookiejar.CookieJar()
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
@@ -90,6 +136,10 @@ def parse_matches(doc):
         if not m:
             continue
         team_l, players_l, team_r, players_r = m.groups()
+        team_l = re.sub(r"^Team\s+", "", team_l.strip())
+        team_r = re.sub(r"^Team\s+", "", team_r.strip())
+        players_l = [re.sub(r"\s+", " ", p.strip()) for p in players_l.split("+")]
+        players_r = [re.sub(r"\s+", " ", p.strip()) for p in players_r.split("+")]
         tds = re.findall(r"<td[^>]*class='([^']*)'[^>]*>(.*?)</td>", body, re.S)
         points = [strip_tags(t) for c, t in tds if "points" in c.split()]
         result = ""
@@ -108,10 +158,10 @@ def parse_matches(doc):
         agg1 = re.search(r"data-aggregate-id='(\d+)'", attrs)
         agg2 = re.search(r"data-aggregate2-id='(\d+)'", attrs)
         matches.append({
-            "teamL": team_l.strip(),
-            "playersL": [p.strip() for p in players_l.split("+")],
-            "teamR": team_r.strip(),
-            "playersR": [p.strip() for p in players_r.split("+")],
+            "teamL": team_l,
+            "playersL": players_l,
+            "teamR": team_r,
+            "playersR": players_r,
             "result": result if result and result != "\u00a0" else ("Tied" if winner == "tie" else ""),
             "winner": winner,
             "ptsL": float(points[0]) if points else None,
@@ -126,6 +176,58 @@ def parse_matches(doc):
             if len(nums) >= 2:
                 totals = {"L": float(nums[0]), "R": float(nums[1])}
     return matches, totals
+
+
+def parse_stableford_matches(doc):
+    """Pair-vs-pair Stableford tables (no 'A vs B' label). Consecutive rows are a match."""
+    rows = []
+    for attrs, body in re.findall(r"<tr class='aggregate-row[^']*'([^>]*)>(.*?)</tr>", doc, re.S):
+        name_m = re.search(r"data-aggregate-name='([^']*)'", attrs) or re.search(
+            r"data-expanded-aggregate-name='([^']*)'", attrs
+        )
+        if not name_m:
+            continue
+        raw = htmlmod.unescape(name_m.group(1))
+        tm = re.match(r"(?:Team\s+)?(North|South)\s+\((.+)\)$", raw.strip())
+        if not tm:
+            continue
+        tds = re.findall(r"<td[^>]*class='([^']*)'[^>]*>(.*?)</td>", body, re.S)
+        pos = next((strip_tags(t) for c, t in tds if "pos" in c.split()), None)
+        score = next((strip_tags(t) for c, t in tds if "score" in c.split()), None)
+        points = next((strip_tags(t) for c, t in tds if "points" in c.split()), None)
+        rows.append({
+            "team": tm.group(1),
+            "players": [re.sub(r"\s+", " ", p.strip()) for p in tm.group(2).split("+")],
+            "pos": pos,
+            "score": float(score) if score and re.fullmatch(r"-?\d+\.?\d*", score) else None,
+            "pts": float(points) if points and re.fullmatch(r"-?\d+\.?\d*", points) else 0.0,
+        })
+    matches = []
+    totals = {"L": 0.0, "R": 0.0}
+    for i in range(0, len(rows) - 1, 2):
+        a, b = rows[i], rows[i + 1]
+        if a["pts"] > b["pts"]:
+            winner = "left"
+        elif b["pts"] > a["pts"]:
+            winner = "right"
+        else:
+            winner = "tie"
+        sa = int(a["score"]) if a["score"] is not None else ""
+        sb = int(b["score"]) if b["score"] is not None else ""
+        matches.append({
+            "teamL": a["team"],
+            "playersL": a["players"],
+            "teamR": b["team"],
+            "playersR": b["players"],
+            "result": f"{sa}–{sb} pts" if sa != "" and sb != "" else "",
+            "winner": winner,
+            "ptsL": a["pts"],
+            "ptsR": b["pts"],
+            "aggs": None,
+        })
+        totals["L"] += a["pts"]
+        totals["R"] += b["pts"]
+    return matches, totals if matches else None
 
 
 def parse_skins(doc):
@@ -299,6 +401,10 @@ def classify_and_parse(doc):
         matches, totals = parse_matches(doc)
         if matches:
             return "match", {"matches": matches, "totals": totals}
+    if "Stableford Points" in text:
+        matches, totals = parse_stableford_matches(doc)
+        if matches:
+            return "match", {"matches": matches, "totals": totals}
     if "+/- Quota" in text:
         return "quota", {"rows": parse_leaderboard(doc, "quota")}
     if re.search(r"\bSkins\b.*\bPurse\b", text):
@@ -314,6 +420,7 @@ def classify_and_parse(doc):
 
 # --- main ---------------------------------------------------------------------
 
+print(f"Baking {TRIP['name']} ({GGID})...")
 print("Establishing session...")
 get(f"{BASE}/ggid/{GGID}")
 
@@ -328,12 +435,18 @@ for tr in table_rows(w["players"]):
         roster[cs[0]] = cs[1]
 
 # trip standings: name -> purse, avg net, member_id (for the purse-breakdown page)
+# 2026: name | $purse | avgNet
+# 2025: name | times played | $purse | avgGross | avgNet | ...
 standings = {}
 for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", clean(w["points"]), re.S):
     cs = [c for c in cells(tr) if c]
-    if len(cs) >= 3 and cs[1].startswith("$"):
-        mid = re.search(r"member_info\?member_id=(\d+)", tr)
-        standings[cs[0]] = {"purse": money(cs[1]), "avgNet": float(cs[2]), "memberId": mid.group(1) if mid else None}
+    purse_i = next((i for i, c in enumerate(cs) if c.startswith("$")), None)
+    if purse_i is None or purse_i == 0 or cs[0] in ("Player", "Rank"):
+        continue
+    rest = [float(c) for c in cs[purse_i + 1:] if re.fullmatch(r"-?\d+\.?\d*", c)]
+    avg_net = rest[1] if purse_i >= 2 and len(rest) >= 2 else (rest[0] if rest else None)
+    mid = re.search(r"member_info\?member_id=(\d+)", tr)
+    standings[cs[0]] = {"purse": money(cs[purse_i]), "avgNet": avg_net, "memberId": mid.group(1) if mid else None}
 
 
 def purse_category(tournament_name):
@@ -360,7 +473,7 @@ def fetch_purse_breakdown(member_id):
     inside rounds and its real payout under 'Completed Multi-Round
     Tournaments'). Header rows themselves give gross/net for the rounds
     with individual scoring (team formats show '---')."""
-    doc = get(f"{BASE}/leagues/{LEAGUE}/widgets/season_points/member_info?member_id={member_id}&page_id=13005150146655174918")
+    doc = get(f"{BASE}/leagues/{LEAGUE}/widgets/season_points/member_info?member_id={member_id}&page_id={POINTS_PAGE}")
     by = {}
     scores = []
     for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", clean(doc), re.S):
@@ -386,18 +499,30 @@ def fetch_purse_breakdown(member_id):
                 by[cat] = round(by.get(cat, 0) + amt, 2)
     return by, scores
 
-# team standings
+# team standings — 2026 is "South"/points/...; 2025 is rank/"Team North"/points/...
 teams = []
 for tr in table_rows(w["teams"]):
     cs = [c for c in cells(tr) if c]
-    if len(cs) >= 5 and cs[0] in ("North", "South"):
-        teams.append({
-            "name": cs[0],
-            "points": float(cs[1]),
-            "participation": float(cs[2]),
-            "total": float(cs[3]),
-            "purse": money(cs[4]),
-        })
+    name = None
+    for c in cs:
+        t = re.sub(r"^Team\s+", "", c).strip()
+        if t in ("North", "South"):
+            name = t
+            break
+    if not name:
+        continue
+    nums = [float(c) for c in cs if re.fullmatch(r"-?\d+\.?\d*", c)]
+    if nums and nums[0] in (1.0, 2.0) and len(nums) >= 4:
+        nums = nums[1:]
+    if len(nums) < 3:
+        continue
+    teams.append({
+        "name": name,
+        "points": nums[0],
+        "participation": nums[1],
+        "total": nums[2],
+        "purse": next((money(c) for c in cs if "$" in c), None),
+    })
 
 # official purse breakdown per player (skins / quota / CTP / long drive / net-low)
 print(f"Fetching purse breakdowns for {len(standings)} players...")
@@ -460,10 +585,11 @@ players = {}
 
 def resolve(name):
     """Winner cells sometimes append the club to the name; match against roster."""
+    name = re.sub(r"\s+", " ", name).strip()
     if name in roster:
         return name
     for r in roster:
-        if name.startswith(r):
+        if name.startswith(r) or re.sub(r"\s+", " ", r) == name:
             return r
     return name
 
@@ -529,7 +655,7 @@ for rnd in rounds:
         elif t["type"] == "list":
             for r in t["rows"]:
                 P(r["player"])["ctps"].append({"event": t["name"], "round": rnd["course"], "purse": r.get("purse"), "details": r["details"]})
-        elif t["type"] == "netlow" and netlow is None:
+        elif t["type"] == "netlow" and netlow is None and any(r.get("rounds") for r in t.get("rows", [])):
             netlow = {"name": t["name"], "rows": t["rows"]}
 
 # roster players who never appear in results still get a row
@@ -543,10 +669,11 @@ for t in teams:
 
 out = {
     "trip": {
-        "name": "Crystal Springs '26",
+        "id": TRIP["id"],
+        "name": TRIP["name"],
         "ggid": GGID,
-        "dates": "Aug 20\u201323, 2026",
-        "location": "Crystal Springs Resort \u00b7 Hamburg, NJ",
+        "dates": TRIP["dates"],
+        "location": TRIP["location"],
         "fetched": date.today().isoformat(),
     },
     "teams": teams,
