@@ -195,12 +195,14 @@ def parse_stableford_matches(doc):
         pos = next((strip_tags(t) for c, t in tds if "pos" in c.split()), None)
         score = next((strip_tags(t) for c, t in tds if "score" in c.split()), None)
         points = next((strip_tags(t) for c, t in tds if "points" in c.split()), None)
+        agg = re.search(r"data-aggregate-id='(\d+)'", attrs)
         rows.append({
             "team": tm.group(1),
             "players": [re.sub(r"\s+", " ", p.strip()) for p in tm.group(2).split("+")],
             "pos": pos,
             "score": float(score) if score and re.fullmatch(r"-?\d+\.?\d*", score) else None,
             "pts": float(points) if points and re.fullmatch(r"-?\d+\.?\d*", points) else 0.0,
+            "agg": agg.group(1) if agg else None,
         })
     matches = []
     totals = {"L": 0.0, "R": 0.0}
@@ -223,7 +225,7 @@ def parse_stableford_matches(doc):
             "winner": winner,
             "ptsL": a["pts"],
             "ptsR": b["pts"],
-            "aggs": None,
+            "aggs": [a["agg"], b["agg"]] if a.get("agg") and b.get("agg") else None,
         })
         totals["L"] += a["pts"]
         totals["R"] += b["pts"]
@@ -337,62 +339,148 @@ def parse_teamnet(doc):
     return rows
 
 
+def parse_hole_cell(cell):
+    """Gross score, stroke-dot count, or 'X' for a pick-up / unplayed hole."""
+    dots = cell.count("\u25cf")
+    if re.search(r"\bX\b", cell, re.I) and not re.search(r"\d", cell):
+        return "X", dots
+    digits = re.sub(r"[^0-9]", "", cell)
+    return (int(digits) if digits else None), dots
+
+
 def parse_scorecard(doc, players_l, players_r):
     """Hole-by-hole card from a /tournaments2/details/ page.
 
     Rows are 'Name (strokes)' with per-hole cells like '●6' (stroke dot +
-    gross). Hole winners are computed from net best-ball, which reproduces
-    GG's running match status exactly."""
+    gross). A page may only have one side (Stableford); the caller merges.
+    A following 'Stableford Points' block is stored on each row as pts."""
     doc = clean(doc)
     best = None
     for tbl in re.findall(r"<table[^>]*>(.*?)</table>", doc, re.S):
         if re.search(r">\s*Out\s*<", tbl) and re.search(r"\(\d+\)", tbl):
-            best = tbl  # the scorecard fragment is the last such table
+            best = tbl
     if not best:
         return None
     header = None
     player_rows = []
+    points_rows = []
+    mode = "gross"
     for tr in re.findall(r"<tr[^>]*>(.*?)</tr>", best, re.S):
         cs = [strip_tags(td) for td in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", tr, re.S)]
         if not cs:
             continue
-        if "Out" in cs and "In" in cs:
+        if "Out" in cs and "In" in cs and sum(1 for c in cs if c.isdigit()) >= 9:
             header = cs
             continue
-        m = re.match(r"^(.*?)\s*\((\d+)\)$", cs[0])
-        if header and m and cs[0] not in ("Match", "Net Score"):
-            player_rows.append((m.group(1), int(m.group(2)), cs))
+        label = cs[0]
+        if header and label in ("Stableford Points",) and len(cs) <= 2:
+            mode = "points"
+            continue
+        if header and label in ("Strokes", "Match", "Net Score", "Points") and not re.match(r"^(.*?)\s*\((\d+)\)$", label):
+            continue
+        m = re.match(r"^(.*?)\s*\((\d+)\)$", label)
+        if header and m:
+            (player_rows if mode == "gross" else points_rows).append((m.group(1), int(m.group(2)), cs))
     if not header or not player_rows:
         return None
     hole_cols = [(i, int(hl)) for i, hl in enumerate(header) if hl.isdigit() and 1 <= int(hl) <= 18]
 
-    rows = []
-    for name, hcp, cs in player_rows:
-        side = "L" if any(p in name for p in players_l) else "R" if any(p in name for p in players_r) else None
-        if side is None or len(cs) != len(header):
+    def side_of(name):
+        name = re.sub(r"\s+", " ", name)
+        if any(p in name for p in players_l):
+            return "L"
+        if any(p in name for p in players_r):
+            return "R"
+        return None
+
+    pts_by = {}
+    for name, _hcp, cs in points_rows:
+        if len(cs) != len(header):
             continue
+        pts = [None] * 18
+        for i, h in hole_cols:
+            raw = cs[i]
+            if re.fullmatch(r"-?\d+", raw):
+                pts[h - 1] = int(raw)
+        pts_by[re.sub(r"\s+", " ", name)] = pts
+
+    rows = []
+    seen = set()
+    for name, hcp, cs in player_rows:
+        name = re.sub(r"\s+", " ", name)
+        side = side_of(name)
+        if side is None or len(cs) != len(header) or name in seen:
+            continue
+        seen.add(name)
         gross = [None] * 18
         dots = [0] * 18
         for i, h in hole_cols:
-            cell = cs[i]
-            digits = re.sub(r"[^0-9]", "", cell)
-            if digits:
-                gross[h - 1] = int(digits)
-                dots[h - 1] = cell.count("\u25cf")
-        rows.append({"side": side, "name": name, "hcp": hcp, "gross": gross, "dots": dots})
-    if not rows or not any(r["side"] == "L" for r in rows) or not any(r["side"] == "R" for r in rows):
+            gross[h - 1], dots[h - 1] = parse_hole_cell(cs[i])
+        row = {"side": side, "name": name, "hcp": hcp, "gross": gross, "dots": dots}
+        if name in pts_by:
+            row["pts"] = pts_by[name]
+        rows.append(row)
+    if not rows:
         return None
+    scoring = "stableford" if any(r.get("pts") for r in rows) else "match"
+    return {"rows": rows, "scoring": scoring, "winners": card_winners(rows, scoring)}
 
+
+def card_winners(rows, scoring):
     winners = [None] * 18
     for h in range(18):
+        if scoring == "stableford":
+            sums = {}
+            for side in ("L", "R"):
+                vals = [r["pts"][h] for r in rows if r["side"] == side and r.get("pts") and r["pts"][h] is not None]
+                if vals:
+                    sums[side] = sum(vals)
+            if "L" in sums and "R" in sums:
+                winners[h] = "L" if sums["L"] > sums["R"] else "R" if sums["R"] > sums["L"] else "T"
+            continue
         nets = {}
         for side in ("L", "R"):
-            vals = [r["gross"][h] - r["dots"][h] for r in rows if r["side"] == side and r["gross"][h] is not None]
+            vals = [
+                r["gross"][h] - r["dots"][h]
+                for r in rows
+                if r["side"] == side and isinstance(r["gross"][h], int)
+            ]
             if vals:
                 nets[side] = min(vals)
         if "L" in nets and "R" in nets:
             winners[h] = "L" if nets["L"] < nets["R"] else "R" if nets["R"] < nets["L"] else "T"
-    return {"rows": rows, "winners": winners}
+    return winners
+
+
+def card_has_both_sides(card):
+    return card and any(r["side"] == "L" for r in card["rows"]) and any(r["side"] == "R" for r in card["rows"])
+
+
+def merge_cards(a, b):
+    if not a:
+        return b
+    if not b:
+        return a
+    names = {r["name"] for r in a["rows"]}
+    rows = a["rows"] + [r for r in b["rows"] if r["name"] not in names]
+    scoring = "stableford" if any(r.get("pts") for r in rows) else (a.get("scoring") or b.get("scoring") or "match")
+    return {"rows": rows, "scoring": scoring, "winners": card_winners(rows, scoring)}
+
+
+def load_match_card(mt):
+    """Fetch one or both aggregate detail pages and parse a scorecard."""
+    aggs = [x for x in (mt.get("aggs") or []) if x]
+    if not aggs:
+        return None
+    a, b = aggs[0], aggs[1] if len(aggs) > 1 else None
+    url = f"{BASE}/tournaments2/details/{a}" + (f"?aggregate2_id={b}" if b else "")
+    card = parse_scorecard(get(url), mt["playersL"], mt["playersR"])
+    if card_has_both_sides(card):
+        return card
+    if b:
+        other = parse_scorecard(get(f"{BASE}/tournaments2/details/{b}"), mt["playersL"], mt["playersR"])
+        card = merge_cards(card, other)
+    return card if card_has_both_sides(card) else None
 
 
 def classify_and_parse(doc):
@@ -570,9 +658,7 @@ for rid, opt_label in options:
             kind, data = classify_and_parse(doc)
             if kind == "match":
                 for mt in data["matches"]:
-                    if mt.get("aggs"):
-                        detail = get(f"{BASE}/tournaments2/details/{mt['aggs'][0]}?aggregate2_id={mt['aggs'][1]}")
-                        mt["card"] = parse_scorecard(detail, mt["playersL"], mt["playersR"])
+                    mt["card"] = load_match_card(mt)
                     mt.pop("aggs", None)
             seen_tids[tid] = (kind, data)
             print(f"  [{meta['label'][:34]:36}] {name[:42]:44} -> {kind} ({len(data.get('matches', data.get('rows', []))) if data else 0})")

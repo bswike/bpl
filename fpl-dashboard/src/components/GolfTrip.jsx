@@ -356,6 +356,16 @@ function PlayerRows({ p, rounds, rank, open, onToggle }) {
 /* ---------------- scorecard ---------------- */
 
 function ScoreCell({ gross, dots, par, counted }) {
+  if (gross === "X") {
+    return (
+      <div className="relative flex items-center justify-center h-8">
+        <span className="text-[10px] text-gray-600">X</span>
+        {dots > 0 && (
+          <span className="absolute top-0.5 right-0 text-amber-300 text-[8px] leading-none">{"\u2022".repeat(dots)}</span>
+        )}
+      </div>
+    );
+  }
   if (gross == null) return <div className="h-8" />;
   const diff = par == null ? null : gross - par;
   const shape =
@@ -423,8 +433,8 @@ function Scorecard({ m, pars, highlight }) {
 
   // In 2v2 best-ball, mark holes where this player's net was the team's best.
   const isCounting = (r, i) => {
-    if (!individual || r.name !== highlight || r.gross[i] == null) return false;
-    const mates = rows.filter((x) => x.side === r.side && x.gross[i] != null);
+    if (!individual || r.name !== highlight || typeof r.gross[i] !== "number") return false;
+    const mates = rows.filter((x) => x.side === r.side && typeof x.gross[i] === "number");
     if (rows.filter((x) => x.side === r.side).length < 2) return false;
     const best = Math.min(...mates.map((x) => x.gross[i] - x.dots[i]));
     return r.gross[i] - r.dots[i] === best;
@@ -436,8 +446,8 @@ function Scorecard({ m, pars, highlight }) {
   let countedWon = 0;
   if (hlRow && hlTeammates >= 2) {
     for (let i = 0; i < 18; i++) {
-      if (hlRow.gross[i] == null) continue;
-      const mates = rows.filter((x) => x.side === hlRow.side && x.gross[i] != null);
+      if (typeof hlRow.gross[i] !== "number") continue;
+      const mates = rows.filter((x) => x.side === hlRow.side && typeof x.gross[i] === "number");
       if (!mates.length) continue;
       const best = Math.min(...mates.map((x) => x.gross[i] - x.dots[i]));
       if (hlRow.gross[i] - hlRow.dots[i] !== best) continue;
@@ -487,7 +497,7 @@ function Scorecard({ m, pars, highlight }) {
               </div>
             )}
             {rows.map((r) => {
-              const tot = idx.reduce((a, i) => a + (r.gross[i] || 0), 0);
+              const tot = idx.reduce((a, i) => a + (typeof r.gross[i] === "number" ? r.gross[i] : 0), 0);
               const team = r.side === "L" ? m.teamL : m.teamR;
               const mine = highlight && nameOnCard(r.name, highlight);
               return (
@@ -505,6 +515,7 @@ function Scorecard({ m, pars, highlight }) {
                 </div>
               );
             })}
+            {m.card.scoring !== "stableford" && (
             <div style={grid} className="mt-0.5">
               <div className="flex items-center pl-1 text-[9px] uppercase tracking-wider text-gray-500 font-semibold">Match</div>
               {idx.map((i) => {
@@ -524,6 +535,7 @@ function Scorecard({ m, pars, highlight }) {
               })}
               <div />
             </div>
+            )}
           </div>
         );
       })}
@@ -537,6 +549,9 @@ function Scorecard({ m, pars, highlight }) {
         <div className="mt-1.5 text-[10px] text-gray-500">
           Combined team score — individual balls aren't recorded for this format
         </div>
+      )}
+      {m.card.scoring === "stableford" && (
+        <div className="mt-1.5 text-[10px] text-gray-500">Both balls · hole color is who scored more Stableford points</div>
       )}
       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 pt-1.5 border-t border-slate-800 text-[9px] text-gray-500">
         <span className="flex items-center gap-1">
@@ -923,7 +938,7 @@ function clutchCounts(rounds) {
       const mates = rows.filter((row) => row.side === side);
       if (mates.length < 2) continue;
       for (let h = 0; h < 18; h++) {
-        const scored = mates.filter((row) => row.gross[h] != null);
+        const scored = mates.filter((row) => typeof row.gross[h] === "number");
         if (!scored.length) continue;
         const best = Math.min(...scored.map((row) => row.gross[h] - row.dots[h]));
         for (const row of scored) {
@@ -943,8 +958,8 @@ function holeWPCounts(rounds) {
       const opp = rows.filter((row) => row.side === (side === "L" ? "R" : "L"));
       for (const row of mine) {
         for (let h = 0; h < 18; h++) {
-          if (row.gross[h] == null) continue;
-          const oppScored = opp.filter((x) => x.gross[h] != null);
+          if (typeof row.gross[h] !== "number") continue;
+          const oppScored = opp.filter((x) => typeof x.gross[h] === "number");
           if (!oppScored.length) continue;
           const myNet = row.gross[h] - row.dots[h];
           const oppBest = Math.min(...oppScored.map((x) => x.gross[h] - x.dots[h]));
@@ -995,7 +1010,7 @@ function lowsFromMatches(label, tournaments, includeNet = true) {
   for (const t of tournaments) {
     for (const m of t.matches || []) {
       for (const row of m.card?.rows || []) {
-        const holes = row.gross.map((g, i) => (g == null ? null : { g, n: g - row.dots[i] })).filter(Boolean);
+        const holes = row.gross.map((g, i) => (typeof g === "number" ? { g, n: g - row.dots[i] } : null)).filter(Boolean);
         if (!holes.length) continue;
         rows.push({
           name: row.name,
