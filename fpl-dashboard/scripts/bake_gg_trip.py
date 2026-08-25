@@ -40,6 +40,7 @@ TRIPS = {
             "12538968697496158591": {"ord": 2, "label": "Wild Turkey — 2v2 Pinehurst", "course": "Wild Turkey GC", "date": "Fri, Aug 21", "slug": "wild-turkey"},
             "12538967509098840445": {"ord": 3, "label": "Black Bear — 2v2 Scramble / Pinehurst", "course": "Black Bear GC", "date": "Sat, Aug 22", "slug": "black-bear"},
             "12538968708502012288": {"ord": 4, "label": "Black Bear — 1v1 Matchplay", "course": "Black Bear GC", "date": "Sat, Aug 22", "slug": "black-bear"},
+            "12538967519366496638": {"ord": 5, "label": "Ballyowen — Open Game", "course": "Ballyowen GC", "date": "Sun, Aug 23"},
         },
     },
     "2025": {
