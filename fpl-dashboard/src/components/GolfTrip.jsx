@@ -1181,9 +1181,35 @@ function inferStrokeIndex(rows) {
     .map((x) => x.h);
 }
 
-function playingHcp(hi) {
+/** Tee ratings from the trip sheet (and GG's Crystal Blue tee card). */
+const COURSE_TEES = {
+  crystal: { slope: 144, cr: 71.3, par: 72 },
+  turkey: { slope: 132, cr: 71.7, par: 71 },
+  bear: { slope: 132, cr: 71.3, par: 72 },
+};
+
+function courseOfRound(label) {
+  const l = (label || "").toLowerCase();
+  if (/crystal/.test(l)) return COURSE_TEES.crystal;
+  if (/turkey/.test(l)) return COURSE_TEES.turkey;
+  if (/black bear/.test(l) || /\bbear\b/.test(l)) return COURSE_TEES.bear;
+  return null;
+}
+
+/** 2v2 four-ball is 90% of CH (matches GG card pops). Singles 100%. */
+function individualPct(label) {
+  return /2v2/.test(label || "") ? 0.9 : 1;
+}
+
+function courseHcp(hi, course) {
   const n = Number(hi);
-  return Number.isFinite(n) ? Math.round(n) : 0;
+  if (!Number.isFinite(n)) return 0;
+  if (!course) return n;
+  return n * (course.slope / 113) + (course.cr - course.par);
+}
+
+function playingHcp(hi, course, pct = 1) {
+  return Math.round(courseHcp(hi, course) * pct);
 }
 
 function playedIndexes(gross) {
@@ -1199,12 +1225,10 @@ function strokeDots(n, si) {
   return d;
 }
 
-/** Card pops are vs the low man in that group. SOS uses each player's own HI. */
+/** Allocate 18-hole pops on SI; unplayed holes are ignored when scoring. */
 function strokeDotsForPlayed(n, si, played) {
   if (n <= 0 || !played?.length) return Array(18).fill(0);
-  const allowance = played.length >= 15 ? n : Math.round((n * played.length) / 18);
-  const order = (si || []).filter((h) => played.includes(h));
-  return strokeDots(allowance, order.length ? order : played);
+  return strokeDots(n, si?.length ? si : played);
 }
 
 function holeNets(gross, pops, si) {
@@ -1226,8 +1250,8 @@ function totalsWithPops(gross, pops, si) {
   return holes ? { gross: g, net: n, holes } : null;
 }
 
-function teamHcp(his, kind) {
-  const vals = his.map(playingHcp).sort((a, b) => a - b);
+function teamHcp(his, kind, course) {
+  const vals = his.map((h) => courseHcp(h, course)).sort((a, b) => a - b);
   const lo = vals[0] ?? 0;
   const hi = vals[vals.length - 1] ?? lo;
   if (kind === "scramble") return Math.round(0.35 * lo + 0.15 * hi);
@@ -1244,9 +1268,9 @@ function flip1v1(st) {
   return { label: /^\d+$/.test(core) ? `${core} up` : core, won: true, lost: false };
 }
 
-function match1v1(a, b, hiA, hiB, si) {
-  const ha = playingHcp(hiA);
-  const hb = playingHcp(hiB);
+function match1v1(a, b, hiA, hiB, si, course, pct) {
+  const ha = playingHcp(hiA, course, pct);
+  const hb = playingHcp(hiB, course, pct);
   const played = playedIndexes(a.gross).filter((h) => typeof b.gross[h] === "number");
   const da = strokeDotsForPlayed(Math.max(0, ha - hb), si, played);
   const db = strokeDotsForPlayed(Math.max(0, hb - ha), si, played);
@@ -1297,6 +1321,8 @@ function field1v1Rounds(rounds, players) {
     const rows = collectIndividualRows(r);
     if (rows.length < 4) continue;
     const si = inferStrokeIndex(rows);
+    const course = courseOfRound(r.label);
+    const pct = individualPct(r.label);
     const rowBy = Object.fromEntries(rows.map((x) => [x.name, x]));
     const names = rows.map((x) => x.name).filter((n) => hiBy[n] != null);
     const rec = Object.fromEntries(names.map((n) => [n, { w: 0, l: 0, t: 0, vs: [] }]));
@@ -1304,7 +1330,7 @@ function field1v1Rounds(rounds, players) {
       for (let j = i + 1; j < names.length; j++) {
         const a = names[i];
         const b = names[j];
-        const st = match1v1(rowBy[a], rowBy[b], hiBy[a], hiBy[b], si);
+        const st = match1v1(rowBy[a], rowBy[b], hiBy[a], hiBy[b], si, course, pct);
         if (!st) continue;
         rec[a].vs.push({ opp: b, ...st });
         rec[b].vs.push({ opp: a, ...flip1v1(st) });
@@ -1331,7 +1357,7 @@ function field1v1Rounds(rounds, players) {
       rec,
       teamOf,
       scoreOf: Object.fromEntries(
-        names.map((n) => [n, totalsWithPops(rowBy[n].gross, playingHcp(hiBy[n]), si)]).filter(([, v]) => v),
+        names.map((n) => [n, totalsWithPops(rowBy[n].gross, playingHcp(hiBy[n], course, pct), si)]).filter(([, v]) => v),
       ),
     });
   }
@@ -1355,8 +1381,8 @@ function matchNets(netA, netB) {
   return statusFromWinners(winners, "L");
 }
 
-function bestBallNets(mates, extraLow, si) {
-  const nets = mates.map((p) => holeNets(p.gross, Math.max(0, playingHcp(p.hi) - extraLow), si));
+function bestBallNets(mates, extraLow, si, course, pct) {
+  const nets = mates.map((p) => holeNets(p.gross, Math.max(0, playingHcp(p.hi, course, pct) - extraLow), si));
   return Array.from({ length: 18 }, (_, h) => {
     const ns = nets.map((n) => n[h]).filter((v) => v != null);
     return ns.length ? Math.min(...ns) : null;
@@ -1364,18 +1390,20 @@ function bestBallNets(mates, extraLow, si) {
 }
 
 function matchBestBall(a, b, si) {
-  const low = Math.min(...[...a.mates, ...b.mates].map((p) => playingHcp(p.hi)));
-  return matchNets(bestBallNets(a.mates, low, si), bestBallNets(b.mates, low, si));
+  const low = Math.min(...[...a.mates, ...b.mates].map((p) => playingHcp(p.hi, a.course, a.pct)));
+  return matchNets(bestBallNets(a.mates, low, si, a.course, a.pct), bestBallNets(b.mates, low, si, b.course, b.pct));
 }
 
 function matchTeamGross(a, b, si, kind) {
   const ha = teamHcp(
     a.mates.map((m) => m.hi),
     kind,
+    a.course,
   );
   const hb = teamHcp(
     b.mates.map((m) => m.hi),
     kind,
+    b.course,
   );
   const played = playedIndexes(a.gross).filter((h) => typeof b.gross[h] === "number");
   const da = strokeDotsForPlayed(Math.max(0, ha - hb), si, played);
@@ -1464,6 +1492,8 @@ function collectPairingSets(rounds, players) {
       const allRows = [];
       const combinedT = (t.matches || []).some((m) => m.card?.rows?.some((row) => row.name.includes(" + ")));
       const kind = pairingKind(t.name, combinedT);
+      const course = courseOfRound(r.label);
+      const pct = kind === "bestball" ? 0.9 : 1;
       for (const m of t.matches || []) {
         const rows = m.card?.rows;
         if (!rows || m.card.scoring === "stableford") continue;
@@ -1483,6 +1513,8 @@ function collectPairingSets(rounds, players) {
               label: pairingDisplay(names),
               team: teamOf[names[0]],
               kind,
+              course,
+              pct,
               mates: names.map((n) => ({ name: n, hi: hiBy[n] })),
               gross: row.gross,
             });
@@ -1500,6 +1532,8 @@ function collectPairingSets(rounds, players) {
               label: pairingDisplay(names),
               team: teamOf[names[0]],
               kind: "bestball",
+              course,
+              pct: 0.9,
               mates,
             });
           }
@@ -1511,11 +1545,11 @@ function collectPairingSets(rounds, players) {
       for (const e of entries) {
         if (e.kind === "bestball") {
           for (const p of e.mates) {
-            const tot = totalsWithPops(p.gross, playingHcp(p.hi), si);
+            const tot = totalsWithPops(p.gross, playingHcp(p.hi, e.course, e.pct), si);
             if (tot) scoreOf[p.name] = tot;
           }
         } else {
-          const tot = totalsWithPops(e.gross, teamHcp(e.mates.map((m) => m.hi), e.kind), si);
+          const tot = totalsWithPops(e.gross, teamHcp(e.mates.map((m) => m.hi), e.kind, e.course), si);
           if (tot) for (const n of e.names) scoreOf[n] = tot;
         }
       }
