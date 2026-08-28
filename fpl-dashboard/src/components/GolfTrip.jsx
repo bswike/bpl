@@ -1287,6 +1287,61 @@ function field1v1Rounds(rounds, players) {
   return out;
 }
 
+function recStr(r) {
+  if (!r || r.w + r.l + r.t === 0) return "—";
+  return `${r.w}-${r.l}-${r.t}`;
+}
+
+function addRec(a, b) {
+  return { w: a.w + b.w, l: a.l + b.l, t: a.t + b.t };
+}
+
+function emptyRec() {
+  return { w: 0, l: 0, t: 0 };
+}
+
+function sosRoundLabel(label) {
+  const l = (label || "").toLowerCase();
+  if (/crystal/.test(l)) return "Crystal";
+  if (/black bear/.test(l)) return "B. Bear";
+  if (/^fri/.test(l)) return "Fri";
+  if (/^sat/.test(l)) return "Sat";
+  if (/1v1/.test(l)) return "1v1";
+  return (label || "").split(" ")[0] || label;
+}
+
+function crossTeamRec(set) {
+  const out = emptyRec();
+  for (const a of set.ranking) {
+    if (set.teamOf[a] !== "South") continue;
+    for (const v of set.rec[a].vs) {
+      if (set.teamOf[v.opp] !== "North") continue;
+      if (v.won) out.w += 1;
+      else if (v.lost) out.l += 1;
+      else out.t += 1;
+    }
+  }
+  return out;
+}
+
+function sosBoard(sets) {
+  if (!sets.length) return null;
+  const names = [...new Set(sets.flatMap((s) => s.ranking))];
+  const teamOf = sets[0].teamOf;
+  const rows = names.map((name) => {
+    const byRound = sets.map((s) => {
+      const r = s.rec[name];
+      return r ? { w: r.w, l: r.l, t: r.t } : null;
+    });
+    const combined = byRound.reduce((acc, r) => (r ? addRec(acc, r) : acc), emptyRec());
+    return { name, team: teamOf[name], byRound, combined, pct: field1v1Pct(combined) };
+  });
+  rows.sort((a, b) => b.pct - a.pct || b.combined.w - a.combined.w || a.name.localeCompare(b.name));
+  const teamRounds = sets.map((s) => ({ label: s.label, rec: crossTeamRec(s) }));
+  const teamCombined = teamRounds.reduce((acc, r) => addRec(acc, r.rec), emptyRec());
+  return { sets, rows, teamRounds, teamCombined };
+}
+
 function initialsOf(name) {
   const parts = name.trim().split(/\s+/);
   return `${(parts[0]?.[0] || "").toUpperCase()}${(lastName(name)[0] || "").toUpperCase()}`;
@@ -1918,6 +1973,109 @@ function HamEgg({ rounds }) {
   );
 }
 
+function RecBar({ rec, className = "" }) {
+  const n = rec.w + rec.l + rec.t;
+  if (!n) return <div className={`h-2 rounded-full bg-slate-800 ${className}`} />;
+  return (
+    <div className={`flex h-2 rounded-full overflow-hidden bg-slate-800 ${className}`}>
+      {rec.w > 0 && <div className="bg-emerald-500" style={{ width: `${(rec.w / n) * 100}%` }} />}
+      {rec.t > 0 && <div className="bg-slate-500" style={{ width: `${(rec.t / n) * 100}%` }} />}
+      {rec.l > 0 && <div className="bg-rose-500" style={{ width: `${(rec.l / n) * 100}%` }} />}
+    </div>
+  );
+}
+
+function StrengthOfSchedule({ rounds, players }) {
+  const data = useMemo(() => sosBoard(field1v1Rounds(rounds, players)), [rounds, players]);
+  if (!data) return null;
+  const northCombined = { w: data.teamCombined.l, l: data.teamCombined.w, t: data.teamCombined.t };
+  return (
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+      <div className="text-sm font-semibold text-gray-100">Strength of schedule</div>
+      <div className="text-[11px] text-gray-500 mb-3">
+        Everyone vs everyone · 1v1 from each round, then added up
+      </div>
+
+      <div className="rounded-xl border border-slate-700 p-2.5 mb-3">
+        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">South vs North</div>
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-[10px] uppercase tracking-wider text-gray-500">
+              <th className="py-0.5 pr-2 font-semibold text-left">Round</th>
+              <th className="py-0.5 pr-2 font-semibold text-right text-rose-400">South</th>
+              <th className="py-0.5 font-semibold text-right text-sky-400">North</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.teamRounds.map((r) => (
+              <tr key={r.label} className="border-t border-slate-800">
+                <td className="py-1 pr-2 text-gray-400">{sosRoundLabel(r.label)}</td>
+                <td className="py-1 pr-2 text-right tabular-nums text-gray-200">{recStr(r.rec)}</td>
+                <td className="py-1 text-right tabular-nums text-gray-200">
+                  {recStr({ w: r.rec.l, l: r.rec.w, t: r.rec.t })}
+                </td>
+              </tr>
+            ))}
+            <tr className="border-t border-slate-700">
+              <td className="py-1.5 pr-2 font-semibold text-gray-100">All</td>
+              <td className="py-1.5 pr-2 text-right tabular-nums font-semibold text-rose-400">{recStr(data.teamCombined)}</td>
+              <td className="py-1.5 text-right tabular-nums font-semibold text-sky-400">{recStr(northCombined)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <RecBar rec={data.teamCombined} className="mt-2" />
+      </div>
+
+      <div className="overflow-x-auto -mx-1 px-1">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
+              <th className="py-1 pr-2 font-semibold">#</th>
+              <th className="py-1 pr-2 font-semibold">Player</th>
+              {data.sets.map((s) => (
+                <th key={s.label} className="py-1 pr-2 font-semibold text-right whitespace-nowrap">
+                  {sosRoundLabel(s.label)}
+                </th>
+              ))}
+              <th className="py-1 pr-2 font-semibold text-right">All</th>
+              <th className="py-1 font-semibold w-[28%]">Win %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.rows.map((row, i) => (
+              <tr key={row.name} className="border-t border-slate-800">
+                <td className="py-1.5 pr-2 text-gray-600 tabular-nums">{i + 1}</td>
+                <td className="py-1.5 pr-2">
+                  <span className="inline-flex items-center gap-1.5 min-w-0">
+                    <TeamDot team={row.team} />
+                    <span className="text-gray-200 truncate">{firstLast(row.name)}</span>
+                  </span>
+                </td>
+                {row.byRound.map((r, j) => (
+                  <td key={j} className="py-1.5 pr-2 text-right tabular-nums text-gray-400 whitespace-nowrap">
+                    {recStr(r)}
+                  </td>
+                ))}
+                <td className="py-1.5 pr-2 text-right tabular-nums font-semibold text-gray-100 whitespace-nowrap">
+                  {recStr(row.combined)}
+                </td>
+                <td className="py-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <RecBar rec={row.combined} className="flex-1" />
+                    <span className={`tabular-nums w-8 text-right text-[11px] ${row.pct < 0.5 ? "text-rose-300" : "text-emerald-300"}`}>
+                      {Math.round(row.pct * 100)}%
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function Field1v1({ rounds, players }) {
   const sets = useMemo(() => field1v1Rounds(rounds, players), [rounds, players]);
   const [ri, setRi] = useState(0);
@@ -2045,6 +2203,7 @@ function Stats({ data, tripId }) {
   return (
     <div className="space-y-4">
       <HamEgg rounds={data.rounds} />
+      <StrengthOfSchedule rounds={data.rounds} players={data.players} />
       <Field1v1 rounds={data.rounds} players={data.players} />
       <Superlatives players={data.players} rounds={data.rounds} />
       <NetLow netlow={data.netlow} />
