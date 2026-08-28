@@ -1052,6 +1052,118 @@ function teamLeaders(counts, teamOf) {
   }).filter(Boolean);
 }
 
+function pairInitials(a, b) {
+  let ia = (lastName(a)[0] || "?").toUpperCase();
+  let ib = (lastName(b)[0] || "?").toUpperCase();
+  if (ia === ib) {
+    ia = (a.trim()[0] || ia).toUpperCase();
+    ib = (b.trim()[0] || ib).toUpperCase();
+  }
+  return [ia, ib];
+}
+
+function soloVsBestBall(me, opp) {
+  const winners = [];
+  let compared = 0;
+  for (let h = 0; h < 18; h++) {
+    const a = netOnHole(me, h);
+    const bs = opp.map((o) => netOnHole(o, h));
+    if (a == null || bs.some((x) => x == null)) {
+      winners.push(null);
+      continue;
+    }
+    compared += 1;
+    const best = Math.min(...bs);
+    winners.push(a < best ? me.side : a > best ? opp[0].side : "T");
+  }
+  if (compared < 6) return null;
+  const st = statusFromWinners(winners, me.side);
+  return st?.won ? { name: me.name, label: st.label } : null;
+}
+
+function analyzeHamEggSide(rows, winners, names, team) {
+  const mates = names.map((n) => rows.find((r) => r.name === n || nameOnCard(r.name, n))).filter(Boolean);
+  if (mates.length < 2) return null;
+  const [a, b] = mates;
+  const opp = rows.filter((r) => r.side !== a.side);
+  const [ia, ib] = pairInitials(a.name, b.name);
+  const holes = [];
+  let winA = 0;
+  let winB = 0;
+  let winBoth = 0;
+  let saves = 0;
+  for (let h = 0; h < 18; h++) {
+    const na = netOnHole(a, h);
+    const nb = netOnHole(b, h);
+    if (na == null || nb == null) {
+      holes.push({ mark: null });
+      continue;
+    }
+    const best = Math.min(na, nb);
+    const who = na === best && nb === best ? "both" : na === best ? "a" : "b";
+    if (winners[h] !== a.side) {
+      holes.push({ mark: null });
+      continue;
+    }
+    if (who === "a") winA += 1;
+    else if (who === "b") winB += 1;
+    else winBoth += 1;
+    const oppNets = opp.map((o) => netOnHole(o, h));
+    if (oppNets.every((x) => x != null)) {
+      const ob = Math.min(...oppNets);
+      if ((na > ob && nb <= ob) || (nb > ob && na <= ob)) saves += 1;
+    }
+    holes.push({ mark: who === "both" ? "2" : who === "a" ? ia : ib, who });
+  }
+  const egg = Math.min(winA, winB);
+  const carry = egg === 0 && Math.max(winA, winB) >= 2;
+  return {
+    team,
+    a: a.name,
+    b: b.name,
+    ia,
+    ib,
+    holes,
+    winA,
+    winB,
+    winBoth,
+    saves,
+    egg,
+    tag: egg >= 2 ? "ham" : carry ? "carry" : null,
+    carryName: carry ? (winA >= winB ? a.name : b.name) : null,
+    vs2: [soloVsBestBall(a, opp), soloVsBestBall(b, opp)].filter(Boolean),
+  };
+}
+
+function hamEggData(rounds) {
+  const groups = [];
+  const sides = [];
+  for (const r of rounds || []) {
+    const matches = [];
+    for (const t of r.tournaments || []) {
+      if (t.type !== "match") continue;
+      for (const m of t.matches || []) {
+        const rows = m.card?.rows;
+        if (!rows || m.card.scoring === "stableford" || rows.some((row) => row.name.includes(" + "))) continue;
+        if ((m.playersL || []).length !== 2 || (m.playersR || []).length !== 2) continue;
+        const left = analyzeHamEggSide(rows, m.card.winners, m.playersL, m.teamL);
+        const right = analyzeHamEggSide(rows, m.card.winners, m.playersR, m.teamR);
+        if (!left || !right) continue;
+        matches.push({ result: m.result, winner: m.winner, left, right });
+        sides.push(left, right);
+      }
+    }
+    if (matches.length) groups.push({ label: shortRound(r.label), matches });
+  }
+  if (!groups.length) return null;
+  const hams = sides.filter((s) => s.tag === "ham");
+  const carries = sides.filter((s) => s.tag === "carry");
+  const bestHam = [...hams].sort((x, y) => y.egg - x.egg || x.winBoth - y.winBoth)[0] || null;
+  const bestCarry = [...carries].sort((x, y) => Math.max(y.winA, y.winB) - Math.max(x.winA, x.winB))[0] || null;
+  const vs2 = sides.flatMap((s) => s.vs2);
+  return { groups, bestHam, bestCarry, vs2 };
+}
+
 function shortWho(name) {
   if (name.includes(" + ")) return name.split(" + ").map(lastName).join(" + ");
   return firstLast(name);
@@ -1553,9 +1665,127 @@ function HandicapLab({ players, rounds }) {
   );
 }
 
+function HamEggTape({ side, wonMatch }) {
+  const team = TEAM[side.team];
+  return (
+    <div className="mb-2.5 last:mb-0">
+      <div className="flex items-baseline justify-between gap-2 mb-0.5">
+        <div className={`text-[11px] min-w-0 truncate ${wonMatch ? "text-gray-100 font-semibold" : "text-gray-400"}`}>
+          <span className={`text-[10px] uppercase tracking-wider font-semibold ${team?.text || "text-gray-500"}`}>
+            {side.team}
+          </span>{" "}
+          {firstLast(side.a)} / {firstLast(side.b)}
+        </div>
+        <div className="flex flex-wrap justify-end gap-x-1.5 shrink-0 text-[10px]">
+          {side.tag === "ham" && <span className="text-emerald-400">Ham & egg</span>}
+          {side.tag === "carry" && <span className="text-amber-300">Carry {lastName(side.carryName)}</span>}
+          {side.vs2.filter((v) => v.name !== side.carryName).map((v) => (
+            <span key={v.name} className="text-emerald-400">
+              {lastName(v.name)} 1v2 {v.label}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-px" style={{ gridTemplateColumns: "repeat(18, minmax(0, 1fr))" }}>
+        {side.holes.map((h, i) => {
+          const wonA = h.who === "a";
+          const wonB = h.who === "b";
+          const both = h.who === "both";
+          return (
+            <div
+              key={i}
+              title={`Hole ${i + 1}${h.mark ? ` · ${h.mark}` : ""}`}
+              className={`flex items-center justify-center h-5 rounded-sm text-[9px] font-bold leading-none border ${
+                both
+                  ? "bg-amber-500/30 text-amber-300 border-amber-500/40"
+                  : wonA
+                    ? `${team?.cell || "bg-slate-700"} ${team?.text || "text-gray-300"} border-transparent`
+                    : wonB
+                      ? `${team?.bar || "bg-slate-600"} text-white border-transparent`
+                      : "bg-slate-800 border-slate-700"
+              }`}
+            >
+              {h.mark || ""}
+            </div>
+          );
+        })}
+      </div>
+      <div className="text-[10px] text-gray-600 mt-0.5">
+        {side.winA} {lastName(side.a)} · {side.winB} {lastName(side.b)}
+        {side.winBoth ? ` · ${side.winBoth} together` : ""}
+        {side.saves ? ` · ${side.saves} save${side.saves === 1 ? "" : "s"}` : ""}
+      </div>
+    </div>
+  );
+}
+
+function HamEgg({ rounds }) {
+  const data = useMemo(() => hamEggData(rounds), [rounds]);
+  if (!data) return null;
+  return (
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+      <div className="text-sm font-semibold text-gray-100">Ham & egg</div>
+      <div className="text-[11px] text-gray-500 mb-3">
+        2v2 matchplay · letter is whose net won the hole. Empty = lost or halved.
+      </div>
+      {(data.bestHam || data.bestCarry || data.vs2.length > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+          {data.bestHam && (
+            <div className="rounded-xl border border-slate-700 px-2.5 py-2">
+              <div className="text-[10px] uppercase tracking-wider text-gray-500">Best pair</div>
+              <div className="text-xs text-gray-100 font-semibold">
+                {firstLast(data.bestHam.a)} / {firstLast(data.bestHam.b)}
+              </div>
+              <div className="text-[10px] text-gray-500">
+                {data.bestHam.winA}–{data.bestHam.winB} split
+                {data.bestHam.winBoth === 0 ? ", never together" : ""}
+              </div>
+            </div>
+          )}
+          {data.bestCarry && (
+            <div className="rounded-xl border border-slate-700 px-2.5 py-2">
+              <div className="text-[10px] uppercase tracking-wider text-gray-500">Biggest carry</div>
+              <div className="text-xs text-gray-100 font-semibold">{firstLast(data.bestCarry.carryName)}</div>
+              <div className="text-[10px] text-gray-500">
+                {Math.max(data.bestCarry.winA, data.bestCarry.winB)} holes · partner 0
+              </div>
+            </div>
+          )}
+          {data.vs2[0] && (
+            <div className="rounded-xl border border-slate-700 px-2.5 py-2">
+              <div className="text-[10px] uppercase tracking-wider text-gray-500">Beat 1v2</div>
+              <div className="text-xs text-gray-100 font-semibold">{firstLast(data.vs2[0].name)}</div>
+              <div className="text-[10px] text-gray-500">vs both balls, {data.vs2[0].label}</div>
+            </div>
+          )}
+        </div>
+      )}
+      <div className="space-y-4">
+        {data.groups.map((g) => (
+          <div key={g.label}>
+            {data.groups.length > 1 && (
+              <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1.5">{g.label}</div>
+            )}
+            <div className="divide-y divide-slate-800">
+              {g.matches.map((m, i) => (
+                <div key={i} className="py-2.5 first:pt-0 last:pb-0">
+                  <div className="text-[10px] text-gray-600 mb-1.5">{m.result || "Tied"}</div>
+                  <HamEggTape side={m.left} wonMatch={m.winner === "left"} />
+                  <HamEggTape side={m.right} wonMatch={m.winner === "right"} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Stats({ data, tripId }) {
   return (
     <div className="space-y-4">
+      <HamEgg rounds={data.rounds} />
       <Superlatives players={data.players} rounds={data.rounds} />
       <NetLow netlow={data.netlow} />
       <ScoringDist players={data.players} />

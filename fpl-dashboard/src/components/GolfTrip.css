@@ -67,6 +67,8 @@
 /* gold / amber (tied, SOUTH WINS, match result) */
 .gg-theme .text-amber-300 { color: #9a7b12 !important; }
 .gg-theme .bg-amber-500 { background-color: #c4a035 !important; }
+.gg-theme .bg-amber-500\/30 { background-color: #f4e7c3 !important; }
+.gg-theme .border-amber-500\/40 { border-color: #c4a035 !important; }
 
 /* South red / North blue */
 .gg-theme .text-rose-300,
