@@ -3528,7 +3528,6 @@ function VersusReadout({ text }) {
 
 function VersusBug({ left, right, stats }) {
   const rec = `${stats.w}-${stats.l}${stats.t ? `-${stats.t}` : ""}`;
-  const played = Math.min(4, stats.w + stats.l + stats.t);
   return (
     <div className="versus-bug-shell">
       <div className="versus-bug">
@@ -3542,14 +3541,6 @@ function VersusBug({ left, right, stats }) {
           <div className="versus-bug-center">
             <span className="versus-bug-lab">Series</span>
             <VersusReadout text={rec} />
-            <div className="versus-periods">
-              {[1, 2, 3, 4].map((n) => (
-                <div key={n} className="versus-period-wrap">
-                  <span className={n <= played ? "versus-period on" : "versus-period"} />
-                  <span className="versus-period-n">{n}</span>
-                </div>
-              ))}
-            </div>
           </div>
           <div className="versus-bug-side">
             <span className="versus-bug-lab">Pts</span>
@@ -3557,7 +3548,6 @@ function VersusBug({ left, right, stats }) {
             <div className="versus-plate">{familyName(right)}</div>
           </div>
         </div>
-        <div className="versus-bug-key">Hole 1 · Tie .5 · Match 1</div>
       </div>
     </div>
   );
