@@ -3475,77 +3475,34 @@ function versusStats(matches) {
   return { w, l, t, ptsL, ptsR };
 }
 
-const LAMP_DIGITS = {
-  0: ["11111", "10001", "10001", "10001", "10001", "10001", "11111"],
-  1: ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
-  2: ["11111", "00001", "00001", "11111", "10000", "10000", "11111"],
-  3: ["11111", "00001", "00001", "11111", "00001", "00001", "11111"],
-  4: ["10001", "10001", "10001", "11111", "00001", "00001", "00001"],
-  5: ["11111", "10000", "10000", "11111", "00001", "00001", "11111"],
-  6: ["11111", "10000", "10000", "11111", "10001", "10001", "11111"],
-  7: ["11111", "00001", "00010", "00100", "00100", "00100", "00100"],
-  8: ["11111", "10001", "10001", "11111", "10001", "10001", "11111"],
-  9: ["11111", "10001", "10001", "11111", "00001", "00001", "11111"],
-  "-": ["00000", "00000", "00000", "01110", "00000", "00000", "00000"],
-};
-
-function VersusDigit({ ch }) {
-  if (ch === ".") {
-    return (
-      <div className="versus-digit versus-digit-dot" aria-hidden>
-        {Array.from({ length: 10 }, (_, i) => (
-          <span key={i} className="versus-lamp" />
-        ))}
-        <span className="versus-lamp on" />
-        <span className="versus-lamp on" />
-        <span className="versus-lamp on" />
-        <span className="versus-lamp on" />
-      </div>
-    );
-  }
-  const rows = LAMP_DIGITS[ch] || LAMP_DIGITS["-"];
-  return (
-    <div className="versus-digit" aria-hidden>
-      {rows.flatMap((row, r) =>
-        [...row].map((bit, c) => (
-          <span key={`${r}-${c}`} className={bit === "1" ? "versus-lamp on" : "versus-lamp"} />
-        )),
-      )}
-    </div>
-  );
-}
-
-function VersusReadout({ text }) {
-  const chars = String(text).replace(/[–—]/g, "-").split("");
-  return (
-    <div className="versus-readout" aria-label={text}>
-      {chars.map((ch, i) => (
-        <VersusDigit key={`${ch}-${i}`} ch={ch} />
-      ))}
-    </div>
-  );
-}
-
 function VersusBug({ left, right, stats }) {
-  const rec = `${stats.w}-${stats.l}${stats.t ? `-${stats.t}` : ""}`;
+  const rec = `${stats.w}–${stats.l}${stats.t ? `–${stats.t}` : ""}`;
   return (
     <div className="versus-bug-shell">
       <div className="versus-bug">
-        <div className="versus-bug-script">Scoremaster</div>
-        <div className="versus-bug-row">
-          <div className="versus-bug-side">
-            <span className="versus-bug-lab">Pts</span>
-            <VersusReadout text={fmtPts(stats.ptsL)} />
-            <div className="versus-plate">{familyName(left)}</div>
+        <div className="versus-game-head">
+          <span className="versus-game-player">Player 1</span>
+          <span className="versus-game-series">
+            <span>Series</span>
+            <strong>{rec}</strong>
+          </span>
+          <span className="versus-game-player versus-game-player-right">Player 2</span>
+        </div>
+        <div className="versus-game-main">
+          <div className="versus-game-side">
+            <span className="versus-game-name">{familyName(left)}</span>
+            <span className="versus-game-score">
+              {fmtPts(stats.ptsL)}
+              <small>pts</small>
+            </span>
           </div>
-          <div className="versus-bug-center">
-            <span className="versus-bug-lab">Series</span>
-            <VersusReadout text={rec} />
-          </div>
-          <div className="versus-bug-side">
-            <span className="versus-bug-lab">Pts</span>
-            <VersusReadout text={fmtPts(stats.ptsR)} />
-            <div className="versus-plate">{familyName(right)}</div>
+          <div className="versus-game-vs" aria-hidden>VS</div>
+          <div className="versus-game-side">
+            <span className="versus-game-name">{familyName(right)}</span>
+            <span className="versus-game-score">
+              {fmtPts(stats.ptsR)}
+              <small>pts</small>
+            </span>
           </div>
         </div>
       </div>
