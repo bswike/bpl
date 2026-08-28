@@ -1416,18 +1416,21 @@ function collectPairingSets(rounds, players) {
 function pairingSetAsPlayerSet(set) {
   const rec = {};
   const teamOf = {};
+  const mateOf = {};
   for (const id of set.ranking) {
     const r = set.rec[id];
     const names = set.partners?.[id] || id.split(" + ");
     for (const n of names) {
       rec[n] = { w: r.w, l: r.l, t: r.t, vs: [] };
       teamOf[n] = set.teamOf[id];
+      const mates = names.filter((x) => x !== n);
+      if (mates.length) mateOf[n] = mates.map(familyName).join(" / ");
     }
   }
   const ranking = Object.keys(rec).sort(
     (a, b) => field1v1Pct(rec[b]) - field1v1Pct(rec[a]) || rec[b].w - rec[a].w || a.localeCompare(b),
   );
-  return { label: set.label, ranking, rec, teamOf };
+  return { label: set.label, ranking, rec, teamOf, mateOf };
 }
 
 function interleaveSosSets(fieldSets, pairSets, rounds) {
@@ -2191,7 +2194,7 @@ function TeamStrip({ rec }) {
   );
 }
 
-function SosRankRow({ active, onClick, rank, team, name, rec }) {
+function SosRankRow({ active, onClick, rank, team, name, rec, mate }) {
   const pct = field1v1Pct(rec);
   return (
     <tr className={`border-t border-slate-800 cursor-pointer ${active ? "bg-slate-800/50" : ""}`} onClick={onClick}>
@@ -2199,7 +2202,10 @@ function SosRankRow({ active, onClick, rank, team, name, rec }) {
       <td className="py-1.5 pr-2">
         <span className="inline-flex items-center gap-1.5 min-w-0">
           <TeamDot team={team} />
-          <span className={`truncate ${active ? "text-gray-100 font-semibold" : "text-gray-200"}`}>{name}</span>
+          <span className={`min-w-0 truncate ${active ? "text-gray-100 font-semibold" : "text-gray-200"}`}>
+            {name}
+            {mate && <span className="font-normal text-[10px] text-gray-500"> w/ {mate}</span>}
+          </span>
         </span>
       </td>
       <td className="py-1.5 pr-2 text-right tabular-nums font-semibold text-gray-100 whitespace-nowrap">{recStr(rec)}</td>
@@ -2247,6 +2253,7 @@ function StrengthOfSchedule({ rounds, players }) {
           .sort((a, b) => field1v1Pct(b.view) - field1v1Pct(a.view) || b.view.w - a.view.w);
   const pickedRow = playerRows.find((r) => r.name === picked) || null;
   const teamRec = playerRi == null ? data?.teamCombined : data?.teamRounds[playerRi]?.rec;
+  const mateOf = playerRi != null ? data?.sets[playerRi]?.mateOf : null;
 
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
@@ -2377,6 +2384,7 @@ function StrengthOfSchedule({ rounds, players }) {
                   team={row.team}
                   name={firstLast(row.name)}
                   rec={row.view}
+                  mate={mateOf?.[row.name]}
                   active={picked === row.name}
                   onClick={() => setPicked(picked === row.name ? null : row.name)}
                 />
