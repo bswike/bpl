@@ -57,6 +57,24 @@ const lastName = (name) => {
   return parts[parts.length - 1];
 };
 
+function cardName(name) {
+  if ((name || "").includes(" + ")) return name.split(" + ").map((s) => familyName(s.trim())).join(" / ");
+  return familyName(name);
+}
+
+function hcpCaption(name, hiBy, course) {
+  if (!hiBy || !name) return null;
+  const names = name.includes(" + ") ? name.split("+").map((s) => s.trim()) : [name];
+  const bits = names
+    .map((n) => {
+      const hi = hiBy[n];
+      if (hi == null) return null;
+      return `${Number(hi).toFixed(1)}/${Math.round(courseHcp(hi, course))}`;
+    })
+    .filter(Boolean);
+  return bits.length ? bits.join(" · ") : null;
+}
+
 const nameOnCard = (rowName, player) =>
   rowName === player || rowName.split(" + ").map((s) => s.trim()).includes(player);
 
@@ -172,7 +190,17 @@ function matchRoundLabel(m) {
   return m.round;
 }
 
-function PlayerDetail({ p, rounds }) {
+function hcpScoreForMatch(list, m) {
+  if (!list?.length || !m) return null;
+  const fmt = m.format || "";
+  return (
+    list.find((s) => s.tournament === fmt) ||
+    list.find((s) => s.round === m.round && s.individual) ||
+    list.find((s) => s.round === m.round)
+  );
+}
+
+function PlayerDetail({ p, rounds, hcpScores, hiBy }) {
   const [openRound, setOpenRound] = useState(null);
   const grouped = useMemo(() => {
     const order = new Map((rounds || []).map((r, i) => [r.label, i]));
@@ -201,12 +229,16 @@ function PlayerDetail({ p, rounds }) {
       <PurseChips purseBy={p.purseBy} />
       {grouped.length > 0 && (
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">Rounds — tap one for the scorecard</div>
+          <div className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest text-gray-500 mb-1.5">
+            <span>Rounds — tap one for the scorecard</span>
+            <span className="normal-case tracking-normal shrink-0">G / N</span>
+          </div>
           <div className="space-y-1.5">
             {grouped.map(({ label, round, items }) => {
               const key = `${round}::${items[0]?.m.format}`;
               const open = openRound === key;
               const hasCard = items.some((x) => x.found?.mt?.card);
+              const sc = hcpScoreForMatch(hcpScores, items[0]?.m);
               return (
                 <div key={key} className="rounded-lg border border-slate-700/80 overflow-hidden">
                   <button
@@ -240,15 +272,36 @@ function PlayerDetail({ p, rounds }) {
                         }).join("  ·  ")}
                       </span>
                     </span>
+                    {sc && (
+                      <span className="tabular-nums text-[11px] text-gray-300 shrink-0">
+                        {sc.gross}
+                        <span className="text-gray-600"> / </span>
+                        {sc.net}
+                      </span>
+                    )}
                     {hasCard && (open ? <ChevronUp size={14} className="text-gray-400 shrink-0" /> : <ChevronDown size={14} className="text-gray-500 shrink-0" />)}
                   </button>
                   {open && hasCard && (
                     <div className="px-1.5 pb-2 pt-1 border-t border-slate-700/80">
-                      {items.map((x, i) =>
-                        x.found?.mt?.card ? (
-                          <Scorecard key={i} m={x.found.mt} pars={x.found.pars} highlight={p.name} />
-                        ) : null
-                      )}
+                      {items.map((x, i) => {
+                        if (!x.found?.mt?.card) return null;
+                        const combined = x.found.mt.card.rows.some((r) => r.name.includes(" + "));
+                        return (
+                          <Scorecard
+                            key={i}
+                            m={x.found.mt}
+                            pars={x.found.pars}
+                            highlight={p.name}
+                            hcp={{
+                              hiBy,
+                              course: courseOfRound(x.m.round),
+                              roundLabel: x.m.round,
+                              kind: pairingKind(x.m.format, combined),
+                              si: siForRound(rounds, x.m.round),
+                            }}
+                          />
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -282,10 +335,12 @@ function PlayerDetail({ p, rounds }) {
 function Standings({ players, rounds }) {
   const [sort, setSort] = useState("record");
   const [open, setOpen] = useState(null);
-  const withNet = useMemo(() => {
-    const { avgNet } = playerHcpNets(rounds, players);
-    return players.map((p) => ({ ...p, avgNet: avgNet[p.name] ?? p.avgNet }));
-  }, [players, rounds]);
+  const { avgNet, byPlayer } = useMemo(() => playerHcpNets(rounds, players), [players, rounds]);
+  const hiBy = useMemo(() => Object.fromEntries(players.map((p) => [p.name, hiOf(p)])), [players]);
+  const withNet = useMemo(
+    () => players.map((p) => ({ ...p, avgNet: avgNet[p.name] ?? p.avgNet })),
+    [players, avgNet],
+  );
   const sorted = useMemo(() => [...withNet].sort(SORTS[sort]), [withNet, sort]);
 
   const Th = ({ id, children, className = "" }) => (
@@ -309,13 +364,25 @@ function Standings({ players, rounds }) {
             <Th id="record" className="!px-1">W-L-T</Th>
             <Th id="pts" className="text-right !px-1">Pts</Th>
             <Th id="skins" className="text-center hidden sm:table-cell">Skins</Th>
-            <Th id="net" className="text-right hidden sm:table-cell">Avg Net</Th>
+            <Th id="net" className="text-right">
+              <span className="sm:hidden">Net</span>
+              <span className="hidden sm:inline">Avg Net</span>
+            </Th>
             <Th id="purse" className="text-right pr-3">Purse</Th>
           </tr>
         </thead>
         <tbody>
           {sorted.map((p, i) => (
-            <PlayerRows key={p.name} p={p} rounds={rounds} rank={i + 1} open={open === p.name} onToggle={() => setOpen(open === p.name ? null : p.name)} />
+            <PlayerRows
+              key={p.name}
+              p={p}
+              rounds={rounds}
+              rank={i + 1}
+              open={open === p.name}
+              onToggle={() => setOpen(open === p.name ? null : p.name)}
+              hcpScores={byPlayer[p.name]}
+              hiBy={hiBy}
+            />
           ))}
         </tbody>
       </table>
@@ -323,7 +390,7 @@ function Standings({ players, rounds }) {
   );
 }
 
-function PlayerRows({ p, rounds, rank, open, onToggle }) {
+function PlayerRows({ p, rounds, rank, open, onToggle, hcpScores, hiBy }) {
   return (
     <>
       <tr
@@ -341,14 +408,14 @@ function PlayerRows({ p, rounds, rank, open, onToggle }) {
         <td className="py-2 px-1"><Record p={p} /></td>
         <td className="py-2 px-1 text-right tabular-nums text-gray-300">{p.matchPts ? p.matchPts.toFixed(1) : "—"}</td>
         <td className="py-2 px-2 text-center tabular-nums text-gray-300 hidden sm:table-cell">{p.skins || "—"}</td>
-        <td className="py-2 px-2 text-right tabular-nums text-gray-300 hidden sm:table-cell">{p.avgNet ?? "—"}</td>
+        <td className="py-2 px-2 text-right tabular-nums text-gray-300">{p.avgNet ?? "—"}</td>
         <td className={`py-2 px-2 pr-3 text-right tabular-nums font-semibold ${p.purse ? "text-emerald-300" : "text-gray-600"}`}>
           {fmtMoney(p.purse || 0)}
         </td>
       </tr>
       {open && (
         <tr className="border-b border-slate-800 bg-slate-800/40" onClick={(e) => e.stopPropagation()}>
-          <td colSpan={7}><PlayerDetail p={p} rounds={rounds} /></td>
+          <td colSpan={7}><PlayerDetail p={p} rounds={rounds} hcpScores={hcpScores} hiBy={hiBy} /></td>
         </tr>
       )}
     </>
@@ -470,10 +537,19 @@ function soloVsOpponents(card, playerName) {
   return out.length ? out : null;
 }
 
-function Scorecard({ m, pars, highlight }) {
+function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
   const { rows, winners } = m.card;
-  const grid = { display: "grid", gridTemplateColumns: "4.6rem repeat(9, minmax(0, 1fr)) 1.9rem" };
+  const grid = { display: "grid", gridTemplateColumns: "6.4rem repeat(9, minmax(0, 1fr)) 2.1rem" };
   const status = holeStatus(winners);
+  const si = hcp?.si || (hcp ? inferStrokeIndex(rows) : null);
+  const labelHi = hcp?.hiBy || hiBy;
+  const labelCourse = hcp?.course || course;
+  const dotsOf = (r) => {
+    if (!hcp || !si) return r.dots;
+    const pops = rowPops(r, hcp.hiBy, hcp.course, hcp.roundLabel, hcp.kind);
+    if (pops == null) return r.dots;
+    return strokeDotsForPlayed(pops, si, playedIndexes(r.gross));
+  };
 
   const individual = highlight && rows.some((r) => r.name === highlight);
   const combined = highlight && !individual && rows.some((r) => nameOnCard(r.name, highlight));
@@ -544,20 +620,31 @@ function Scorecard({ m, pars, highlight }) {
               </div>
             )}
             {rows.map((r) => {
+              const dots = dotsOf(r);
               const tot = idx.reduce((a, i) => a + (typeof r.gross[i] === "number" ? r.gross[i] : 0), 0);
+              const netTot = hcp
+                ? idx.reduce((a, i) => a + (typeof r.gross[i] === "number" ? r.gross[i] - (dots[i] || 0) : 0), 0)
+                : null;
               const team = r.side === "L" ? m.teamL : m.teamR;
               const mine = highlight && nameOnCard(r.name, highlight);
+              const cap = hcpCaption(r.name, labelHi, labelCourse);
               return (
                 <div key={r.name} style={grid} className={highlight && !mine ? "opacity-45" : ""}>
                   <div className="flex items-center gap-1 pl-1 min-w-0">
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${TEAM[team]?.dot || "bg-slate-600"}`} />
-                    <span className={`text-[9px] truncate ${mine ? "text-white font-semibold" : "text-gray-300"}`}>{lastName(r.name)}</span>
+                    <span className="min-w-0 leading-tight">
+                      <span className={`text-[9px] truncate block ${mine ? "text-white font-semibold" : "text-gray-300"}`}>{cardName(r.name)}</span>
+                      {cap && <span className="text-[8px] tabular-nums text-gray-500 block truncate">{cap}</span>}
+                    </span>
                   </div>
                   {idx.map((i) => (
-                    <ScoreCell key={i} gross={r.gross[i]} dots={r.dots[i]} par={pars?.[i]} counted={isCounting(r, i)} />
+                    <ScoreCell key={i} gross={r.gross[i]} dots={dots[i]} par={pars?.[i]} counted={isCounting(r, i)} />
                   ))}
-                  <div className="flex items-center justify-center text-[10px] tabular-nums text-gray-300 font-semibold">
-                    {tot || ""}
+                  <div className="flex flex-col items-center justify-center leading-none">
+                    <span className="text-[10px] tabular-nums text-gray-300 font-semibold">{tot || ""}</span>
+                    {netTot != null && tot ? (
+                      <span className="text-[8px] tabular-nums text-gray-500 mt-0.5">{netTot}</span>
+                    ) : null}
                   </div>
                 </div>
               );
@@ -614,6 +701,7 @@ function Scorecard({ m, pars, highlight }) {
           <span className="p-[1.5px] border border-rose-400/80"><span className="w-2 h-2 block border border-rose-400/80" /></span> double+
         </span>
         <span className="flex items-center gap-1"><span className="text-amber-300">•</span> stroke</span>
+        {labelHi && <span className="tabular-nums">HI / CH</span>}
         <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${TEAM[m.teamL]?.cell}`} /> {m.teamL} won hole</span>
         <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${TEAM[m.teamR]?.cell}`} /> {m.teamR} won hole</span>
       </div>
@@ -621,7 +709,7 @@ function Scorecard({ m, pars, highlight }) {
   );
 }
 
-function MatchRow({ m, pars }) {
+function MatchRow({ m, pars, hiBy, course }) {
   const [open, setOpen] = useState(false);
   const hasCard = !!m.card;
   const solos = useMemo(() => {
@@ -687,7 +775,7 @@ function MatchRow({ m, pars }) {
         </div>
         {side(m.teamR, m.playersR, m.ptsR, m.winner === "right")}
       </button>
-      {open && hasCard && <Scorecard m={m} pars={pars} />}
+      {open && hasCard && <Scorecard m={m} pars={pars} hiBy={hiBy} course={course} />}
     </div>
   );
 }
@@ -726,7 +814,7 @@ function teamPts(matches) {
   return { L: +pts.South.toFixed(1), R: +pts.North.toFixed(1) };
 }
 
-function Tournament({ t, pars }) {
+function Tournament({ t, pars, hiBy, course }) {
   const [expanded, setExpanded] = useState(false);
   if (t.type === "empty") return null;
 
@@ -740,7 +828,7 @@ function Tournament({ t, pars }) {
             Under each name: 1v1 if their partner sat
           </div>
         )}
-        {t.matches.map((m, i) => <MatchRow key={i} m={m} pars={pars} />)}
+        {t.matches.map((m, i) => <MatchRow key={i} m={m} pars={pars} hiBy={hiBy} course={course} />)}
         {t.matches?.length > 0 && (
           <div className="flex justify-between text-[11px] font-semibold pt-1 px-1 text-gray-400">
             <span className="text-rose-300">South {teamPts(t.matches).L}</span>
@@ -853,7 +941,7 @@ function splitRounds(rounds) {
   return out;
 }
 
-function RoundCard({ r, open, onToggle, tripNetlow }) {
+function RoundCard({ r, open, onToggle, tripNetlow, hiBy }) {
   const score = roundScore(r);
   return (
     <div className="bg-slate-900 border border-slate-700/80 rounded-lg overflow-hidden">
@@ -873,15 +961,18 @@ function RoundCard({ r, open, onToggle, tripNetlow }) {
       </button>
       {open && (
         <div className="px-3 pb-3 border-t border-slate-800 pt-1">
-          {roundTournaments(r, tripNetlow).map((t) => <Tournament key={t.id} t={t} pars={r.pars} />)}
+          {roundTournaments(r, tripNetlow).map((t) => (
+            <Tournament key={t.id} t={t} pars={r.pars} hiBy={hiBy} course={courseOfRound(r.label)} />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function Rounds({ rounds, netlow }) {
+function Rounds({ rounds, netlow, players }) {
   const list = useMemo(() => splitRounds(rounds), [rounds]);
+  const hiBy = useMemo(() => Object.fromEntries((players || []).map((p) => [p.name, hiOf(p)])), [players]);
   const [open, setOpen] = useState(() => new Set());
   const toggle = (id) =>
     setOpen((prev) => {
@@ -892,7 +983,7 @@ function Rounds({ rounds, netlow }) {
   return (
     <div className="space-y-3">
       {list.map((r) => (
-        <RoundCard key={r.id} r={r} open={open.has(r.id)} onToggle={() => toggle(r.id)} tripNetlow={!!netlow} />
+        <RoundCard key={r.id} r={r} open={open.has(r.id)} onToggle={() => toggle(r.id)} tripNetlow={!!netlow} hiBy={hiBy} />
       ))}
     </div>
   );
@@ -1185,6 +1276,13 @@ function inferStrokeIndex(rows) {
     .map((x) => x.h);
 }
 
+function siForRound(rounds, roundLabel) {
+  const r = (rounds || []).find((x) => x.label === roundLabel);
+  if (!r) return null;
+  const rows = matchCardRows(r.tournaments).flatMap((b) => b.rows);
+  return rows.length ? inferStrokeIndex(rows) : null;
+}
+
 /** Tee ratings from the trip sheet (and GG's Crystal Blue tee card). */
 const COURSE_TEES = {
   crystal: { slope: 144, cr: 71.3, par: 72 },
@@ -1363,6 +1461,7 @@ function field1v1Rounds(rounds, players) {
       scoreOf: Object.fromEntries(
         names.map((n) => [n, totalsWithPops(rowBy[n].gross, playingHcp(hiBy[n], course, pct), si)]).filter(([, v]) => v),
       ),
+      whatIf: { type: "1v1", si, course, pct, pars: r.pars, hiBy, teamOf, rowBy },
     });
   }
   return out;
@@ -1415,6 +1514,121 @@ function matchTeamGross(a, b, si, kind) {
   const netA = a.gross.map((g, h) => (typeof g === "number" ? g - da[h] : null));
   const netB = b.gross.map((g, h) => (typeof g === "number" ? g - db[h] : null));
   return matchNets(netA, netB);
+}
+
+function resultFromWinners(winners, teamL, teamR) {
+  const st = statusFromWinners(winners, "L");
+  if (!st) return { result: "", winner: "tie" };
+  if (!st.won && !st.lost) return { result: "Tied", winner: "tie" };
+  return { result: st.won ? st.label : flip1v1(st).label.replace(/ down$/, ""), winner: st.won ? "left" : "right" };
+}
+
+function whatIf1v1Match(aRow, bRow, hiA, hiB, si, course, pct, teamA, teamB) {
+  const ha = playingHcp(hiA, course, pct);
+  const hb = playingHcp(hiB, course, pct);
+  const played = playedIndexes(aRow.gross).filter((h) => typeof bRow.gross[h] === "number");
+  const da = strokeDotsForPlayed(Math.max(0, ha - hb), si, played);
+  const db = strokeDotsForPlayed(Math.max(0, hb - ha), si, played);
+  const winners = [];
+  for (let h = 0; h < 18; h++) {
+    const ga = aRow.gross[h];
+    const gb = bRow.gross[h];
+    if (typeof ga !== "number" || typeof gb !== "number") {
+      winners.push(null);
+      continue;
+    }
+    const na = ga - da[h];
+    const nb = gb - db[h];
+    winners.push(na < nb ? "L" : na > nb ? "R" : "T");
+  }
+  return {
+    teamL: teamA,
+    teamR: teamB,
+    ...resultFromWinners(winners, teamA, teamB),
+    card: {
+      rows: [
+        { name: aRow.name, side: "L", gross: aRow.gross, dots: da },
+        { name: bRow.name, side: "R", gross: bRow.gross, dots: db },
+      ],
+      winners,
+    },
+  };
+}
+
+function whatIfBestBallMatch(a, b, si) {
+  const low = Math.min(...[...a.mates, ...b.mates].map((p) => playingHcp(p.hi, a.course, a.pct)));
+  const rowOf = (p, side) => {
+    const pops = Math.max(0, playingHcp(p.hi, a.course, a.pct) - low);
+    return { name: p.name, side, gross: p.gross, dots: strokeDotsForPlayed(pops, si, playedIndexes(p.gross)) };
+  };
+  const netA = bestBallNets(a.mates, low, si, a.course, a.pct);
+  const netB = bestBallNets(b.mates, low, si, b.course, b.pct);
+  const winners = [];
+  for (let h = 0; h < 18; h++) {
+    const na = netA[h];
+    const nb = netB[h];
+    if (na == null || nb == null) winners.push(null);
+    else winners.push(na < nb ? "L" : na > nb ? "R" : "T");
+  }
+  return {
+    teamL: a.team,
+    teamR: b.team,
+    ...resultFromWinners(winners),
+    card: {
+      rows: [...a.mates.map((p) => rowOf(p, "L")), ...b.mates.map((p) => rowOf(p, "R"))],
+      winners,
+    },
+  };
+}
+
+function whatIfTeamMatch(a, b, si) {
+  const ha = teamHcp(a.mates.map((m) => m.hi), a.kind, a.course);
+  const hb = teamHcp(b.mates.map((m) => m.hi), b.kind, b.course);
+  const played = playedIndexes(a.gross).filter((h) => typeof b.gross[h] === "number");
+  const da = strokeDotsForPlayed(Math.max(0, ha - hb), si, played);
+  const db = strokeDotsForPlayed(Math.max(0, hb - ha), si, played);
+  const winners = [];
+  for (let h = 0; h < 18; h++) {
+    const ga = a.gross[h];
+    const gb = b.gross[h];
+    if (typeof ga !== "number" || typeof gb !== "number") {
+      winners.push(null);
+      continue;
+    }
+    const na = ga - da[h];
+    const nb = gb - db[h];
+    winners.push(na < nb ? "L" : na > nb ? "R" : "T");
+  }
+  return {
+    teamL: a.team,
+    teamR: b.team,
+    ...resultFromWinners(winners),
+    card: {
+      rows: [
+        { name: a.names.join(" + "), side: "L", gross: a.gross, dots: da },
+        { name: b.names.join(" + "), side: "R", gross: b.gross, dots: db },
+      ],
+      winners,
+    },
+  };
+}
+
+function buildWhatIfMatch(set, leftId, rightId) {
+  const w = set?.whatIf;
+  if (!w || !leftId || !rightId || leftId === rightId) return null;
+  if (w.type === "1v1") {
+    const a = w.rowBy?.[leftId];
+    const b = w.rowBy?.[rightId];
+    if (!a || !b) return null;
+    return whatIf1v1Match(a, b, w.hiBy[leftId], w.hiBy[rightId], w.si, w.course, w.pct, w.teamOf[leftId], w.teamOf[rightId]);
+  }
+  const lid = w.idOfPlayer?.[leftId] || leftId;
+  const rid = w.idOfPlayer?.[rightId] || rightId;
+  const a = w.entriesBy?.[lid];
+  const b = w.entriesBy?.[rid];
+  if (!a || !b) return null;
+  if (a.kind === "bestball") return whatIfBestBallMatch(a, b, w.si);
+  return whatIfTeamMatch(a, b, w.si);
 }
 
 function matchPairing(a, b, si) {
@@ -1565,6 +1779,14 @@ function collectPairingSets(rounds, players) {
         roundLabel: r.label,
         partners: Object.fromEntries(entries.map((e) => [e.id, e.names])),
         scoreOf,
+        whatIf: {
+          type: "pairing",
+          si,
+          pars: r.pars,
+          hiBy,
+          course,
+          entriesBy: Object.fromEntries(entries.map((e) => [e.id, e])),
+        },
         ...pairingRoundRobin(entries, si),
       });
     }
@@ -1601,7 +1823,19 @@ function pairingSetAsPlayerSet(set) {
   const ranking = Object.keys(rec).sort(
     (a, b) => field1v1Pct(rec[b]) - field1v1Pct(rec[a]) || rec[b].w - rec[a].w || a.localeCompare(b),
   );
-  return { label: set.label, ranking, rec, teamOf, mateOf, scoreOf: set.scoreOf };
+  const idOfPlayer = {};
+  for (const id of set.ranking) {
+    for (const n of set.partners?.[id] || String(id).split(" + ")) idOfPlayer[n] = id;
+  }
+  return {
+    label: set.label,
+    ranking,
+    rec,
+    teamOf,
+    mateOf,
+    scoreOf: set.scoreOf,
+    whatIf: set.whatIf ? { ...set.whatIf, idOfPlayer } : null,
+  };
 }
 
 function interleaveSosSets(fieldSets, pairSets, rounds) {
@@ -1727,18 +1961,23 @@ function bestScore(rows, key) {
   return { v, names: rows.filter((r) => r[key] === v).map((r) => r.name) };
 }
 
-function scoreCardRow(row, hiBy, course, roundLabel, kind, si) {
+function rowPops(row, hiBy, course, roundLabel, kind) {
   if (row.name.includes(" + ")) {
     const names = row.name.split("+").map((s) => s.trim());
     const his = names.map((n) => hiBy[n]).filter((h) => h != null);
     if (!his.length) return null;
-    const pops = his.length >= 2 ? teamHcp(his, kind === "bestball" ? "pinehurst" : kind, course) : playingHcp(his[0], course, 1);
-    const tot = totalsWithPops(row.gross, pops, si);
-    return tot ? { ...tot, name: row.name, names } : null;
+    return his.length >= 2 ? teamHcp(his, kind === "bestball" ? "pinehurst" : kind, course) : playingHcp(his[0], course, 1);
   }
   if (hiBy[row.name] == null) return null;
-  const tot = totalsWithPops(row.gross, playingHcp(hiBy[row.name], course, individualPct(roundLabel)), si);
-  return tot ? { ...tot, name: row.name, names: [row.name] } : null;
+  return playingHcp(hiBy[row.name], course, individualPct(roundLabel));
+}
+
+function scoreCardRow(row, hiBy, course, roundLabel, kind, si) {
+  const pops = rowPops(row, hiBy, course, roundLabel, kind);
+  if (pops == null) return null;
+  const names = row.name.includes(" + ") ? row.name.split("+").map((s) => s.trim()) : [row.name];
+  const tot = totalsWithPops(row.gross, pops, si);
+  return tot ? { ...tot, name: row.name, names } : null;
 }
 
 function matchCardRows(tournaments) {
@@ -2510,52 +2749,121 @@ function SosAllRounds({ rows, onPickRound }) {
   );
 }
 
-function SosVsLine({ line, onPick }) {
+function SosVsLine({ line, onPick, expanded, onToggleCard, hasCard }) {
   return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onPick?.(line.pick);
-      }}
-      className="w-full flex items-center justify-between gap-2 py-0.5 text-left"
-    >
-      <span className="flex items-center gap-1.5 min-w-0">
-        <TeamDot team={line.team} />
-        <span className="text-[11px] text-gray-300 truncate">{line.name}</span>
-      </span>
-      <span
-        className={`text-[11px] tabular-nums shrink-0 ${
-          line.won ? "text-emerald-400" : line.lost ? "text-gray-500" : "text-gray-400"
-        }`}
-      >
-        {line.label}
-      </span>
-    </button>
+    <div>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPick?.(line.pick);
+          }}
+          className="min-w-0 flex-1 flex items-center justify-between gap-2 py-0.5 text-left"
+        >
+          <span className="flex items-center gap-1.5 min-w-0">
+            <TeamDot team={line.team} />
+            <span className="text-[11px] text-gray-300 truncate">{line.name}</span>
+          </span>
+          <span
+            className={`text-[11px] tabular-nums shrink-0 ${
+              line.won ? "text-emerald-400" : line.lost ? "text-gray-500" : "text-gray-400"
+            }`}
+          >
+            {line.label}
+          </span>
+        </button>
+        {hasCard && (
+          <button
+            type="button"
+            aria-label={expanded ? "Hide scorecard" : "Show scorecard"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleCard?.();
+            }}
+            className={`shrink-0 p-0.5 rounded ${expanded ? "text-emerald-400" : "text-gray-600 hover:text-gray-300"}`}
+          >
+            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
-function SosMatchDrop({ groups, onPick }) {
+function SosMatchDrop({ groups, onPick, whatIfSet, selfId }) {
+  const [allCards, setAllCards] = useState(false);
+  const [openKeys, setOpenKeys] = useState(() => new Set());
   if (!groups.length) return null;
   const many = groups.length > 1;
+  const canCards = !!whatIfSet?.whatIf && !!selfId;
+  const showing = (key) => allCards || openKeys.has(key);
+  const toggleKey = (key) => {
+    setOpenKeys((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+  const w = whatIfSet?.whatIf;
   return (
-    <div className="max-h-44 overflow-y-auto divide-y divide-slate-800/80">
-      {groups.map((g) => (
-        <div key={g.round} className="py-1 first:pt-0.5">
-          {many && (
-            <div className="flex items-center justify-between gap-2 px-0.5 mb-0.5">
-              <span className="text-[10px] text-gray-500">
-                {g.round}
-                {g.mate ? ` · w/ ${g.mate}` : ""}
-              </span>
-              <span className="text-[10px] tabular-nums text-gray-500">{recStr(g.rec)}</span>
-            </div>
-          )}
-          {g.lines.map((line) => (
-            <SosVsLine key={`${g.round}-${line.key}`} line={line} onPick={onPick} />
-          ))}
+    <div className={canCards && (allCards || openKeys.size) ? "" : "max-h-44 overflow-y-auto"}>
+      {canCards && (
+        <div className="flex justify-end mb-1">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setAllCards((v) => !v);
+            }}
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+              allCards ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+            }`}
+          >
+            {allCards ? "Hide scorecards" : "Show scorecards"}
+          </button>
         </div>
-      ))}
+      )}
+      <div className={`${canCards && (allCards || openKeys.size) ? "max-h-[32rem] overflow-y-auto" : ""} divide-y divide-slate-800/80`}>
+        {groups.map((g) => (
+          <div key={g.round} className="py-1 first:pt-0.5">
+            {many && (
+              <div className="flex items-center justify-between gap-2 px-0.5 mb-0.5">
+                <span className="text-[10px] text-gray-500">
+                  {g.round}
+                  {g.mate ? ` · w/ ${g.mate}` : ""}
+                </span>
+                <span className="text-[10px] tabular-nums text-gray-500">{recStr(g.rec)}</span>
+              </div>
+            )}
+            {g.lines.map((line) => {
+              const key = `${g.round}-${line.key}`;
+              const open = showing(key);
+              const match = open && canCards ? buildWhatIfMatch(whatIfSet, selfId, line.pick) : null;
+              return (
+                <div key={key}>
+                  <SosVsLine
+                    line={line}
+                    onPick={onPick}
+                    hasCard={canCards}
+                    expanded={open}
+                    onToggleCard={() => toggleKey(key)}
+                  />
+                  {match && (
+                    <Scorecard
+                      m={match}
+                      pars={w.pars}
+                      highlight={w.type === "pairing" ? (w.entriesBy?.[w.idOfPlayer?.[selfId] || selfId]?.names?.[0] || selfId) : selfId}
+                      hiBy={w.hiBy}
+                      course={w.course}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -2699,6 +3007,8 @@ function StrengthOfSchedule({ rounds, players }) {
                         <SosMatchDrop
                           groups={[{ round: pair.label, rec: pairMine, lines: sosVsLines(pair, id) }]}
                           onPick={setPicked}
+                          whatIfSet={pair}
+                          selfId={id}
                         />
                       </td>
                     </tr>
@@ -2756,6 +3066,8 @@ function StrengthOfSchedule({ rounds, players }) {
                           <SosMatchDrop
                             groups={playerMatchGroups(data.sets, row.name, playerRi)}
                             onPick={setPicked}
+                            whatIfSet={data.sets[playerRi]}
+                            selfId={row.name}
                           />
                         )}
                       </td>
@@ -3049,7 +3361,7 @@ export default function GolfTrip() {
         </nav>
 
         {tab === "standings" && <Standings players={data.players} rounds={data.rounds} />}
-        {tab === "rounds" && <Rounds rounds={data.rounds} netlow={data.netlow} />}
+        {tab === "rounds" && <Rounds rounds={data.rounds} netlow={data.netlow} players={data.players} />}
         {tab === "stats" && <Stats data={data} tripId={tripId === "2025" ? "2025" : "nj26"} />}
 
         <footer className="mt-6 text-[10px] text-gray-600">
