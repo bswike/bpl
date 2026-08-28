@@ -427,21 +427,6 @@ function netOnHole(row, h) {
   return typeof row?.gross[h] === "number" ? row.gross[h] - row.dots[h] : null;
 }
 
-function rowTotals(row) {
-  if (!row?.gross) return null;
-  let gross = 0;
-  let net = 0;
-  let holes = 0;
-  for (let h = 0; h < 18; h++) {
-    const g = row.gross[h];
-    if (typeof g !== "number") continue;
-    gross += g;
-    net += g - (row.dots[h] || 0);
-    holes += 1;
-  }
-  return holes ? { gross, net, holes } : null;
-}
-
 function statusFromWinners(winners, mySide) {
   const last = [...holeStatus(winners)].reverse().find(Boolean);
   if (!last) return null;
@@ -1196,10 +1181,57 @@ function inferStrokeIndex(rows) {
     .map((x) => x.h);
 }
 
+function playingHcp(hi) {
+  const n = Number(hi);
+  return Number.isFinite(n) ? Math.round(n) : 0;
+}
+
+function playedIndexes(gross) {
+  const out = [];
+  for (let h = 0; h < 18; h++) if (typeof gross?.[h] === "number") out.push(h);
+  return out;
+}
+
 function strokeDots(n, si) {
   const d = Array(18).fill(0);
-  for (let i = 0; i < n; i++) d[si[i % 18]] += 1;
+  const order = si?.length ? si : Array.from({ length: 18 }, (_, i) => i);
+  for (let i = 0; i < n; i++) d[order[i % order.length]] += 1;
   return d;
+}
+
+/** Card pops are vs the low man in that group. SOS uses each player's own HI. */
+function strokeDotsForPlayed(n, si, played) {
+  if (n <= 0 || !played?.length) return Array(18).fill(0);
+  const allowance = played.length >= 15 ? n : Math.round((n * played.length) / 18);
+  const order = (si || []).filter((h) => played.includes(h));
+  return strokeDots(allowance, order.length ? order : played);
+}
+
+function holeNets(gross, pops, si) {
+  const dots = strokeDotsForPlayed(pops, si, playedIndexes(gross));
+  return (gross || []).map((g, h) => (typeof g === "number" ? g - dots[h] : null));
+}
+
+function totalsWithPops(gross, pops, si) {
+  const nets = holeNets(gross, pops, si);
+  let g = 0;
+  let n = 0;
+  let holes = 0;
+  for (let h = 0; h < 18; h++) {
+    if (typeof gross?.[h] !== "number") continue;
+    g += gross[h];
+    n += nets[h];
+    holes += 1;
+  }
+  return holes ? { gross: g, net: n, holes } : null;
+}
+
+function teamHcp(his, kind) {
+  const vals = his.map(playingHcp).sort((a, b) => a - b);
+  const lo = vals[0] ?? 0;
+  const hi = vals[vals.length - 1] ?? lo;
+  if (kind === "scramble") return Math.round(0.35 * lo + 0.15 * hi);
+  return Math.round(0.6 * lo + 0.4 * hi);
 }
 
 function flip1v1(st) {
@@ -1213,10 +1245,11 @@ function flip1v1(st) {
 }
 
 function match1v1(a, b, hiA, hiB, si) {
-  const ha = Math.round(hiA);
-  const hb = Math.round(hiB);
-  const da = strokeDots(Math.max(0, ha - hb), si);
-  const db = strokeDots(Math.max(0, hb - ha), si);
+  const ha = playingHcp(hiA);
+  const hb = playingHcp(hiB);
+  const played = playedIndexes(a.gross).filter((h) => typeof b.gross[h] === "number");
+  const da = strokeDotsForPlayed(Math.max(0, ha - hb), si, played);
+  const db = strokeDotsForPlayed(Math.max(0, hb - ha), si, played);
   const winners = [];
   let compared = 0;
   for (let h = 0; h < 18; h++) {
@@ -1297,7 +1330,9 @@ function field1v1Rounds(rounds, players) {
       ranking,
       rec,
       teamOf,
-      scoreOf: Object.fromEntries(names.map((n) => [n, rowTotals(rowBy[n])]).filter(([, v]) => v)),
+      scoreOf: Object.fromEntries(
+        names.map((n) => [n, totalsWithPops(rowBy[n].gross, playingHcp(hiBy[n]), si)]).filter(([, v]) => v),
+      ),
     });
   }
   return out;
@@ -1320,7 +1355,42 @@ function matchNets(netA, netB) {
   return statusFromWinners(winners, "L");
 }
 
-function netRoundRobin(entries) {
+function bestBallNets(mates, extraLow, si) {
+  const nets = mates.map((p) => holeNets(p.gross, Math.max(0, playingHcp(p.hi) - extraLow), si));
+  return Array.from({ length: 18 }, (_, h) => {
+    const ns = nets.map((n) => n[h]).filter((v) => v != null);
+    return ns.length ? Math.min(...ns) : null;
+  });
+}
+
+function matchBestBall(a, b, si) {
+  const low = Math.min(...[...a.mates, ...b.mates].map((p) => playingHcp(p.hi)));
+  return matchNets(bestBallNets(a.mates, low, si), bestBallNets(b.mates, low, si));
+}
+
+function matchTeamGross(a, b, si, kind) {
+  const ha = teamHcp(
+    a.mates.map((m) => m.hi),
+    kind,
+  );
+  const hb = teamHcp(
+    b.mates.map((m) => m.hi),
+    kind,
+  );
+  const played = playedIndexes(a.gross).filter((h) => typeof b.gross[h] === "number");
+  const da = strokeDotsForPlayed(Math.max(0, ha - hb), si, played);
+  const db = strokeDotsForPlayed(Math.max(0, hb - ha), si, played);
+  const netA = a.gross.map((g, h) => (typeof g === "number" ? g - da[h] : null));
+  const netB = b.gross.map((g, h) => (typeof g === "number" ? g - db[h] : null));
+  return matchNets(netA, netB);
+}
+
+function matchPairing(a, b, si) {
+  if (a.kind === "bestball") return matchBestBall(a, b, si);
+  return matchTeamGross(a, b, si, a.kind);
+}
+
+function pairingRoundRobin(entries, si) {
   const ids = entries.map((e) => e.id);
   const by = Object.fromEntries(entries.map((e) => [e.id, e]));
   const rec = Object.fromEntries(ids.map((id) => [id, { w: 0, l: 0, t: 0, vs: [] }]));
@@ -1328,7 +1398,7 @@ function netRoundRobin(entries) {
     for (let j = i + 1; j < ids.length; j++) {
       const a = ids[i];
       const b = ids[j];
-      const st = matchNets(by[a].nets, by[b].nets);
+      const st = matchPairing(by[a], by[b], si);
       if (!st) continue;
       rec[a].vs.push({ opp: b, ...st });
       rec[b].vs.push({ opp: a, ...flip1v1(st) });
@@ -1357,6 +1427,14 @@ function netRoundRobin(entries) {
   };
 }
 
+function pairingKind(tName, combined) {
+  const t = (tName || "").toLowerCase();
+  if (/scramble/.test(t)) return "scramble";
+  if (/pinehurst/.test(t)) return "pinehurst";
+  if (combined) return "pinehurst";
+  return "bestball";
+}
+
 function pairingLabel(tName, roundLabel) {
   const t = (tName || "").toLowerCase();
   const r = (roundLabel || "").toLowerCase();
@@ -1376,53 +1454,71 @@ function pairingDisplay(names) {
 
 function collectPairingSets(rounds, players) {
   const teamOf = Object.fromEntries(players.map((p) => [p.name, p.team]));
+  const hiBy = Object.fromEntries(players.map((p) => [p.name, hiOf(p)]));
   const out = [];
   const used = new Set();
   for (const r of rounds || []) {
     for (const t of r.tournaments || []) {
       if (t.type !== "match") continue;
       const entries = [];
+      const allRows = [];
+      const combinedT = (t.matches || []).some((m) => m.card?.rows?.some((row) => row.name.includes(" + ")));
+      const kind = pairingKind(t.name, combinedT);
       for (const m of t.matches || []) {
         const rows = m.card?.rows;
         if (!rows || m.card.scoring === "stableford") continue;
         if ((m.playersL || []).length < 2 || (m.playersR || []).length < 2) continue;
+        allRows.push(...rows);
         const combined = rows.some((row) => row.name.includes(" + "));
         for (const [names, side] of [
           [m.playersL, "L"],
           [m.playersR, "R"],
         ]) {
-          let nets;
-          let scoreBy = {};
           if (combined) {
             const row = rows.find((x) => x.side === side);
-            if (!row) continue;
-            nets = row.gross.map((g, h) => (typeof g === "number" ? g - row.dots[h] : null));
-            const tot = rowTotals(row);
-            for (const n of names) scoreBy[n] = tot;
-          } else {
-            const mates = names.map((n) => rows.find((x) => x.name === n || nameOnCard(x.name, n))).filter(Boolean);
-            if (mates.length < 2) continue;
-            nets = Array.from({ length: 18 }, (_, h) => {
-              const ns = mates.map((x) => netOnHole(x, h)).filter((v) => v != null);
-              return ns.length ? Math.min(...ns) : null;
+            if (!row || playedIndexes(row.gross).length < 6) continue;
+            entries.push({
+              id: names.join(" + "),
+              names,
+              label: pairingDisplay(names),
+              team: teamOf[names[0]],
+              kind,
+              mates: names.map((n) => ({ name: n, hi: hiBy[n] })),
+              gross: row.gross,
             });
-            for (const n of names) {
-              const row = rows.find((x) => x.name === n || nameOnCard(x.name, n));
-              scoreBy[n] = rowTotals(row);
-            }
+          } else {
+            const mates = names
+              .map((n) => {
+                const row = rows.find((x) => x.name === n || nameOnCard(x.name, n));
+                return row ? { name: n, hi: hiBy[n], gross: row.gross } : null;
+              })
+              .filter(Boolean);
+            if (mates.length < 2) continue;
+            entries.push({
+              id: names.join(" + "),
+              names,
+              label: pairingDisplay(names),
+              team: teamOf[names[0]],
+              kind: "bestball",
+              mates,
+            });
           }
-          if (nets.filter((v) => v != null).length < 6) continue;
-          entries.push({
-            id: names.join(" + "),
-            names,
-            label: pairingDisplay(names),
-            team: teamOf[names[0]],
-            nets,
-            scoreBy,
-          });
         }
       }
       if (entries.length < 4) continue;
+      const si = inferStrokeIndex(allRows);
+      const scoreOf = {};
+      for (const e of entries) {
+        if (e.kind === "bestball") {
+          for (const p of e.mates) {
+            const tot = totalsWithPops(p.gross, playingHcp(p.hi), si);
+            if (tot) scoreOf[p.name] = tot;
+          }
+        } else {
+          const tot = totalsWithPops(e.gross, teamHcp(e.mates.map((m) => m.hi), e.kind), si);
+          if (tot) for (const n of e.names) scoreOf[n] = tot;
+        }
+      }
       let label = pairingLabel(t.name, r.label);
       if (used.has(label)) label = `${label} ${used.size}`;
       used.add(label);
@@ -1430,8 +1526,8 @@ function collectPairingSets(rounds, players) {
         label,
         roundLabel: r.label,
         partners: Object.fromEntries(entries.map((e) => [e.id, e.names])),
-        scoreOf: Object.assign({}, ...entries.map((e) => e.scoreBy)),
-        ...netRoundRobin(entries),
+        scoreOf,
+        ...pairingRoundRobin(entries, si),
       });
     }
   }
