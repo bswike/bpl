@@ -1348,7 +1348,9 @@ function pairingLabel(tName, roundLabel) {
   if (/wild turkey/.test(t) || /wild turkey/.test(r)) return "W. Turkey";
   if (/pinehurst/.test(t)) return "Pinehurst";
   if (/crystal/.test(t) || /crystal/.test(r)) return "Crystal 2v2";
-  if (/2v2/.test(t) || /2v2/.test(r)) return shortRound(roundLabel);
+  if (/2v2/.test(t) || /2v2/.test(r)) {
+    return (roundLabel || tName || "2v2").replace(/\s*[—-]\s*/g, " ").replace(/ Matchplay/g, "").trim();
+  }
   return shortRound(tName || roundLabel);
 }
 
@@ -1400,10 +1402,55 @@ function collectPairingSets(rounds, players) {
       let label = pairingLabel(t.name, r.label);
       if (used.has(label)) label = `${label} ${used.size}`;
       used.add(label);
-      out.push({ label, ...netRoundRobin(entries) });
+      out.push({
+        label,
+        roundLabel: r.label,
+        partners: Object.fromEntries(entries.map((e) => [e.id, e.names])),
+        ...netRoundRobin(entries),
+      });
     }
   }
   return out;
+}
+
+function pairingSetAsPlayerSet(set) {
+  const rec = {};
+  const teamOf = {};
+  for (const id of set.ranking) {
+    const r = set.rec[id];
+    const names = set.partners?.[id] || id.split(" + ");
+    for (const n of names) {
+      rec[n] = { w: r.w, l: r.l, t: r.t, vs: [] };
+      teamOf[n] = set.teamOf[id];
+    }
+  }
+  const ranking = Object.keys(rec).sort(
+    (a, b) => field1v1Pct(rec[b]) - field1v1Pct(rec[a]) || rec[b].w - rec[a].w || a.localeCompare(b),
+  );
+  return { label: set.label, ranking, rec, teamOf };
+}
+
+function interleaveSosSets(fieldSets, pairSets, rounds) {
+  const leftoverF = new Set(fieldSets);
+  const leftoverP = new Set(pairSets);
+  const fieldBy = new Map(fieldSets.map((s) => [s.label, s]));
+  const raw = [];
+  for (const r of rounds || []) {
+    const fs = fieldBy.get(shortRound(r.label));
+    if (fs && leftoverF.has(fs)) {
+      raw.push(fs);
+      leftoverF.delete(fs);
+    }
+    for (const p of pairSets) {
+      if (p.roundLabel === r.label && leftoverP.has(p)) {
+        raw.push(p);
+        leftoverP.delete(p);
+      }
+    }
+  }
+  for (const s of leftoverF) raw.push(s);
+  for (const p of leftoverP) raw.push(p);
+  return raw;
 }
 
 function recStr(r) {
@@ -1419,14 +1466,31 @@ function emptyRec() {
   return { w: 0, l: 0, t: 0 };
 }
 
-function sosRoundLabel(label) {
+function fieldSosLabel(label) {
   const l = (label || "").toLowerCase();
-  if (/crystal/.test(l)) return "Crystal";
-  if (/black bear/.test(l)) return "B. Bear";
-  if (/^fri/.test(l)) return "Fri";
-  if (/^sat/.test(l)) return "Sat";
-  if (/1v1/.test(l)) return "1v1";
+  if (/crystal/.test(l)) return "Cr 1v1";
+  if (/1v1/.test(l) || /black bear/.test(l)) return "1v1";
+  if (/^fri/.test(l)) return "Fr 1v1";
+  if (/^sat/.test(l)) return "Sa 1v1";
   return (label || "").split(" ")[0] || label;
+}
+
+function pairSosLabel(label) {
+  const l = (label || "").toLowerCase();
+  if (/scramble/.test(l)) return "Scram";
+  if (/pinehurst/.test(l)) return "Pine";
+  if (/turkey/.test(l)) return "Turkey";
+  if (/crystal/.test(l)) return "2v2";
+  if (/^fri/.test(l)) return "Fr 2v2";
+  if (/^sat/.test(l)) return "Sa 2v2";
+  if (/2v2/.test(l)) return "2v2";
+  return (label || "").split(" ")[0] || label;
+}
+
+function sosRoundLabel(set) {
+  if (set?.sosLabel) return set.sosLabel;
+  const label = typeof set === "string" ? set : set?.label;
+  return set?.partners ? pairSosLabel(label) : fieldSosLabel(label);
 }
 
 function crossTeamRec(set) {
@@ -1443,10 +1507,10 @@ function crossTeamRec(set) {
   return out;
 }
 
-function sosBoard(sets) {
+function sosBoard(sets, teamSets = sets) {
   if (!sets.length) return null;
   const names = [...new Set(sets.flatMap((s) => s.ranking))];
-  const teamOf = sets[0].teamOf;
+  const teamOf = Object.assign({}, ...sets.map((s) => s.teamOf));
   const rows = names.map((name) => {
     const byRound = sets.map((s) => {
       const r = s.rec[name];
@@ -1456,7 +1520,11 @@ function sosBoard(sets) {
     return { name, team: teamOf[name], byRound, combined, pct: field1v1Pct(combined) };
   });
   rows.sort((a, b) => b.pct - a.pct || b.combined.w - a.combined.w || a.name.localeCompare(b.name));
-  const teamRounds = sets.map((s) => ({ label: s.label, rec: crossTeamRec(s) }));
+  const teamRounds = teamSets.map((s) => ({
+    label: s.label,
+    sosLabel: s.sosLabel || sosRoundLabel(s),
+    rec: crossTeamRec(s),
+  }));
   const teamCombined = teamRounds.reduce((acc, r) => addRec(acc, r.rec), emptyRec());
   return { sets, rows, teamRounds, teamCombined };
 }
@@ -2105,8 +2173,17 @@ function RecBar({ rec, className = "" }) {
 }
 
 function StrengthOfSchedule({ rounds, players }) {
-  const data = useMemo(() => sosBoard(field1v1Rounds(rounds, players)), [rounds, players]);
+  const fieldSets = useMemo(() => field1v1Rounds(rounds, players), [rounds, players]);
   const pairSets = useMemo(() => collectPairingSets(rounds, players), [rounds, players]);
+  const data = useMemo(() => {
+    const raw = interleaveSosSets(fieldSets, pairSets, rounds);
+    const playerSets = raw.map((s) => {
+      if (s.partners) return { ...pairingSetAsPlayerSet(s), sosLabel: pairSosLabel(s.label) };
+      return { ...s, sosLabel: fieldSosLabel(s.label) };
+    });
+    const teamSets = raw.map((s, i) => ({ ...s, sosLabel: playerSets[i].sosLabel }));
+    return sosBoard(playerSets, teamSets);
+  }, [fieldSets, pairSets, rounds]);
   const [mode, setMode] = useState("players");
   const [pairRi, setPairRi] = useState(0);
   const [picked, setPicked] = useState(null);
@@ -2123,7 +2200,7 @@ function StrengthOfSchedule({ rounds, players }) {
       <div className="text-[11px] text-gray-500 mb-2.5">
         {mode === "pairings"
           ? "Each pairing vs every other pairing · net as they played that round"
-          : "Everyone vs everyone · 1v1 from each round, then added up"}
+          : "Everyone vs everyone · 1v1 and team games from each round, then added up"}
       </div>
       <div className="flex flex-wrap gap-1 mb-3">
         <button
@@ -2270,9 +2347,9 @@ function StrengthOfSchedule({ rounds, players }) {
             </tr>
           </thead>
           <tbody>
-            {data.teamRounds.map((r) => (
-              <tr key={r.label} className="border-t border-slate-800">
-                <td className="py-1 pr-2 text-gray-400">{sosRoundLabel(r.label)}</td>
+            {data.teamRounds.map((r, i) => (
+              <tr key={`${r.label}-${i}`} className="border-t border-slate-800">
+                <td className="py-1 pr-2 text-gray-400">{r.sosLabel || sosRoundLabel(r)}</td>
                 <td className="py-1 pr-2 text-right tabular-nums text-gray-200">{recStr(r.rec)}</td>
                 <td className="py-1 text-right tabular-nums text-gray-200">
                   {recStr({ w: r.rec.l, l: r.rec.w, t: r.rec.t })}
@@ -2297,7 +2374,7 @@ function StrengthOfSchedule({ rounds, players }) {
               <th className="py-1 pr-2 font-semibold">Player</th>
               {data.sets.map((s) => (
                 <th key={s.label} className="py-1 pr-2 font-semibold text-right whitespace-nowrap">
-                  {sosRoundLabel(s.label)}
+                  {s.sosLabel || sosRoundLabel(s)}
                 </th>
               ))}
               <th className="py-1 pr-2 font-semibold text-right">All</th>
@@ -2467,13 +2544,13 @@ function Field1v1({ rounds, players }) {
 function Stats({ data, tripId }) {
   return (
     <div className="space-y-4">
-      <HamEgg rounds={data.rounds} />
       <StrengthOfSchedule rounds={data.rounds} players={data.players} />
       <Field1v1 rounds={data.rounds} players={data.players} />
       <Superlatives players={data.players} rounds={data.rounds} />
       <NetLow netlow={data.netlow} />
       <ScoringDist players={data.players} />
       <HandicapLab players={data.players} rounds={data.rounds} />
+      <HamEgg rounds={data.rounds} />
       <div className="flex justify-center pt-1">
         {tripId === "2025" ? (
           <Link
