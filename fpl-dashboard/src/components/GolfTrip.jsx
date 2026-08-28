@@ -427,6 +427,21 @@ function netOnHole(row, h) {
   return typeof row?.gross[h] === "number" ? row.gross[h] - row.dots[h] : null;
 }
 
+function rowTotals(row) {
+  if (!row?.gross) return null;
+  let gross = 0;
+  let net = 0;
+  let holes = 0;
+  for (let h = 0; h < 18; h++) {
+    const g = row.gross[h];
+    if (typeof g !== "number") continue;
+    gross += g;
+    net += g - (row.dots[h] || 0);
+    holes += 1;
+  }
+  return holes ? { gross, net, holes } : null;
+}
+
 function statusFromWinners(winners, mySide) {
   const last = [...holeStatus(winners)].reverse().find(Boolean);
   if (!last) return null;
@@ -1282,6 +1297,7 @@ function field1v1Rounds(rounds, players) {
       ranking,
       rec,
       teamOf,
+      scoreOf: Object.fromEntries(names.map((n) => [n, rowTotals(rowBy[n])]).filter(([, v]) => v)),
     });
   }
   return out;
@@ -1376,10 +1392,13 @@ function collectPairingSets(rounds, players) {
           [m.playersR, "R"],
         ]) {
           let nets;
+          let scoreBy = {};
           if (combined) {
             const row = rows.find((x) => x.side === side);
             if (!row) continue;
             nets = row.gross.map((g, h) => (typeof g === "number" ? g - row.dots[h] : null));
+            const tot = rowTotals(row);
+            for (const n of names) scoreBy[n] = tot;
           } else {
             const mates = names.map((n) => rows.find((x) => x.name === n || nameOnCard(x.name, n))).filter(Boolean);
             if (mates.length < 2) continue;
@@ -1387,6 +1406,10 @@ function collectPairingSets(rounds, players) {
               const ns = mates.map((x) => netOnHole(x, h)).filter((v) => v != null);
               return ns.length ? Math.min(...ns) : null;
             });
+            for (const n of names) {
+              const row = rows.find((x) => x.name === n || nameOnCard(x.name, n));
+              scoreBy[n] = rowTotals(row);
+            }
           }
           if (nets.filter((v) => v != null).length < 6) continue;
           entries.push({
@@ -1395,6 +1418,7 @@ function collectPairingSets(rounds, players) {
             label: pairingDisplay(names),
             team: teamOf[names[0]],
             nets,
+            scoreBy,
           });
         }
       }
@@ -1406,6 +1430,7 @@ function collectPairingSets(rounds, players) {
         label,
         roundLabel: r.label,
         partners: Object.fromEntries(entries.map((e) => [e.id, e.names])),
+        scoreOf: Object.assign({}, ...entries.map((e) => e.scoreBy)),
         ...netRoundRobin(entries),
       });
     }
@@ -1442,7 +1467,7 @@ function pairingSetAsPlayerSet(set) {
   const ranking = Object.keys(rec).sort(
     (a, b) => field1v1Pct(rec[b]) - field1v1Pct(rec[a]) || rec[b].w - rec[a].w || a.localeCompare(b),
   );
-  return { label: set.label, ranking, rec, teamOf, mateOf };
+  return { label: set.label, ranking, rec, teamOf, mateOf, scoreOf: set.scoreOf };
 }
 
 function interleaveSosSets(fieldSets, pairSets, rounds) {
@@ -2235,6 +2260,60 @@ function playerMatchGroups(sets, name, roundIdx) {
     .filter((g) => g.lines.length);
 }
 
+function playerRoundRows(sets, name) {
+  return sets
+    .map((s, i) => {
+      const r = s.rec[name];
+      if (!r || r.w + r.l + r.t === 0) return null;
+      const sc = s.scoreOf?.[name];
+      return {
+        i,
+        round: s.sosLabel || s.label,
+        rec: { w: r.w, l: r.l, t: r.t },
+        mate: s.mateOf?.[name],
+        gross: sc?.gross,
+        net: sc?.net,
+      };
+    })
+    .filter(Boolean);
+}
+
+function SosAllRounds({ rows, onPickRound }) {
+  if (!rows.length) return null;
+  return (
+    <div className="py-0.5">
+      <div className="flex items-center gap-2 pb-0.5 text-[9px] uppercase tracking-wider text-gray-600">
+        <span className="w-[3.25rem] shrink-0" />
+        <span className="w-7 text-right">G</span>
+        <span className="w-7 text-right">N</span>
+        <span className="min-w-0 flex-1" />
+        <span className="shrink-0">Rec</span>
+      </div>
+      {rows.map((r) => (
+        <button
+          key={r.round}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPickRound?.(r.i);
+          }}
+          className="w-full flex items-center gap-2 py-0.5 text-left"
+        >
+          <span className="w-[3.25rem] shrink-0 text-[10px] text-gray-500">{r.round}</span>
+          <span className="tabular-nums text-[11px] text-gray-200 w-7 text-right">{r.gross ?? "—"}</span>
+          <span className="tabular-nums text-[11px] text-gray-500 w-7 text-right">{r.net ?? "—"}</span>
+          {r.mate ? (
+            <span className="min-w-0 truncate text-[10px] text-gray-500">w/ {r.mate}</span>
+          ) : (
+            <span className="min-w-0" />
+          )}
+          <span className="ml-auto tabular-nums text-[11px] text-gray-300 shrink-0">{recStr(r.rec)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function SosVsLine({ line, onPick }) {
   return (
     <button
@@ -2297,6 +2376,10 @@ function SosRankRow({ active, onClick, rank, team, name, rec, mate }) {
             {name}
             {mate && <span className="font-normal text-[10px] text-gray-500"> w/ {mate}</span>}
           </span>
+          <ChevronDown
+            size={12}
+            className={`shrink-0 transition-transform ${active ? "rotate-180 text-gray-400" : "text-gray-600"}`}
+          />
         </span>
       </td>
       <td className="py-1.5 pr-2 text-right tabular-nums font-semibold text-gray-100 whitespace-nowrap">{recStr(rec)}</td>
@@ -2349,7 +2432,7 @@ function StrengthOfSchedule({ rounds, players }) {
     <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
       <div className="text-sm font-semibold text-gray-100">Strength of schedule</div>
       <div className="text-[11px] text-gray-500 mb-2.5">
-        {mode === "pairings" ? "Each pairing vs the field" : "Vs the field · tap a name for each match"}
+        {mode === "pairings" ? "Each pairing vs the field" : "Vs the field · tap a name"}
       </div>
       <div className="flex flex-wrap gap-1 mb-2">
         <button
@@ -2468,10 +2551,17 @@ function StrengthOfSchedule({ rounds, players }) {
                   {picked === row.name && (
                     <tr>
                       <td colSpan={4} className="px-1 pb-2 pt-0">
-                        <SosMatchDrop
-                          groups={playerMatchGroups(data.sets, row.name, playerRi)}
-                          onPick={setPicked}
-                        />
+                        {playerRi == null ? (
+                          <SosAllRounds
+                            rows={playerRoundRows(data.sets, row.name)}
+                            onPickRound={setPlayerRi}
+                          />
+                        ) : (
+                          <SosMatchDrop
+                            groups={playerMatchGroups(data.sets, row.name, playerRi)}
+                            onPick={setPicked}
+                          />
+                        )}
                       </td>
                     </tr>
                   )}
