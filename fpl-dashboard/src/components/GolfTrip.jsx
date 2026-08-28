@@ -1083,6 +1083,114 @@ function NetLow({ netlow }) {
   );
 }
 
+function quotaPartners(player) {
+  const parts = (player || "").split(/\s+\+\s+/).map((s) => s.trim()).filter(Boolean);
+  const seen = new Set();
+  const out = [];
+  for (const p of parts) {
+    const k = p.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(p);
+  }
+  return out;
+}
+
+function quotaTabLabel(roundLabel, tName) {
+  const r = (roundLabel || "").toLowerCase();
+  const n = (tName || "").toLowerCase();
+  if (/front/.test(n)) return "Scramble";
+  if (/back/.test(n)) return "Pinehurst";
+  if (/crystal/.test(r)) return "Crystal";
+  if (/turkey/.test(r)) return "Turkey";
+  if (/black bear/.test(r)) return "Black Bear";
+  if (/stableford/.test(r)) return "Stableford";
+  if (/stroke/.test(r)) return "Stroke";
+  if (/^fri/.test(r)) return "Friday";
+  if (/^sat/.test(r)) return "Saturday";
+  if (/1v1/.test(r)) return "1v1";
+  return shortRound(roundLabel);
+}
+
+function collectQuotaBoards(rounds) {
+  const out = [];
+  const used = new Set();
+  for (const r of rounds || []) {
+    for (const t of r.tournaments || []) {
+      if (t.type !== "quota" || !t.rows?.length) continue;
+      let label = quotaTabLabel(r.label, t.name);
+      if (used.has(label)) label = `${label} ${used.size}`;
+      used.add(label);
+      out.push({ label, name: t.name, rows: t.rows });
+    }
+  }
+  return out;
+}
+
+function QuotaBoards({ rounds, players }) {
+  const boards = useMemo(() => collectQuotaBoards(rounds), [rounds]);
+  const teamOf = useMemo(() => Object.fromEntries((players || []).map((p) => [p.name, p.team])), [players]);
+  const [ri, setRi] = useState(0);
+  if (!boards.length) return null;
+  const board = boards[Math.min(ri, boards.length - 1)];
+  const teamGame = board.rows.some((row) => (row.player || "").includes(" + "));
+  return (
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+      <div className="text-sm font-semibold text-gray-100">Quota</div>
+      <div className="text-[11px] text-gray-500 mb-2.5">
+        Golf Genius {teamGame ? "team quota" : "quota"} · {board.name}
+      </div>
+      {boards.length > 1 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {boards.map((b, i) => (
+            <button key={b.label} type="button" onClick={() => setRi(i)} className={sosPill(i === ri)}>
+              {b.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
+            <th className="py-1 pr-2 font-semibold w-8">Pos</th>
+            <th className="py-1 pr-2 font-semibold">Player</th>
+            <th className="py-1 px-1.5 font-semibold text-right">+/-</th>
+            <th className="py-1 px-1.5 font-semibold text-right hidden sm:table-cell">Gross</th>
+            <th className="py-1 pl-1.5 font-semibold text-right">Purse</th>
+          </tr>
+        </thead>
+        <tbody>
+          {board.rows.map((row, i) => {
+            const names = quotaPartners(row.player);
+            const team = names.map((n) => teamOf[n]).find(Boolean);
+            const q = row.quota;
+            return (
+              <tr key={`${row.pos}-${row.player}-${i}`} className="border-t border-slate-800">
+                <td className="py-1 pr-2 text-gray-500 tabular-nums">{row.pos}</td>
+                <td className="py-1 pr-2">
+                  <span className="inline-flex items-center gap-1.5 min-w-0">
+                    <TeamDot team={team} />
+                    <span className="text-gray-200 truncate">{names.map(firstLast).join(" / ")}</span>
+                  </span>
+                </td>
+                <td className="py-1 px-1.5 text-right tabular-nums text-gray-100 font-semibold">
+                  {q == null ? "—" : q > 0 ? `+${q}` : q}
+                </td>
+                <td className="py-1 px-1.5 text-right tabular-nums text-gray-400 hidden sm:table-cell">
+                  {row.gross ?? "—"}
+                </td>
+                <td className={`py-1 pl-1.5 text-right tabular-nums ${row.purse ? "text-emerald-300" : "text-gray-600"}`}>
+                  {row.purse ? fmtMoney(row.purse) : "—"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function matchCards(rounds) {
   const out = [];
   for (const r of rounds || []) {
@@ -2750,17 +2858,16 @@ function SosAllRounds({ rows, onPickRound }) {
 }
 
 function SosVsLine({ line, onPick, expanded, onToggleCard, hasCard }) {
+  const tap = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (hasCard) onToggleCard?.();
+    else onPick?.(line.pick);
+  };
   return (
     <div>
       <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPick?.(line.pick);
-          }}
-          className="min-w-0 flex-1 flex items-center justify-between gap-2 py-0.5 text-left"
-        >
+        <button type="button" onClick={tap} className="min-w-0 flex-1 flex items-center justify-between gap-2 py-0.5 text-left">
           <span className="flex items-center gap-1.5 min-w-0">
             <TeamDot team={line.team} />
             <span className="text-[11px] text-gray-300 truncate">{line.name}</span>
@@ -2777,13 +2884,10 @@ function SosVsLine({ line, onPick, expanded, onToggleCard, hasCard }) {
           <button
             type="button"
             aria-label={expanded ? "Hide scorecard" : "Show scorecard"}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleCard?.();
-            }}
-            className={`shrink-0 p-0.5 rounded ${expanded ? "text-emerald-400" : "text-gray-600 hover:text-gray-300"}`}
+            onClick={tap}
+            className={`shrink-0 h-8 w-8 flex items-center justify-center rounded ${expanded ? "text-emerald-400" : "text-gray-500 hover:text-gray-300"}`}
           >
-            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
         )}
       </div>
@@ -2807,7 +2911,7 @@ function SosMatchDrop({ groups, onPick, whatIfSet, selfId }) {
   };
   const w = whatIfSet?.whatIf;
   return (
-    <div className={canCards && (allCards || openKeys.size) ? "" : "max-h-44 overflow-y-auto"}>
+    <div>
       {canCards && (
         <div className="flex justify-end mb-1">
           <button
@@ -2824,7 +2928,7 @@ function SosMatchDrop({ groups, onPick, whatIfSet, selfId }) {
           </button>
         </div>
       )}
-      <div className={`${canCards && (allCards || openKeys.size) ? "max-h-[32rem] overflow-y-auto" : ""} divide-y divide-slate-800/80`}>
+      <div className={`${canCards ? "max-h-[32rem] overflow-y-auto" : "max-h-44 overflow-y-auto"} divide-y divide-slate-800/80`}>
         {groups.map((g) => (
           <div key={g.round} className="py-1 first:pt-0.5">
             {many && (
@@ -3216,6 +3320,7 @@ function Stats({ data, tripId }) {
       <NetLow netlow={data.netlow} />
       <ScoringDist players={data.players} />
       <HandicapLab players={data.players} rounds={data.rounds} />
+      <QuotaBoards rounds={data.rounds} players={data.players} />
       <HamEgg rounds={data.rounds} />
       <div className="flex justify-center pt-1">
         {tripId === "2025" ? (
