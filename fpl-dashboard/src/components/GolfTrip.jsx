@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   Trophy,
@@ -1421,7 +1421,19 @@ function pairingSetAsPlayerSet(set) {
     const r = set.rec[id];
     const names = set.partners?.[id] || id.split(" + ");
     for (const n of names) {
-      rec[n] = { w: r.w, l: r.l, t: r.t, vs: [] };
+      rec[n] = {
+        w: r.w,
+        l: r.l,
+        t: r.t,
+        vs: r.vs.map((v) => ({
+          opp: (set.partners?.[v.opp] || String(v.opp).split(" + "))[0],
+          oppLabel: set.labelOf[v.opp],
+          team: set.teamOf[v.opp],
+          label: v.label,
+          won: v.won,
+          lost: v.lost,
+        })),
+      };
       teamOf[n] = set.teamOf[id];
       const mates = names.filter((x) => x !== n);
       if (mates.length) mateOf[n] = mates.map(familyName).join(" / ");
@@ -2194,6 +2206,85 @@ function TeamStrip({ rec }) {
   );
 }
 
+function sosVsLines(set, name) {
+  const r = set?.rec?.[name];
+  if (!r?.vs?.length) return [];
+  return r.vs.map((v) => ({
+    key: v.opp,
+    pick: v.opp,
+    team: v.team || set.teamOf?.[v.opp],
+    name: v.oppLabel || set.labelOf?.[v.opp] || firstLast(v.opp),
+    label: v.label,
+    won: v.won,
+    lost: v.lost,
+  }));
+}
+
+function playerMatchGroups(sets, name, roundIdx) {
+  const list = roundIdx == null ? sets : [sets[roundIdx]];
+  return list
+    .map((s) => {
+      const r = s.rec[name];
+      return {
+        round: s.sosLabel || s.label,
+        rec: r ? { w: r.w, l: r.l, t: r.t } : emptyRec(),
+        mate: s.mateOf?.[name],
+        lines: sosVsLines(s, name),
+      };
+    })
+    .filter((g) => g.lines.length);
+}
+
+function SosVsLine({ line, onPick }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onPick?.(line.pick);
+      }}
+      className="w-full flex items-center justify-between gap-2 py-0.5 text-left"
+    >
+      <span className="flex items-center gap-1.5 min-w-0">
+        <TeamDot team={line.team} />
+        <span className="text-[11px] text-gray-300 truncate">{line.name}</span>
+      </span>
+      <span
+        className={`text-[11px] tabular-nums shrink-0 ${
+          line.won ? "text-emerald-400" : line.lost ? "text-gray-500" : "text-gray-400"
+        }`}
+      >
+        {line.label}
+      </span>
+    </button>
+  );
+}
+
+function SosMatchDrop({ groups, onPick }) {
+  if (!groups.length) return null;
+  const many = groups.length > 1;
+  return (
+    <div className="max-h-44 overflow-y-auto divide-y divide-slate-800/80">
+      {groups.map((g) => (
+        <div key={g.round} className="py-1 first:pt-0.5">
+          {many && (
+            <div className="flex items-center justify-between gap-2 px-0.5 mb-0.5">
+              <span className="text-[10px] text-gray-500">
+                {g.round}
+                {g.mate ? ` · w/ ${g.mate}` : ""}
+              </span>
+              <span className="text-[10px] tabular-nums text-gray-500">{recStr(g.rec)}</span>
+            </div>
+          )}
+          {g.lines.map((line) => (
+            <SosVsLine key={`${g.round}-${line.key}`} line={line} onPick={onPick} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SosRankRow({ active, onClick, rank, team, name, rec, mate }) {
   const pct = field1v1Pct(rec);
   return (
@@ -2251,7 +2342,6 @@ function StrengthOfSchedule({ rounds, players }) {
           .map((row) => ({ ...row, view: row.byRound[playerRi] }))
           .filter((row) => row.view && row.view.w + row.view.l + row.view.t > 0)
           .sort((a, b) => field1v1Pct(b.view) - field1v1Pct(a.view) || b.view.w - a.view.w);
-  const pickedRow = playerRows.find((r) => r.name === picked) || null;
   const teamRec = playerRi == null ? data?.teamCombined : data?.teamRounds[playerRi]?.rec;
   const mateOf = playerRi != null ? data?.sets[playerRi]?.mateOf : null;
 
@@ -2259,7 +2349,7 @@ function StrengthOfSchedule({ rounds, players }) {
     <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
       <div className="text-sm font-semibold text-gray-100">Strength of schedule</div>
       <div className="text-[11px] text-gray-500 mb-2.5">
-        {mode === "pairings" ? "Each pairing vs the field" : "Vs the field · tap a name for the round split"}
+        {mode === "pairings" ? "Each pairing vs the field" : "Vs the field · tap a name for each match"}
       </div>
       <div className="flex flex-wrap gap-1 mb-2">
         <button
@@ -2315,42 +2405,29 @@ function StrengthOfSchedule({ rounds, players }) {
             </thead>
             <tbody>
               {pair.ranking.map((id, i) => (
-                <SosRankRow
-                  key={id}
-                  rank={i + 1}
-                  team={pair.teamOf[id]}
-                  name={pair.labelOf[id]}
-                  rec={pair.rec[id]}
-                  active={pairSel === id}
-                  onClick={() => setPicked(picked === id ? null : id)}
-                />
+                <Fragment key={id}>
+                  <SosRankRow
+                    rank={i + 1}
+                    team={pair.teamOf[id]}
+                    name={pair.labelOf[id]}
+                    rec={pair.rec[id]}
+                    active={pairSel === id}
+                    onClick={() => setPicked(picked === id ? null : id)}
+                  />
+                  {pairSel === id && pairMine && (
+                    <tr>
+                      <td colSpan={4} className="px-1 pb-2 pt-0">
+                        <SosMatchDrop
+                          groups={[{ round: pair.label, rec: pairMine, lines: sosVsLines(pair, id) }]}
+                          onPick={setPicked}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>
-          {pairMine && (
-            <div className="max-h-40 overflow-y-auto divide-y divide-slate-800">
-              {pairMine.vs.map((v) => (
-                <button
-                  key={v.opp}
-                  type="button"
-                  onClick={() => setPicked(v.opp)}
-                  className="w-full flex items-center justify-between gap-2 py-1 text-left"
-                >
-                  <span className="flex items-center gap-1.5 min-w-0">
-                    <TeamDot team={pair.teamOf[v.opp]} />
-                    <span className="text-xs text-gray-300 truncate">{pair.labelOf[v.opp]}</span>
-                  </span>
-                  <span
-                    className={`text-[11px] tabular-nums shrink-0 ${
-                      v.won ? "text-emerald-400" : v.lost ? "text-gray-500" : "text-gray-400"
-                    }`}
-                  >
-                    {v.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
         </>
       )}
 
@@ -2378,34 +2455,30 @@ function StrengthOfSchedule({ rounds, players }) {
             </thead>
             <tbody>
               {playerRows.map((row, i) => (
-                <SosRankRow
-                  key={row.name}
-                  rank={i + 1}
-                  team={row.team}
-                  name={firstLast(row.name)}
-                  rec={row.view}
-                  mate={mateOf?.[row.name]}
-                  active={picked === row.name}
-                  onClick={() => setPicked(picked === row.name ? null : row.name)}
-                />
+                <Fragment key={row.name}>
+                  <SosRankRow
+                    rank={i + 1}
+                    team={row.team}
+                    name={firstLast(row.name)}
+                    rec={row.view}
+                    mate={mateOf?.[row.name]}
+                    active={picked === row.name}
+                    onClick={() => setPicked(picked === row.name ? null : row.name)}
+                  />
+                  {picked === row.name && (
+                    <tr>
+                      <td colSpan={4} className="px-1 pb-2 pt-0">
+                        <SosMatchDrop
+                          groups={playerMatchGroups(data.sets, row.name, playerRi)}
+                          onPick={setPicked}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>
-          {pickedRow && (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2.5 pt-2.5 border-t border-slate-800">
-              {data.sets.map((s, i) => (
-                <button
-                  key={s.label}
-                  type="button"
-                  onClick={() => setPlayerRi(i)}
-                  className="flex items-center justify-between gap-2 py-0.5 text-left"
-                >
-                  <span className={`text-[11px] ${playerRi === i ? "text-gray-100" : "text-gray-500"}`}>{s.sosLabel}</span>
-                  <span className="text-[11px] tabular-nums text-gray-300">{recStr(pickedRow.byRound[i])}</span>
-                </button>
-              ))}
-            </div>
-          )}
         </>
       )}
     </div>
