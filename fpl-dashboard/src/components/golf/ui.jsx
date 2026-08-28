@@ -194,8 +194,6 @@ export function Scorecard({ round }) {
           { label: "Back", holes: hd.slice(9, 18) },
         ]
       : [{ label: round.holes === 9 ? "9 holes" : "Holes", holes: hd }];
-  const frontPar = holeSum(nines[0].holes, (hole) => hole.par);
-  const frontScore = holeSum(nines[0].holes, postedScore);
   const totalPar = holeSum(hd, (hole) => hole.par);
   const totalScore = holeSum(hd, postedScore);
 
@@ -208,7 +206,7 @@ export function Scorecard({ round }) {
         const hasHcp = holes.some((hole) => hole.stroke_allocation);
         const grid = {
           display: "grid",
-          gridTemplateColumns: `4rem repeat(${holes.length}, minmax(0, 1fr)) ${back ? "1.75rem 1.75rem 2.15rem" : "2.15rem"}`,
+          gridTemplateColumns: `4rem repeat(${holes.length}, minmax(0, 1fr)) ${back ? "1.75rem 2.15rem" : "2.15rem"}`,
         };
         const split = back ? "mt-2.5 border-t border-gray-300 pt-2.5" : nines.length > 1 ? "mb-2.5" : "";
         return (
@@ -221,7 +219,6 @@ export function Scorecard({ round }) {
                 </div>
               ))}
               <div className="flex items-center justify-center">{back ? "B9" : nines.length > 1 ? "F9" : "Tot"}</div>
-              {back && <div className="flex items-center justify-center">F9</div>}
               {back && <div className="mx-0.5 flex items-center justify-center rounded-sm bg-gray-200/70">Tot</div>}
             </div>
 
@@ -231,7 +228,6 @@ export function Scorecard({ round }) {
                 <div key={hole.hole_number} className="flex h-4 items-center justify-center tabular-nums">{hole.par || "—"}</div>
               ))}
               <div className="flex items-center justify-center font-semibold tabular-nums">{ninePar ?? "—"}</div>
-              {back && <div className="flex items-center justify-center font-semibold tabular-nums">{frontPar ?? "—"}</div>}
               {back && <div className="flex items-center justify-center font-semibold tabular-nums">{totalPar ?? "—"}</div>}
             </div>
 
@@ -245,7 +241,6 @@ export function Scorecard({ round }) {
                 ))}
                 <div />
                 {back && <div />}
-                {back && <div />}
               </div>
             )}
 
@@ -257,7 +252,6 @@ export function Scorecard({ round }) {
                 </div>
               ))}
               <div className="flex items-center justify-center text-[10px] font-semibold text-gray-700 tabular-nums">{nineScore ?? "—"}</div>
-              {back && <div className="flex items-center justify-center text-[10px] font-semibold text-gray-700 tabular-nums">{frontScore ?? "—"}</div>}
               {back && (
                 <div className="mx-0.5 flex h-7 items-center justify-center rounded-sm bg-gray-200/70 text-[11px] font-bold text-gray-900 tabular-nums">
                   {totalScore ?? "—"}

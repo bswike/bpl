@@ -626,7 +626,7 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, sho
   ].filter(({ start }) => rows.some((r) => r.gross.slice(start, start + 9).some((g) => g != null)));
   const hasFront = halves.some((h) => h.start === 0);
   const gridNine = { display: "grid", gridTemplateColumns: "6.4rem repeat(9, minmax(0, 1fr)) 2.1rem" };
-  const gridBackTot = { display: "grid", gridTemplateColumns: "6.4rem repeat(9, minmax(0, 1fr)) 1.75rem 1.75rem 2.15rem" };
+  const gridBackTot = { display: "grid", gridTemplateColumns: "6.4rem repeat(9, minmax(0, 1fr)) 1.75rem 2.15rem" };
 
   const palL = colors?.L || TEAM[m.teamL];
   const palR = colors?.R || TEAM[m.teamR];
@@ -660,7 +660,6 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, sho
                 </div>
               ))}
               <div className="flex items-center justify-center">{nineLab}</div>
-              {runTot && <div className="flex items-center justify-center">F9</div>}
               {runTot && <div className="flex items-center justify-center rounded-sm bg-slate-800/50 mx-0.5">Tot</div>}
             </div>
             {pars && (
@@ -672,7 +671,6 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, sho
                 <div className="flex items-center justify-center tabular-nums">
                   {rangeTotal(pars, start) ?? ""}
                 </div>
-                {runTot && <div className="flex items-center justify-center tabular-nums">{rangeTotal(pars, 0) ?? ""}</div>}
                 {runTot && (
                   <div className="flex items-center justify-center tabular-nums font-semibold mx-0.5">
                     {(rangeTotal(pars, 0) || 0) + (rangeTotal(pars, 9) || 0) || ""}
@@ -722,9 +720,6 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, sho
                       ) : null}
                     </div>
                     {runTot && (
-                      <div className="flex items-center justify-center tabular-nums text-[10px] font-semibold text-gray-300">{f9 ?? "—"}</div>
-                    )}
-                    {runTot && (
                       <div className="flex items-center justify-center h-6 mx-0.5 rounded-sm bg-slate-800/50 tabular-nums text-[11px] font-bold text-gray-100">{all18 ?? "—"}</div>
                     )}
                   </div>
@@ -749,7 +744,6 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, sho
                     );
                   })}
                   <div />
-                  {runTot && <div />}
                   {runTot && <div />}
                 </div>
               );
