@@ -282,7 +282,11 @@ function PlayerDetail({ p, rounds }) {
 function Standings({ players, rounds }) {
   const [sort, setSort] = useState("record");
   const [open, setOpen] = useState(null);
-  const sorted = useMemo(() => [...players].sort(SORTS[sort]), [players, sort]);
+  const withNet = useMemo(() => {
+    const { avgNet } = playerHcpNets(rounds, players);
+    return players.map((p) => ({ ...p, avgNet: avgNet[p.name] ?? p.avgNet }));
+  }, [players, rounds]);
+  const sorted = useMemo(() => [...withNet].sort(SORTS[sort]), [withNet, sort]);
 
   const Th = ({ id, children, className = "" }) => (
     <th
@@ -1723,6 +1727,87 @@ function bestScore(rows, key) {
   return { v, names: rows.filter((r) => r[key] === v).map((r) => r.name) };
 }
 
+function scoreCardRow(row, hiBy, course, roundLabel, kind, si) {
+  if (row.name.includes(" + ")) {
+    const names = row.name.split("+").map((s) => s.trim());
+    const his = names.map((n) => hiBy[n]).filter((h) => h != null);
+    if (!his.length) return null;
+    const pops = his.length >= 2 ? teamHcp(his, kind === "bestball" ? "pinehurst" : kind, course) : playingHcp(his[0], course, 1);
+    const tot = totalsWithPops(row.gross, pops, si);
+    return tot ? { ...tot, name: row.name, names } : null;
+  }
+  if (hiBy[row.name] == null) return null;
+  const tot = totalsWithPops(row.gross, playingHcp(hiBy[row.name], course, individualPct(roundLabel)), si);
+  return tot ? { ...tot, name: row.name, names: [row.name] } : null;
+}
+
+function matchCardRows(tournaments) {
+  const out = [];
+  for (const t of tournaments || []) {
+    if (t.type !== "match") continue;
+    for (const m of t.matches || []) {
+      if (!m.card?.rows || m.card.scoring === "stableford") continue;
+      out.push({ t, rows: m.card.rows });
+    }
+  }
+  return out;
+}
+
+function lowsFromHcp(label, tournaments, roundLabel, players) {
+  const hiBy = Object.fromEntries(players.map((p) => [p.name, hiOf(p)]));
+  const course = courseOfRound(roundLabel);
+  const blocks = matchCardRows(tournaments);
+  if (!blocks.length) return null;
+  const si = inferStrokeIndex(blocks.flatMap((b) => b.rows));
+  const scored = [];
+  for (const b of blocks) {
+    const combined = b.rows.some((row) => row.name.includes(" + "));
+    const kind = pairingKind(b.t.name, combined);
+    for (const row of b.rows) {
+      const tot = scoreCardRow(row, hiBy, course, roundLabel, kind, si);
+      if (tot) scored.push(tot);
+    }
+  }
+  const gross = bestScore(scored, "gross");
+  const net = bestScore(scored, "net");
+  return gross ? { label, gross, net } : null;
+}
+
+function playerHcpNets(rounds, players) {
+  const hiBy = Object.fromEntries(players.map((p) => [p.name, hiOf(p)]));
+  const byPlayer = {};
+  for (const r of rounds || []) {
+    const course = courseOfRound(r.label);
+    const blocks = matchCardRows(r.tournaments);
+    if (!blocks.length) continue;
+    const si = inferStrokeIndex(blocks.flatMap((b) => b.rows));
+    for (const b of blocks) {
+      const combined = b.rows.some((row) => row.name.includes(" + "));
+      const kind = pairingKind(b.t.name, combined);
+      for (const row of b.rows) {
+        const tot = scoreCardRow(row, hiBy, course, r.label, kind, si);
+        if (!tot) continue;
+        for (const n of tot.names) {
+          (byPlayer[n] ||= []).push({
+            round: r.label,
+            tournament: b.t.name,
+            gross: tot.gross,
+            net: tot.net,
+            holes: tot.holes,
+            individual: tot.names.length === 1,
+          });
+        }
+      }
+    }
+  }
+  const avgNet = {};
+  for (const [n, list] of Object.entries(byPlayer)) {
+    const ind = list.filter((s) => s.individual && s.holes >= 12);
+    if (ind.length) avgNet[n] = Math.round((ind.reduce((a, s) => a + s.net, 0) / ind.length) * 10) / 10;
+  }
+  return { byPlayer, avgNet };
+}
+
 function lowsFromOfficial(label, players, needles) {
   const tests = (Array.isArray(needles) ? needles : [needles]).map((n) => String(n).toLowerCase());
   const rows = [];
@@ -1737,26 +1822,6 @@ function lowsFromOfficial(label, players, needles) {
   return gross && net ? { label, gross, net } : null;
 }
 
-function lowsFromMatches(label, tournaments, includeNet = true) {
-  const rows = [];
-  for (const t of tournaments) {
-    for (const m of t.matches || []) {
-      for (const row of m.card?.rows || []) {
-        const holes = row.gross.map((g, i) => (typeof g === "number" ? { g, n: g - row.dots[i] } : null)).filter(Boolean);
-        if (!holes.length) continue;
-        rows.push({
-          name: row.name,
-          gross: holes.reduce((a, h) => a + h.g, 0),
-          net: holes.reduce((a, h) => a + h.n, 0),
-        });
-      }
-    }
-  }
-  const gross = bestScore(rows, "gross");
-  if (!gross) return null;
-  return { label, gross, net: includeNet ? bestScore(rows, "net") : null };
-}
-
 function officialNeedles(label) {
   const l = label.toLowerCase();
   if (/crystal/.test(l)) return ["crystal"];
@@ -1769,25 +1834,23 @@ function officialNeedles(label) {
 function roundLows(rounds, players) {
   const out = [];
   for (const r of rounds || []) {
-    const matches = r.tournaments.filter((t) => t.type === "match");
+    const matches = (r.tournaments || []).filter((t) => t.type === "match");
     const front = matches.filter((t) => /front/i.test(t.name));
     const back = matches.filter((t) => /back/i.test(t.name));
     if (front.length && back.length) {
       const fl = /scramble/i.test(front[0].name) ? "Black Bear — Scramble" : front[0].name;
       const bl = /pinehurst/i.test(back[0].name) ? "Black Bear — Pinehurst" : back[0].name;
-      out.push(lowsFromMatches(fl, front, false));
-      out.push(lowsFromMatches(bl, back, false));
+      out.push(lowsFromHcp(fl, front, r.label, players));
+      out.push(lowsFromHcp(bl, back, r.label, players));
+      continue;
+    }
+    const fromCards = lowsFromHcp(r.label, matches, r.label, players);
+    if (fromCards) {
+      out.push(fromCards);
       continue;
     }
     const needles = officialNeedles(r.label);
-    if (needles) {
-      const official = lowsFromOfficial(r.label, players, needles);
-      if (official) {
-        out.push(official);
-        continue;
-      }
-    }
-    out.push(lowsFromMatches(r.label, matches, !/scramble|pinehurst|stableford/i.test(r.label)));
+    if (needles) out.push(lowsFromOfficial(r.label, players, needles));
   }
   return out.filter(Boolean);
 }
@@ -1852,14 +1915,15 @@ function Superlatives({ players, rounds }) {
         hint: "individual holes vs the other side, 2v2 & 1v1",
       });
     }
-    const twoRounds = players.filter((p) => (p.scores || []).filter((s) => s.holes === 18).length >= 2);
+    const { byPlayer } = playerHcpNets(rounds, players);
+    const twoRounds = players.filter((p) => (byPlayer[p.name] || []).filter((s) => s.individual && s.holes >= 12).length >= 2);
     if (twoRounds.length) {
       const bb = pick(twoRounds, (p) => {
-        const s = p.scores.filter((x) => x.holes === 18);
+        const s = byPlayer[p.name].filter((x) => x.individual && x.holes >= 12);
         return s[0].net - s[s.length - 1].net;
       }, Math.max);
       if (bb.v > 0) {
-        const sample = twoRounds[0].scores.filter((x) => x.holes === 18);
+        const sample = byPlayer[twoRounds[0].name].filter((x) => x.individual && x.holes >= 12);
         const a = shortRound(sample[0]?.round || "");
         const b = shortRound(sample[sample.length - 1]?.round || "");
         fun.push({
@@ -1877,7 +1941,7 @@ function Superlatives({ players, rounds }) {
     <>
       <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
         <div className="text-sm font-semibold text-gray-100">Round lows</div>
-        <div className="text-[11px] text-gray-500 mb-2">Net on rounds with individual scores — not scramble or Pinehurst</div>
+        <div className="text-[11px] text-gray-500 mb-2">Course-handicap nets vs scratch — 90% in 2v2, 100% in 1v1, scramble 35/15, Pinehurst 60/40</div>
         <table className="w-full text-xs">
           <thead>
             <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
@@ -2002,7 +2066,9 @@ function HandicapLab({ players, rounds }) {
     const upsets = duels.filter((d) => d.gap >= 1).sort((a, b) => b.gap - a.gap);
     const best = [...active].sort((a, b) => winPct(b) - winPct(a) || hiOf(b) - hiOf(a))[0];
     const worstHi = [...active].sort((a, b) => hiOf(a) - hiOf(b))[0];
-    const bestNet = [...active].filter((p) => p.avgNet != null).sort((a, b) => a.avgNet - b.avgNet)[0];
+    const { avgNet } = playerHcpNets(rounds, players);
+    const withNet = active.map((p) => ({ ...p, avgNet: avgNet[p.name] ?? p.avgNet }));
+    const bestNet = [...withNet].filter((p) => p.avgNet != null).sort((a, b) => a.avgNet - b.avgNet)[0];
     const cold = [...bands]
       .filter((b) => b.label !== "21+")
       .sort((a, b) => a.pct - b.pct)[0] || [...bands].sort((a, b) => a.pct - b.pct)[0];
