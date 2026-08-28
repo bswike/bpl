@@ -428,27 +428,27 @@ function PlayerRows({ p, rounds, rank, open, onToggle, hcpScores, hiBy }) {
 /* ---------------- scorecard ---------------- */
 
 function StrokePips({ n }) {
+  if (!n) return null;
   return (
-    <span className="h-[6px] flex items-center justify-center gap-[2px] pointer-events-none" aria-hidden>
-      {n > 0 &&
-        Array.from({ length: Math.min(n, 3) }, (_, i) => (
-          <span key={i} className="block w-[3.5px] h-[3.5px] rounded-full bg-amber-300" />
-        ))}
+    <span className="absolute top-px right-px flex gap-px pointer-events-none z-[1]" aria-hidden>
+      {Array.from({ length: Math.min(n, 3) }, (_, i) => (
+        <span key={i} className="block w-[3.5px] h-[3.5px] rounded-full bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.9)]" />
+      ))}
     </span>
   );
 }
 
 function ScoreCell({ gross, dots, par, counted }) {
-  const shell = `flex flex-col items-center h-9 ${counted ? "bg-emerald-500/25 rounded-md ring-1 ring-emerald-400/40" : ""}`;
+  const shell = `relative flex items-center justify-center h-8 ${counted ? "bg-emerald-500/25 rounded-md ring-1 ring-emerald-400/40" : ""}`;
   if (gross === "X") {
     return (
       <div className={shell}>
-        <span className="flex-1 flex items-center justify-center text-[10px] text-gray-600">X</span>
+        <span className="text-[10px] text-gray-600">X</span>
         <StrokePips n={dots} />
       </div>
     );
   }
-  if (gross == null) return <div className="h-9" />;
+  if (gross == null) return <div className="h-8" />;
   const diff = par == null ? null : gross - par;
   const shape =
     diff == null ? null : diff <= -2 ? "eagle" : diff === -1 ? "birdie" : diff === 1 ? "bogey" : diff >= 2 ? "double" : null;
@@ -466,14 +466,12 @@ function ScoreCell({ gross, dots, par, counted }) {
   );
   return (
     <div className={shell}>
-      <div className="flex-1 flex items-center justify-center">
-        {shape === "eagle" || shape === "double" ? (
-          <span className={`p-px sm:p-[2px] flex items-center justify-center ${shape === "eagle" ? circle : square}`}>{core}</span>
-        ) : (
-          core
-        )}
-      </div>
       <StrokePips n={dots} />
+      {shape === "eagle" || shape === "double" ? (
+        <span className={`p-px sm:p-[2px] flex items-center justify-center ${shape === "eagle" ? circle : square}`}>{core}</span>
+      ) : (
+        core
+      )}
     </div>
   );
 }
@@ -711,7 +709,7 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
         <span className="flex items-center gap-1">
           <span className="p-[1.5px] border border-rose-400/80"><span className="w-2 h-2 block border border-rose-400/80" /></span> double+
         </span>
-        <span className="flex items-center gap-1"><span className="w-[3.5px] h-[3.5px] rounded-full bg-amber-300" /> stroke</span>
+        <span className="flex items-center gap-1"><span className="w-[3.5px] h-[3.5px] rounded-full bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.9)]" /> stroke</span>
         {labelHi && <span className="tabular-nums">HI / CH</span>}
         <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${TEAM[m.teamL]?.cell}`} /> {m.teamL} won hole</span>
         <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${TEAM[m.teamR]?.cell}`} /> {m.teamR} won hole</span>
