@@ -2172,6 +2172,49 @@ function RecBar({ rec, className = "" }) {
   );
 }
 
+function sosPill(active) {
+  return `px-2 py-1 rounded-lg text-[11px] font-semibold ${
+    active ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+  }`;
+}
+
+function TeamStrip({ rec }) {
+  if (!rec || rec.w + rec.l + rec.t === 0) return null;
+  return (
+    <div className="flex items-center justify-between gap-2 text-xs mb-3">
+      <span className="text-rose-400 font-semibold tabular-nums">South {recStr(rec)}</span>
+      <RecBar rec={rec} className="flex-1 max-w-[7rem]" />
+      <span className="text-sky-400 font-semibold tabular-nums">
+        North {recStr({ w: rec.l, l: rec.w, t: rec.t })}
+      </span>
+    </div>
+  );
+}
+
+function SosRankRow({ active, onClick, rank, team, name, rec }) {
+  const pct = field1v1Pct(rec);
+  return (
+    <tr className={`border-t border-slate-800 cursor-pointer ${active ? "bg-slate-800/50" : ""}`} onClick={onClick}>
+      <td className="py-1.5 pr-2 text-gray-600 tabular-nums">{rank}</td>
+      <td className="py-1.5 pr-2">
+        <span className="inline-flex items-center gap-1.5 min-w-0">
+          <TeamDot team={team} />
+          <span className={`truncate ${active ? "text-gray-100 font-semibold" : "text-gray-200"}`}>{name}</span>
+        </span>
+      </td>
+      <td className="py-1.5 pr-2 text-right tabular-nums font-semibold text-gray-100 whitespace-nowrap">{recStr(rec)}</td>
+      <td className="py-1.5">
+        <div className="flex items-center gap-1.5">
+          <RecBar rec={rec} className="flex-1" />
+          <span className={`tabular-nums w-8 text-right text-[11px] ${pct < 0.5 ? "text-rose-300" : "text-emerald-300"}`}>
+            {Math.round(pct * 100)}%
+          </span>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 function StrengthOfSchedule({ rounds, players }) {
   const fieldSets = useMemo(() => field1v1Rounds(rounds, players), [rounds, players]);
   const pairSets = useMemo(() => collectPairingSets(rounds, players), [rounds, players]);
@@ -2186,39 +2229,50 @@ function StrengthOfSchedule({ rounds, players }) {
   }, [fieldSets, pairSets, rounds]);
   const [mode, setMode] = useState("players");
   const [pairRi, setPairRi] = useState(0);
+  const [playerRi, setPlayerRi] = useState(null);
   const [picked, setPicked] = useState(null);
   if (!data && !pairSets.length) return null;
+
   const pair = pairSets[Math.min(pairRi, Math.max(0, pairSets.length - 1))];
-  const pairSel = pair && picked && pair.rec[picked] ? picked : pair?.ranking[0];
+  const pairSel = pair && picked && pair.rec[picked] ? picked : null;
   const pairMine = pair && pairSel ? pair.rec[pairSel] : null;
   const pairCross = pair ? crossTeamRec(pair) : emptyRec();
-  const northCombined = data ? { w: data.teamCombined.l, l: data.teamCombined.w, t: data.teamCombined.t } : emptyRec();
+
+  const playerRows =
+    playerRi == null
+      ? (data?.rows || []).map((row) => ({ ...row, view: row.combined }))
+      : (data?.rows || [])
+          .map((row) => ({ ...row, view: row.byRound[playerRi] }))
+          .filter((row) => row.view && row.view.w + row.view.l + row.view.t > 0)
+          .sort((a, b) => field1v1Pct(b.view) - field1v1Pct(a.view) || b.view.w - a.view.w);
+  const pickedRow = playerRows.find((r) => r.name === picked) || null;
+  const teamRec = playerRi == null ? data?.teamCombined : data?.teamRounds[playerRi]?.rec;
 
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
       <div className="text-sm font-semibold text-gray-100">Strength of schedule</div>
       <div className="text-[11px] text-gray-500 mb-2.5">
-        {mode === "pairings"
-          ? "Each pairing vs every other pairing · net as they played that round"
-          : "Everyone vs everyone · 1v1 and team games from each round, then added up"}
+        {mode === "pairings" ? "Each pairing vs the field" : "Vs the field · tap a name for the round split"}
       </div>
-      <div className="flex flex-wrap gap-1 mb-3">
+      <div className="flex flex-wrap gap-1 mb-2">
         <button
           type="button"
-          onClick={() => setMode("players")}
-          className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
-            mode === "players" ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
-          }`}
+          onClick={() => {
+            setMode("players");
+            setPicked(null);
+          }}
+          className={sosPill(mode === "players")}
         >
           Players
         </button>
         {pairSets.length > 0 && (
           <button
             type="button"
-            onClick={() => setMode("pairings")}
-            className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
-              mode === "pairings" ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
-            }`}
+            onClick={() => {
+              setMode("pairings");
+              setPicked(null);
+            }}
+            className={sosPill(mode === "pairings")}
           >
             Pairings
           </button>
@@ -2236,187 +2290,120 @@ function StrengthOfSchedule({ rounds, players }) {
                   setPairRi(i);
                   setPicked(null);
                 }}
-                className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
-                  i === pairRi ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
-                }`}
+                className={sosPill(i === pairRi)}
               >
-                {s.label}
+                {pairSosLabel(s.label)}
               </button>
             ))}
           </div>
-          <div className="rounded-xl border border-slate-700 p-2.5 mb-3">
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="text-rose-400 font-semibold tabular-nums">South {recStr(pairCross)}</span>
-              <RecBar rec={pairCross} className="flex-1 max-w-[7rem]" />
-              <span className="text-sky-400 font-semibold tabular-nums">
-                North {recStr({ w: pairCross.l, l: pairCross.w, t: pairCross.t })}
-              </span>
-            </div>
-          </div>
-          <div className="overflow-x-auto -mx-1 px-1 mb-2">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
-                  <th className="py-1 pr-2 font-semibold">#</th>
-                  <th className="py-1 pr-2 font-semibold">Pairing</th>
-                  <th className="py-1 pr-2 font-semibold text-right">Rec</th>
-                  <th className="py-1 font-semibold w-[30%]">Win %</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pair.ranking.map((id, i) => {
-                  const r = pair.rec[id];
-                  const pct = field1v1Pct(r);
-                  return (
-                    <tr
-                      key={id}
-                      className={`border-t border-slate-800 cursor-pointer ${pairSel === id ? "bg-slate-800/50" : ""}`}
-                      onClick={() => setPicked(id)}
-                    >
-                      <td className="py-1.5 pr-2 text-gray-600 tabular-nums">{i + 1}</td>
-                      <td className="py-1.5 pr-2">
-                        <span className="inline-flex items-center gap-1.5 min-w-0">
-                          <TeamDot team={pair.teamOf[id]} />
-                          <span className={`truncate ${pairSel === id ? "text-gray-100 font-semibold" : "text-gray-200"}`}>
-                            {pair.labelOf[id]}
-                          </span>
-                        </span>
-                      </td>
-                      <td className="py-1.5 pr-2 text-right tabular-nums font-semibold text-gray-100 whitespace-nowrap">
-                        {recStr(r)}
-                      </td>
-                      <td className="py-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <RecBar rec={r} className="flex-1" />
-                          <span className={`tabular-nums w-8 text-right text-[11px] ${pct < 0.5 ? "text-rose-300" : "text-emerald-300"}`}>
-                            {Math.round(pct * 100)}%
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <TeamStrip rec={pairCross} />
+          <table className="w-full text-xs mb-2">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
+                <th className="py-1 pr-2 font-semibold">#</th>
+                <th className="py-1 pr-2 font-semibold">Pairing</th>
+                <th className="py-1 pr-2 font-semibold text-right">Rec</th>
+                <th className="py-1 font-semibold w-[30%]">Win %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pair.ranking.map((id, i) => (
+                <SosRankRow
+                  key={id}
+                  rank={i + 1}
+                  team={pair.teamOf[id]}
+                  name={pair.labelOf[id]}
+                  rec={pair.rec[id]}
+                  active={pairSel === id}
+                  onClick={() => setPicked(picked === id ? null : id)}
+                />
+              ))}
+            </tbody>
+          </table>
           {pairMine && (
-            <>
-              <div className="text-xs font-semibold text-gray-100 mb-1">
-                {pair.labelOf[pairSel]}{" "}
-                <span className="text-gray-400 font-medium tabular-nums">
-                  {pairMine.w}-{pairMine.l}-{pairMine.t}
-                </span>
-              </div>
-              <div className="max-h-48 overflow-y-auto divide-y divide-slate-800">
-                {pairMine.vs.map((v) => (
-                  <button
-                    key={v.opp}
-                    type="button"
-                    onClick={() => setPicked(v.opp)}
-                    className="w-full flex items-center justify-between gap-2 py-1 text-left"
+            <div className="max-h-40 overflow-y-auto divide-y divide-slate-800">
+              {pairMine.vs.map((v) => (
+                <button
+                  key={v.opp}
+                  type="button"
+                  onClick={() => setPicked(v.opp)}
+                  className="w-full flex items-center justify-between gap-2 py-1 text-left"
+                >
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <TeamDot team={pair.teamOf[v.opp]} />
+                    <span className="text-xs text-gray-300 truncate">{pair.labelOf[v.opp]}</span>
+                  </span>
+                  <span
+                    className={`text-[11px] tabular-nums shrink-0 ${
+                      v.won ? "text-emerald-400" : v.lost ? "text-gray-500" : "text-gray-400"
+                    }`}
                   >
-                    <span className="flex items-center gap-1.5 min-w-0">
-                      <TeamDot team={pair.teamOf[v.opp]} />
-                      <span className="text-xs text-gray-300 truncate">{pair.labelOf[v.opp]}</span>
-                    </span>
-                    <span
-                      className={`text-[11px] tabular-nums shrink-0 ${
-                        v.won ? "text-emerald-400" : v.lost ? "text-gray-500" : "text-gray-400"
-                      }`}
-                    >
-                      {v.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </>
+                    {v.label}
+                  </span>
+                </button>
+              ))}
+            </div>
           )}
         </>
       )}
 
       {mode === "players" && data && (
         <>
-      <div className="rounded-xl border border-slate-700 p-2.5 mb-3">
-        <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">South vs North</div>
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="text-[10px] uppercase tracking-wider text-gray-500">
-              <th className="py-0.5 pr-2 font-semibold text-left">Round</th>
-              <th className="py-0.5 pr-2 font-semibold text-right text-rose-400">South</th>
-              <th className="py-0.5 font-semibold text-right text-sky-400">North</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.teamRounds.map((r, i) => (
-              <tr key={`${r.label}-${i}`} className="border-t border-slate-800">
-                <td className="py-1 pr-2 text-gray-400">{r.sosLabel || sosRoundLabel(r)}</td>
-                <td className="py-1 pr-2 text-right tabular-nums text-gray-200">{recStr(r.rec)}</td>
-                <td className="py-1 text-right tabular-nums text-gray-200">
-                  {recStr({ w: r.rec.l, l: r.rec.w, t: r.rec.t })}
-                </td>
-              </tr>
+          <div className="flex flex-wrap gap-1 mb-3">
+            <button type="button" onClick={() => setPlayerRi(null)} className={sosPill(playerRi == null)}>
+              All
+            </button>
+            {data.sets.map((s, i) => (
+              <button key={s.label} type="button" onClick={() => setPlayerRi(i)} className={sosPill(playerRi === i)}>
+                {s.sosLabel}
+              </button>
             ))}
-            <tr className="border-t border-slate-700">
-              <td className="py-1.5 pr-2 font-semibold text-gray-100">All</td>
-              <td className="py-1.5 pr-2 text-right tabular-nums font-semibold text-rose-400">{recStr(data.teamCombined)}</td>
-              <td className="py-1.5 text-right tabular-nums font-semibold text-sky-400">{recStr(northCombined)}</td>
-            </tr>
-          </tbody>
-        </table>
-        <RecBar rec={data.teamCombined} className="mt-2" />
-      </div>
-
-      <div className="overflow-x-auto -mx-1 px-1">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
-              <th className="py-1 pr-2 font-semibold">#</th>
-              <th className="py-1 pr-2 font-semibold">Player</th>
-              {data.sets.map((s) => (
-                <th key={s.label} className="py-1 pr-2 font-semibold text-right whitespace-nowrap">
-                  {s.sosLabel || sosRoundLabel(s)}
-                </th>
+          </div>
+          <TeamStrip rec={teamRec} />
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
+                <th className="py-1 pr-2 font-semibold">#</th>
+                <th className="py-1 pr-2 font-semibold">Player</th>
+                <th className="py-1 pr-2 font-semibold text-right">Rec</th>
+                <th className="py-1 font-semibold w-[30%]">Win %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {playerRows.map((row, i) => (
+                <SosRankRow
+                  key={row.name}
+                  rank={i + 1}
+                  team={row.team}
+                  name={firstLast(row.name)}
+                  rec={row.view}
+                  active={picked === row.name}
+                  onClick={() => setPicked(picked === row.name ? null : row.name)}
+                />
               ))}
-              <th className="py-1 pr-2 font-semibold text-right">All</th>
-              <th className="py-1 font-semibold w-[28%]">Win %</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.rows.map((row, i) => (
-              <tr key={row.name} className="border-t border-slate-800">
-                <td className="py-1.5 pr-2 text-gray-600 tabular-nums">{i + 1}</td>
-                <td className="py-1.5 pr-2">
-                  <span className="inline-flex items-center gap-1.5 min-w-0">
-                    <TeamDot team={row.team} />
-                    <span className="text-gray-200 truncate">{firstLast(row.name)}</span>
-                  </span>
-                </td>
-                {row.byRound.map((r, j) => (
-                  <td key={j} className="py-1.5 pr-2 text-right tabular-nums text-gray-400 whitespace-nowrap">
-                    {recStr(r)}
-                  </td>
-                ))}
-                <td className="py-1.5 pr-2 text-right tabular-nums font-semibold text-gray-100 whitespace-nowrap">
-                  {recStr(row.combined)}
-                </td>
-                <td className="py-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <RecBar rec={row.combined} className="flex-1" />
-                    <span className={`tabular-nums w-8 text-right text-[11px] ${row.pct < 0.5 ? "text-rose-300" : "text-emerald-300"}`}>
-                      {Math.round(row.pct * 100)}%
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+          {pickedRow && (
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-2.5 pt-2.5 border-t border-slate-800">
+              {data.sets.map((s, i) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  onClick={() => setPlayerRi(i)}
+                  className="flex items-center justify-between gap-2 py-0.5 text-left"
+                >
+                  <span className={`text-[11px] ${playerRi === i ? "text-gray-100" : "text-gray-500"}`}>{s.sosLabel}</span>
+                  <span className="text-[11px] tabular-nums text-gray-300">{recStr(pickedRow.byRound[i])}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>
   );
 }
+
 
 function Field1v1({ rounds, players }) {
   const sets = useMemo(() => field1v1Rounds(rounds, players), [rounds, players]);
