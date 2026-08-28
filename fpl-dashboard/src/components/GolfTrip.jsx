@@ -3415,40 +3415,58 @@ function versusStats(matches) {
   return { w, l, t, ptsL, ptsR };
 }
 
-function VersusBug({ left, right, leftTeam, rightTeam, stats }) {
-  const rec = `${stats.w}–${stats.l}${stats.t ? `–${stats.t}` : ""}`;
+function VersusBulbs({ n, vertical }) {
   return (
-    <div className="versus-bug mb-3">
-      <div className="versus-bug-top">
-        <div className="versus-bug-name">
-          <span className={`versus-bug-stripe ${leftTeam === "North" ? "versus-bug-north" : "versus-bug-south"}`} />
-          <span>{familyName(left)}</span>
-        </div>
-        <div className="versus-bug-series">
-          <span className="versus-bug-series-lab">Series</span>
-          <span className="versus-bug-series-rec">{rec}</span>
-        </div>
-        <div className="versus-bug-name versus-bug-name-right">
-          <span>{familyName(right)}</span>
-          <span className={`versus-bug-stripe ${rightTeam === "North" ? "versus-bug-north" : "versus-bug-south"}`} />
-        </div>
-      </div>
-      <div className="versus-bug-scores">
-        <div className="versus-bug-well">
-          <span className="versus-bug-pts">{fmtPts(stats.ptsL)}</span>
-          <span className="versus-bug-pts-lab">Pts</span>
-        </div>
-        <div className="versus-bug-well">
-          <span className="versus-bug-pts">{fmtPts(stats.ptsR)}</span>
-          <span className="versus-bug-pts-lab">Pts</span>
-        </div>
-      </div>
-      <div className="versus-bug-key">Hole 1 · Tie .5 · Match 1</div>
+    <div className={vertical ? "versus-bug-edge-v" : "versus-bug-edge-h"} aria-hidden>
+      {Array.from({ length: n }, (_, i) => (
+        <span key={i} className="versus-bug-bulb" />
+      ))}
     </div>
   );
 }
 
-function VersusSlot({ name, team, placeholder, onClear }) {
+function VersusBug({ left, right, leftTeam, rightTeam, stats }) {
+  const rec = `${stats.w}–${stats.l}${stats.t ? `–${stats.t}` : ""}`;
+  return (
+    <div className="versus-bug-shell mb-3">
+      <VersusBulbs n={13} />
+      <div className="versus-bug-mid">
+        <VersusBulbs n={6} vertical />
+        <div className="versus-bug">
+          <div className="versus-bug-top">
+            <div className="versus-bug-name">
+              <span className={`versus-bug-stripe ${leftTeam === "North" ? "versus-bug-north" : "versus-bug-south"}`} />
+              <span>{familyName(left)}</span>
+            </div>
+            <div className="versus-bug-series">
+              <span className="versus-bug-series-lab">Series</span>
+              <span className="versus-bug-series-rec">{rec}</span>
+            </div>
+            <div className="versus-bug-name versus-bug-name-right">
+              <span>{familyName(right)}</span>
+              <span className={`versus-bug-stripe ${rightTeam === "North" ? "versus-bug-north" : "versus-bug-south"}`} />
+            </div>
+          </div>
+          <div className="versus-bug-scores">
+            <div className="versus-bug-well">
+              <span className="versus-bug-pts">{fmtPts(stats.ptsL)}</span>
+              <span className="versus-bug-pts-lab">Pts</span>
+            </div>
+            <div className="versus-bug-well">
+              <span className="versus-bug-pts">{fmtPts(stats.ptsR)}</span>
+              <span className="versus-bug-pts-lab">Pts</span>
+            </div>
+          </div>
+          <div className="versus-bug-key">Hole 1 · Tie .5 · Match 1</div>
+        </div>
+        <VersusBulbs n={6} vertical />
+      </div>
+      <VersusBulbs n={13} />
+    </div>
+  );
+}
+
+function VersusSlot({ name, team, placeholder, onClear, locked }) {
   if (!name) {
     return (
       <div className="flex-1 min-w-0 rounded-xl border border-dashed border-slate-600 px-2 py-3 text-center text-[11px] text-gray-500">
@@ -3468,7 +3486,7 @@ function VersusSlot({ name, team, placeholder, onClear }) {
         <TeamDot team={team} />
         <span className="font-semibold text-gray-100 truncate">{firstLast(name)}</span>
       </div>
-      <div className="text-[9px] text-gray-500 mt-0.5">tap to clear</div>
+      {!locked && <div className="text-[9px] text-gray-500 mt-0.5">tap to clear</div>}
     </button>
   );
 }
@@ -3529,48 +3547,70 @@ function Versus({ rounds, players }) {
     players: roster.filter((p) => p.team === team),
   })).filter((g) => g.players.length);
 
+  const locked = !!(left && right);
+
   return (
     <div className="space-y-4">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-        <div className="text-sm font-semibold text-gray-100">Versus</div>
-        <div className="text-[11px] text-gray-500 mb-3">
-          Hypothetical 1v1 · 100% course handicap · {boards.map((b) => b.label).join(" & ")}
-        </div>
-        <div className="flex items-stretch gap-2 mb-3">
-          <VersusSlot name={left} team={teamOf[left]} placeholder="Pick player" onClear={() => setLeft(null)} />
-          <div className="shrink-0 self-center text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
-          <VersusSlot name={right} team={teamOf[right]} placeholder="Pick opponent" onClear={() => setRight(null)} />
-        </div>
-        {byTeam.map((g) => (
-          <div key={g.team} className="mb-2 last:mb-0">
-            <div className={`text-[10px] uppercase tracking-wider font-semibold mb-1 ${TEAM[g.team]?.text || "text-gray-500"}`}>
-              {g.team}
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {g.players.map((p) => {
-                const on = p.name === left || p.name === right;
-                return (
-                  <button
-                    key={p.name}
-                    type="button"
-                    onClick={() => pick(p.name)}
-                    className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
-                      on ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    {firstLast(p.name)}
-                  </button>
-                );
-              })}
-            </div>
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <div>
+            <div className="text-sm font-semibold text-gray-100">Versus</div>
+            {!locked && (
+              <div className="text-[11px] text-gray-500">
+                Hypothetical 1v1 · 100% course handicap · {boards.map((b) => b.label).join(" & ")}
+              </div>
+            )}
           </div>
-        ))}
+          {locked && (
+            <button
+              type="button"
+              onClick={() => {
+                setLeft(null);
+                setRight(null);
+              }}
+              className="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-lg bg-slate-800 text-gray-400 hover:text-white"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <div className={`flex items-stretch gap-2 ${locked ? "mt-2" : "mt-3 mb-3"}`}>
+          <VersusSlot name={left} team={teamOf[left]} placeholder="Pick player" locked={locked} onClear={() => setLeft(null)} />
+          <div className="shrink-0 self-center text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
+          <VersusSlot name={right} team={teamOf[right]} placeholder="Pick opponent" locked={locked} onClear={() => setRight(null)} />
+        </div>
+        {!locked &&
+          byTeam.map((g) => (
+            <div key={g.team} className="mb-2 last:mb-0">
+              <div className={`text-[10px] uppercase tracking-wider font-semibold mb-1 ${TEAM[g.team]?.text || "text-gray-500"}`}>
+                {g.team}
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {g.players.map((p) => {
+                  const on = p.name === left || p.name === right;
+                  return (
+                    <button
+                      key={p.name}
+                      type="button"
+                      onClick={() => pick(p.name)}
+                      className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
+                        on ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      {firstLast(p.name)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
       </div>
 
-      {left && right && (
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+      {locked && (
+        <>
           <VersusBug left={left} right={right} leftTeam={teamOf[left]} rightTeam={teamOf[right]} stats={stats} />
-          <div className="space-y-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+            <div className="space-y-4">
             {matches.map((m) => {
               if (m.missing) {
                 return (
@@ -3606,6 +3646,7 @@ function Versus({ rounds, players }) {
             })}
           </div>
         </div>
+        </>
       )}
     </div>
   );
