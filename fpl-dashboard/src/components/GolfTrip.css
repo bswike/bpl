@@ -58,6 +58,7 @@
 .gg-theme .bg-emerald-500 { background-color: #5a8c32 !important; }
 .gg-theme .bg-emerald-500\/20,
 .gg-theme .bg-emerald-500\/25 { background-color: #eef5e8 !important; }
+.gg-theme .bg-emerald-500\/40 { background-color: #c5e0b4 !important; }
 .gg-theme .text-emerald-300,
 .gg-theme .text-emerald-400 { color: #3d6a1f !important; }
 .gg-theme .hover\:text-emerald-300:hover { color: #2f4a22 !important; }
@@ -79,6 +80,7 @@
 .gg-theme .bg-rose-500\/15,
 .gg-theme .bg-rose-500\/20 { background-color: #fdeaea !important; }
 .gg-theme .bg-rose-500\/30 { background-color: #f8c9c9 !important; }
+.gg-theme .bg-rose-500\/35 { background-color: #f5c2c2 !important; }
 .gg-theme .border-rose-400\/80,
 .gg-theme .border-rose-500\/30,
 .gg-theme .border-rose-500\/40 { border-color: #c62828 !important; }

@@ -1164,6 +1164,142 @@ function hamEggData(rounds) {
   return { groups, bestHam, bestCarry, vs2 };
 }
 
+function inferStrokeIndex(rows) {
+  return Array.from({ length: 18 }, (_, h) => {
+    let n2 = 0;
+    let n1 = 0;
+    let mx = 0;
+    for (const r of rows) {
+      const d = r.dots[h] || 0;
+      if (d >= 2) n2 += 1;
+      if (d >= 1) n1 += 1;
+      if (d > mx) mx = d;
+    }
+    return { h, n2, n1, mx };
+  })
+    .sort((a, b) => b.n2 - a.n2 || b.mx - a.mx || b.n1 - a.n1 || a.h - b.h)
+    .map((x) => x.h);
+}
+
+function strokeDots(n, si) {
+  const d = Array(18).fill(0);
+  for (let i = 0; i < n; i++) d[si[i % 18]] += 1;
+  return d;
+}
+
+function flip1v1(st) {
+  if (!st.won && !st.lost) return { label: "AS", won: false, lost: false };
+  if (st.won) {
+    const label = st.label.endsWith(" up") ? st.label.replace(/ up$/, " down") : `${st.label} down`;
+    return { label, won: false, lost: true };
+  }
+  const core = st.label.replace(/ down$/, "");
+  return { label: /^\d+$/.test(core) ? `${core} up` : core, won: true, lost: false };
+}
+
+function match1v1(a, b, hiA, hiB, si) {
+  const ha = Math.round(hiA);
+  const hb = Math.round(hiB);
+  const da = strokeDots(Math.max(0, ha - hb), si);
+  const db = strokeDots(Math.max(0, hb - ha), si);
+  const winners = [];
+  let compared = 0;
+  for (let h = 0; h < 18; h++) {
+    const ga = a.gross[h];
+    const gb = b.gross[h];
+    if (typeof ga !== "number" || typeof gb !== "number") {
+      winners.push(null);
+      continue;
+    }
+    compared += 1;
+    const na = ga - da[h];
+    const nb = gb - db[h];
+    winners.push(na < nb ? "L" : na > nb ? "R" : "T");
+  }
+  if (compared < 6) return null;
+  return statusFromWinners(winners, "L");
+}
+
+function collectIndividualRows(round) {
+  const byName = new Map();
+  for (const t of round.tournaments || []) {
+    if (t.type !== "match") continue;
+    for (const m of t.matches || []) {
+      const rows = m.card?.rows;
+      if (!rows || m.card.scoring === "stableford" || rows.some((r) => r.name.includes(" + "))) continue;
+      for (const r of rows) {
+        if (r.gross.filter((g) => typeof g === "number").length < 12) continue;
+        byName.set(r.name, r);
+      }
+    }
+  }
+  return [...byName.values()];
+}
+
+function field1v1Pct(r) {
+  const n = r.w + r.l + r.t;
+  return n ? (r.w + 0.5 * r.t) / n : 0;
+}
+
+function field1v1Rounds(rounds, players) {
+  const hiBy = Object.fromEntries(players.map((p) => [p.name, hiOf(p)]));
+  const teamOf = Object.fromEntries(players.map((p) => [p.name, p.team]));
+  const out = [];
+  for (const r of rounds || []) {
+    const rows = collectIndividualRows(r);
+    if (rows.length < 4) continue;
+    const si = inferStrokeIndex(rows);
+    const rowBy = Object.fromEntries(rows.map((x) => [x.name, x]));
+    const names = rows.map((x) => x.name).filter((n) => hiBy[n] != null);
+    const rec = Object.fromEntries(names.map((n) => [n, { w: 0, l: 0, t: 0, vs: [] }]));
+    for (let i = 0; i < names.length; i++) {
+      for (let j = i + 1; j < names.length; j++) {
+        const a = names[i];
+        const b = names[j];
+        const st = match1v1(rowBy[a], rowBy[b], hiBy[a], hiBy[b], si);
+        if (!st) continue;
+        rec[a].vs.push({ opp: b, ...st });
+        rec[b].vs.push({ opp: a, ...flip1v1(st) });
+        if (st.won) {
+          rec[a].w += 1;
+          rec[b].l += 1;
+        } else if (st.lost) {
+          rec[a].l += 1;
+          rec[b].w += 1;
+        } else {
+          rec[a].t += 1;
+          rec[b].t += 1;
+        }
+      }
+    }
+    const ranking = [...names].sort(
+      (a, b) => field1v1Pct(rec[b]) - field1v1Pct(rec[a]) || rec[b].w - rec[a].w || a.localeCompare(b),
+    );
+    const order = Object.fromEntries(ranking.map((n, i) => [n, i]));
+    for (const n of names) rec[n].vs.sort((x, y) => (order[x.opp] ?? 99) - (order[y.opp] ?? 99));
+    out.push({
+      label: shortRound(r.label),
+      ranking,
+      rec,
+      teamOf,
+    });
+  }
+  return out;
+}
+
+function initialsOf(name) {
+  const parts = name.trim().split(/\s+/);
+  return `${(parts[0]?.[0] || "").toUpperCase()}${(lastName(name)[0] || "").toUpperCase()}`;
+}
+
+function familyName(name) {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 3 && /^(van|von|de|del|di|da|la|le|st\.?)$/i.test(parts[parts.length - 2])) {
+    return parts.slice(-2).join(" ");
+  }
+  return parts[parts.length - 1];
+}
+
 function shortWho(name) {
   if (name.includes(" + ")) return name.split(" + ").map(lastName).join(" + ");
   return firstLast(name);
@@ -1782,10 +1918,134 @@ function HamEgg({ rounds }) {
   );
 }
 
+function Field1v1({ rounds, players }) {
+  const sets = useMemo(() => field1v1Rounds(rounds, players), [rounds, players]);
+  const [ri, setRi] = useState(0);
+  const [picked, setPicked] = useState(null);
+  if (!sets.length) return null;
+  const set = sets[Math.min(ri, sets.length - 1)];
+  const sel = picked && set.rec[picked] ? picked : set.ranking[0];
+  const mine = set.rec[sel];
+
+  return (
+    <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+      <div className="text-sm font-semibold text-gray-100">Field 1v1</div>
+      <div className="text-[11px] text-gray-500 mb-2.5">
+        If everyone played everyone · gross that round, strokes from index
+      </div>
+      {sets.length > 1 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {sets.map((s, i) => (
+            <button
+              key={s.label}
+              type="button"
+              onClick={() => {
+                setRi(i);
+                setPicked(null);
+              }}
+              className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
+                i === ri ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="overflow-x-auto -mx-1 px-1 mb-3">
+        <table className="text-[9px] border-separate border-spacing-px min-w-max">
+          <thead>
+            <tr>
+              <th className="sticky left-0 z-10 bg-slate-900" />
+              {set.ranking.map((n) => (
+                <th
+                  key={n}
+                  title={n}
+                  className={`w-5 h-5 font-semibold ${sel === n ? TEAM[set.teamOf[n]]?.text || "text-gray-300" : "text-gray-500"}`}
+                >
+                  {initialsOf(n)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {set.ranking.map((a) => (
+              <tr key={a}>
+                <th
+                  className={`sticky left-0 z-10 bg-slate-900 pr-1.5 text-left font-semibold whitespace-nowrap ${
+                    sel === a ? TEAM[set.teamOf[a]]?.text || "text-gray-200" : "text-gray-500"
+                  }`}
+                >
+                  <button type="button" className="text-left inline-flex items-baseline gap-1" onClick={() => setPicked(a)}>
+                    {familyName(a)}
+                    <span className="text-[8px] text-gray-600 font-normal tabular-nums">
+                      {set.rec[a].w}-{set.rec[a].l}
+                      {set.rec[a].t ? `-${set.rec[a].t}` : ""}
+                    </span>
+                  </button>
+                </th>
+                {set.ranking.map((b) => {
+                  if (a === b) return <td key={b} className="w-5 h-5 rounded-sm bg-slate-800" />;
+                  const st = set.rec[a].vs.find((v) => v.opp === b);
+                  if (!st) return <td key={b} className="w-5 h-5" />;
+                  return (
+                    <td
+                      key={b}
+                      title={`${firstLast(a)} ${st.label} vs ${firstLast(b)}`}
+                      onClick={() => setPicked(a)}
+                      className={`w-5 h-5 rounded-sm cursor-pointer ${
+                        st.won ? "bg-emerald-500/40" : st.lost ? "bg-rose-500/35" : "bg-slate-600"
+                      } ${sel === a || sel === b ? "ring-1 ring-white/40" : ""}`}
+                    />
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex gap-3 text-[10px] text-gray-600 mb-3">
+        <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/40" /> win</span>
+        <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-rose-500/35" /> loss</span>
+        <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-slate-600" /> AS</span>
+      </div>
+      <div className="text-xs font-semibold text-gray-100 mb-1">
+        {firstLast(sel)}{" "}
+        <span className="text-gray-400 font-medium tabular-nums">
+          {mine.w}-{mine.l}-{mine.t}
+        </span>
+      </div>
+      <div className="max-h-56 overflow-y-auto divide-y divide-slate-800">
+        {mine.vs.map((v) => (
+          <button
+            key={v.opp}
+            type="button"
+            onClick={() => setPicked(v.opp)}
+            className="w-full flex items-center justify-between gap-2 py-1 text-left"
+          >
+            <span className="flex items-center gap-1.5 min-w-0">
+              <TeamDot team={set.teamOf[v.opp]} />
+              <span className="text-xs text-gray-300 truncate">{firstLast(v.opp)}</span>
+            </span>
+            <span
+              className={`text-[11px] tabular-nums shrink-0 ${
+                v.won ? "text-emerald-400" : v.lost ? "text-gray-500" : "text-gray-400"
+              }`}
+            >
+              {v.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Stats({ data, tripId }) {
   return (
     <div className="space-y-4">
       <HamEgg rounds={data.rounds} />
+      <Field1v1 rounds={data.rounds} players={data.players} />
       <Superlatives players={data.players} rounds={data.rounds} />
       <NetLow netlow={data.netlow} />
       <ScoringDist players={data.players} />
