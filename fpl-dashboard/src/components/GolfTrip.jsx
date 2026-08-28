@@ -426,18 +426,28 @@ function PlayerRows({ p, rounds, rank, open, onToggle, hcpScores, hiBy }) {
 
 /* ---------------- scorecard ---------------- */
 
+function StrokePips({ n }) {
+  return (
+    <span className="h-[6px] flex items-center justify-center gap-[2px] pointer-events-none" aria-hidden>
+      {n > 0 &&
+        Array.from({ length: Math.min(n, 3) }, (_, i) => (
+          <span key={i} className="block w-[3.5px] h-[3.5px] rounded-full bg-amber-300" />
+        ))}
+    </span>
+  );
+}
+
 function ScoreCell({ gross, dots, par, counted }) {
+  const shell = `flex flex-col items-center h-9 ${counted ? "bg-emerald-500/25 rounded-md ring-1 ring-emerald-400/40" : ""}`;
   if (gross === "X") {
     return (
-      <div className="relative flex items-center justify-center h-8">
-        <span className="text-[10px] text-gray-600">X</span>
-        {dots > 0 && (
-          <span className="absolute top-0.5 right-0 text-amber-300 text-[8px] leading-none">{"\u2022".repeat(dots)}</span>
-        )}
+      <div className={shell}>
+        <span className="flex-1 flex items-center justify-center text-[10px] text-gray-600">X</span>
+        <StrokePips n={dots} />
       </div>
     );
   }
-  if (gross == null) return <div className="h-8" />;
+  if (gross == null) return <div className="h-9" />;
   const diff = par == null ? null : gross - par;
   const shape =
     diff == null ? null : diff <= -2 ? "eagle" : diff === -1 ? "birdie" : diff === 1 ? "bogey" : diff >= 2 ? "double" : null;
@@ -446,7 +456,7 @@ function ScoreCell({ gross, dots, par, counted }) {
   const bogey = "border border-slate-400/70";
   const core = (
     <span
-      className={`w-[18px] h-[18px] flex items-center justify-center text-[10px] sm:text-[11px] tabular-nums text-gray-100 ${
+      className={`w-4 h-4 sm:w-[18px] sm:h-[18px] flex items-center justify-center text-[10px] sm:text-[11px] tabular-nums text-gray-100 ${
         shape === "birdie" || shape === "eagle" ? circle : shape === "bogey" ? bogey : shape === "double" ? square : ""
       }`}
     >
@@ -454,15 +464,15 @@ function ScoreCell({ gross, dots, par, counted }) {
     </span>
   );
   return (
-    <div className={`relative flex items-center justify-center h-8 ${counted ? "bg-emerald-500/25 rounded-md ring-1 ring-emerald-400/40" : ""}`}>
-      {shape === "eagle" || shape === "double" ? (
-        <span className={`p-[2px] flex items-center justify-center ${shape === "eagle" ? circle : square}`}>{core}</span>
-      ) : (
-        core
-      )}
-      {dots > 0 && (
-        <span className="absolute top-0.5 right-0 text-amber-300 text-[8px] leading-none">{"\u2022".repeat(dots)}</span>
-      )}
+    <div className={shell}>
+      <div className="flex-1 flex items-center justify-center">
+        {shape === "eagle" || shape === "double" ? (
+          <span className={`p-px sm:p-[2px] flex items-center justify-center ${shape === "eagle" ? circle : square}`}>{core}</span>
+        ) : (
+          core
+        )}
+      </div>
+      <StrokePips n={dots} />
     </div>
   );
 }
@@ -700,7 +710,7 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
         <span className="flex items-center gap-1">
           <span className="p-[1.5px] border border-rose-400/80"><span className="w-2 h-2 block border border-rose-400/80" /></span> double+
         </span>
-        <span className="flex items-center gap-1"><span className="text-amber-300">•</span> stroke</span>
+        <span className="flex items-center gap-1"><span className="w-[3.5px] h-[3.5px] rounded-full bg-amber-300" /> stroke</span>
         {labelHi && <span className="tabular-nums">HI / CH</span>}
         <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${TEAM[m.teamL]?.cell}`} /> {m.teamL} won hole</span>
         <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${TEAM[m.teamR]?.cell}`} /> {m.teamR} won hole</span>
@@ -2865,33 +2875,30 @@ function SosVsLine({ line, onPick, expanded, onToggleCard, hasCard }) {
     else onPick?.(line.pick);
   };
   return (
-    <div>
-      <div className="flex items-center gap-1">
-        <button type="button" onClick={tap} className="min-w-0 flex-1 flex items-center justify-between gap-2 py-0.5 text-left">
-          <span className="flex items-center gap-1.5 min-w-0">
-            <TeamDot team={line.team} />
-            <span className="text-[11px] text-gray-300 truncate">{line.name}</span>
-          </span>
-          <span
-            className={`text-[11px] tabular-nums shrink-0 ${
-              line.won ? "text-emerald-400" : line.lost ? "text-gray-500" : "text-gray-400"
-            }`}
-          >
-            {line.label}
-          </span>
-        </button>
-        {hasCard && (
-          <button
-            type="button"
-            aria-label={expanded ? "Hide scorecard" : "Show scorecard"}
-            onClick={tap}
-            className={`shrink-0 h-8 w-8 flex items-center justify-center rounded ${expanded ? "text-emerald-400" : "text-gray-500 hover:text-gray-300"}`}
-          >
-            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-        )}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={tap}
+      aria-expanded={hasCard ? expanded : undefined}
+      aria-label={hasCard ? `${expanded ? "Hide" : "Show"} scorecard vs ${line.name}` : undefined}
+      className="w-full flex items-center gap-1 py-1.5 text-left rounded-md hover:bg-slate-800/70"
+    >
+      <span className="flex items-center gap-1.5 min-w-0 flex-1">
+        <TeamDot team={line.team} />
+        <span className="text-[11px] text-gray-300 truncate">{line.name}</span>
+      </span>
+      <span
+        className={`text-[11px] tabular-nums shrink-0 ${
+          line.won ? "text-emerald-400" : line.lost ? "text-gray-500" : "text-gray-400"
+        }`}
+      >
+        {line.label}
+      </span>
+      {hasCard && (
+        <span className={`shrink-0 ${expanded ? "text-emerald-400" : "text-gray-500"}`}>
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </span>
+      )}
+    </button>
   );
 }
 
