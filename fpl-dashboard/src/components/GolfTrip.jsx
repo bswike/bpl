@@ -3381,6 +3381,75 @@ function collectVersusRounds(rounds, players) {
   return out;
 }
 
+function fmtPts(n) {
+  const v = Math.round(n * 2) / 2;
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
+}
+
+function versusStats(matches) {
+  let w = 0;
+  let l = 0;
+  let t = 0;
+  let ptsL = 0;
+  let ptsR = 0;
+  for (const m of matches) {
+    if (!m.match) continue;
+    for (const hole of m.match.card?.winners || []) {
+      if (hole === "L") ptsL += 1;
+      else if (hole === "R") ptsR += 1;
+      else if (hole === "T") {
+        ptsL += 0.5;
+        ptsR += 0.5;
+      }
+    }
+    if (m.match.winner === "left") {
+      w += 1;
+      ptsL += 1;
+    } else if (m.match.winner === "right") {
+      l += 1;
+      ptsR += 1;
+    } else {
+      t += 1;
+      ptsL += 0.5;
+      ptsR += 0.5;
+    }
+  }
+  return { w, l, t, ptsL, ptsR };
+}
+
+function VersusBug({ left, right, leftTeam, rightTeam, stats }) {
+  const rec = `${stats.w}–${stats.l}${stats.t ? `–${stats.t}` : ""}`;
+  return (
+    <div className="versus-bug mb-3">
+      <div className="versus-bug-top">
+        <div className="versus-bug-name">
+          <span className={`versus-bug-stripe ${leftTeam === "North" ? "versus-bug-north" : "versus-bug-south"}`} />
+          <span>{familyName(left)}</span>
+        </div>
+        <div className="versus-bug-series">
+          <span className="versus-bug-series-lab">Series</span>
+          <span className="versus-bug-series-rec">{rec}</span>
+        </div>
+        <div className="versus-bug-name versus-bug-name-right">
+          <span>{familyName(right)}</span>
+          <span className={`versus-bug-stripe ${rightTeam === "North" ? "versus-bug-north" : "versus-bug-south"}`} />
+        </div>
+      </div>
+      <div className="versus-bug-scores">
+        <div className="versus-bug-well">
+          <span className="versus-bug-pts">{fmtPts(stats.ptsL)}</span>
+          <span className="versus-bug-pts-lab">Pts</span>
+        </div>
+        <div className="versus-bug-well">
+          <span className="versus-bug-pts">{fmtPts(stats.ptsR)}</span>
+          <span className="versus-bug-pts-lab">Pts</span>
+        </div>
+      </div>
+      <div className="versus-bug-key">Hole 1 · Tie .5 · Match 1</div>
+    </div>
+  );
+}
+
 function VersusSlot({ name, team, placeholder, onClear }) {
   if (!name) {
     return (
@@ -3446,18 +3515,7 @@ function Versus({ rounds, players }) {
       .filter(Boolean);
   }, [boards, left, right]);
 
-  const series = useMemo(() => {
-    let w = 0;
-    let l = 0;
-    let t = 0;
-    for (const m of matches) {
-      if (!m.match) continue;
-      if (m.match.winner === "left") w += 1;
-      else if (m.match.winner === "right") l += 1;
-      else t += 1;
-    }
-    return { w, l, t };
-  }, [matches]);
+  const stats = useMemo(() => versusStats(matches), [matches]);
 
   if (!boards.length) {
     return (
@@ -3513,15 +3571,7 @@ function Versus({ rounds, players }) {
 
       {left && right && (
         <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="text-sm font-semibold text-gray-100">
-              {firstLast(left)} vs {firstLast(right)}
-            </div>
-            <div className="tabular-nums text-sm font-semibold text-gray-100">
-              {series.w}–{series.l}
-              {series.t ? `–${series.t}` : ""}
-            </div>
-          </div>
+          <VersusBug left={left} right={right} leftTeam={teamOf[left]} rightTeam={teamOf[right]} stats={stats} />
           <div className="space-y-4">
             {matches.map((m) => {
               if (m.missing) {

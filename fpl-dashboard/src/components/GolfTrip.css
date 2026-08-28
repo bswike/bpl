@@ -101,3 +101,119 @@
 .gg-theme .text-slate-300 { color: #555 !important; }
 .gg-theme .text-violet-300 { color: #6a1b9a !important; }
 .gg-theme .bg-violet-500 { background-color: #7b1fa2 !important; }
+
+/* Versus scorebug: own palette so GG light theme doesn't restyle it. */
+.versus-bug {
+  --bug-cream: #f3e6c4;
+  --bug-gold: #c9a44a;
+  --bug-amber: #f0d36a;
+  font-family: "Arial Narrow", "Franklin Gothic Medium", "Nimbus Sans Narrow", Impact, sans-serif;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #245334 0%, #163822 48%, #0e2416 100%);
+  border: 2px solid var(--bug-gold);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.4),
+    0 3px 0 #8a6e28,
+    0 6px 14px rgba(0, 0, 0, 0.35);
+  border-radius: 3px;
+  padding: 0.55rem 0.65rem 0.45rem;
+  color: var(--bug-cream) !important;
+}
+.versus-bug * {
+  color: inherit;
+}
+.versus-bug-top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.4rem;
+}
+.versus-bug-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+.versus-bug-name span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.versus-bug-name-right {
+  justify-content: flex-end;
+  text-align: right;
+}
+.versus-bug-stripe {
+  width: 5px;
+  height: 1.15rem;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.versus-bug-south { background: #b43b32; }
+.versus-bug-north { background: #2a6aa8; }
+.versus-bug-series {
+  flex-shrink: 0;
+  text-align: center;
+  padding: 0 0.35rem;
+}
+.versus-bug-series-lab {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  color: var(--bug-gold) !important;
+  margin-bottom: 0.1rem;
+}
+.versus-bug-series-rec {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--bug-cream) !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+.versus-bug-scores {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+.versus-bug-well {
+  flex: 1;
+  background: #0c0c0c;
+  border: 1px solid #5c4a1e;
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.75), 0 1px 0 rgba(255, 255, 255, 0.08);
+  text-align: center;
+  padding: 0.28rem 0.2rem 0.22rem;
+}
+.versus-bug-pts {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--bug-amber) !important;
+  text-shadow: 0 0 8px rgba(240, 211, 106, 0.35);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+.versus-bug-pts-lab {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 0.28em;
+  color: var(--bug-gold) !important;
+  margin-top: 0.12rem;
+}
+.versus-bug-key {
+  margin-top: 0.35rem;
+  text-align: center;
+  font-size: 7px;
+  letter-spacing: 0.18em;
+  color: rgba(201, 164, 74, 0.75) !important;
+}
