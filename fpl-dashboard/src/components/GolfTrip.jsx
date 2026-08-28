@@ -423,6 +423,49 @@ function holeStatus(winners) {
   return out;
 }
 
+function netOnHole(row, h) {
+  return typeof row?.gross[h] === "number" ? row.gross[h] - row.dots[h] : null;
+}
+
+function statusFromWinners(winners, mySide) {
+  const last = [...holeStatus(winners)].reverse().find(Boolean);
+  if (!last) return null;
+  if (!last.who) return { label: "AS", won: false, lost: false };
+  if (last.who === mySide) return { label: last.label, won: true, lost: false };
+  const label = last.label.endsWith(" up") ? last.label.replace(/ up$/, " down") : `${last.label} down`;
+  return { label, won: false, lost: true };
+}
+
+/** 2v2: this player 1v1 vs each opponent (partner never teed it up). */
+function soloVsOpponents(card, playerName) {
+  const rows = card?.rows;
+  if (!rows || card.scoring === "stableford" || rows.some((r) => r.name.includes(" + "))) return null;
+  const me = rows.find((r) => r.name === playerName || nameOnCard(r.name, playerName));
+  if (!me) return null;
+  const mates = rows.filter((r) => r.side === me.side);
+  const opp = rows.filter((r) => r.side !== me.side);
+  if (mates.length < 2 || opp.length < 1) return null;
+  const out = [];
+  for (const o of opp) {
+    const winners = [];
+    let compared = 0;
+    for (let h = 0; h < 18; h++) {
+      const a = netOnHole(me, h);
+      const b = netOnHole(o, h);
+      if (a == null || b == null) {
+        winners.push(null);
+        continue;
+      }
+      compared += 1;
+      winners.push(a < b ? me.side : a > b ? o.side : "T");
+    }
+    if (compared < 6) continue;
+    const st = statusFromWinners(winners, me.side);
+    if (st) out.push({ opp: lastName(o.name), ...st });
+  }
+  return out.length ? out : null;
+}
+
 function Scorecard({ m, pars, highlight }) {
   const { rows, winners } = m.card;
   const grid = { display: "grid", gridTemplateColumns: "4.6rem repeat(9, minmax(0, 1fr)) 1.9rem" };
@@ -577,15 +620,38 @@ function Scorecard({ m, pars, highlight }) {
 function MatchRow({ m, pars }) {
   const [open, setOpen] = useState(false);
   const hasCard = !!m.card;
+  const solos = useMemo(() => {
+    const out = {};
+    for (const n of [...(m.playersL || []), ...(m.playersR || [])]) {
+      const s = soloVsOpponents(m.card, n);
+      if (s) out[n] = s;
+    }
+    return out;
+  }, [m]);
   const side = (team, names, pts, won) => (
     <div className="flex-1 min-w-0 py-2">
       <div className={`text-[10px] font-semibold uppercase tracking-wider ${TEAM[team]?.text || "text-gray-500"}`}>
         {team}
         {pts != null && <span className="text-gray-600 normal-case tracking-normal"> · {pts}</span>}
       </div>
-      {names.map((n) => (
-        <div key={n} className={`text-xs sm:text-sm truncate ${won ? "text-white font-semibold" : "text-gray-500"}`}>{n}</div>
-      ))}
+      {names.map((n) => {
+        const solo = solos[n];
+        return (
+          <div key={n} className="min-w-0 mb-1 last:mb-0">
+            <div className={`text-xs sm:text-sm truncate ${won ? "text-white font-semibold" : "text-gray-500"}`}>{n}</div>
+            {solo?.map((s) => (
+              <div
+                key={s.opp}
+                className={`text-[10px] leading-tight truncate ${
+                  s.won ? "text-emerald-400" : s.lost ? "text-gray-600" : "text-gray-500"
+                }`}
+              >
+                vs {s.opp} {s.label}
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
   return (
@@ -662,8 +728,14 @@ function Tournament({ t, pars }) {
 
   let body = null;
   if (t.type === "match") {
+    const hasSolo = t.matches.some((m) => m.playersL?.length === 2 && m.playersR?.length === 2 && m.card && !m.card.rows?.some((r) => r.name.includes(" + ")));
     body = (
       <div className="space-y-0 divide-y divide-slate-800">
+        {hasSolo && (
+          <div className="text-[10px] text-gray-600 px-0.5 pb-1.5">
+            Under each name: 1v1 if their partner sat
+          </div>
+        )}
         {t.matches.map((m, i) => <MatchRow key={i} m={m} pars={pars} />)}
         {t.matches?.length > 0 && (
           <div className="flex justify-between text-[11px] font-semibold pt-1 px-1 text-gray-400">
