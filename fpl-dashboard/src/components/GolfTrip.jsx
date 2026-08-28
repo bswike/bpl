@@ -546,9 +546,14 @@ function soloVsOpponents(card, playerName) {
   return out.length ? out : null;
 }
 
-function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
+function rangeTotal(arr, start, n = 9) {
+  const slice = (arr || []).slice(start, start + n);
+  if (!slice.some((v) => typeof v === "number")) return null;
+  return slice.reduce((a, v) => a + (typeof v === "number" ? v : 0), 0);
+}
+
+function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact }) {
   const { rows, winners } = m.card;
-  const grid = { display: "grid", gridTemplateColumns: "6.4rem repeat(9, minmax(0, 1fr)) 2.1rem" };
   const status = holeStatus(winners);
   const si = hcp?.si || (hcp ? inferStrokeIndex(rows) : null);
   const labelHi = hcp?.hiBy || hiBy;
@@ -593,6 +598,9 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
     { start: 0, label: "Out" },
     { start: 9, label: "In" },
   ].filter(({ start }) => rows.some((r) => r.gross.slice(start, start + 9).some((g) => g != null)));
+  const hasFront = halves.some((h) => h.start === 0);
+  const gridNine = { display: "grid", gridTemplateColumns: "6.4rem repeat(9, minmax(0, 1fr)) 2.1rem" };
+  const gridBackTot = { display: "grid", gridTemplateColumns: "6.4rem repeat(9, minmax(0, 1fr)) 1.75rem 1.75rem 2.15rem" };
 
   const winCell = (i) => {
     const w = winners[i];
@@ -603,11 +611,19 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
   };
 
   return (
-    <div className="mt-2 mb-1 rounded-md bg-slate-950/70 border border-slate-800 p-2">
+    <div className={`${compact ? "mt-1 mb-0 p-1.5" : "mt-2 mb-1 p-2"} rounded-md bg-slate-950/70 border border-slate-800`}>
       {halves.map(({ start, label }) => {
         const idx = Array.from({ length: 9 }, (_, k) => start + k);
+        const runTot = compact && start === 9 && hasFront;
+        const grid = runTot ? gridBackTot : gridNine;
+        const split = start === 0 && halves.length > 1
+          ? (compact ? "mb-2.5" : "mb-6")
+          : halves.length > 1
+            ? (compact ? "mt-2.5 pt-2.5 border-t border-slate-600" : "mt-6 pt-5 border-t border-slate-600")
+            : "";
+        const nineLab = compact ? (label === "Out" ? "F9" : label === "In" ? "B9" : label) : label;
         return (
-          <div key={label} className={start === 0 && halves.length > 1 ? "mb-6" : halves.length > 1 ? "mt-6 pt-5 border-t border-slate-600" : ""}>
+          <div key={label} className={split}>
             <div style={grid} className="text-[9px] uppercase tracking-wider text-gray-500 mb-0.5">
               <div className="flex items-center pl-1 text-gray-400 font-semibold">{label === "Out" ? "Front" : label === "In" ? "Back" : "Hole"}</div>
               {idx.map((i) => (
@@ -615,7 +631,9 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
                   {i + 1}
                 </div>
               ))}
-              <div className="flex items-center justify-center">{label}</div>
+              <div className="flex items-center justify-center">{nineLab}</div>
+              {runTot && <div className="flex items-center justify-center">F9</div>}
+              {runTot && <div className="flex items-center justify-center rounded-sm bg-slate-800/50 mx-0.5">Tot</div>}
             </div>
             {pars && (
               <div style={grid} className="text-[9px] text-gray-500 border-b border-slate-800">
@@ -624,19 +642,28 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
                   <div key={i} className="flex items-center justify-center h-4 tabular-nums">{pars[i] ?? ""}</div>
                 ))}
                 <div className="flex items-center justify-center tabular-nums">
-                  {pars.slice(start, start + 9).every((p) => p != null) ? pars.slice(start, start + 9).reduce((a, b) => a + b, 0) : ""}
+                  {rangeTotal(pars, start) ?? ""}
                 </div>
+                {runTot && <div className="flex items-center justify-center tabular-nums">{rangeTotal(pars, 0) ?? ""}</div>}
+                {runTot && (
+                  <div className="flex items-center justify-center tabular-nums font-semibold mx-0.5">
+                    {(rangeTotal(pars, 0) || 0) + (rangeTotal(pars, 9) || 0) || ""}
+                  </div>
+                )}
               </div>
             )}
             {rows.map((r) => {
               const dots = dotsOf(r);
-              const tot = idx.reduce((a, i) => a + (typeof r.gross[i] === "number" ? r.gross[i] : 0), 0);
+              const tot = rangeTotal(r.gross, start);
               const netTot = hcp
                 ? idx.reduce((a, i) => a + (typeof r.gross[i] === "number" ? r.gross[i] - (dots[i] || 0) : 0), 0)
                 : null;
               const team = r.side === "L" ? m.teamL : m.teamR;
               const mine = highlight && nameOnCard(r.name, highlight);
               const cap = hcpCaption(r.name, labelHi, labelCourse);
+              const f9 = runTot ? rangeTotal(r.gross, 0) : null;
+              const b9 = runTot ? rangeTotal(r.gross, 9) : null;
+              const all18 = f9 == null && b9 == null ? null : (f9 || 0) + (b9 || 0);
               return (
                 <div key={r.name} style={grid} className={highlight && !mine ? "opacity-45" : ""}>
                   <div className="flex items-center gap-1 pl-1 min-w-0">
@@ -655,6 +682,12 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
                       <span className="text-[8px] tabular-nums text-gray-500 mt-0.5">{netTot}</span>
                     ) : null}
                   </div>
+                  {runTot && (
+                    <div className="flex items-center justify-center tabular-nums text-[10px] font-semibold text-gray-300">{f9 ?? "—"}</div>
+                  )}
+                  {runTot && (
+                    <div className="flex items-center justify-center h-6 mx-0.5 rounded-sm bg-slate-800/50 tabular-nums text-[11px] font-bold text-gray-100">{all18 ?? "—"}</div>
+                  )}
                 </div>
               );
             })}
@@ -677,6 +710,8 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
                 );
               })}
               <div />
+              {runTot && <div />}
+              {runTot && <div />}
             </div>
             )}
           </div>
@@ -696,7 +731,7 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course }) {
       {m.card.scoring === "stableford" && (
         <div className="mt-1.5 text-[10px] text-gray-500">Both balls · hole color is who scored more Stableford points</div>
       )}
-      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 pt-1.5 border-t border-slate-800 text-[9px] text-gray-500">
+      <div className={`flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-800 text-[9px] text-gray-500 ${compact ? "mt-1.5 pt-1" : "mt-2 pt-1.5"}`}>
         <span className="flex items-center gap-1">
           <span className="w-3 h-3 rounded-full border border-emerald-300/90" /> birdie
         </span>
@@ -3415,53 +3450,90 @@ function versusStats(matches) {
   return { w, l, t, ptsL, ptsR };
 }
 
-function VersusBulbs({ n, vertical }) {
+const LAMP_DIGITS = {
+  0: ["11111", "10001", "10001", "10001", "10001", "10001", "11111"],
+  1: ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+  2: ["11111", "00001", "00001", "11111", "10000", "10000", "11111"],
+  3: ["11111", "00001", "00001", "11111", "00001", "00001", "11111"],
+  4: ["10001", "10001", "10001", "11111", "00001", "00001", "00001"],
+  5: ["11111", "10000", "10000", "11111", "00001", "00001", "11111"],
+  6: ["11111", "10000", "10000", "11111", "10001", "10001", "11111"],
+  7: ["11111", "00001", "00010", "00100", "00100", "00100", "00100"],
+  8: ["11111", "10001", "10001", "11111", "10001", "10001", "11111"],
+  9: ["11111", "10001", "10001", "11111", "00001", "00001", "11111"],
+  "-": ["00000", "00000", "00000", "01110", "00000", "00000", "00000"],
+};
+
+function VersusDigit({ ch }) {
+  if (ch === ".") {
+    return (
+      <div className="versus-digit versus-digit-dot" aria-hidden>
+        {Array.from({ length: 10 }, (_, i) => (
+          <span key={i} className="versus-lamp" />
+        ))}
+        <span className="versus-lamp on" />
+        <span className="versus-lamp on" />
+        <span className="versus-lamp on" />
+        <span className="versus-lamp on" />
+      </div>
+    );
+  }
+  const rows = LAMP_DIGITS[ch] || LAMP_DIGITS["-"];
   return (
-    <div className={vertical ? "versus-bug-edge-v" : "versus-bug-edge-h"} aria-hidden>
-      {Array.from({ length: n }, (_, i) => (
-        <span key={i} className="versus-bug-bulb" />
+    <div className="versus-digit" aria-hidden>
+      {rows.flatMap((row, r) =>
+        [...row].map((bit, c) => (
+          <span key={`${r}-${c}`} className={bit === "1" ? "versus-lamp on" : "versus-lamp"} />
+        )),
+      )}
+    </div>
+  );
+}
+
+function VersusReadout({ text }) {
+  const chars = String(text).replace(/[–—]/g, "-").split("");
+  return (
+    <div className="versus-readout" aria-label={text}>
+      {chars.map((ch, i) => (
+        <VersusDigit key={`${ch}-${i}`} ch={ch} />
       ))}
     </div>
   );
 }
 
-function VersusBug({ left, right, leftTeam, rightTeam, stats }) {
-  const rec = `${stats.w}–${stats.l}${stats.t ? `–${stats.t}` : ""}`;
+function VersusBug({ left, right, stats }) {
+  const rec = `${stats.w}-${stats.l}${stats.t ? `-${stats.t}` : ""}`;
+  const played = Math.min(4, stats.w + stats.l + stats.t);
   return (
-    <div className="versus-bug-shell mb-3">
-      <VersusBulbs n={13} />
-      <div className="versus-bug-mid">
-        <VersusBulbs n={6} vertical />
-        <div className="versus-bug">
-          <div className="versus-bug-top">
-            <div className="versus-bug-name">
-              <span className={`versus-bug-stripe ${leftTeam === "North" ? "versus-bug-north" : "versus-bug-south"}`} />
-              <span>{familyName(left)}</span>
-            </div>
-            <div className="versus-bug-series">
-              <span className="versus-bug-series-lab">Series</span>
-              <span className="versus-bug-series-rec">{rec}</span>
-            </div>
-            <div className="versus-bug-name versus-bug-name-right">
-              <span>{familyName(right)}</span>
-              <span className={`versus-bug-stripe ${rightTeam === "North" ? "versus-bug-north" : "versus-bug-south"}`} />
+    <div className="versus-bug-shell">
+      <div className="versus-bug">
+        <div className="versus-bug-script">Scoremaster</div>
+        <div className="versus-bug-row">
+          <div className="versus-bug-side">
+            <span className="versus-bug-lab">Pts</span>
+            <VersusReadout text={fmtPts(stats.ptsL)} />
+            <div className="versus-plate">{familyName(left)}</div>
+          </div>
+          <div className="versus-bug-center">
+            <span className="versus-bug-lab">Series</span>
+            <VersusReadout text={rec} />
+            <div className="versus-periods">
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="versus-period-wrap">
+                  <span className={n <= played ? "versus-period on" : "versus-period"} />
+                  <span className="versus-period-n">{n}</span>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="versus-bug-scores">
-            <div className="versus-bug-well">
-              <span className="versus-bug-pts">{fmtPts(stats.ptsL)}</span>
-              <span className="versus-bug-pts-lab">Pts</span>
-            </div>
-            <div className="versus-bug-well">
-              <span className="versus-bug-pts">{fmtPts(stats.ptsR)}</span>
-              <span className="versus-bug-pts-lab">Pts</span>
-            </div>
+          <div className="versus-bug-side">
+            <span className="versus-bug-lab">Pts</span>
+            <VersusReadout text={fmtPts(stats.ptsR)} />
+            <div className="versus-plate">{familyName(right)}</div>
           </div>
-          <div className="versus-bug-key">Hole 1 · Tie .5 · Match 1</div>
         </div>
-        <VersusBulbs n={6} vertical />
+        <div className="versus-bug-key">Hole 1 · Tie .5 · Match 1</div>
       </div>
-      <VersusBulbs n={13} />
     </div>
   );
 }
@@ -3469,7 +3541,7 @@ function VersusBug({ left, right, leftTeam, rightTeam, stats }) {
 function VersusSlot({ name, team, placeholder, onClear, locked }) {
   if (!name) {
     return (
-      <div className="flex-1 min-w-0 rounded-xl border border-dashed border-slate-600 px-2 py-3 text-center text-[11px] text-gray-500">
+      <div className="flex-1 min-w-0 rounded-md border border-dashed border-slate-600 px-2 py-1.5 text-center text-[11px] text-gray-500">
         {placeholder}
       </div>
     );
@@ -3478,15 +3550,16 @@ function VersusSlot({ name, team, placeholder, onClear, locked }) {
     <button
       type="button"
       onClick={onClear}
-      className={`flex-1 min-w-0 rounded-xl border px-2 py-2.5 text-center ${
-        TEAM[team]?.chip || "bg-slate-800 border-slate-600 text-gray-200"
-      }`}
+      className={`min-w-0 border text-center ${
+        locked ? "rounded px-2 py-0.5" : "flex-1 rounded-md px-2 py-1.5"
+      } ${TEAM[team]?.chip || "bg-slate-800 border-slate-600 text-gray-200"}`}
     >
-      <div className="flex items-center justify-center gap-1.5">
+      <div className="flex items-center justify-center gap-1">
         <TeamDot team={team} />
-        <span className="font-semibold text-gray-100 truncate">{firstLast(name)}</span>
+        <span className={`font-semibold truncate ${locked ? "text-[11px]" : "text-[13px]"}`}>
+          {firstLast(name)}
+        </span>
       </div>
-      {!locked && <div className="text-[9px] text-gray-500 mt-0.5">tap to clear</div>}
     </button>
   );
 }
@@ -3550,37 +3623,37 @@ function Versus({ rounds, players }) {
   const locked = !!(left && right);
 
   return (
-    <div className="space-y-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <div>
+    <div className={locked ? "space-y-2" : "space-y-4"}>
+      {locked ? (
+        <div className="flex items-center gap-1.5">
+          <VersusSlot name={left} team={teamOf[left]} locked onClear={() => setLeft(null)} />
+          <div className="shrink-0 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
+          <VersusSlot name={right} team={teamOf[right]} locked onClear={() => setRight(null)} />
+          <button
+            type="button"
+            onClick={() => {
+              setLeft(null);
+              setRight(null);
+            }}
+            className="ml-auto shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-gray-400 hover:text-white"
+          >
+            Clear
+          </button>
+        </div>
+      ) : (
+        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+          <div className="mb-1">
             <div className="text-sm font-semibold text-gray-100">Versus</div>
-            {!locked && (
-              <div className="text-[11px] text-gray-500">
-                Hypothetical 1v1 · 100% course handicap · {boards.map((b) => b.label).join(" & ")}
-              </div>
-            )}
+            <div className="text-[11px] text-gray-500">
+              Hypothetical 1v1 · 100% course handicap · {boards.map((b) => b.label).join(" & ")}
+            </div>
           </div>
-          {locked && (
-            <button
-              type="button"
-              onClick={() => {
-                setLeft(null);
-                setRight(null);
-              }}
-              className="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-lg bg-slate-800 text-gray-400 hover:text-white"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-        <div className={`flex items-stretch gap-2 ${locked ? "mt-2" : "mt-3 mb-3"}`}>
-          <VersusSlot name={left} team={teamOf[left]} placeholder="Pick player" locked={locked} onClear={() => setLeft(null)} />
-          <div className="shrink-0 self-center text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
-          <VersusSlot name={right} team={teamOf[right]} placeholder="Pick opponent" locked={locked} onClear={() => setRight(null)} />
-        </div>
-        {!locked &&
-          byTeam.map((g) => (
+          <div className="flex items-stretch gap-2 mt-3 mb-3">
+            <VersusSlot name={left} team={teamOf[left]} placeholder="Pick player" onClear={() => setLeft(null)} />
+            <div className="shrink-0 self-center text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
+            <VersusSlot name={right} team={teamOf[right]} placeholder="Pick opponent" onClear={() => setRight(null)} />
+          </div>
+          {byTeam.map((g) => (
             <div key={g.team} className="mb-2 last:mb-0">
               <div className={`text-[10px] uppercase tracking-wider font-semibold mb-1 ${TEAM[g.team]?.text || "text-gray-500"}`}>
                 {g.team}
@@ -3604,13 +3677,14 @@ function Versus({ rounds, players }) {
               </div>
             </div>
           ))}
-      </div>
+        </div>
+      )}
 
       {locked && (
         <>
-          <VersusBug left={left} right={right} leftTeam={teamOf[left]} rightTeam={teamOf[right]} stats={stats} />
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-            <div className="space-y-4">
+          <VersusBug left={left} right={right} stats={stats} />
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-2.5 sm:p-4">
+            <div className="space-y-3">
             {matches.map((m) => {
               if (m.missing) {
                 return (
@@ -3629,7 +3703,7 @@ function Versus({ rounds, players }) {
               const give = m.ha === m.hb ? "even" : m.ha > m.hb ? `${firstLast(left)} gets ${m.ha - m.hb}` : `${firstLast(right)} gets ${m.hb - m.ha}`;
               return (
                 <div key={m.label}>
-                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                  <div className="flex items-baseline justify-between gap-2 mb-0.5">
                     <div>
                       <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{m.label}</div>
                       <div className="text-[10px] text-gray-600 tabular-nums">
@@ -3640,12 +3714,12 @@ function Versus({ rounds, players }) {
                       {who}
                     </div>
                   </div>
-                  <Scorecard m={m.match} pars={m.pars} highlight={left} hiBy={m.hiBy} course={m.course} />
+                  <Scorecard m={m.match} pars={m.pars} highlight={left} hiBy={m.hiBy} course={m.course} compact />
                 </div>
               );
             })}
+            </div>
           </div>
-        </div>
         </>
       )}
     </div>

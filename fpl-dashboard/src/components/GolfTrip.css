@@ -102,159 +102,176 @@
 .gg-theme .text-violet-300 { color: #6a1b9a !important; }
 .gg-theme .bg-violet-500 { background-color: #7b1fa2 !important; }
 
-/* Versus scorebug: marquee bulbs on a transparent field. */
+/* Versus Scoremaster: bubble-lamp digits on a black board, transparent around it. */
 .versus-bug-shell {
   background: transparent;
   padding: 0;
 }
-.versus-bug-edge-h,
-.versus-bug-edge-v {
+.versus-bug {
+  --lamp: 5px;
+  --lamp-gap: 1.5px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.04), transparent 42%),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px),
+    #0b0b0b;
+  border-radius: 5px;
+  padding: 8px 6px 6px;
+  color: #f5f5f5 !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+.versus-bug-row {
   display: flex;
+  align-items: flex-end;
   justify-content: space-between;
-  background: transparent;
-  pointer-events: none;
+  gap: 6px;
 }
-.versus-bug-edge-h {
-  padding: 1px 10px 2px;
-}
-.versus-bug-edge-v {
-  flex-direction: column;
-  padding: 8px 1px;
-}
-.versus-bug-mid {
+.versus-bug-side {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: stretch;
-  gap: 3px;
-  background: transparent;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
-.versus-bug-bulb {
+.versus-bug-center {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding-bottom: 0;
+}
+.versus-bug-lab {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #fff !important;
+}
+.versus-bug-script {
+  font-family: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: #fff !important;
+  text-transform: none;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.versus-readout {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 4px;
+  min-height: calc(7 * var(--lamp) + 6 * var(--lamp-gap));
+}
+.versus-digit {
+  display: grid;
+  grid-template-columns: repeat(5, var(--lamp));
+  grid-auto-rows: var(--lamp);
+  gap: var(--lamp-gap);
+}
+.versus-digit-dot {
+  grid-template-columns: repeat(2, var(--lamp));
+  align-self: end;
+}
+.versus-lamp {
+  width: var(--lamp);
+  height: var(--lamp);
+  border-radius: 50%;
+  background: #161616;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+.versus-lamp.on {
+  background: radial-gradient(circle at 32% 28%, #ffe7a8 0 22%, #ffb02a 42%, #e06000 78%, #9a2e00 100%);
+  box-shadow: 0 0 5px 1px rgba(255, 140, 20, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  animation: versus-flicker 2.8s ease-in-out infinite;
+}
+.versus-lamp.on:nth-child(3n) { animation-delay: 0.4s; }
+.versus-lamp.on:nth-child(5n) { animation-delay: 1.1s; animation-duration: 3.4s; }
+.gg-theme .versus-bug {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.04), transparent 42%),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px),
+    #0b0b0b !important;
+  color: #f5f5f5 !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28) !important;
+}
+.gg-theme .versus-plate {
+  background: linear-gradient(180deg, #fff 0%, #ece6d4 55%, #ddd4bc 100%) !important;
+  color: #111 !important;
+}
+@keyframes versus-flicker {
+  0%, 100% { filter: brightness(1); }
+  40% { filter: brightness(1.08); }
+  70% { filter: brightness(0.94); }
+}
+.versus-periods {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.versus-period-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.versus-period-n {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 7px;
+  font-weight: 800;
+  color: #fff !important;
+  line-height: 1;
+}
+.versus-period {
   width: 7px;
   height: 7px;
-  flex-shrink: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, #fff8d6 0 28%, #ffd45a 48%, #c47a12 100%);
-  box-shadow: 0 0 5px 1px rgba(255, 196, 64, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-  animation: versus-bug-twinkle 1.35s ease-in-out infinite;
+  background: #2a1212;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
 }
-.versus-bug-bulb:nth-child(even) {
-  animation-delay: 0.67s;
+.versus-period.on {
+  background: radial-gradient(circle at 35% 30%, #ff8a8a, #e31b1b 55%, #7a0000);
+  box-shadow: 0 0 6px 1px rgba(227, 27, 27, 0.7);
 }
-@keyframes versus-bug-twinkle {
-  0%, 100% { opacity: 1; filter: brightness(1.25); }
-  50% { opacity: 0.55; filter: brightness(0.8); }
-}
-.versus-bug {
-  --bug-cream: #f3e6c4;
-  --bug-gold: #c9a44a;
-  --bug-amber: #f0d36a;
-  flex: 1;
-  min-width: 0;
-  font-family: "Arial Narrow", "Franklin Gothic Medium", "Nimbus Sans Narrow", Impact, sans-serif;
-  background:
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 3px),
-    linear-gradient(180deg, #245334 0%, #163822 48%, #0e2416 100%);
-  border: 1px solid var(--bug-gold);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -2px 0 rgba(0, 0, 0, 0.35);
-  border-radius: 2px;
-  padding: 0.5rem 0.6rem 0.4rem;
-  color: var(--bug-cream) !important;
-}
-.versus-bug * {
-  color: inherit;
-}
-.versus-bug-top {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 0.4rem;
-}
-.versus-bug-name {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+.versus-plate {
+  width: 100%;
+  background: linear-gradient(180deg, #fff 0%, #ece6d4 55%, #ddd4bc 100%);
+  color: #111 !important;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  line-height: 1.1;
-}
-.versus-bug-name span {
-  min-width: 0;
+  text-align: center;
+  padding: 4px 5px 3px;
+  border-radius: 1px;
+  box-shadow: inset 0 0 10px rgba(255, 255, 230, 0.7), 0 0 10px rgba(255, 255, 255, 0.12);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.versus-bug-name-right {
-  justify-content: flex-end;
-  text-align: right;
-}
-.versus-bug-stripe {
-  width: 5px;
-  height: 1.15rem;
-  flex-shrink: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-.versus-bug-south { background: #b43b32; }
-.versus-bug-north { background: #2a6aa8; }
-.versus-bug-series {
-  flex-shrink: 0;
-  text-align: center;
-  padding: 0 0.35rem;
-}
-.versus-bug-series-lab {
-  display: block;
-  font-size: 8px;
-  letter-spacing: 0.22em;
-  color: var(--bug-gold) !important;
-  margin-bottom: 0.1rem;
-}
-.versus-bug-series-rec {
-  display: block;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--bug-cream) !important;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
-}
-.versus-bug-scores {
-  display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
-}
-.versus-bug-well {
-  flex: 1;
-  background: #0c0c0c;
-  border: 1px solid #5c4a1e;
-  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.75), 0 1px 0 rgba(255, 255, 255, 0.08);
-  text-align: center;
-  padding: 0.28rem 0.2rem 0.22rem;
-}
-.versus-bug-pts {
-  display: block;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: var(--bug-amber) !important;
-  text-shadow: 0 0 8px rgba(240, 211, 106, 0.35);
-  font-variant-numeric: tabular-nums;
-  line-height: 1.05;
-}
-.versus-bug-pts-lab {
-  display: block;
-  font-size: 7px;
-  letter-spacing: 0.28em;
-  color: var(--bug-gold) !important;
-  margin-top: 0.12rem;
-}
 .versus-bug-key {
-  margin-top: 0.35rem;
+  margin-top: 4px;
   text-align: center;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 7px;
-  letter-spacing: 0.18em;
-  color: rgba(201, 164, 74, 0.75) !important;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #9a9a9a !important;
+}
+@media (min-width: 640px) {
+  .versus-bug {
+    --lamp: 6px;
+    --lamp-gap: 2px;
+    padding: 14px 14px 12px;
+  }
+  .versus-bug-lab { font-size: 9px; }
+  .versus-plate { font-size: 13px; padding: 7px 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .versus-bug-bulb { animation: none; }
+  .versus-lamp.on { animation: none; }
 }
