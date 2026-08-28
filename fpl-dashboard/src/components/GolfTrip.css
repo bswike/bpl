@@ -275,3 +275,36 @@
 @media (prefers-reduced-motion: reduce) {
   .versus-lamp.on { animation: none; }
 }
+
+.versus-intra-l-text { color: #c4a5f5 !important; }
+.versus-intra-l-cell { background-color: rgba(139, 92, 246, 0.32) !important; }
+.versus-intra-l-dot { background-color: #a78bfa !important; }
+.versus-intra-l-chip {
+  background-color: rgba(139, 92, 246, 0.16) !important;
+  color: #c4a5f5 !important;
+  border-color: rgba(167, 139, 250, 0.45) !important;
+}
+.versus-intra-r-text { color: #e7c35a !important; }
+.versus-intra-r-cell { background-color: rgba(201, 164, 74, 0.38) !important; }
+.versus-intra-r-dot { background-color: #e7c35a !important; }
+.versus-intra-r-chip {
+  background-color: rgba(201, 164, 74, 0.16) !important;
+  color: #e7c35a !important;
+  border-color: rgba(201, 164, 74, 0.5) !important;
+}
+.gg-theme .versus-intra-l-text { color: #6a1b9a !important; }
+.gg-theme .versus-intra-l-cell { background-color: #ead6f5 !important; }
+.gg-theme .versus-intra-l-dot { background-color: #7b1fa2 !important; }
+.gg-theme .versus-intra-l-chip {
+  background-color: #f4e8fb !important;
+  color: #6a1b9a !important;
+  border-color: #ce93d8 !important;
+}
+.gg-theme .versus-intra-r-text { color: #8a6a10 !important; }
+.gg-theme .versus-intra-r-cell { background-color: #f4e7c3 !important; }
+.gg-theme .versus-intra-r-dot { background-color: #c4a035 !important; }
+.gg-theme .versus-intra-r-chip {
+  background-color: #faf3dc !important;
+  color: #8a6a10 !important;
+  border-color: #c4a035 !important;
+}

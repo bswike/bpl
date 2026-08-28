@@ -37,6 +37,22 @@ const TEAM = {
   },
 };
 
+/* Same-team Versus: purple vs gold so hole wins aren't all South-red or North-blue. */
+const VERSUS_INTRA = {
+  L: {
+    text: "versus-intra-l-text",
+    dot: "versus-intra-l-dot",
+    chip: "versus-intra-l-chip border",
+    cell: "versus-intra-l-cell",
+  },
+  R: {
+    text: "versus-intra-r-text",
+    dot: "versus-intra-r-dot",
+    chip: "versus-intra-r-chip border",
+    cell: "versus-intra-r-cell",
+  },
+};
+
 const fmtMoney = (n) => {
   if (n == null) return "—";
   const v = Number(n);
@@ -79,9 +95,9 @@ function hcpCaption(name, hiBy, course) {
 const nameOnCard = (rowName, player) =>
   rowName === player || rowName.split(" + ").map((s) => s.trim()).includes(player);
 
-function TeamDot({ team }) {
-  if (!team) return <span className="inline-block w-2 h-2 rounded-full bg-slate-600 shrink-0" />;
-  return <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${TEAM[team]?.dot || "bg-slate-600"}`} />;
+function TeamDot({ team, className }) {
+  if (!team && !className) return <span className="inline-block w-2 h-2 rounded-full bg-slate-600 shrink-0" />;
+  return <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${className || TEAM[team]?.dot || "bg-slate-600"}`} />;
 }
 
 function Record({ p }) {
@@ -552,7 +568,7 @@ function rangeTotal(arr, start, n = 9) {
   return slice.reduce((a, v) => a + (typeof v === "number" ? v : 0), 0);
 }
 
-function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact }) {
+function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors }) {
   const { rows, winners } = m.card;
   const status = holeStatus(winners);
   const si = hcp?.si || (hcp ? inferStrokeIndex(rows) : null);
@@ -602,10 +618,12 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact }) {
   const gridNine = { display: "grid", gridTemplateColumns: "6.4rem repeat(9, minmax(0, 1fr)) 2.1rem" };
   const gridBackTot = { display: "grid", gridTemplateColumns: "6.4rem repeat(9, minmax(0, 1fr)) 1.75rem 1.75rem 2.15rem" };
 
+  const palL = colors?.L || TEAM[m.teamL];
+  const palR = colors?.R || TEAM[m.teamR];
   const winCell = (i) => {
     const w = winners[i];
-    if (w === "L") return TEAM[m.teamL]?.cell || "bg-slate-700";
-    if (w === "R") return TEAM[m.teamR]?.cell || "bg-slate-700";
+    if (w === "L") return palL?.cell || "bg-slate-700";
+    if (w === "R") return palR?.cell || "bg-slate-700";
     if (w === "T") return "bg-slate-700/60";
     return "";
   };
@@ -652,68 +670,75 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact }) {
                 )}
               </div>
             )}
-            {rows.map((r) => {
-              const dots = dotsOf(r);
-              const tot = rangeTotal(r.gross, start);
-              const netTot = hcp
-                ? idx.reduce((a, i) => a + (typeof r.gross[i] === "number" ? r.gross[i] - (dots[i] || 0) : 0), 0)
-                : null;
-              const team = r.side === "L" ? m.teamL : m.teamR;
-              const mine = highlight && nameOnCard(r.name, highlight);
-              const cap = hcpCaption(r.name, labelHi, labelCourse);
-              const f9 = runTot ? rangeTotal(r.gross, 0) : null;
-              const b9 = runTot ? rangeTotal(r.gross, 9) : null;
-              const all18 = f9 == null && b9 == null ? null : (f9 || 0) + (b9 || 0);
-              return (
-                <div key={r.name} style={grid} className={highlight && !mine ? "opacity-45" : ""}>
-                  <div className="flex items-center gap-1 pl-1 min-w-0">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${TEAM[team]?.dot || "bg-slate-600"}`} />
-                    <span className="min-w-0 leading-tight">
-                      <span className={`text-[9px] truncate block ${mine ? "text-white font-semibold" : "text-gray-300"}`}>{cardName(r.name)}</span>
-                      {cap && <span className="text-[8px] tabular-nums text-gray-500 block truncate">{cap}</span>}
-                    </span>
-                  </div>
-                  {idx.map((i) => (
-                    <ScoreCell key={i} gross={r.gross[i]} dots={dots[i]} par={pars?.[i]} counted={isCounting(r, i)} />
-                  ))}
-                  <div className="flex flex-col items-center justify-center leading-none">
-                    <span className="text-[10px] tabular-nums text-gray-300 font-semibold">{tot || ""}</span>
-                    {netTot != null && tot ? (
-                      <span className="text-[8px] tabular-nums text-gray-500 mt-0.5">{netTot}</span>
-                    ) : null}
-                  </div>
-                  {runTot && (
-                    <div className="flex items-center justify-center tabular-nums text-[10px] font-semibold text-gray-300">{f9 ?? "—"}</div>
-                  )}
-                  {runTot && (
-                    <div className="flex items-center justify-center h-6 mx-0.5 rounded-sm bg-slate-800/50 tabular-nums text-[11px] font-bold text-gray-100">{all18 ?? "—"}</div>
-                  )}
-                </div>
-              );
-            })}
-            {m.card.scoring !== "stableford" && (
-            <div style={grid} className="mt-0.5">
-              <div className="flex items-center pl-1 text-[9px] uppercase tracking-wider text-gray-500 font-semibold">Match</div>
-              {idx.map((i) => {
-                const s = status[i];
-                if (!s) return <div key={i} />;
-                const team = s.who === "L" ? m.teamL : s.who === "R" ? m.teamR : null;
+            {(() => {
+              const top = rows.filter((r) => r.side === "L");
+              const bot = rows.filter((r) => r.side !== "L");
+              const playerRow = (r) => {
+                const dots = dotsOf(r);
+                const tot = rangeTotal(r.gross, start);
+                const netTot = hcp
+                  ? idx.reduce((a, i) => a + (typeof r.gross[i] === "number" ? r.gross[i] - (dots[i] || 0) : 0), 0)
+                  : null;
+                const team = r.side === "L" ? m.teamL : m.teamR;
+                const pal = r.side === "L" ? palL : palR;
+                const mine = highlight && nameOnCard(r.name, highlight);
+                const cap = hcpCaption(r.name, labelHi, labelCourse);
+                const f9 = runTot ? rangeTotal(r.gross, 0) : null;
+                const b9 = runTot ? rangeTotal(r.gross, 9) : null;
+                const all18 = f9 == null && b9 == null ? null : (f9 || 0) + (b9 || 0);
                 return (
-                  <div
-                    key={i}
-                    className={`flex items-center justify-center h-5 px-0.5 rounded-sm text-[8px] font-bold leading-none text-center ${
-                      team ? TEAM[team]?.text : "text-gray-400"
-                    } ${s.who === "L" ? TEAM[m.teamL]?.cell : s.who === "R" ? TEAM[m.teamR]?.cell : ""}`}
-                  >
-                    {s.label}
+                  <div key={r.name} style={grid} className={highlight && !mine ? "opacity-45" : ""}>
+                    <div className="flex items-center gap-1 pl-1 min-w-0">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${pal?.dot || TEAM[team]?.dot || "bg-slate-600"}`} />
+                      <span className="min-w-0 leading-tight">
+                        <span className={`text-[9px] truncate block ${mine ? "text-white font-semibold" : "text-gray-300"}`}>{cardName(r.name)}</span>
+                        {cap && <span className="text-[8px] tabular-nums text-gray-500 block truncate">{cap}</span>}
+                      </span>
+                    </div>
+                    {idx.map((i) => (
+                      <ScoreCell key={i} gross={r.gross[i]} dots={dots[i]} par={pars?.[i]} counted={isCounting(r, i)} />
+                    ))}
+                    <div className="flex flex-col items-center justify-center leading-none">
+                      <span className="text-[10px] tabular-nums text-gray-300 font-semibold">{tot || ""}</span>
+                      {netTot != null && tot ? (
+                        <span className="text-[8px] tabular-nums text-gray-500 mt-0.5">{netTot}</span>
+                      ) : null}
+                    </div>
+                    {runTot && (
+                      <div className="flex items-center justify-center tabular-nums text-[10px] font-semibold text-gray-300">{f9 ?? "—"}</div>
+                    )}
+                    {runTot && (
+                      <div className="flex items-center justify-center h-6 mx-0.5 rounded-sm bg-slate-800/50 tabular-nums text-[11px] font-bold text-gray-100">{all18 ?? "—"}</div>
+                    )}
                   </div>
                 );
-              })}
-              <div />
-              {runTot && <div />}
-              {runTot && <div />}
-            </div>
-            )}
+              };
+              const matchRow = m.card.scoring !== "stableford" && (
+                <div key="match" style={grid} className="my-0.5">
+                  <div className="flex items-center pl-1 text-[9px] uppercase tracking-wider text-gray-500 font-semibold">Match</div>
+                  {idx.map((i) => {
+                    const s = status[i];
+                    if (!s) return <div key={i} />;
+                    const pal = s.who === "L" ? palL : s.who === "R" ? palR : null;
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-center justify-center h-5 px-0.5 rounded-sm text-[8px] font-bold leading-none text-center ${
+                          pal?.text || "text-gray-400"
+                        } ${s.who === "L" ? palL?.cell || "" : s.who === "R" ? palR?.cell || "" : ""}`}
+                      >
+                        {s.label}
+                      </div>
+                    );
+                  })}
+                  <div />
+                  {runTot && <div />}
+                  {runTot && <div />}
+                </div>
+              );
+              if (!top.length) return <>{rows.map(playerRow)}{matchRow}</>;
+              return <>{top.map(playerRow)}{matchRow}{bot.map(playerRow)}</>;
+            })()}
           </div>
         );
       })}
@@ -746,8 +771,8 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact }) {
         </span>
         <span className="flex items-center gap-1"><span className="w-[3.5px] h-[3.5px] rounded-full bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.9)]" /> stroke</span>
         {labelHi && <span className="tabular-nums">HI / CH</span>}
-        <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${TEAM[m.teamL]?.cell}`} /> {m.teamL} won hole</span>
-        <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${TEAM[m.teamR]?.cell}`} /> {m.teamR} won hole</span>
+        <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${palL?.cell}`} /> {colors?.labelL || m.teamL} won hole</span>
+        <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${palR?.cell}`} /> {colors?.labelR || m.teamR} won hole</span>
       </div>
     </div>
   );
@@ -3538,7 +3563,7 @@ function VersusBug({ left, right, stats }) {
   );
 }
 
-function VersusSlot({ name, team, placeholder, onClear, locked }) {
+function VersusSlot({ name, team, placeholder, onClear, locked, tone }) {
   if (!name) {
     return (
       <div className="flex-1 min-w-0 rounded-md border border-dashed border-slate-600 px-2 py-1.5 text-center text-[11px] text-gray-500">
@@ -3546,16 +3571,17 @@ function VersusSlot({ name, team, placeholder, onClear, locked }) {
       </div>
     );
   }
+  const look = tone || TEAM[team] || { chip: "bg-slate-800 border-slate-600 text-gray-200" };
   return (
     <button
       type="button"
       onClick={onClear}
       className={`min-w-0 border text-center ${
         locked ? "rounded px-2 py-0.5" : "flex-1 rounded-md px-2 py-1.5"
-      } ${TEAM[team]?.chip || "bg-slate-800 border-slate-600 text-gray-200"}`}
+      } ${look.chip}`}
     >
       <div className="flex items-center justify-center gap-1">
-        <TeamDot team={team} />
+        <TeamDot team={team} className={tone?.dot} />
         <span className={`font-semibold truncate ${locked ? "text-[11px]" : "text-[13px]"}`}>
           {firstLast(name)}
         </span>
@@ -3621,14 +3647,18 @@ function Versus({ rounds, players }) {
   })).filter((g) => g.players.length);
 
   const locked = !!(left && right);
+  const intra = !!(locked && teamOf[left] && teamOf[left] === teamOf[right]);
+  const split = intra
+    ? { L: VERSUS_INTRA.L, R: VERSUS_INTRA.R, labelL: familyName(left), labelR: familyName(right) }
+    : null;
 
   return (
     <div className={locked ? "space-y-2" : "space-y-4"}>
       {locked ? (
         <div className="flex items-center gap-1.5">
-          <VersusSlot name={left} team={teamOf[left]} locked onClear={() => setLeft(null)} />
+          <VersusSlot name={left} team={teamOf[left]} locked tone={split?.L} onClear={() => setLeft(null)} />
           <div className="shrink-0 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
-          <VersusSlot name={right} team={teamOf[right]} locked onClear={() => setRight(null)} />
+          <VersusSlot name={right} team={teamOf[right]} locked tone={split?.R} onClear={() => setRight(null)} />
           <button
             type="button"
             onClick={() => {
@@ -3698,8 +3728,17 @@ function Versus({ rounds, players }) {
                 m.match.winner === "tie"
                   ? "AS"
                   : `${firstLast(m.match.winner === "left" ? left : right)} ${m.match.result}`;
-              const winnerTeam =
-                m.match.winner === "left" ? teamOf[left] : m.match.winner === "right" ? teamOf[right] : null;
+              const winnerTone = intra
+                ? m.match.winner === "left"
+                  ? VERSUS_INTRA.L.text
+                  : m.match.winner === "right"
+                    ? VERSUS_INTRA.R.text
+                    : "text-gray-300"
+                : (() => {
+                    const winnerTeam =
+                      m.match.winner === "left" ? teamOf[left] : m.match.winner === "right" ? teamOf[right] : null;
+                    return winnerTeam ? TEAM[winnerTeam]?.text : "text-gray-300";
+                  })();
               const give = m.ha === m.hb ? "even" : m.ha > m.hb ? `${firstLast(left)} gets ${m.ha - m.hb}` : `${firstLast(right)} gets ${m.hb - m.ha}`;
               return (
                 <div key={m.label}>
@@ -3710,11 +3749,11 @@ function Versus({ rounds, players }) {
                         CH {m.ha} / {m.hb} · {give}
                       </div>
                     </div>
-                    <div className={`text-xs font-semibold tabular-nums ${winnerTeam ? TEAM[winnerTeam]?.text : "text-gray-300"}`}>
+                    <div className={`text-xs font-semibold tabular-nums ${winnerTone}`}>
                       {who}
                     </div>
                   </div>
-                  <Scorecard m={m.match} pars={m.pars} highlight={left} hiBy={m.hiBy} course={m.course} compact />
+                  <Scorecard m={m.match} pars={m.pars} hiBy={m.hiBy} course={m.course} compact colors={split} />
                 </div>
               );
             })}
