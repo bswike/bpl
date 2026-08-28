@@ -309,6 +309,7 @@ function PlayerDetail({ p, rounds, hcpScores, hiBy }) {
                             m={x.found.mt}
                             pars={x.found.pars}
                             highlight={p.name}
+                            compact
                             hcp={{
                               hiBy,
                               course: courseOfRound(x.m.round),
@@ -454,8 +455,9 @@ function StrokePips({ n }) {
   );
 }
 
-function ScoreCell({ gross, dots, par, counted }) {
-  const shell = `relative flex items-center justify-center h-8 ${counted ? "bg-emerald-500/25 rounded-md ring-1 ring-emerald-400/40" : ""}`;
+function ScoreCell({ gross, dots, par, counted, countedStyle }) {
+  const countedClass = countedStyle || "bg-emerald-500/25 rounded-md ring-1 ring-emerald-400/40";
+  const shell = `relative flex items-center justify-center h-8 ${counted ? countedClass : ""}`;
   if (gross === "X") {
     return (
       <div className={shell}>
@@ -568,7 +570,7 @@ function rangeTotal(arr, start, n = 9) {
   return slice.reduce((a, v) => a + (typeof v === "number" ? v : 0), 0);
 }
 
-function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors }) {
+function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, captionBy, captionLegend, showBestBall }) {
   const { rows, winners } = m.card;
   const status = holeStatus(winners);
   const si = hcp?.si || (hcp ? inferStrokeIndex(rows) : null);
@@ -586,6 +588,13 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors }) {
 
   // In 2v2 best-ball, mark holes where this player's net was the team's best.
   const isCounting = (r, i) => {
+    if (showBestBall) {
+      if (typeof r.gross[i] !== "number") return false;
+      const mates = rows.filter((x) => x.side === r.side && typeof x.gross[i] === "number");
+      if (rows.filter((x) => x.side === r.side).length < 2 || !mates.length) return false;
+      const best = Math.min(...mates.map((x) => x.gross[i] - (x.dots[i] || 0)));
+      return r.gross[i] - (r.dots[i] || 0) === best;
+    }
     if (!individual || r.name !== highlight || typeof r.gross[i] !== "number") return false;
     const mates = rows.filter((x) => x.side === r.side && typeof x.gross[i] === "number");
     if (rows.filter((x) => x.side === r.side).length < 2) return false;
@@ -682,7 +691,7 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors }) {
                 const team = r.side === "L" ? m.teamL : m.teamR;
                 const pal = r.side === "L" ? palL : palR;
                 const mine = highlight && nameOnCard(r.name, highlight);
-                const cap = hcpCaption(r.name, labelHi, labelCourse);
+                const cap = captionBy?.[r.name] || hcpCaption(r.name, labelHi, labelCourse);
                 const f9 = runTot ? rangeTotal(r.gross, 0) : null;
                 const b9 = runTot ? rangeTotal(r.gross, 9) : null;
                 const all18 = f9 == null && b9 == null ? null : (f9 || 0) + (b9 || 0);
@@ -696,7 +705,14 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors }) {
                       </span>
                     </div>
                     {idx.map((i) => (
-                      <ScoreCell key={i} gross={r.gross[i]} dots={dots[i]} par={pars?.[i]} counted={isCounting(r, i)} />
+                      <ScoreCell
+                        key={i}
+                        gross={r.gross[i]}
+                        dots={dots[i]}
+                        par={pars?.[i]}
+                        counted={isCounting(r, i)}
+                        countedStyle={showBestBall ? "versus-best-ball-cell" : undefined}
+                      />
                     ))}
                     <div className="flex flex-col items-center justify-center leading-none">
                       <span className="text-[10px] tabular-nums text-gray-300 font-semibold">{tot || ""}</span>
@@ -757,20 +773,13 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors }) {
         <div className="mt-1.5 text-[10px] text-gray-500">Both balls · hole color is who scored more Stableford points</div>
       )}
       <div className={`flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-800 text-[9px] text-gray-500 ${compact ? "mt-1.5 pt-1" : "mt-2 pt-1.5"}`}>
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full border border-emerald-300/90" /> birdie
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="p-[1.5px] rounded-full border border-emerald-300/90"><span className="w-2 h-2 block rounded-full border border-emerald-300/90" /></span> eagle
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 border border-slate-400/70" /> bogey
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="p-[1.5px] border border-rose-400/80"><span className="w-2 h-2 block border border-rose-400/80" /></span> double+
-        </span>
         <span className="flex items-center gap-1"><span className="w-[3.5px] h-[3.5px] rounded-full bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.9)]" /> stroke</span>
-        {labelHi && <span className="tabular-nums">HI / CH</span>}
+        {(captionBy || labelHi) && <span className="tabular-nums">{captionLegend || "HI / CH"}</span>}
+        {showBestBall && (
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-sm versus-best-ball-cell" /> best ball
+          </span>
+        )}
         <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${palL?.cell}`} /> {colors?.labelL || m.teamL} won hole</span>
         <span className="flex items-center gap-1"><span className={`w-3 h-3 rounded-sm ${palR?.cell}`} /> {colors?.labelR || m.teamR} won hole</span>
       </div>
@@ -844,7 +853,7 @@ function MatchRow({ m, pars, hiBy, course }) {
         </div>
         {side(m.teamR, m.playersR, m.ptsR, m.winner === "right")}
       </button>
-      {open && hasCard && <Scorecard m={m} pars={pars} hiBy={hiBy} course={course} />}
+      {open && hasCard && <Scorecard m={m} pars={pars} hiBy={hiBy} course={course} compact />}
     </div>
   );
 }
@@ -3026,6 +3035,7 @@ function SosMatchDrop({ groups, onPick, whatIfSet, selfId }) {
                       highlight={w.type === "pairing" ? (w.entriesBy?.[w.idOfPlayer?.[selfId] || selfId]?.names?.[0] || selfId) : selfId}
                       hiBy={w.hiBy}
                       course={w.course}
+                      compact
                     />
                   )}
                 </div>
@@ -3439,6 +3449,52 @@ function collectVersusRounds(rounds, players) {
   return out;
 }
 
+function versusCommonTeam(names, teamOf) {
+  const teams = [...new Set(names.map((name) => teamOf[name]).filter(Boolean))];
+  return teams.length === 1 ? teams[0] : null;
+}
+
+function versusBestBallEntry(names, board, fallback) {
+  return {
+    team: versusCommonTeam(names, board.teamOf) || fallback,
+    course: board.course,
+    pct: 0.9,
+    mates: names.map((name) => ({
+      name,
+      hi: board.hiBy[name],
+      gross: board.rowBy[name].gross,
+    })),
+  };
+}
+
+function versusFieldRecord(names, boards) {
+  const rec = { w: 0, l: 0, t: 0 };
+  if (names.length !== 2) return rec;
+  const selected = new Set(names);
+
+  for (const board of boards) {
+    if (names.some((name) => !board.rowBy[name])) continue;
+    const duo = versusBestBallEntry(names, board, "Selected pair");
+    const field = Object.keys(board.rowBy).filter((name) => !selected.has(name));
+    for (let i = 0; i < field.length; i++) {
+      for (let j = i + 1; j < field.length; j++) {
+        const opponent = versusBestBallEntry([field[i], field[j]], board, "Field pair");
+        const result = matchBestBall(duo, opponent, board.si);
+        if (!result) continue;
+        if (result.won) rec.w += 1;
+        else if (result.lost) rec.l += 1;
+        else rec.t += 1;
+      }
+    }
+  }
+  return rec;
+}
+
+function versusRecordLabel(rec) {
+  if (!rec || rec.w + rec.l + rec.t === 0) return "—";
+  return `${rec.w}–${rec.l}–${rec.t}`;
+}
+
 function fmtPts(n) {
   const v = Math.round(n * 2) / 2;
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
@@ -3475,22 +3531,22 @@ function versusStats(matches) {
   return { w, l, t, ptsL, ptsR };
 }
 
-function VersusBug({ left, right, stats }) {
+function VersusBug({ leftLabel, rightLabel, stats, teams }) {
   const rec = `${stats.w}–${stats.l}${stats.t ? `–${stats.t}` : ""}`;
   return (
     <div className="versus-bug-shell">
       <div className="versus-bug">
         <div className="versus-game-head">
-          <span className="versus-game-player">Player 1</span>
+          <span className="versus-game-player">{teams ? "Team 1" : "Player 1"}</span>
           <span className="versus-game-series">
             <span>Series</span>
             <strong>{rec}</strong>
           </span>
-          <span className="versus-game-player versus-game-player-right">Player 2</span>
+          <span className="versus-game-player versus-game-player-right">{teams ? "Team 2" : "Player 2"}</span>
         </div>
         <div className="versus-game-main">
           <div className="versus-game-side">
-            <span className="versus-game-name">{familyName(left)}</span>
+            <span className="versus-game-name">{leftLabel}</span>
             <span className="versus-game-score">
               {fmtPts(stats.ptsL)}
               <small>pts</small>
@@ -3498,7 +3554,7 @@ function VersusBug({ left, right, stats }) {
           </div>
           <div className="versus-game-vs" aria-hidden>VS</div>
           <div className="versus-game-side">
-            <span className="versus-game-name">{familyName(right)}</span>
+            <span className="versus-game-name">{rightLabel}</span>
             <span className="versus-game-score">
               {fmtPts(stats.ptsR)}
               <small>pts</small>
@@ -3510,12 +3566,21 @@ function VersusBug({ left, right, stats }) {
   );
 }
 
-function VersusSlot({ name, team, placeholder, onClear, locked, tone }) {
+function VersusSlot({ name, team, placeholder, onClear, onTarget, locked, tone, active, stacked }) {
   if (!name) {
     return (
-      <div className="flex-1 min-w-0 rounded-md border border-dashed border-slate-600 px-2 py-1.5 text-center text-[11px] text-gray-500">
+      <button
+        type="button"
+        onClick={onTarget}
+        aria-label={`Choose ${placeholder}`}
+        className={`${stacked ? "w-full" : "flex-1"} min-w-0 rounded-md border border-dashed px-2 py-1.5 text-center text-[11px] ${
+          active
+            ? "border-emerald-400 text-emerald-300 ring-2 ring-emerald-500/30"
+            : "border-slate-600 text-gray-500 hover:border-slate-500 hover:text-gray-300"
+        }`}
+      >
         {placeholder}
-      </div>
+      </button>
     );
   }
   const look = tone || TEAM[team] || { chip: "bg-slate-800 border-slate-600 text-gray-200" };
@@ -3524,7 +3589,7 @@ function VersusSlot({ name, team, placeholder, onClear, locked, tone }) {
       type="button"
       onClick={onClear}
       className={`min-w-0 border text-center ${
-        locked ? "rounded px-2 py-0.5" : "flex-1 rounded-md px-2 py-1.5"
+        locked ? `${stacked ? "w-full" : ""} rounded px-2 py-0.5` : `${stacked ? "w-full" : "flex-1"} rounded-md px-2 py-1.5`
       } ${look.chip}`}
     >
       <div className="flex items-center justify-center gap-1">
@@ -3548,36 +3613,104 @@ function Versus({ rounds, players }) {
       .map((name) => ({ name, team: teamOf[name], hi: hiBy[name] }))
       .sort((a, b) => (a.team || "").localeCompare(b.team || "") || familyName(a.name).localeCompare(familyName(b.name)));
   }, [boards, players]);
-  const [left, setLeft] = useState(null);
-  const [right, setRight] = useState(null);
+  const [mode, setMode] = useState("1v1");
+  const [picks, setPicks] = useState([null, null, null, null]);
+  const [target, setTarget] = useState(0);
+
+  const slotIndexes = mode === "2v2" ? [0, 1, 2, 3] : [0, 2];
+  const leftNames = (mode === "2v2" ? picks.slice(0, 2) : [picks[0]]).filter(Boolean);
+  const rightNames = (mode === "2v2" ? picks.slice(2, 4) : [picks[2]]).filter(Boolean);
+  const locked = slotIndexes.every((i) => picks[i]);
+
+  const chooseMode = (nextMode) => {
+    if (nextMode === mode) return;
+    setMode(nextMode);
+    setPicks([null, null, null, null]);
+    setTarget(0);
+  };
+
+  const clearAll = () => {
+    setPicks([null, null, null, null]);
+    setTarget(0);
+  };
+
+  const clearSlot = (index) => {
+    const next = [...picks];
+    next[index] = null;
+    setPicks(next);
+    setTarget(index);
+  };
 
   const pick = (name) => {
-    if (name === left) setLeft(null);
-    else if (name === right) setRight(null);
-    else if (!left) setLeft(name);
-    else if (!right) setRight(name);
-    else setRight(name);
+    const next = [...picks];
+    const already = next.indexOf(name);
+    if (already >= 0) {
+      next[already] = null;
+      setPicks(next);
+      setTarget(already);
+      return;
+    }
+
+    const slot = slotIndexes.includes(target) && !next[target] ? target : slotIndexes.find((i) => !next[i]);
+    if (slot == null) return;
+    next[slot] = name;
+    setPicks(next);
+
+    const at = slotIndexes.indexOf(slot);
+    const search = [...slotIndexes.slice(at + 1), ...slotIndexes.slice(0, at)];
+    setTarget(search.find((i) => !next[i]) ?? slot);
   };
 
   const matches = useMemo(() => {
-    if (!left || !right) return [];
+    const namesL = (mode === "2v2" ? picks.slice(0, 2) : [picks[0]]).filter(Boolean);
+    const namesR = (mode === "2v2" ? picks.slice(2, 4) : [picks[2]]).filter(Boolean);
+    const needed = mode === "2v2" ? 2 : 1;
+    if (namesL.length !== needed || namesR.length !== needed) return [];
+
     return boards
       .map((b) => {
+        const chosen = [...namesL, ...namesR];
+        const missing = chosen.filter((name) => !b.rowBy[name]);
+        if (missing.length === chosen.length) return null;
+        if (missing.length) return { label: b.label, missing };
+
+        if (mode === "2v2") {
+          const a = versusBestBallEntry(namesL, b, "Team 1");
+          const c = versusBestBallEntry(namesR, b, "Team 2");
+          const match = whatIfBestBallMatch(a, c, b.si);
+          const low = Math.min(...chosen.map((name) => playingHcp(b.hiBy[name], b.course, 0.9)));
+          const captionBy = Object.fromEntries(
+            chosen.map((name) => {
+              const hi = b.hiBy[name];
+              return [
+                name,
+                `${Number(hi).toFixed(1)}/${Math.round(courseHcp(hi, b.course))}/${playingHcp(hi, b.course, 0.9)}`,
+              ];
+            }),
+          );
+          return { label: b.label, match, pars: b.pars, course: b.course, hiBy: b.hiBy, low, captionBy };
+        }
+
+        const left = namesL[0];
+        const right = namesR[0];
         const a = b.rowBy[left];
         const c = b.rowBy[right];
-        if (!a && !c) return null;
-        if (!a || !c) {
-          return { label: b.label, missing: !a ? left : right };
-        }
         const match = whatIf1v1Match(a, c, b.hiBy[left], b.hiBy[right], b.si, b.course, 1, b.teamOf[left], b.teamOf[right]);
         const ha = playingHcp(b.hiBy[left], b.course, 1);
         const hb = playingHcp(b.hiBy[right], b.course, 1);
         return { label: b.label, match, pars: b.pars, course: b.course, hiBy: b.hiBy, ha, hb };
       })
       .filter(Boolean);
-  }, [boards, left, right]);
+  }, [boards, mode, picks]);
 
   const stats = useMemo(() => versusStats(matches), [matches]);
+  const fieldRecords = useMemo(() => {
+    if (mode !== "2v2" || !locked) return null;
+    return {
+      L: versusFieldRecord(picks.slice(0, 2), boards),
+      R: versusFieldRecord(picks.slice(2, 4), boards),
+    };
+  }, [boards, locked, mode, picks]);
 
   if (!boards.length) {
     return (
@@ -3593,43 +3726,155 @@ function Versus({ rounds, players }) {
     players: roster.filter((p) => p.team === team),
   })).filter((g) => g.players.length);
 
-  const locked = !!(left && right);
-  const intra = !!(locked && teamOf[left] && teamOf[left] === teamOf[right]);
-  const split = intra
-    ? { L: VERSUS_INTRA.L, R: VERSUS_INTRA.R, labelL: familyName(left), labelR: familyName(right) }
+  const teamL = versusCommonTeam(leftNames, teamOf);
+  const teamR = versusCommonTeam(rightNames, teamOf);
+  const crossTeams = !!(locked && teamL && teamR && teamL !== teamR);
+  const customSides = mode === "2v2" ? !crossTeams : !!(locked && teamL && teamL === teamR);
+  const sideLabelL = leftNames.map(familyName).join(" / ");
+  const sideLabelR = rightNames.map(familyName).join(" / ");
+  const split = locked && customSides
+    ? { L: VERSUS_INTRA.L, R: VERSUS_INTRA.R, labelL: sideLabelL, labelR: sideLabelR }
     : null;
+  const pickerToneL = mode === "2v2" && !crossTeams ? VERSUS_INTRA.L : split?.L;
+  const pickerToneR = mode === "2v2" && !crossTeams ? VERSUS_INTRA.R : split?.R;
 
   return (
     <div className={locked ? "space-y-2" : "space-y-4"}>
       {locked ? (
-        <div className="flex items-center gap-1.5">
-          <VersusSlot name={left} team={teamOf[left]} locked tone={split?.L} onClear={() => setLeft(null)} />
-          <div className="shrink-0 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
-          <VersusSlot name={right} team={teamOf[right]} locked tone={split?.R} onClear={() => setRight(null)} />
-          <button
-            type="button"
-            onClick={() => {
-              setLeft(null);
-              setRight(null);
-            }}
-            className="ml-auto shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-gray-400 hover:text-white"
-          >
-            Clear
-          </button>
-        </div>
-      ) : (
-        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
-          <div className="mb-1">
-            <div className="text-sm font-semibold text-gray-100">Versus</div>
-            <div className="text-[11px] text-gray-500">
-              Hypothetical 1v1 · 100% course handicap · {boards.map((b) => b.label).join(" & ")}
+        mode === "2v2" ? (
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5">
+            <div className="min-w-0 space-y-1">
+              {[0, 1].map((i) => (
+                <VersusSlot
+                  key={i}
+                  name={picks[i]}
+                  team={teamOf[picks[i]]}
+                  locked
+                  stacked
+                  tone={pickerToneL}
+                  onClear={() => clearSlot(i)}
+                />
+              ))}
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <div className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
+              <button
+                type="button"
+                onClick={clearAll}
+                className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-800 text-gray-400 hover:text-white"
+              >
+                Clear
+              </button>
+            </div>
+            <div className="min-w-0 space-y-1">
+              {[2, 3].map((i) => (
+                <VersusSlot
+                  key={i}
+                  name={picks[i]}
+                  team={teamOf[picks[i]]}
+                  locked
+                  stacked
+                  tone={pickerToneR}
+                  onClear={() => clearSlot(i)}
+                />
+              ))}
             </div>
           </div>
-          <div className="flex items-stretch gap-2 mt-3 mb-3">
-            <VersusSlot name={left} team={teamOf[left]} placeholder="Pick player" onClear={() => setLeft(null)} />
-            <div className="shrink-0 self-center text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
-            <VersusSlot name={right} team={teamOf[right]} placeholder="Pick opponent" onClear={() => setRight(null)} />
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <VersusSlot name={picks[0]} team={teamOf[picks[0]]} locked tone={split?.L} onClear={() => clearSlot(0)} />
+            <div className="shrink-0 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
+            <VersusSlot name={picks[2]} team={teamOf[picks[2]]} locked tone={split?.R} onClear={() => clearSlot(2)} />
+            <button
+              type="button"
+              onClick={clearAll}
+              className="ml-auto shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-gray-400 hover:text-white"
+            >
+              Clear
+            </button>
           </div>
+        )
+      ) : (
+        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-semibold text-gray-100">Versus</div>
+            <div className="flex shrink-0 gap-1" role="group" aria-label="Match format">
+              <button type="button" aria-pressed={mode === "1v1"} onClick={() => chooseMode("1v1")} className={sosPill(mode === "1v1")}>
+                1v1
+              </button>
+              <button type="button" aria-pressed={mode === "2v2"} onClick={() => chooseMode("2v2")} className={sosPill(mode === "2v2")}>
+                2v2 Best Ball
+              </button>
+            </div>
+          </div>
+          <div className="mt-1 text-[11px] text-gray-500">
+            {mode === "2v2"
+              ? "Hypothetical 2v2 best ball · 90% course handicap"
+              : "Hypothetical 1v1 · 100% course handicap"}
+            {" · "}
+            {boards.map((b) => b.label).join(" & ")}
+          </div>
+          {mode === "2v2" ? (
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 mt-3 mb-3">
+              <div className="min-w-0 rounded-lg border border-slate-700 p-1.5">
+                <div className={`mb-1 text-[9px] font-semibold uppercase tracking-wider ${VERSUS_INTRA.L.text}`}>Team 1</div>
+                <div className="space-y-1">
+                  {[0, 1].map((i) => (
+                    <VersusSlot
+                      key={i}
+                      name={picks[i]}
+                      team={teamOf[picks[i]]}
+                      placeholder={`Player ${i + 1}`}
+                      onClear={() => clearSlot(i)}
+                      onTarget={() => setTarget(i)}
+                      active={target === i}
+                      stacked
+                      tone={VERSUS_INTRA.L}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="shrink-0 text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
+              <div className="min-w-0 rounded-lg border border-slate-700 p-1.5">
+                <div className={`mb-1 text-[9px] font-semibold uppercase tracking-wider ${VERSUS_INTRA.R.text}`}>Team 2</div>
+                <div className="space-y-1">
+                  {[2, 3].map((i) => (
+                    <VersusSlot
+                      key={i}
+                      name={picks[i]}
+                      team={teamOf[picks[i]]}
+                      placeholder={`Player ${i - 1}`}
+                      onClear={() => clearSlot(i)}
+                      onTarget={() => setTarget(i)}
+                      active={target === i}
+                      stacked
+                      tone={VERSUS_INTRA.R}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-stretch gap-2 mt-3 mb-3">
+              <VersusSlot
+                name={picks[0]}
+                team={teamOf[picks[0]]}
+                placeholder="Pick player"
+                onClear={() => clearSlot(0)}
+                onTarget={() => setTarget(0)}
+                active={target === 0}
+              />
+              <div className="shrink-0 self-center text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
+              <VersusSlot
+                name={picks[2]}
+                team={teamOf[picks[2]]}
+                placeholder="Pick opponent"
+                onClear={() => clearSlot(2)}
+                onTarget={() => setTarget(2)}
+                active={target === 2}
+              />
+            </div>
+          )}
           {byTeam.map((g) => (
             <div key={g.team} className="mb-2 last:mb-0">
               <div className={`text-[10px] uppercase tracking-wider font-semibold mb-1 ${TEAM[g.team]?.text || "text-gray-500"}`}>
@@ -3637,17 +3882,25 @@ function Versus({ rounds, players }) {
               </div>
               <div className="flex flex-wrap gap-1">
                 {g.players.map((p) => {
-                  const on = p.name === left || p.name === right;
+                  const pickedAt = picks.indexOf(p.name);
+                  const on = pickedAt >= 0;
+                  const selectedTone = pickedAt < 2 ? VERSUS_INTRA.L : VERSUS_INTRA.R;
                   return (
                     <button
                       key={p.name}
                       type="button"
                       onClick={() => pick(p.name)}
-                      className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
-                        on ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+                      aria-pressed={on}
+                      className={`border px-2 py-1 rounded-lg text-[11px] font-semibold ${
+                        on && mode === "2v2"
+                          ? selectedTone.chip
+                          : on
+                            ? "border-emerald-500 bg-emerald-600 text-white"
+                            : "border-transparent bg-slate-800 text-gray-400 hover:text-white"
                       }`}
                     >
                       {firstLast(p.name)}
+                      {on && mode === "2v2" ? ` · T${pickedAt < 2 ? 1 : 2}` : ""}
                     </button>
                   );
                 })}
@@ -3659,48 +3912,82 @@ function Versus({ rounds, players }) {
 
       {locked && (
         <>
-          <VersusBug left={left} right={right} stats={stats} />
+          <div>
+            <VersusBug leftLabel={sideLabelL} rightLabel={sideLabelR} stats={stats} teams={mode === "2v2"} />
+            {fieldRecords && (
+              <div
+                className="mt-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-2 font-mono text-[9px] uppercase tracking-wider text-gray-600 tabular-nums"
+                title="Record against every valid two-player opponent pairing across all available rounds"
+                aria-label={`${sideLabelL} against all pairings: ${versusRecordLabel(fieldRecords.L)}. ${sideLabelR} against all pairings: ${versusRecordLabel(fieldRecords.R)}.`}
+              >
+                <span className="font-semibold text-gray-500">{versusRecordLabel(fieldRecords.L)}</span>
+                <span className="text-[8px]">vs all pairings</span>
+                <span className="text-right font-semibold text-gray-500">{versusRecordLabel(fieldRecords.R)}</span>
+              </div>
+            )}
+          </div>
           <div className="bg-slate-900 border border-slate-700 rounded-2xl p-2.5 sm:p-4">
             <div className="space-y-3">
             {matches.map((m) => {
               if (m.missing) {
+                const missing = Array.isArray(m.missing) ? m.missing : [m.missing];
                 return (
                   <div key={m.label}>
                     <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">{m.label}</div>
-                    <div className="text-xs text-gray-500">{firstLast(m.missing)} didn't post a card</div>
+                    <div className="text-xs text-gray-500">
+                      {missing.map(firstLast).join(" / ")} didn't post a card
+                    </div>
                   </div>
                 );
               }
               const who =
                 m.match.winner === "tie"
                   ? "AS"
-                  : `${firstLast(m.match.winner === "left" ? left : right)} ${m.match.result}`;
-              const winnerTone = intra
+                  : `${mode === "2v2" ? (m.match.winner === "left" ? "Team 1" : "Team 2") : firstLast(m.match.winner === "left" ? leftNames[0] : rightNames[0])} ${m.match.result}`;
+              const winnerTone = split
                 ? m.match.winner === "left"
-                  ? VERSUS_INTRA.L.text
+                  ? split.L.text
                   : m.match.winner === "right"
-                    ? VERSUS_INTRA.R.text
+                    ? split.R.text
                     : "text-gray-300"
                 : (() => {
                     const winnerTeam =
-                      m.match.winner === "left" ? teamOf[left] : m.match.winner === "right" ? teamOf[right] : null;
+                      m.match.winner === "left" ? m.match.teamL : m.match.winner === "right" ? m.match.teamR : null;
                     return winnerTeam ? TEAM[winnerTeam]?.text : "text-gray-300";
                   })();
-              const give = m.ha === m.hb ? "even" : m.ha > m.hb ? `${firstLast(left)} gets ${m.ha - m.hb}` : `${firstLast(right)} gets ${m.hb - m.ha}`;
+              const detail = mode === "2v2"
+                ? `90% CH · low PH ${m.low} plays 0 · best ball`
+                : `CH ${m.ha} / ${m.hb} · ${
+                    m.ha === m.hb
+                      ? "even"
+                      : m.ha > m.hb
+                        ? `${firstLast(leftNames[0])} gets ${m.ha - m.hb}`
+                        : `${firstLast(rightNames[0])} gets ${m.hb - m.ha}`
+                  }`;
               return (
                 <div key={m.label}>
                   <div className="flex items-baseline justify-between gap-2 mb-0.5">
                     <div>
                       <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{m.label}</div>
                       <div className="text-[10px] text-gray-600 tabular-nums">
-                        CH {m.ha} / {m.hb} · {give}
+                        {detail}
                       </div>
                     </div>
                     <div className={`text-xs font-semibold tabular-nums ${winnerTone}`}>
                       {who}
                     </div>
                   </div>
-                  <Scorecard m={m.match} pars={m.pars} hiBy={m.hiBy} course={m.course} compact colors={split} />
+                  <Scorecard
+                    m={m.match}
+                    pars={m.pars}
+                    hiBy={m.hiBy}
+                    course={m.course}
+                    compact
+                    colors={split}
+                    captionBy={mode === "2v2" ? m.captionBy : undefined}
+                    captionLegend={mode === "2v2" ? "HI / CH / PH" : undefined}
+                    showBestBall={mode === "2v2"}
+                  />
                 </div>
               );
             })}

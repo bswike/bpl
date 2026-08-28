@@ -150,89 +150,123 @@ export function DistBar({ dist, total }) {
   );
 }
 
-/** Expanded scorecard for one round (needs round.hd). */
+function postedScore(hole) {
+  return hole?.raw_score || hole?.adjusted_gross_score || null;
+}
+
+function holeSum(holes, valueOf) {
+  const values = holes.map(valueOf).filter((value) => typeof value === "number");
+  return values.length ? values.reduce((sum, value) => sum + value, 0) : null;
+}
+
+function ScoreMark({ score, par }) {
+  if (score == null) return <span className="text-[9px] text-gray-300">—</span>;
+  const result = par ? resultKey(score, par) : null;
+  const circle = "rounded-full border border-emerald-600/80";
+  const square = "border border-rose-500/80";
+  const bogey = "border border-gray-500/70";
+  const shape =
+    result === "eagle" || result === "birdie"
+      ? circle
+      : result === "bogey"
+        ? bogey
+        : result === "double" || result === "triple"
+          ? square
+          : "";
+  const mark = (
+    <span className={`flex h-4 w-4 items-center justify-center text-[9px] font-semibold leading-none text-gray-800 ${shape}`}>
+      {score}
+    </span>
+  );
+  return result === "eagle" || result === "double" || result === "triple" ? (
+    <span className={`inline-flex items-center justify-center p-px ${shape}`}>{mark}</span>
+  ) : mark;
+}
+
+/** Expanded paper-style scorecard for one round (needs round.hd). */
 export function Scorecard({ round }) {
-  const nines = [];
   const hd = round.hd || [];
-  if (hd.length > 9) {
-    nines.push(["Front 9", hd.slice(0, 9)]);
-    nines.push(["Back 9", hd.slice(9)]);
-  } else {
-    nines.push([round.holes === 9 ? "9 holes" : "Holes", hd]);
-  }
+  if (!hd.length) return null;
+  const nines =
+    hd.length > 9
+      ? [
+          { label: "Front", holes: hd.slice(0, 9) },
+          { label: "Back", holes: hd.slice(9, 18) },
+        ]
+      : [{ label: round.holes === 9 ? "9 holes" : "Holes", holes: hd }];
+  const frontPar = holeSum(nines[0].holes, (hole) => hole.par);
+  const frontScore = holeSum(nines[0].holes, postedScore);
+  const totalPar = holeSum(hd, (hole) => hole.par);
+  const totalScore = holeSum(hd, postedScore);
+
   return (
-    <div className="space-y-3 py-2">
-      {nines.map(([label, holes]) => {
-        const parSum = holes.reduce((s, h) => s + (h.par || 0), 0);
-        const scoreSum = holes.reduce(
-          (s, h) => s + (h.raw_score || h.adjusted_gross_score || 0),
-          0
-        );
+    <div className="my-2 overflow-hidden rounded-lg border border-gray-200 bg-gray-50/80 p-1.5">
+      {nines.map(({ label, holes }, sectionIndex) => {
+        const back = sectionIndex === 1;
+        const ninePar = holeSum(holes, (hole) => hole.par);
+        const nineScore = holeSum(holes, postedScore);
+        const hasHcp = holes.some((hole) => hole.stroke_allocation);
+        const grid = {
+          display: "grid",
+          gridTemplateColumns: `4rem repeat(${holes.length}, minmax(0, 1fr)) ${back ? "1.75rem 1.75rem 2.15rem" : "2.15rem"}`,
+        };
+        const split = back ? "mt-2.5 border-t border-gray-300 pt-2.5" : nines.length > 1 ? "mb-2.5" : "";
         return (
-          <div key={label} className="overflow-x-auto">
-            <table className="border-collapse text-xs font-mono">
-              <tbody>
-                <tr className="text-gray-400">
-                  <td className="pr-3 py-0.5 text-[10px] uppercase tracking-wide font-sans font-semibold">
-                    {label}
-                  </td>
-                  {holes.map((h) => (
-                    <td key={h.hole_number} className="w-8 text-center py-0.5">
-                      {h.hole_number}
-                    </td>
-                  ))}
-                  <td className="w-10 text-center text-[10px] font-sans font-semibold">TOT</td>
-                </tr>
-                <tr className="text-gray-500">
-                  <td className="pr-3 py-0.5 text-[10px] uppercase tracking-wide font-sans">
-                    Par
-                  </td>
-                  {holes.map((h) => (
-                    <td key={h.hole_number} className="text-center py-0.5">
-                      {h.par || "—"}
-                    </td>
-                  ))}
-                  <td className="text-center font-semibold">{parSum || "—"}</td>
-                </tr>
-                {holes.some((h) => h.stroke_allocation) && (
-                  <tr className="text-gray-400">
-                    <td className="pr-3 py-0.5 text-[10px] uppercase tracking-wide font-sans">
-                      Hcp
-                    </td>
-                    {holes.map((h) => (
-                      <td key={h.hole_number} className="text-center py-0.5">
-                        {h.stroke_allocation || "—"}
-                      </td>
-                    ))}
-                    <td />
-                  </tr>
-                )}
-                <tr>
-                  <td className="pr-3 py-1 text-[10px] uppercase tracking-wide font-sans text-gray-500">
-                    Score
-                  </td>
-                  {holes.map((h) => {
-                    const raw = h.raw_score || h.adjusted_gross_score;
-                    const k = raw && h.par ? resultKey(raw, h.par) : null;
-                    return (
-                      <td key={h.hole_number} className="text-center py-1">
-                        <span
-                          className="inline-flex items-center justify-center w-6 h-6 rounded-full font-bold text-white"
-                          style={{ background: k ? RESULT_COLORS[k] : "#d1d5db" }}
-                        >
-                          {raw || "—"}
-                        </span>
-                      </td>
-                    );
-                  })}
-                  <td className="text-center font-bold text-gray-900">{scoreSum || "—"}</td>
-                </tr>
-              </tbody>
-            </table>
+          <div key={label} className={split}>
+            <div style={grid} className="mb-0.5 text-[9px] font-semibold uppercase tracking-wider text-gray-500">
+              <div className="flex items-center pl-1">{label}</div>
+              {holes.map((hole) => (
+                <div key={hole.hole_number} className="flex h-5 items-center justify-center rounded-sm bg-gray-100 text-gray-600">
+                  {hole.hole_number}
+                </div>
+              ))}
+              <div className="flex items-center justify-center">{back ? "B9" : nines.length > 1 ? "F9" : "Tot"}</div>
+              {back && <div className="flex items-center justify-center">F9</div>}
+              {back && <div className="mx-0.5 flex items-center justify-center rounded-sm bg-gray-200/70">Tot</div>}
+            </div>
+
+            <div style={grid} className="border-b border-gray-200 text-[9px] text-gray-500">
+              <div className="flex items-center pl-1 uppercase tracking-wider">Par</div>
+              {holes.map((hole) => (
+                <div key={hole.hole_number} className="flex h-4 items-center justify-center tabular-nums">{hole.par || "—"}</div>
+              ))}
+              <div className="flex items-center justify-center font-semibold tabular-nums">{ninePar ?? "—"}</div>
+              {back && <div className="flex items-center justify-center font-semibold tabular-nums">{frontPar ?? "—"}</div>}
+              {back && <div className="flex items-center justify-center font-semibold tabular-nums">{totalPar ?? "—"}</div>}
+            </div>
+
+            {hasHcp && (
+              <div style={grid} className="text-[8px] text-gray-400">
+                <div className="flex items-center pl-1 uppercase tracking-wider">Hcp</div>
+                {holes.map((hole) => (
+                  <div key={hole.hole_number} className="flex h-4 items-center justify-center tabular-nums">
+                    {hole.stroke_allocation || "—"}
+                  </div>
+                ))}
+                <div />
+                {back && <div />}
+                {back && <div />}
+              </div>
+            )}
+
+            <div style={grid}>
+              <div className="flex items-center pl-1 text-[9px] uppercase tracking-wider text-gray-500">Score</div>
+              {holes.map((hole) => (
+                <div key={hole.hole_number} className="flex h-7 items-center justify-center tabular-nums">
+                  <ScoreMark score={postedScore(hole)} par={hole.par} />
+                </div>
+              ))}
+              <div className="flex items-center justify-center text-[10px] font-semibold text-gray-700 tabular-nums">{nineScore ?? "—"}</div>
+              {back && <div className="flex items-center justify-center text-[10px] font-semibold text-gray-700 tabular-nums">{frontScore ?? "—"}</div>}
+              {back && (
+                <div className="mx-0.5 flex h-7 items-center justify-center rounded-sm bg-gray-200/70 text-[11px] font-bold text-gray-900 tabular-nums">
+                  {totalScore ?? "—"}
+                </div>
+              )}
+            </div>
           </div>
         );
       })}
-      <Legend />
     </div>
   );
 }
