@@ -79,17 +79,17 @@ function cardName(name) {
   return familyName(name);
 }
 
-function hcpCaption(name, hiBy, course, pct = 1) {
+function hcpCaption(name, hiBy, course) {
   if (!hiBy || !name) return null;
   const names = name.includes(" + ") ? name.split("+").map((s) => s.trim()) : [name];
   const bits = names
     .map((n) => {
       const hi = hiBy[n];
       if (hi == null) return null;
-      return playingHcp(hi, course, pct);
+      return `${Number(hi).toFixed(1)}/${Math.round(courseHcp(hi, course))}`;
     })
-    .filter((value) => value != null);
-  return bits.length ? `HCP ${bits.join(" · ")}` : null;
+    .filter(Boolean);
+  return bits.length ? bits.join(" · ") : null;
 }
 
 const nameOnCard = (rowName, player) =>
@@ -307,6 +307,7 @@ function PlayerDetail({ p, rounds, hcpScores, hiBy }) {
                             key={i}
                             m={x.found.mt}
                             pars={x.found.pars}
+                            highlight={p.name}
                             compact
                             hiBy={hiBy}
                             course={courseOfRound(x.m.round)}
@@ -583,8 +584,8 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, sho
     return strokeDotsForPlayed(pops, si, playedIndexes(r.gross));
   };
 
-  const individual = !bestBall && highlight && rows.some((r) => r.name === highlight);
-  const combined = !bestBall && highlight && !individual && rows.some((r) => nameOnCard(r.name, highlight));
+  const individual = highlight && rows.some((r) => r.name === highlight);
+  const combined = highlight && !individual && rows.some((r) => nameOnCard(r.name, highlight));
 
   // In 2v2 best-ball, mark every ball that counted for its side.
   const isCounting = (r, i) => {
@@ -691,7 +692,7 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, sho
                 const team = r.side === "L" ? m.teamL : m.teamR;
                 const pal = r.side === "L" ? palL : palR;
                 const mine = !bestBall && highlight && nameOnCard(r.name, highlight);
-                const cap = hcpCaption(r.name, labelHi, labelCourse, bestBall ? 0.9 : 1);
+                const cap = hcpCaption(r.name, labelHi, labelCourse);
                 const f9 = runTot ? rangeTotal(r.gross, 0) : null;
                 const b9 = runTot ? rangeTotal(r.gross, 9) : null;
                 const all18 = f9 == null && b9 == null ? null : (f9 || 0) + (b9 || 0);
@@ -760,8 +761,8 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, sho
       })}
       {hlRow && hlTeammates >= 2 && (countedSolo + countedPush > 0) && (
         <div className="mt-1.5 text-[10px] text-emerald-300">
-          <span className="inline-block w-3 h-3 rounded-md bg-emerald-500/25 align-[-2px] mr-1.5" />
-          {firstLast(highlight)}'s ball · {countedSolo} solo · {countedPush} with partner · won {countedWon}
+          <span className="inline-block w-3 h-3 rounded-md versus-best-ball-cell align-[-2px] mr-1.5" />
+          {firstLast(highlight)}'s ball · {countedSolo} solo · {countedPush} together · {countedWon} won
         </div>
       )}
       {combined && (
@@ -774,6 +775,7 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, sho
       )}
       <div className={`flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-800 text-[9px] text-gray-500 ${compact ? "mt-1.5 pt-1" : "mt-2 pt-1.5"}`}>
         <span className="flex items-center gap-1"><span className="w-[3.5px] h-[3.5px] rounded-full bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.9)]" /> stroke</span>
+        {labelHi && <span className="tabular-nums">Index / CH</span>}
         {bestBall && (
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded-sm versus-best-ball-cell" /> best ball
@@ -3031,6 +3033,7 @@ function SosMatchDrop({ groups, onPick, whatIfSet, selfId }) {
                     <Scorecard
                       m={match}
                       pars={w.pars}
+                      highlight={w.type === "pairing" ? (w.entriesBy?.[w.idOfPlayer?.[selfId] || selfId]?.names?.[0] || selfId) : selfId}
                       hiBy={w.hiBy}
                       course={w.course}
                       compact
