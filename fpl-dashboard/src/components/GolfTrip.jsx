@@ -79,17 +79,17 @@ function cardName(name) {
   return familyName(name);
 }
 
-function hcpCaption(name, hiBy, course) {
+function hcpCaption(name, hiBy, course, pct = 1) {
   if (!hiBy || !name) return null;
   const names = name.includes(" + ") ? name.split("+").map((s) => s.trim()) : [name];
   const bits = names
     .map((n) => {
       const hi = hiBy[n];
       if (hi == null) return null;
-      return `${Number(hi).toFixed(1)}/${Math.round(courseHcp(hi, course))}`;
+      return playingHcp(hi, course, pct);
     })
-    .filter(Boolean);
-  return bits.length ? bits.join(" · ") : null;
+    .filter((value) => value != null);
+  return bits.length ? `HCP ${bits.join(" · ")}` : null;
 }
 
 const nameOnCard = (rowName, player) =>
@@ -302,21 +302,14 @@ function PlayerDetail({ p, rounds, hcpScores, hiBy }) {
                     <div className="px-1.5 pb-2 pt-1 border-t border-slate-700/80">
                       {items.map((x, i) => {
                         if (!x.found?.mt?.card) return null;
-                        const combined = x.found.mt.card.rows.some((r) => r.name.includes(" + "));
                         return (
                           <Scorecard
                             key={i}
                             m={x.found.mt}
                             pars={x.found.pars}
-                            highlight={p.name}
                             compact
-                            hcp={{
-                              hiBy,
-                              course: courseOfRound(x.m.round),
-                              roundLabel: x.m.round,
-                              kind: pairingKind(x.m.format, combined),
-                              si: siForRound(rounds, x.m.round),
-                            }}
+                            hiBy={hiBy}
+                            course={courseOfRound(x.m.round)}
                           />
                         );
                       })}
@@ -570,12 +563,19 @@ function rangeTotal(arr, start, n = 9) {
   return slice.reduce((a, v) => a + (typeof v === "number" ? v : 0), 0);
 }
 
-function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, captionBy, captionLegend, showBestBall }) {
+function isBestBallScorecard(card) {
+  const rows = card?.rows || [];
+  if (card?.scoring === "stableford" || rows.some((row) => row.name.includes(" + "))) return false;
+  return rows.filter((row) => row.side === "L").length >= 2 && rows.filter((row) => row.side === "R").length >= 2;
+}
+
+function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, showBestBall }) {
   const { rows, winners } = m.card;
   const status = holeStatus(winners);
   const si = hcp?.si || (hcp ? inferStrokeIndex(rows) : null);
   const labelHi = hcp?.hiBy || hiBy;
   const labelCourse = hcp?.course || course;
+  const bestBall = showBestBall ?? isBestBallScorecard(m.card);
   const dotsOf = (r) => {
     if (!hcp || !si) return r.dots;
     const pops = rowPops(r, hcp.hiBy, hcp.course, hcp.roundLabel, hcp.kind);
@@ -583,12 +583,12 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, cap
     return strokeDotsForPlayed(pops, si, playedIndexes(r.gross));
   };
 
-  const individual = highlight && rows.some((r) => r.name === highlight);
-  const combined = highlight && !individual && rows.some((r) => nameOnCard(r.name, highlight));
+  const individual = !bestBall && highlight && rows.some((r) => r.name === highlight);
+  const combined = !bestBall && highlight && !individual && rows.some((r) => nameOnCard(r.name, highlight));
 
-  // In 2v2 best-ball, mark holes where this player's net was the team's best.
+  // In 2v2 best-ball, mark every ball that counted for its side.
   const isCounting = (r, i) => {
-    if (showBestBall) {
+    if (bestBall) {
       if (typeof r.gross[i] !== "number") return false;
       const mates = rows.filter((x) => x.side === r.side && typeof x.gross[i] === "number");
       if (rows.filter((x) => x.side === r.side).length < 2 || !mates.length) return false;
@@ -690,13 +690,13 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, cap
                   : null;
                 const team = r.side === "L" ? m.teamL : m.teamR;
                 const pal = r.side === "L" ? palL : palR;
-                const mine = highlight && nameOnCard(r.name, highlight);
-                const cap = captionBy?.[r.name] || hcpCaption(r.name, labelHi, labelCourse);
+                const mine = !bestBall && highlight && nameOnCard(r.name, highlight);
+                const cap = hcpCaption(r.name, labelHi, labelCourse, bestBall ? 0.9 : 1);
                 const f9 = runTot ? rangeTotal(r.gross, 0) : null;
                 const b9 = runTot ? rangeTotal(r.gross, 9) : null;
                 const all18 = f9 == null && b9 == null ? null : (f9 || 0) + (b9 || 0);
                 return (
-                  <div key={r.name} style={grid} className={highlight && !mine ? "opacity-45" : ""}>
+                  <div key={r.name} style={grid} className={!bestBall && highlight && !mine ? "opacity-45" : ""}>
                     <div className="flex items-center gap-1 pl-1 min-w-0">
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${pal?.dot || TEAM[team]?.dot || "bg-slate-600"}`} />
                       <span className="min-w-0 leading-tight">
@@ -711,7 +711,7 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, cap
                         dots={dots[i]}
                         par={pars?.[i]}
                         counted={isCounting(r, i)}
-                        countedStyle={showBestBall ? "versus-best-ball-cell" : undefined}
+                        countedStyle={bestBall ? "versus-best-ball-cell" : undefined}
                       />
                     ))}
                     <div className="flex flex-col items-center justify-center leading-none">
@@ -774,8 +774,7 @@ function Scorecard({ m, pars, highlight, hcp, hiBy, course, compact, colors, cap
       )}
       <div className={`flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-800 text-[9px] text-gray-500 ${compact ? "mt-1.5 pt-1" : "mt-2 pt-1.5"}`}>
         <span className="flex items-center gap-1"><span className="w-[3.5px] h-[3.5px] rounded-full bg-black shadow-[0_0_0_1px_rgba(255,255,255,0.9)]" /> stroke</span>
-        {(captionBy || labelHi) && <span className="tabular-nums">{captionLegend || "HI / CH"}</span>}
-        {showBestBall && (
+        {bestBall && (
           <span className="flex items-center gap-1">
             <span className="w-3 h-3 rounded-sm versus-best-ball-cell" /> best ball
           </span>
@@ -3032,7 +3031,6 @@ function SosMatchDrop({ groups, onPick, whatIfSet, selfId }) {
                     <Scorecard
                       m={match}
                       pars={w.pars}
-                      highlight={w.type === "pairing" ? (w.entriesBy?.[w.idOfPlayer?.[selfId] || selfId]?.names?.[0] || selfId) : selfId}
                       hiBy={w.hiBy}
                       course={w.course}
                       compact
@@ -3679,16 +3677,7 @@ function Versus({ rounds, players }) {
           const c = versusBestBallEntry(namesR, b, "Team 2");
           const match = whatIfBestBallMatch(a, c, b.si);
           const low = Math.min(...chosen.map((name) => playingHcp(b.hiBy[name], b.course, 0.9)));
-          const captionBy = Object.fromEntries(
-            chosen.map((name) => {
-              const hi = b.hiBy[name];
-              return [
-                name,
-                `${Number(hi).toFixed(1)}/${Math.round(courseHcp(hi, b.course))}/${playingHcp(hi, b.course, 0.9)}`,
-              ];
-            }),
-          );
-          return { label: b.label, match, pars: b.pars, course: b.course, hiBy: b.hiBy, low, captionBy };
+          return { label: b.label, match, pars: b.pars, course: b.course, hiBy: b.hiBy, low };
         }
 
         const left = namesL[0];
@@ -3984,8 +3973,6 @@ function Versus({ rounds, players }) {
                     course={m.course}
                     compact
                     colors={split}
-                    captionBy={mode === "2v2" ? m.captionBy : undefined}
-                    captionLegend={mode === "2v2" ? "HI / CH / PH" : undefined}
                     showBestBall={mode === "2v2"}
                   />
                 </div>
