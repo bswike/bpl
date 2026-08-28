@@ -1287,6 +1287,125 @@ function field1v1Rounds(rounds, players) {
   return out;
 }
 
+function matchNets(netA, netB) {
+  const winners = [];
+  let compared = 0;
+  for (let h = 0; h < 18; h++) {
+    const a = netA[h];
+    const b = netB[h];
+    if (a == null || b == null) {
+      winners.push(null);
+      continue;
+    }
+    compared += 1;
+    winners.push(a < b ? "L" : a > b ? "R" : "T");
+  }
+  if (compared < 6) return null;
+  return statusFromWinners(winners, "L");
+}
+
+function netRoundRobin(entries) {
+  const ids = entries.map((e) => e.id);
+  const by = Object.fromEntries(entries.map((e) => [e.id, e]));
+  const rec = Object.fromEntries(ids.map((id) => [id, { w: 0, l: 0, t: 0, vs: [] }]));
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const a = ids[i];
+      const b = ids[j];
+      const st = matchNets(by[a].nets, by[b].nets);
+      if (!st) continue;
+      rec[a].vs.push({ opp: b, ...st });
+      rec[b].vs.push({ opp: a, ...flip1v1(st) });
+      if (st.won) {
+        rec[a].w += 1;
+        rec[b].l += 1;
+      } else if (st.lost) {
+        rec[a].l += 1;
+        rec[b].w += 1;
+      } else {
+        rec[a].t += 1;
+        rec[b].t += 1;
+      }
+    }
+  }
+  const ranking = [...ids].sort(
+    (a, b) => field1v1Pct(rec[b]) - field1v1Pct(rec[a]) || rec[b].w - rec[a].w || a.localeCompare(b),
+  );
+  const order = Object.fromEntries(ranking.map((n, i) => [n, i]));
+  for (const id of ids) rec[id].vs.sort((x, y) => (order[x.opp] ?? 99) - (order[y.opp] ?? 99));
+  return {
+    ranking,
+    rec,
+    teamOf: Object.fromEntries(entries.map((e) => [e.id, e.team])),
+    labelOf: Object.fromEntries(entries.map((e) => [e.id, e.label])),
+  };
+}
+
+function pairingLabel(tName, roundLabel) {
+  const t = (tName || "").toLowerCase();
+  const r = (roundLabel || "").toLowerCase();
+  if (/scramble/.test(t)) return "Scramble";
+  if (/wild turkey/.test(t) || /wild turkey/.test(r)) return "W. Turkey";
+  if (/pinehurst/.test(t)) return "Pinehurst";
+  if (/crystal/.test(t) || /crystal/.test(r)) return "Crystal 2v2";
+  if (/2v2/.test(t) || /2v2/.test(r)) return shortRound(roundLabel);
+  return shortRound(tName || roundLabel);
+}
+
+function pairingDisplay(names) {
+  return (names || []).map(familyName).join(" / ");
+}
+
+function collectPairingSets(rounds, players) {
+  const teamOf = Object.fromEntries(players.map((p) => [p.name, p.team]));
+  const out = [];
+  const used = new Set();
+  for (const r of rounds || []) {
+    for (const t of r.tournaments || []) {
+      if (t.type !== "match") continue;
+      const entries = [];
+      for (const m of t.matches || []) {
+        const rows = m.card?.rows;
+        if (!rows || m.card.scoring === "stableford") continue;
+        if ((m.playersL || []).length < 2 || (m.playersR || []).length < 2) continue;
+        const combined = rows.some((row) => row.name.includes(" + "));
+        for (const [names, side] of [
+          [m.playersL, "L"],
+          [m.playersR, "R"],
+        ]) {
+          let nets;
+          if (combined) {
+            const row = rows.find((x) => x.side === side);
+            if (!row) continue;
+            nets = row.gross.map((g, h) => (typeof g === "number" ? g - row.dots[h] : null));
+          } else {
+            const mates = names.map((n) => rows.find((x) => x.name === n || nameOnCard(x.name, n))).filter(Boolean);
+            if (mates.length < 2) continue;
+            nets = Array.from({ length: 18 }, (_, h) => {
+              const ns = mates.map((x) => netOnHole(x, h)).filter((v) => v != null);
+              return ns.length ? Math.min(...ns) : null;
+            });
+          }
+          if (nets.filter((v) => v != null).length < 6) continue;
+          entries.push({
+            id: names.join(" + "),
+            names,
+            label: pairingDisplay(names),
+            team: teamOf[names[0]],
+            nets,
+          });
+        }
+      }
+      if (entries.length < 4) continue;
+      let label = pairingLabel(t.name, r.label);
+      if (used.has(label)) label = `${label} ${used.size}`;
+      used.add(label);
+      out.push({ label, ...netRoundRobin(entries) });
+    }
+  }
+  return out;
+}
+
 function recStr(r) {
   if (!r || r.w + r.l + r.t === 0) return "—";
   return `${r.w}-${r.l}-${r.t}`;
@@ -1987,15 +2106,159 @@ function RecBar({ rec, className = "" }) {
 
 function StrengthOfSchedule({ rounds, players }) {
   const data = useMemo(() => sosBoard(field1v1Rounds(rounds, players)), [rounds, players]);
-  if (!data) return null;
-  const northCombined = { w: data.teamCombined.l, l: data.teamCombined.w, t: data.teamCombined.t };
+  const pairSets = useMemo(() => collectPairingSets(rounds, players), [rounds, players]);
+  const [mode, setMode] = useState("players");
+  const [pairRi, setPairRi] = useState(0);
+  const [picked, setPicked] = useState(null);
+  if (!data && !pairSets.length) return null;
+  const pair = pairSets[Math.min(pairRi, Math.max(0, pairSets.length - 1))];
+  const pairSel = pair && picked && pair.rec[picked] ? picked : pair?.ranking[0];
+  const pairMine = pair && pairSel ? pair.rec[pairSel] : null;
+  const pairCross = pair ? crossTeamRec(pair) : emptyRec();
+  const northCombined = data ? { w: data.teamCombined.l, l: data.teamCombined.w, t: data.teamCombined.t } : emptyRec();
+
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
       <div className="text-sm font-semibold text-gray-100">Strength of schedule</div>
-      <div className="text-[11px] text-gray-500 mb-3">
-        Everyone vs everyone · 1v1 from each round, then added up
+      <div className="text-[11px] text-gray-500 mb-2.5">
+        {mode === "pairings"
+          ? "Each pairing vs every other pairing · net as they played that round"
+          : "Everyone vs everyone · 1v1 from each round, then added up"}
+      </div>
+      <div className="flex flex-wrap gap-1 mb-3">
+        <button
+          type="button"
+          onClick={() => setMode("players")}
+          className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
+            mode === "players" ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+          }`}
+        >
+          Players
+        </button>
+        {pairSets.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setMode("pairings")}
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
+              mode === "pairings" ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+            }`}
+          >
+            Pairings
+          </button>
+        )}
       </div>
 
+      {mode === "pairings" && pair && (
+        <>
+          <div className="flex flex-wrap gap-1 mb-3">
+            {pairSets.map((s, i) => (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => {
+                  setPairRi(i);
+                  setPicked(null);
+                }}
+                className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
+                  i === pairRi ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="rounded-xl border border-slate-700 p-2.5 mb-3">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="text-rose-400 font-semibold tabular-nums">South {recStr(pairCross)}</span>
+              <RecBar rec={pairCross} className="flex-1 max-w-[7rem]" />
+              <span className="text-sky-400 font-semibold tabular-nums">
+                North {recStr({ w: pairCross.l, l: pairCross.w, t: pairCross.t })}
+              </span>
+            </div>
+          </div>
+          <div className="overflow-x-auto -mx-1 px-1 mb-2">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left text-[10px] uppercase tracking-wider text-gray-500">
+                  <th className="py-1 pr-2 font-semibold">#</th>
+                  <th className="py-1 pr-2 font-semibold">Pairing</th>
+                  <th className="py-1 pr-2 font-semibold text-right">Rec</th>
+                  <th className="py-1 font-semibold w-[30%]">Win %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pair.ranking.map((id, i) => {
+                  const r = pair.rec[id];
+                  const pct = field1v1Pct(r);
+                  return (
+                    <tr
+                      key={id}
+                      className={`border-t border-slate-800 cursor-pointer ${pairSel === id ? "bg-slate-800/50" : ""}`}
+                      onClick={() => setPicked(id)}
+                    >
+                      <td className="py-1.5 pr-2 text-gray-600 tabular-nums">{i + 1}</td>
+                      <td className="py-1.5 pr-2">
+                        <span className="inline-flex items-center gap-1.5 min-w-0">
+                          <TeamDot team={pair.teamOf[id]} />
+                          <span className={`truncate ${pairSel === id ? "text-gray-100 font-semibold" : "text-gray-200"}`}>
+                            {pair.labelOf[id]}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="py-1.5 pr-2 text-right tabular-nums font-semibold text-gray-100 whitespace-nowrap">
+                        {recStr(r)}
+                      </td>
+                      <td className="py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <RecBar rec={r} className="flex-1" />
+                          <span className={`tabular-nums w-8 text-right text-[11px] ${pct < 0.5 ? "text-rose-300" : "text-emerald-300"}`}>
+                            {Math.round(pct * 100)}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {pairMine && (
+            <>
+              <div className="text-xs font-semibold text-gray-100 mb-1">
+                {pair.labelOf[pairSel]}{" "}
+                <span className="text-gray-400 font-medium tabular-nums">
+                  {pairMine.w}-{pairMine.l}-{pairMine.t}
+                </span>
+              </div>
+              <div className="max-h-48 overflow-y-auto divide-y divide-slate-800">
+                {pairMine.vs.map((v) => (
+                  <button
+                    key={v.opp}
+                    type="button"
+                    onClick={() => setPicked(v.opp)}
+                    className="w-full flex items-center justify-between gap-2 py-1 text-left"
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <TeamDot team={pair.teamOf[v.opp]} />
+                      <span className="text-xs text-gray-300 truncate">{pair.labelOf[v.opp]}</span>
+                    </span>
+                    <span
+                      className={`text-[11px] tabular-nums shrink-0 ${
+                        v.won ? "text-emerald-400" : v.lost ? "text-gray-500" : "text-gray-400"
+                      }`}
+                    >
+                      {v.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {mode === "players" && data && (
+        <>
       <div className="rounded-xl border border-slate-700 p-2.5 mb-3">
         <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">South vs North</div>
         <table className="w-full text-xs">
@@ -2072,6 +2335,8 @@ function StrengthOfSchedule({ rounds, players }) {
           </tbody>
         </table>
       </div>
+        </>
+      )}
     </div>
   );
 }
