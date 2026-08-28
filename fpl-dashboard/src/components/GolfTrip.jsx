@@ -8,6 +8,7 @@ import {
   BarChart3,
   Flag,
   ExternalLink,
+  Users,
 } from "lucide-react";
 import "./GolfTrip.css";
 
@@ -3350,12 +3351,225 @@ function Stats({ data, tripId }) {
   );
 }
 
+function versusRoundLabel(label) {
+  const l = (label || "").toLowerCase();
+  if (/crystal/.test(l)) return "Crystal";
+  if (/black bear/.test(l)) return "Black Bear";
+  if (/^fri/.test(l)) return "Friday";
+  if (/^sat/.test(l)) return "Saturday";
+  if (/1v1/.test(l)) return "1v1";
+  return shortRound(label);
+}
+
+function collectVersusRounds(rounds, players) {
+  const hiBy = Object.fromEntries(players.map((p) => [p.name, hiOf(p)]));
+  const teamOf = Object.fromEntries(players.map((p) => [p.name, p.team]));
+  const out = [];
+  for (const r of rounds || []) {
+    const rows = collectIndividualRows(r);
+    if (rows.length < 4) continue;
+    out.push({
+      label: versusRoundLabel(r.label),
+      pars: r.pars,
+      si: inferStrokeIndex(rows),
+      course: courseOfRound(r.label),
+      hiBy,
+      teamOf,
+      rowBy: Object.fromEntries(rows.map((x) => [x.name, x])),
+    });
+  }
+  return out;
+}
+
+function VersusSlot({ name, team, placeholder, onClear }) {
+  if (!name) {
+    return (
+      <div className="flex-1 min-w-0 rounded-xl border border-dashed border-slate-600 px-2 py-3 text-center text-[11px] text-gray-500">
+        {placeholder}
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClear}
+      className={`flex-1 min-w-0 rounded-xl border px-2 py-2.5 text-center ${
+        TEAM[team]?.chip || "bg-slate-800 border-slate-600 text-gray-200"
+      }`}
+    >
+      <div className="flex items-center justify-center gap-1.5">
+        <TeamDot team={team} />
+        <span className="font-semibold text-gray-100 truncate">{firstLast(name)}</span>
+      </div>
+      <div className="text-[9px] text-gray-500 mt-0.5">tap to clear</div>
+    </button>
+  );
+}
+
+function Versus({ rounds, players }) {
+  const boards = useMemo(() => collectVersusRounds(rounds, players), [rounds, players]);
+  const roster = useMemo(() => {
+    const names = new Set();
+    for (const b of boards) for (const n of Object.keys(b.rowBy)) names.add(n);
+    const teamOf = Object.fromEntries((players || []).map((p) => [p.name, p.team]));
+    const hiBy = Object.fromEntries((players || []).map((p) => [p.name, hiOf(p)]));
+    return [...names]
+      .map((name) => ({ name, team: teamOf[name], hi: hiBy[name] }))
+      .sort((a, b) => (a.team || "").localeCompare(b.team || "") || familyName(a.name).localeCompare(familyName(b.name)));
+  }, [boards, players]);
+  const [left, setLeft] = useState(null);
+  const [right, setRight] = useState(null);
+
+  const pick = (name) => {
+    if (name === left) setLeft(null);
+    else if (name === right) setRight(null);
+    else if (!left) setLeft(name);
+    else if (!right) setRight(name);
+    else setRight(name);
+  };
+
+  const matches = useMemo(() => {
+    if (!left || !right) return [];
+    return boards
+      .map((b) => {
+        const a = b.rowBy[left];
+        const c = b.rowBy[right];
+        if (!a && !c) return null;
+        if (!a || !c) {
+          return { label: b.label, missing: !a ? left : right };
+        }
+        const match = whatIf1v1Match(a, c, b.hiBy[left], b.hiBy[right], b.si, b.course, 1, b.teamOf[left], b.teamOf[right]);
+        const ha = playingHcp(b.hiBy[left], b.course, 1);
+        const hb = playingHcp(b.hiBy[right], b.course, 1);
+        return { label: b.label, match, pars: b.pars, course: b.course, hiBy: b.hiBy, ha, hb };
+      })
+      .filter(Boolean);
+  }, [boards, left, right]);
+
+  const series = useMemo(() => {
+    let w = 0;
+    let l = 0;
+    let t = 0;
+    for (const m of matches) {
+      if (!m.match) continue;
+      if (m.match.winner === "left") w += 1;
+      else if (m.match.winner === "right") l += 1;
+      else t += 1;
+    }
+    return { w, l, t };
+  }, [matches]);
+
+  if (!boards.length) {
+    return (
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4 text-sm text-gray-400">
+        No individual matchplay rounds to compare.
+      </div>
+    );
+  }
+
+  const teamOf = Object.fromEntries(roster.map((p) => [p.name, p.team]));
+  const byTeam = ["South", "North"].map((team) => ({
+    team,
+    players: roster.filter((p) => p.team === team),
+  })).filter((g) => g.players.length);
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+        <div className="text-sm font-semibold text-gray-100">Versus</div>
+        <div className="text-[11px] text-gray-500 mb-3">
+          Hypothetical 1v1 · 100% course handicap · {boards.map((b) => b.label).join(" & ")}
+        </div>
+        <div className="flex items-stretch gap-2 mb-3">
+          <VersusSlot name={left} team={teamOf[left]} placeholder="Pick player" onClear={() => setLeft(null)} />
+          <div className="shrink-0 self-center text-[10px] uppercase tracking-wider text-gray-500 font-semibold">vs</div>
+          <VersusSlot name={right} team={teamOf[right]} placeholder="Pick opponent" onClear={() => setRight(null)} />
+        </div>
+        {byTeam.map((g) => (
+          <div key={g.team} className="mb-2 last:mb-0">
+            <div className={`text-[10px] uppercase tracking-wider font-semibold mb-1 ${TEAM[g.team]?.text || "text-gray-500"}`}>
+              {g.team}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {g.players.map((p) => {
+                const on = p.name === left || p.name === right;
+                return (
+                  <button
+                    key={p.name}
+                    type="button"
+                    onClick={() => pick(p.name)}
+                    className={`px-2 py-1 rounded-lg text-[11px] font-semibold ${
+                      on ? "bg-emerald-600 text-white" : "bg-slate-800 text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    {firstLast(p.name)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {left && right && (
+        <div className="bg-slate-900 border border-slate-700 rounded-2xl p-3.5 sm:p-4">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="text-sm font-semibold text-gray-100">
+              {firstLast(left)} vs {firstLast(right)}
+            </div>
+            <div className="tabular-nums text-sm font-semibold text-gray-100">
+              {series.w}–{series.l}
+              {series.t ? `–${series.t}` : ""}
+            </div>
+          </div>
+          <div className="space-y-4">
+            {matches.map((m) => {
+              if (m.missing) {
+                return (
+                  <div key={m.label}>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">{m.label}</div>
+                    <div className="text-xs text-gray-500">{firstLast(m.missing)} didn't post a card</div>
+                  </div>
+                );
+              }
+              const who =
+                m.match.winner === "tie"
+                  ? "AS"
+                  : `${firstLast(m.match.winner === "left" ? left : right)} ${m.match.result}`;
+              const winnerTeam =
+                m.match.winner === "left" ? teamOf[left] : m.match.winner === "right" ? teamOf[right] : null;
+              const give = m.ha === m.hb ? "even" : m.ha > m.hb ? `${firstLast(left)} gets ${m.ha - m.hb}` : `${firstLast(right)} gets ${m.hb - m.ha}`;
+              return (
+                <div key={m.label}>
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{m.label}</div>
+                      <div className="text-[10px] text-gray-600 tabular-nums">
+                        CH {m.ha} / {m.hb} · {give}
+                      </div>
+                    </div>
+                    <div className={`text-xs font-semibold tabular-nums ${winnerTeam ? TEAM[winnerTeam]?.text : "text-gray-300"}`}>
+                      {who}
+                    </div>
+                  </div>
+                  <Scorecard m={m.match} pars={m.pars} highlight={left} hiBy={m.hiBy} course={m.course} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------------- page ---------------- */
 
 const TABS = [
   { id: "standings", label: "Standings", icon: Trophy },
   { id: "rounds", label: "Rounds", icon: Swords },
   { id: "stats", label: "Stats", icon: BarChart3 },
+  { id: "versus", label: "Versus", icon: Users },
 ];
 
 function ThemeToggle({ dark, onToggle }) {
@@ -3458,7 +3672,7 @@ export default function GolfTrip() {
 
         <TeamBanner teams={data.teams} players={data.players} />
 
-        <nav className="flex gap-1.5 my-4 sm:my-5">
+        <nav className="flex flex-wrap gap-1.5 my-4 sm:my-5">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -3475,6 +3689,7 @@ export default function GolfTrip() {
         {tab === "standings" && <Standings players={data.players} rounds={data.rounds} />}
         {tab === "rounds" && <Rounds rounds={data.rounds} netlow={data.netlow} players={data.players} />}
         {tab === "stats" && <Stats data={data} tripId={tripId === "2025" ? "2025" : "nj26"} />}
+        {tab === "versus" && <Versus rounds={data.rounds} players={data.players} />}
 
         <footer className="mt-6 text-[10px] text-gray-600">
           Data from Golf Genius · updated {data.trip.fetched}
