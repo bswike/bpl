@@ -9,6 +9,7 @@ import {
   chooseCpuPlayer,
   courseHandicap,
   defaultDecision,
+  holePops,
   findBestDecision,
   formatOdds,
   makeSeededRandom,
@@ -787,6 +788,7 @@ function HoleMap({
   intelLeft,
   intelRight,
   kickMeter,
+  popCall,
   stockShape,
   menu,
   onAimStep,
@@ -884,6 +886,7 @@ function HoleMap({
               : `${club.short} ${targetYards}Y · ${remainingYards != null ? `${remainingYards}Y LEFT` : "TEE PLAN"}`}
         </span>
       </div>
+      {popCall}
       {playback && activeShot && (
         <div className="trip-game-playcap" aria-live="polite">
           <small>
@@ -1285,6 +1288,41 @@ function KickMeter({ phase, power, accuracy, onTap }) {
   );
 }
 
+function PopDots({ count }) {
+  const pops = Math.max(0, Number(count) || 0);
+  if (!pops) return null;
+  return (
+    <i className={`trip-game-pop-dot${pops > 1 ? " is-double" : ""}`} aria-hidden="true">
+      {pops > 1 ? <em /> : null}
+    </i>
+  );
+}
+
+function PopCall({ pops }) {
+  if (!pops) return null;
+  if (pops.human > 0) {
+    return (
+      <div className="trip-game-pop-chip is-pop" title="You get a handicap stroke on this hole">
+        <i className="trip-game-pop-dot" />
+        <b>POP</b>
+        {pops.human > 1 ? <em>×{pops.human}</em> : null}
+      </div>
+    );
+  }
+  if (pops.cpu > 0) {
+    return (
+      <div className="trip-game-pop-chip is-give" title="You give a handicap stroke on this hole">
+        <b>GIVE</b>
+      </div>
+    );
+  }
+  return (
+    <div className="trip-game-pop-chip is-even" title="No handicap stroke on this hole">
+      <b>EVEN</b>
+    </div>
+  );
+}
+
 function OpponentCard({ opponent, course, team }) {
   if (!opponent?.profile) {
     return (
@@ -1304,34 +1342,79 @@ function OpponentCard({ opponent, course, team }) {
   );
 }
 
-function CaptainSelect({ players, selectedKey, usage, maxUses, disabled, onPick, course }) {
-  const ranked = [...players].sort((left, right) => left.hi - right.hi);
+function CaptainWheel({ players, selectedKey, usage, maxUses, disabled, onPick, course, team }) {
+  const ranked = [...players]
+    .filter((player) => (usage[player.key] || 0) < maxUses)
+    .sort((left, right) => left.hi - right.hi);
+  const list = ranked.length ? ranked : [...players].sort((left, right) => left.hi - right.hi);
+  const index = Math.max(0, list.findIndex((player) => player.key === selectedKey));
+  const selected = list[index] || null;
+  const wheelRef = useRef(null);
+  const dragRef = useRef(null);
+  const lastTickRef = useRef(0);
+
+  function step(direction) {
+    if (disabled || list.length < 2) return;
+    const player = list[(index + direction + list.length) % list.length];
+    if (player) onPick(player);
+  }
+
+  useEffect(() => {
+    const node = wheelRef.current;
+    if (!node) return undefined;
+    const onWheel = (event) => {
+      event.preventDefault();
+      const now = performance.now();
+      if (now - lastTickRef.current < 90) return;
+      lastTickRef.current = now;
+      step(event.deltaY > 0 ? 1 : -1);
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  });
+
   return (
-    <label className="trip-game-captain-select">
-      <small>CAPTAIN PICK · BEST → WORST HCP</small>
-      <select
-        value={selectedKey || ""}
-        disabled={disabled}
-        onChange={(event) => {
-          const player = ranked.find((item) => item.key === event.target.value);
-          if (player) onPick(player);
-        }}
-      >
-        <option value="">SELECT GOLFER</option>
-        {ranked.map((player) => {
-          const used = usage[player.key] || 0;
-          const spent = used >= maxUses;
-          const courseHcp = course ? courseHandicap(player.hi, course) : null;
-          return (
-            <option key={player.key} value={player.key} disabled={spent}>
-              {player.hi.toFixed(1)}
-              {courseHcp != null ? `/${courseHcp}` : ""} · {player.name}
-              {spent ? " · SPENT" : used ? ` · ${used}/${maxUses}` : ""}
-            </option>
-          );
-        })}
-      </select>
-    </label>
+    <div
+      ref={wheelRef}
+      className={`trip-game-vs-card is-you ${disabled ? "is-locked" : ""}`}
+      onPointerDown={(event) => {
+        dragRef.current = event.clientY;
+      }}
+      onPointerUp={(event) => {
+        if (dragRef.current == null) return;
+        const delta = event.clientY - dragRef.current;
+        dragRef.current = null;
+        if (Math.abs(delta) < 14) return;
+        step(delta > 0 ? 1 : -1);
+      }}
+      onPointerCancel={() => {
+        dragRef.current = null;
+      }}
+    >
+      <small>YOU {String(team || "").toUpperCase()}</small>
+      <b>{selected ? lastName(selected.name) : "…"}</b>
+      <span>CH {selected && course ? courseHandicap(selected.hi, course) : "—"}</span>
+      <div className="trip-game-wheel-controls">
+        <button
+          type="button"
+          disabled={disabled || list.length < 2}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => step(-1)}
+          aria-label="Previous golfer"
+        >
+          ▲
+        </button>
+        <button
+          type="button"
+          disabled={disabled || list.length < 2}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => step(1)}
+          aria-label="Next golfer"
+        >
+          ▼
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -1389,7 +1472,7 @@ function scoreMark(gross, par) {
   return "blow";
 }
 
-function ScorecardNine({ holes, historyByHole, liveHole, sideKey, sideGross }) {
+function ScorecardNine({ holes, historyByHole, liveHole, sideKey, sideGross, sidePops }) {
   return (
     <div className="trip-game-scorecard-nine" role="table">
       <div className="trip-game-scorecard-row is-hole">
@@ -1412,14 +1495,16 @@ function ScorecardNine({ holes, historyByHole, liveHole, sideKey, sideGross }) {
           {holes.map((hole) => {
             const row = historyByHole[hole.number];
             const gross = row ? sideGross(row, side) : null;
+            const pops = row ? sidePops(row, side) : 0;
             const mark = scoreMark(gross, hole.par);
             const won = row && ((side === "human" && row.winner === "human") || (side === "cpu" && row.winner === "cpu"));
             return (
               <b
                 key={hole.number}
-                className={`is-${mark}${won ? " is-won" : ""}${hole.number === liveHole ? " is-live" : ""}`}
+                className={`is-${mark}${won ? " is-won" : ""}${pops ? " has-pop" : ""}${hole.number === liveHole ? " is-live" : ""}`}
               >
                 {gross == null ? "—" : gross}
+                <PopDots count={pops} />
               </b>
             );
           })}
@@ -1466,8 +1551,9 @@ function ScorecardModal({
         <div className={`trip-game-scorecard-call is-${celebration.tone}`}>
           <strong>{celebration.label}</strong>
           <span>
-            {lastName(result.human.name).toUpperCase()} {result.humanGross} · {lastName(result.cpu.name).toUpperCase()}{" "}
-            {result.cpuGross}
+            {lastName(result.human.name).toUpperCase()} {result.humanGross}
+            {result.humanStroke ? "●" : ""} · {lastName(result.cpu.name).toUpperCase()} {result.cpuGross}
+            {result.cpuStroke ? "●" : ""}
           </span>
         </div>
         <ScorecardNine
@@ -1476,6 +1562,7 @@ function ScorecardModal({
           liveHole={holeNumber}
           sideKey={sideKey}
           sideGross={(row, side) => (side === "human" ? row.humanGross : row.cpuGross)}
+          sidePops={(row, side) => (side === "human" ? row.humanStroke : row.cpuStroke)}
         />
         <ScorecardNine
           holes={holes.slice(9)}
@@ -1483,6 +1570,7 @@ function ScorecardModal({
           liveHole={holeNumber}
           sideKey={sideKey}
           sideGross={(row, side) => (side === "human" ? row.humanGross : row.cpuGross)}
+          sidePops={(row, side) => (side === "human" ? row.humanStroke : row.cpuStroke)}
         />
         <div className="trip-game-scorecard-board">
           <div className={`is-${humanTeam.toLowerCase()} ${diff > 0 ? "is-leading" : ""}`}>
@@ -1924,9 +2012,24 @@ export default function TripGame({ data }) {
 
   const selected = humanRoster.find((player) => player.key === selectedKey) || null;
   const selectedState = selected ? playerState[selected.key] || DEFAULT_PLAYER_STATE : DEFAULT_PLAYER_STATE;
+
+  useEffect(() => {
+    if (screen !== "play" || selectedKey || !hole || result || resolutionPhase !== "idle") return;
+    const available = humanRoster
+      .filter((player) => (usage[player.key] || 0) < maxUses)
+      .sort((left, right) => left.hi - right.hi);
+    const player = available[0];
+    if (!player) return;
+    setSelectedKey(player.key);
+    setDecision(defaultDecision(player, hole));
+  }, [screen, holeIndex, hole, selectedKey, humanRoster, usage, maxUses, result, resolutionPhase]);
   const odds = useMemo(
     () => (selected && course && hole ? buildHoleOdds({ profile: selected, course, hole, decision, state: selectedState }) : null),
     [course, decision, hole, selected, selectedState],
+  );
+  const livePops = useMemo(
+    () => (selected && cpuOpponent?.profile && course && hole ? holePops(selected, cpuOpponent.profile, course, hole) : null),
+    [selected, cpuOpponent, course, hole],
   );
   const holeRanking = useMemo(() => {
     if (!course || !hole) return [];
@@ -2279,6 +2382,8 @@ export default function TripGame({ data }) {
         cpu: cpuPick.profile.name,
         humanGross: resolved.humanGross,
         cpuGross: resolved.cpuGross,
+        humanStroke: resolved.humanStroke,
+        cpuStroke: resolved.cpuStroke,
       },
     ]);
     setHype(nextHype);
@@ -2408,6 +2513,29 @@ export default function TripGame({ data }) {
                     <KickMeter phase={meterPhase} power={meterTick.power} accuracy={meterTick.accuracy} onTap={tapMeter} />
                   ) : null
                 }
+                popCall={
+                  livePops && resolutionPhase === "idle" && !result && !meterPhase ? (
+                    <div className={`trip-game-pop-banner is-${livePops.human ? "pop" : livePops.cpu ? "give" : "even"}`}>
+                      {livePops.human > 0 ? (
+                        <>
+                          <i className="trip-game-pop-dot" />
+                          <b>YOU GET A POP</b>
+                          <span>SI {hole.si} · CH {courseHandicap(selected.hi, course)} vs CH {courseHandicap(cpuOpponent.profile.hi, course)}</span>
+                        </>
+                      ) : livePops.cpu > 0 ? (
+                        <>
+                          <b>GIVING A STROKE</b>
+                          <span>SI {hole.si} · THEY GET A POP</span>
+                        </>
+                      ) : (
+                        <>
+                          <b>NO POP</b>
+                          <span>SI {hole.si} · EVEN</span>
+                        </>
+                      )}
+                    </div>
+                  ) : null
+                }
                 stockShape={selected?.stockShape}
                 menu={menu}
                 onAimStep={stepAim}
@@ -2418,7 +2546,7 @@ export default function TripGame({ data }) {
               {resolutionPhase === "idle" && !result && (
                 <div className="trip-game-action-bar">
                   <OpponentCard opponent={cpuOpponent} course={course} team={cpuTeam} />
-                  <CaptainSelect
+                  <CaptainWheel
                     players={humanRoster}
                     selectedKey={selectedKey}
                     usage={usage}
@@ -2426,7 +2554,9 @@ export default function TripGame({ data }) {
                     disabled={pickLocked || Boolean(meterPhase)}
                     onPick={pickPlayer}
                     course={course}
+                    team={captainTeam}
                   />
+                  <PopCall pops={livePops} />
                   <button
                     type="button"
                     className={`trip-game-fireball-chip ${decision.fireball ? "is-selected" : ""}`}
@@ -2437,7 +2567,7 @@ export default function TripGame({ data }) {
                   </button>
                   <button
                     type="button"
-                    className={`trip-game-primary-button ${meterPhase ? "is-kick" : ""}`}
+                    className={`trip-game-primary-button ${meterPhase ? "is-kick" : ""} ${livePops?.human ? "has-pop" : ""}`}
                     disabled={!selected}
                     onClick={meterPhase ? tapMeter : playHole}
                   >
@@ -2446,7 +2576,7 @@ export default function TripGame({ data }) {
                       : meterPhase === "accuracy"
                         ? "TAP ACCURACY"
                         : selected
-                          ? `PLAY ${lastName(selected.name).toUpperCase()} CH${courseHandicap(selected.hi, course)} ▶`
+                          ? `PLAY ${lastName(selected.name).toUpperCase()}${livePops?.human ? " ●" : livePops?.cpu ? " GIVE" : ""} ▶`
                           : "PLAY ▶"}
                   </button>
                 </div>

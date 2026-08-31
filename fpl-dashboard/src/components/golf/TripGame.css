@@ -878,6 +878,59 @@
   font-size: 10px;
 }
 
+.trip-game-vs-card.is-you {
+  position: relative;
+  display: grid;
+  min-width: 108px;
+  grid-template-columns: minmax(0, 1fr) 18px;
+  background: #4a2218;
+  color: #f4d5c8;
+  box-shadow: 2px 2px 0 #060f0a, inset 0 3px 0 var(--px-red);
+}
+
+.trip-game-vs-card.is-you small {
+  grid-column: 1;
+  color: #e8a090;
+}
+
+.trip-game-vs-card.is-you b {
+  grid-column: 1;
+  color: #fff4ee;
+}
+
+.trip-game-vs-card.is-you span {
+  grid-column: 1;
+}
+
+.trip-game-vs-card.is-you.is-locked {
+  opacity: 0.55;
+}
+
+.trip-game-wheel-controls {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-content: stretch;
+}
+
+.trip-game-wheel-controls button {
+  width: 18px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f4d5c8;
+  font-size: 8px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.trip-game-wheel-controls button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .trip-game-captain-select {
   display: grid;
   min-width: 0;
@@ -901,6 +954,113 @@
   font-family: var(--font-body);
   font-size: 13px;
   box-shadow: 2px 2px 0 #060f0a;
+}
+
+.trip-game-pop-chip {
+  display: grid;
+  min-width: 52px;
+  align-content: center;
+  justify-items: center;
+  padding: 3px 7px;
+  border: 2px solid #060f0a;
+  background: #2a2c22;
+  color: #f4f7ee;
+  box-shadow: 2px 2px 0 #060f0a;
+  text-align: center;
+}
+
+.trip-game-pop-chip b {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.trip-game-pop-chip.is-pop {
+  background: #11140e;
+  color: #f4f7ee;
+}
+
+.trip-game-pop-chip.is-pop .trip-game-pop-dot {
+  position: static;
+  width: 8px;
+  height: 8px;
+  margin-bottom: 2px;
+  background: #f4f7ee;
+  box-shadow: none;
+}
+
+.trip-game-pop-chip.is-give {
+  background: #3a2418;
+  color: #f0c896;
+}
+
+.trip-game-pop-chip.is-even {
+  background: #1c2a20;
+  color: #89a07a;
+}
+
+.trip-game-pop-banner {
+  position: absolute;
+  z-index: 5;
+  top: 34px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: min(280px, 86%);
+  padding: 7px 12px;
+  border: 3px solid #060f0a;
+  background: #11140e;
+  color: #f4f7ee;
+  box-shadow: 4px 4px 0 #060f0a;
+  transform: translateX(-50%);
+}
+
+.trip-game-pop-banner b {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.trip-game-pop-banner span {
+  margin-left: auto;
+  color: #c5d6a6;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.trip-game-pop-banner .trip-game-pop-dot {
+  position: static;
+  width: 10px;
+  height: 10px;
+  background: #f4f7ee;
+  box-shadow: none;
+}
+
+.trip-game-pop-banner.is-pop {
+  background: #11140e;
+  color: #fff8dc;
+}
+
+.trip-game-pop-banner.is-give {
+  background: #3a2418;
+  color: #f0c896;
+}
+
+.trip-game-pop-banner.is-even {
+  background: #142219;
+  color: #c5d6a6;
+}
+
+.trip-game-pop-banner.is-even .trip-game-pop-dot {
+  display: none;
+}
+
+.trip-game-action-bar .trip-game-primary-button.has-pop {
+  box-shadow:
+    4px 4px 0 #060f0a,
+    inset 0 0 0 2px #111;
 }
 
 .trip-game-fireball-chip {
@@ -2715,11 +2875,37 @@
 
 .trip-game-scorecard-row span,
 .trip-game-scorecard-row b {
+  position: relative;
   display: grid;
   place-items: center;
   font-size: 12px;
   font-weight: 400;
   line-height: 1;
+}
+
+.trip-game-pop-dot {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #111;
+  box-shadow: 0 0 0 1px #ecefe0;
+}
+
+.trip-game-pop-dot.is-double em {
+  position: absolute;
+  top: -5px;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #111;
+}
+
+.trip-game-scorecard-row b.has-pop {
+  padding-bottom: 2px;
 }
 
 .trip-game-scorecard-row span {
@@ -3921,6 +4107,26 @@
   .trip-game--play .trip-game-action-bar .trip-game-primary-button {
     min-width: 96px;
     font-size: 9px;
+  }
+
+  .trip-game--play .trip-game-pop-banner {
+    top: 30px;
+    min-width: 0;
+    padding: 5px 8px;
+    gap: 6px;
+  }
+
+  .trip-game--play .trip-game-pop-banner b {
+    font-size: 8px;
+  }
+
+  .trip-game--play .trip-game-pop-banner span {
+    font-size: 10px;
+  }
+
+  .trip-game--play .trip-game-pop-chip {
+    min-width: 42px;
+    padding: 2px 5px;
   }
 
   .trip-game--play .trip-game-scorecard {

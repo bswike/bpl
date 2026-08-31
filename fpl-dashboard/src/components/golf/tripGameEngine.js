@@ -511,11 +511,21 @@ export function courseHandicap(index, course) {
   return Math.round(hi * ((course?.slope || 113) / 113) + ((course?.rating || course?.par || 72) - (course?.par || 72)));
 }
 
-function strokeOnHole(strokes, strokeIndex) {
+export function strokeOnHole(strokes, strokeIndex) {
   const count = Math.max(0, Math.round(strokes));
   const full = Math.floor(count / 18);
   const remaining = count % 18;
   return full + ((strokeIndex || 18) <= remaining ? 1 : 0);
+}
+
+export function holePops(human, cpu, course, hole) {
+  if (!human || !cpu || !course || !hole) return { human: 0, cpu: 0 };
+  const humanHcp = courseHandicap(human.hi, course);
+  const cpuHcp = courseHandicap(cpu.hi, course);
+  return {
+    human: strokeOnHole(Math.max(0, humanHcp - cpuHcp), hole.si),
+    cpu: strokeOnHole(Math.max(0, cpuHcp - humanHcp), hole.si),
+  };
 }
 
 function sampleIndex(probs, random) {
