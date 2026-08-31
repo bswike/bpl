@@ -18,8 +18,13 @@ import {
 } from "./tripGameEngine.js";
 import {
   contactSound,
+  crowdSwell,
+  holeWinSound,
+  holeoutSound,
   lockPowerSound,
+  nearMissSound,
   setMeterAudioEnabled,
+  splashSound,
   startPowerSweep,
   stopPowerSweep,
   swingJudgmentSound,
@@ -881,6 +886,7 @@ function HoleMap({
   swingFx,
   shake,
   soundControl,
+  kickTier,
   onAimStep,
   onCycle,
 }) {
@@ -925,6 +931,8 @@ function HoleMap({
   const flightFrameIndex = playback ? clamp(playback.frame || 0, 0, Math.max(0, flightFrames.length - 1)) : 0;
   const flightFrame = flightFrames[flightFrameIndex] || null;
   const flownFrames = playback?.phase === "flight" ? flightFrames.slice(0, flightFrameIndex + 1) : [];
+  // Comet trail on the metered tee shot: gold for PURE, green for GREAT.
+  const trailTier = playback?.index === 0 && (kickTier === "pure" || kickTier === "great") ? kickTier : null;
   const remainingYards = hole.yards ? Math.max(0, Math.round(hole.yards - targetYards)) : null;
   const trees = buildTreeSprites(projection, hole.number);
   const mapId = `trip-hole-${hole.number}`;
@@ -1165,15 +1173,18 @@ function HoleMap({
                   <path d="M-7 0 H7 M0 -7 V7" />
                 </g>
                 {flownFrames.length > 1 && (
-                  <path d={framesToPath(flownFrames, activeShot.air)} className="trip-game-air-trail-line" />
+                  <path
+                    d={framesToPath(flownFrames, activeShot.air)}
+                    className={`trip-game-air-trail-line${trailTier ? ` is-${trailTier}` : ""}`}
+                  />
                 )}
                 {flownFrames.slice(0, -1).map((frame, index) => (
                   <circle
                     key={`trail-${index}`}
                     cx={frame.x}
                     cy={frame.y}
-                    r={activeShot.air ? 1.35 : 1.05}
-                    className="trip-game-air-trail"
+                    r={(activeShot.air ? 1.35 : 1.05) * (trailTier === "pure" ? 1.5 : trailTier === "great" ? 1.2 : 1)}
+                    className={`trip-game-air-trail${trailTier ? ` is-${trailTier}` : ""}`}
                   />
                 ))}
                 <ellipse
@@ -1255,9 +1266,14 @@ function HoleMap({
       )}
       {kickMeter}
       {swingFx && (
-        <div key={swingFx.id} className={`trip-game-judgment is-${swingFx.tier}`} aria-hidden="true">
+        <div
+          key={swingFx.id}
+          className={`trip-game-judgment is-${swingFx.tier}${swingFx.nearMiss ? " is-near-miss" : ""}`}
+          aria-hidden="true"
+        >
           <b>{swingFx.label}</b>
           <small>{swingFx.sub}</small>
+          {swingFx.streak >= 2 && <em>STRIPING ×{swingFx.streak}</em>}
         </div>
       )}
       {swingFx?.tier === "pure" && <div key={`flash-${swingFx.id}`} className="trip-game-pure-flash" aria-hidden="true" />}
@@ -1349,13 +1365,21 @@ function judgeSwing(power, accuracy) {
   const tier = off <= ACC_PURE ? "pure" : off <= ACC_GREAT ? "great" : off <= ACC_GOOD ? "good" : "wild";
   const label =
     tier === "pure" ? "PURE!" : tier === "great" ? "GREAT" : tier === "good" ? "GOOD" : accuracy < 0 ? "WAY LEFT" : "WAY RIGHT";
-  const sub = `PWR ${Math.round(power * 100)}${overswung ? " · OVERSWUNG" : eased ? " · EASED OFF" : ""}`;
-  // Hit-stop: the world freezes on the tap, longer for better strikes.
-  const hold = tier === "pure" ? 680 : tier === "great" ? 500 : tier === "wild" ? 460 : 400;
-  return { tier, label, sub, hold, overswung };
+  // Near-miss: just barely outside the PURE sliver. Neurologically half a win —
+  // call it out explicitly so the player knows exactly how close they came.
+  const nearMiss = tier !== "pure" && off <= ACC_PURE * 2.4;
+  const fromPure = Math.max(1, Math.round((off - ACC_PURE) * 100));
+  const sub = nearMiss
+    ? `SO CLOSE · ${fromPure} FROM PURE`
+    : `PWR ${Math.round(power * 100)}${overswung ? " · OVERSWUNG" : eased ? " · EASED OFF" : ""}`;
+  // Hit-stop: the world freezes on the tap, longer for better strikes and a
+  // beat longer on near-misses so the ache lands.
+  const base = tier === "pure" ? 680 : tier === "great" ? 500 : tier === "wild" ? 460 : 400;
+  const hold = nearMiss ? base + 160 : base;
+  return { tier, label, sub, hold, overswung, nearMiss };
 }
 
-function KickMeter({ phase, power, accuracy, onTap, judgment }) {
+function KickMeter({ phase, power, accuracy, onTap, judgment, streak }) {
   const powerPct = clamp(power / POWER_METER_MAX, 0, 1);
   const powerLocked = phase !== "power";
   const accLive = phase === "accuracy";
@@ -1364,13 +1388,19 @@ function KickMeter({ phase, power, accuracy, onTap, judgment }) {
   const heat = !accLive ? "" : off <= 0.06 ? " is-burning" : off <= ACC_GREAT ? " is-hot" : off <= ACC_GOOD ? " is-near" : "";
   const inSweet = !powerLocked && power >= POWER_SWEET_MIN && power <= POWER_SWEET_MAX;
   const inRed = !powerLocked && power > POWER_SWEET_MAX;
+  const streakClass = streak >= 4 ? " is-streak-fire" : streak >= 2 ? " is-streak-hot" : "";
   return (
     <>
       {!locked && <button type="button" className="trip-game-kick-catch" onClick={onTap} aria-label="Tap kick meter" />}
       <div
-        className={`trip-game-kick is-${phase}${judgment ? ` is-judged is-${judgment.tier}` : ""}`}
+        className={`trip-game-kick is-${phase}${judgment ? ` is-judged is-${judgment.tier}` : ""}${streakClass}`}
         aria-hidden="true"
       >
+        {streak >= 2 && (
+          <div className="trip-game-kick-streak">
+            {streak >= 4 ? "🔥" : "●"} STRIPING ×{streak}
+          </div>
+        )}
         <div className={`trip-game-kick-col ${powerLocked ? "is-locked" : ""}`}>
           <small>PWR</small>
           <div className={`trip-game-kick-track${inSweet ? " is-charged" : ""}`}>
@@ -1992,6 +2022,7 @@ export default function TripGame({ data }) {
   const [meterTick, setMeterTick] = useState({ power: 0, accuracy: 0 });
   const [swingFx, setSwingFx] = useState(null);
   const [shakeFx, setShakeFx] = useState(null);
+  const [swingStreak, setSwingStreak] = useState(0);
   const [soundOn, setSoundOn] = useState(() => {
     try {
       return window.localStorage.getItem("tripGameSound") !== "off";
@@ -2149,7 +2180,16 @@ export default function TripGame({ data }) {
         if (playbackStep.index === 0 && shot.kind !== "putt") {
           setShakeFx({ amp: Math.round(3 + clamp(kickPower, 0, 1.15) * 5), id: Date.now() });
           window.setTimeout(() => setShakeFx(null), 320);
+          // A flushed drive gets the gallery murmuring while it hangs up there.
+          if (swingFx?.tier === "pure" || swingFx?.tier === "great") {
+            crowdSwell(swingFx.tier === "pure" ? 1 : 0.55);
+          }
         }
+      }
+      if (playbackStep.phase === "flight" && (playbackStep.frame || 0) >= lastFrame) {
+        // Ball is about to land.
+        if (shot.kind === "splash") splashSound();
+        else if (shot.final) holeoutSound();
       }
       setPlaybackStep((current) => {
         if (current.phase === "swing") return { ...current, phase: "flight", frame: 0 };
@@ -2352,6 +2392,7 @@ export default function TripGame({ data }) {
     pendingCommitRef.current = null;
     setHype(0);
     setStreak(0);
+    setSwingStreak(0);
     setInventory({ fireball: 1 });
     setEventOffer(null);
     setEventHandled({});
@@ -2476,9 +2517,14 @@ export default function TripGame({ data }) {
     // Hit-stop: freeze the needle where it was tapped, flash the judgment,
     // then release into the swing after a tier-scaled beat.
     const judgment = judgeSwing(power, accuracy);
-    setSwingFx({ ...judgment, power, accuracy, id: now });
+    // Striping streak: consecutive GREAT-or-better swings. PUREs climb the
+    // chord up the scale; any lesser strike resets it.
+    const nextStreak = judgment.tier === "pure" || judgment.tier === "great" ? swingStreak + 1 : 0;
+    setSwingStreak(nextStreak);
+    setSwingFx({ ...judgment, power, accuracy, streak: nextStreak, id: now });
     setMeterPhase("locked");
-    swingJudgmentSound(judgment.tier);
+    swingJudgmentSound(judgment.tier, judgment.tier === "pure" ? nextStreak - 1 : 0);
+    if (judgment.nearMiss) nearMissSound();
     if (typeof navigator !== "undefined" && navigator.vibrate) {
       navigator.vibrate(
         judgment.tier === "pure" ? [18, 26, 46] : judgment.tier === "great" ? 26 : judgment.tier === "wild" ? [8, 36] : 12,
@@ -2648,6 +2694,7 @@ export default function TripGame({ data }) {
       ...current,
       fireball: Math.max(0, current.fireball - (pending.usedFireball ? 1 : 0)) + (powerUpEarned ? 1 : 0),
     }));
+    if (resolved.winner === "human") holeWinSound();
     if (typeof navigator !== "undefined" && navigator.vibrate) {
       navigator.vibrate(resolved.winner === "human" ? [35, 30, 65] : 25);
     }
@@ -2791,11 +2838,13 @@ export default function TripGame({ data }) {
                       accuracy={meterTick.accuracy}
                       onTap={tapMeter}
                       judgment={meterPhase === "locked" ? swingFx : null}
+                      streak={swingStreak}
                     />
                   ) : null
                 }
                 swingFx={swingFx}
                 shake={shakeFx}
+                kickTier={swingFx?.tier || null}
                 soundControl={
                   <button
                     type="button"

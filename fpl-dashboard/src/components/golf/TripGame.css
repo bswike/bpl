@@ -1465,6 +1465,34 @@
   }
 }
 
+/* Striping streak: chip above the meter, panel trim escalates with heat */
+
+.trip-game-kick-streak {
+  margin: -2px 0 2px;
+  padding: 2px 3px;
+  border: 2px solid #060f0a;
+  background: #f2c14e;
+  color: #060f0a;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: trip-kick-pulse 0.8s ease-in-out infinite;
+}
+
+.trip-game-kick.is-streak-hot {
+  border-color: #f2c14e;
+}
+
+.trip-game-kick.is-streak-fire {
+  border-color: #ffd95e;
+  box-shadow: 4px 4px 0 #060f0a, 0 0 14px rgba(255, 217, 94, 0.55);
+}
+
+.trip-game-kick.is-streak-fire .trip-game-kick-streak {
+  background: linear-gradient(90deg, #ffd95e 0%, #ec7137 100%);
+}
+
 /* Meter panel lights up in the tier color during the hit-stop freeze */
 
 .trip-game-kick.is-judged.is-pure {
@@ -1523,6 +1551,23 @@
   font-size: 8px;
   letter-spacing: 0.12em;
   text-shadow: 2px 2px 0 #060f0a;
+}
+
+.trip-game-judgment em {
+  padding: 2px 5px;
+  border: 2px solid #060f0a;
+  background: #f2c14e;
+  color: #060f0a;
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-style: normal;
+  letter-spacing: 0.1em;
+}
+
+.trip-game-judgment.is-near-miss small {
+  color: #ffd95e;
+  text-shadow: 2px 2px 0 #060f0a, 0 0 8px rgba(255, 217, 94, 0.7);
+  animation: trip-kick-pulse 0.5s ease-in-out infinite;
 }
 
 .trip-game-judgment.is-pure b {
@@ -2203,6 +2248,30 @@
   stroke: rgba(10, 28, 17, 0.55);
   stroke-width: 0.6;
   vector-effect: non-scaling-stroke;
+}
+
+/* Comet trails earned at the meter: gold for PURE, green for GREAT */
+
+.trip-game-air-trail-line.is-pure {
+  stroke: rgba(255, 217, 94, 0.95);
+  stroke-width: 2.4;
+  filter: drop-shadow(0 0 3px rgba(255, 217, 94, 0.9));
+}
+
+.trip-game-air-trail.is-pure {
+  fill: #ffd95e;
+  filter: drop-shadow(0 0 2px rgba(255, 217, 94, 0.9));
+}
+
+.trip-game-air-trail-line.is-great {
+  stroke: rgba(143, 236, 152, 0.9);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 2px rgba(95, 216, 106, 0.8));
+}
+
+.trip-game-air-trail.is-great {
+  fill: #8fec98;
+  filter: drop-shadow(0 0 1.5px rgba(95, 216, 106, 0.8));
 }
 
 .trip-game-drop-line {

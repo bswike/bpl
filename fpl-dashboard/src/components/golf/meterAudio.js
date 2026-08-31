@@ -51,7 +51,7 @@ function tone({ freq, type = "square", at = 0, duration = 0.08, peak = 0.06, gli
   }
 }
 
-function noise({ at = 0, duration = 0.1, peak = 0.08, filterFrom = 2600, filterTo = 400, type = "lowpass" }) {
+function noise({ at = 0, duration = 0.1, peak = 0.08, filterFrom = 2600, filterTo = 400, type = "lowpass", attack = 0.003 }) {
   const ac = audio();
   if (!ac) return;
   try {
@@ -65,11 +65,12 @@ function noise({ at = 0, duration = 0.1, peak = 0.08, filterFrom = 2600, filterT
     const filter = ac.createBiquadFilter();
     const gain = ac.createGain();
     src.buffer = noiseBuffer;
+    src.loop = true;
     filter.type = type;
     filter.frequency.setValueAtTime(filterFrom, t0);
     filter.frequency.exponentialRampToValueAtTime(Math.max(60, filterTo), t0 + duration);
     gain.gain.setValueAtTime(0.0001, t0);
-    gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.003);
+    gain.gain.exponentialRampToValueAtTime(peak, t0 + attack);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
     src.connect(filter).connect(gain).connect(ac.destination);
     src.start(t0);
@@ -140,15 +141,17 @@ export function lockPowerSound(overswung) {
 }
 
 // The tier payoff at the accuracy tap. PURE gets a signature chord no other
-// event in the game reuses.
-export function swingJudgmentSound(tier) {
+// event in the game reuses — and each consecutive pure-streak step transposes
+// it up a whole tone (capped), so a hot streak literally climbs the scale.
+export function swingJudgmentSound(tier, streakStep = 0) {
   if (tier === "pure") {
+    const lift = Math.pow(2, (Math.min(6, Math.max(0, streakStep)) * 2) / 12);
     noise({ duration: 0.06, peak: 0.07, filterFrom: 5200, filterTo: 1200 });
-    tone({ freq: 523.25, type: "triangle", duration: 0.4, peak: 0.07 });
-    tone({ freq: 659.25, type: "triangle", at: 0.02, duration: 0.4, peak: 0.06 });
-    tone({ freq: 783.99, type: "triangle", at: 0.04, duration: 0.42, peak: 0.06 });
-    tone({ freq: 1567.98, at: 0.09, duration: 0.14, peak: 0.04 });
-    tone({ freq: 2093, at: 0.16, duration: 0.16, peak: 0.03 });
+    tone({ freq: 523.25 * lift, type: "triangle", duration: 0.4, peak: 0.07 });
+    tone({ freq: 659.25 * lift, type: "triangle", at: 0.02, duration: 0.4, peak: 0.06 });
+    tone({ freq: 783.99 * lift, type: "triangle", at: 0.04, duration: 0.42, peak: 0.06 });
+    tone({ freq: 1567.98 * lift, at: 0.09, duration: 0.14, peak: 0.04 });
+    tone({ freq: 2093 * lift, at: 0.16, duration: 0.16, peak: 0.03 });
     return;
   }
   if (tier === "great") {
@@ -163,6 +166,45 @@ export function swingJudgmentSound(tier) {
   }
   // wild — a sad downward womp
   tone({ freq: 250, type: "sawtooth", duration: 0.22, peak: 0.06, glideTo: 105 });
+}
+
+// Rising note that never resolves — the slot-machine near-miss cue, played
+// only when the tap just barely missed the PURE sliver.
+export function nearMissSound() {
+  tone({ freq: 620, type: "triangle", at: 0.18, duration: 0.2, peak: 0.05, glideTo: 930 });
+}
+
+// Low crowd murmur that swells while a flushed drive hangs in the air.
+export function crowdSwell(intensity = 0.6) {
+  noise({
+    duration: 1.15,
+    peak: 0.028 + intensity * 0.03,
+    filterFrom: 480,
+    filterTo: 1400,
+    type: "bandpass",
+    attack: 0.55,
+  });
+}
+
+// Crowd roar + chime arpeggio when the ball drops in the hole.
+export function holeoutSound() {
+  tone({ freq: 987.77, type: "triangle", duration: 0.12, peak: 0.05 });
+  tone({ freq: 1318.51, type: "triangle", at: 0.09, duration: 0.14, peak: 0.05 });
+  tone({ freq: 1975.53, type: "triangle", at: 0.18, duration: 0.24, peak: 0.05 });
+  noise({ at: 0.12, duration: 0.9, peak: 0.05, filterFrom: 600, filterTo: 1600, type: "bandpass", attack: 0.12 });
+}
+
+// Kerplunk for a ball finding the water.
+export function splashSound() {
+  tone({ freq: 300, type: "sine", duration: 0.25, peak: 0.06, glideTo: 90 });
+  noise({ at: 0.03, duration: 0.4, peak: 0.06, filterFrom: 1800, filterTo: 260 });
+}
+
+// Short gallery cheer when the captain's side takes the hole.
+export function holeWinSound() {
+  noise({ duration: 0.7, peak: 0.05, filterFrom: 700, filterTo: 1500, type: "bandpass", attack: 0.06 });
+  tone({ freq: 659.25, type: "triangle", at: 0.05, duration: 0.12, peak: 0.045 });
+  tone({ freq: 880, type: "triangle", at: 0.15, duration: 0.18, peak: 0.045 });
 }
 
 // Casino-odometer clicks while the yardage counter rolls, and a payoff note
