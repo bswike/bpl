@@ -14,7 +14,6 @@ import {
   makeSeededRandom,
   matchCloseout,
   resolveMatchHole,
-  scoreLabel,
 } from "./tripGameEngine.js";
 import "./TripGame.css";
 
@@ -40,16 +39,6 @@ function aimText(aim) {
 
 function lastName(name) {
   return String(name || "").trim().split(/\s+/).at(-1) || name;
-}
-
-function initials(name) {
-  return String(name || "")
-    .trim()
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 }
 
 function pathFromPoints(points, close = true) {
@@ -674,11 +663,11 @@ function projectHole(geometry, hole) {
 }
 
 function ScoreOdds({ odds }) {
-  if (!odds) return <div className="trip-game-empty">PICK A GOLFER TO LOAD ODDS</div>;
+  if (!odds) return null;
   return (
     <div className="trip-game-odds">
       <div className="trip-game-section-label">
-        <span>HOLE OUTCOME MODEL</span>
+        <span>MODEL</span>
         <span>EXP {odds.expectedGross.toFixed(1)}</span>
       </div>
       <div
@@ -698,14 +687,6 @@ function ScoreOdds({ odds }) {
           </div>
         ))}
       </div>
-      {odds.actualGross != null ? (
-        <div className="trip-game-memory">
-          ACTUAL TRIP MEMORY: <b>{odds.actualGross}</b> ({scoreLabel(odds.actualRelative)}) · CURRENT MODEL CHANCE{" "}
-          <b>{formatOdds(odds.actualChance)}</b>
-        </div>
-      ) : (
-        <div className="trip-game-memory trip-game-memory--muted">NO SCORE ON THIS HOLE · INDEX + HISTORY MODEL</div>
-      )}
     </div>
   );
 }
@@ -748,10 +729,10 @@ function CaptainRead({ read }) {
       </div>
       <div className="trip-game-caddie-tip">
         {read.quality >= 94 && !read.fireball
-          ? "★ BEST LINE FOUND — COMMIT TO IT"
+          ? "★ BEST LINE"
           : read.fireball
-            ? "🔥 BIRDIE/PAR UP · DOUBLE/TRIPLE UP"
-            : `CADDIE LIKES ${bestClub?.short || bestClub?.label} · ${bestShape?.label.toUpperCase()} · ${aimText(read.bestDecision.aim)}`}
+            ? "🔥 UP SIDE / RISK"
+            : `${bestClub?.short || bestClub?.label} · ${bestShape?.label.toUpperCase()} · ${aimText(read.bestDecision.aim)}`}
       </div>
     </div>
   );
@@ -767,6 +748,8 @@ function HoleMap({
   onIntroDismiss,
   odds,
   canAct,
+  intelLeft,
+  intelRight,
   stockShape,
   menu,
   onAimStep,
@@ -1136,6 +1119,12 @@ function HoleMap({
           </span>
         </button>
       )}
+      {(intelLeft || intelRight) && (
+        <div className="trip-game-map-intel">
+          <div className="trip-game-map-intel-left">{intelLeft}</div>
+          <div className="trip-game-map-intel-right">{intelRight}</div>
+        </div>
+      )}
       {canAct && (
         <div className="trip-game-pad">
           <div className="trip-game-pad-aim">
@@ -1231,86 +1220,34 @@ function HoleMap({
   );
 }
 
-function PlayerCard({ player, playerState, course }) {
-  if (!player) {
-    return (
-      <div className="trip-game-player-card trip-game-player-card--empty">
-        <span className="trip-game-avatar">?</span>
-        <div>
-          <b>CAPTAIN, MAKE YOUR PICK</b>
-          <small>Each golfer may be used a limited number of times.</small>
-        </div>
-      </div>
-    );
-  }
+function CaptainSelect({ players, selectedKey, usage, maxUses, disabled, onPick, course }) {
+  const ranked = [...players].sort((left, right) => left.hi - right.hi);
   return (
-    <div className="trip-game-player-card">
-      <span className="trip-game-avatar">{initials(player.name)}</span>
-      <div className="trip-game-player-main">
-        <div className="trip-game-player-name">
-          <b>{player.name}</b>
-          {player.trait && <em>{player.trait}</em>}
-        </div>
-        <div className="trip-game-player-meta">
-          INDEX {player.hi.toFixed(1)} / CH {courseHandicap(player.hi, course)} · {player.profileSource.toUpperCase()} STOCK{" "}
-          {player.stockShape.toUpperCase()}
-        </div>
-      </div>
-      <div className="trip-game-ratings">
-        <span>
-          OVR <b>{player.overall}</b>
-        </span>
-        <span>
-          ATK <b>{player.attack}</b>
-        </span>
-        <span>
-          CTL <b>{player.control}</b>
-        </span>
-      </div>
-      <div className="trip-game-condition">
-        <span className={playerState.buzz > 35 ? "is-hot" : ""}>
-          {playerState.buzz > 35 ? "🍺 " : ""}BUZZ <b>{Math.round(playerState.buzz)}</b>
-        </span>
-        <span className={playerState.morale < 40 ? "is-low" : ""}>
-          MORALE <b>{Math.round(playerState.morale)}</b>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function PlayerPicker({ players, selectedKey, usage, maxUses, disabled, onPick }) {
-  return (
-    <div className="trip-game-roster">
-      <div className="trip-game-section-label">
-        <span>CAPTAIN PICK</span>
-        <span>MAX {maxUses} USES</span>
-      </div>
-      <div className="trip-game-roster-grid">
-        {players.map((player) => {
+    <label className="trip-game-captain-select">
+      <small>CAPTAIN PICK · BEST → WORST HCP</small>
+      <select
+        value={selectedKey || ""}
+        disabled={disabled}
+        onChange={(event) => {
+          const player = ranked.find((item) => item.key === event.target.value);
+          if (player) onPick(player);
+        }}
+      >
+        <option value="">SELECT GOLFER</option>
+        {ranked.map((player) => {
           const used = usage[player.key] || 0;
           const spent = used >= maxUses;
+          const courseHcp = course ? courseHandicap(player.hi, course) : null;
           return (
-            <button
-              key={player.key}
-              type="button"
-              className={`trip-game-roster-player ${selectedKey === player.key ? "is-selected" : ""}`}
-              disabled={disabled || spent}
-              onClick={() => onPick(player)}
-            >
-              <span className="trip-game-roster-avatar">{initials(player.name)}</span>
-              <span className="trip-game-roster-name">{lastName(player.name)}</span>
-              <span className="trip-game-roster-hi">{player.hi.toFixed(1)}</span>
-              <span className="trip-game-use-pips" aria-label={`${used} of ${maxUses} uses`}>
-                {Array.from({ length: maxUses }, (_, index) => (
-                  <i key={index} className={index < used ? "is-used" : ""} />
-                ))}
-              </span>
-            </button>
+            <option key={player.key} value={player.key} disabled={spent}>
+              {player.hi.toFixed(1)}
+              {courseHcp != null ? `/${courseHcp}` : ""} · {player.name}
+              {spent ? " · SPENT" : used ? ` · ${used}/${maxUses}` : ""}
+            </option>
           );
         })}
-      </div>
-    </div>
+      </select>
+    </label>
   );
 }
 
@@ -2156,6 +2093,8 @@ export default function TripGame({ data }) {
                 onIntroDismiss={() => setHoleIntro(false)}
                 odds={resolutionPhase === "idle" && !result ? odds : null}
                 canAct={Boolean(selected) && resolutionPhase === "idle" && !result}
+                intelLeft={resolutionPhase === "idle" && !result ? <ScoreOdds odds={odds} /> : null}
+                intelRight={resolutionPhase === "idle" && !result ? <CaptainRead read={captainRead} /> : null}
                 stockShape={selected?.stockShape}
                 menu={menu}
                 onAimStep={stepAim}
@@ -2163,16 +2102,43 @@ export default function TripGame({ data }) {
                 onMenuSelect={chooseFromMenu}
                 onMenuClose={() => setMenu(null)}
               />
-              <div className="trip-game-command-panel">
-                <PlayerCard player={selected} playerState={selectedState} course={course} />
-                {resolutionPhase === "playback" && result ? (
+              {resolutionPhase === "idle" && !result && (
+                <div className="trip-game-action-bar">
+                  <CaptainSelect
+                    players={humanRoster}
+                    selectedKey={selectedKey}
+                    usage={usage}
+                    maxUses={maxUses}
+                    disabled={pickLocked}
+                    onPick={pickPlayer}
+                    course={course}
+                  />
+                  <button
+                    type="button"
+                    className={`trip-game-fireball-chip ${decision.fireball ? "is-selected" : ""}`}
+                    disabled={!selected || inventory.fireball < 1}
+                    onClick={() => setDecision((current) => ({ ...current, fireball: !current.fireball }))}
+                  >
+                    🔥 {inventory.fireball}
+                  </button>
+                  <button type="button" className="trip-game-primary-button" disabled={!selected} onClick={playHole}>
+                    {selected ? `PLAY ${lastName(selected.name).toUpperCase()} ▶` : "PLAY ▶"}
+                  </button>
+                </div>
+              )}
+              {eventNote && resolutionPhase === "idle" && !result && <div className="trip-game-event-note">{eventNote}</div>}
+              {resolutionPhase === "playback" && result && (
+                <div className="trip-game-stage-overlay">
                   <PlaybackPanel
                     result={result}
                     shots={playbackShots || []}
                     shotIndex={playbackStep.index}
                     onSkip={finishPlayback}
                   />
-                ) : resolutionPhase === "result" && result ? (
+                </div>
+              )}
+              {resolutionPhase === "result" && result && (
+                <div className="trip-game-stage-overlay">
                   <ResultPanel
                     result={result}
                     humanTeam={captainTeam}
@@ -2181,38 +2147,9 @@ export default function TripGame({ data }) {
                     finalHole={holeIndex === 17 || Boolean(closeout?.decided)}
                     closeout={closeout}
                   />
-                ) : (
-                  <>
-                    <ScoreOdds odds={odds} />
-                    <CaptainRead read={captainRead} />
-                    <div className="trip-game-items">
-                      <button
-                        type="button"
-                        className={decision.fireball ? "is-selected" : ""}
-                        disabled={!selected || inventory.fireball < 1}
-                        onClick={() => setDecision((current) => ({ ...current, fireball: !current.fireball }))}
-                      >
-                        <span>🔥</span>
-                        <b>FIREBALL SHOT</b>
-                        <small>x{inventory.fireball} · MORE UPSIDE / MORE RISK</small>
-                      </button>
-                    </div>
-                    {eventNote && <div className="trip-game-event-note">{eventNote}</div>}
-                    <button type="button" className="trip-game-primary-button" disabled={!selected} onClick={playHole}>
-                      {selected ? `PLAY ${lastName(selected.name).toUpperCase()} ▶` : "PICK A GOLFER"}
-                    </button>
-                  </>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-            <PlayerPicker
-              players={humanRoster}
-              selectedKey={selectedKey}
-              usage={usage}
-              maxUses={maxUses}
-              disabled={Boolean(result) || pickLocked || resolutionPhase !== "idle"}
-              onPick={pickPlayer}
-            />
             <div className="trip-game-bottom-status">
               <span>CPU PICK: {resolutionPhase === "result" && result ? lastName(result.cpu.name).toUpperCase() : "HIDDEN"}</span>
               <span>

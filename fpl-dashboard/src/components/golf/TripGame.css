@@ -537,8 +537,11 @@
 /* ---------- Play grid + map ---------- */
 
 .trip-game-play-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.94fr) minmax(300px, 1.06fr);
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
   border-bottom: 3px solid var(--px-ink);
 }
 
@@ -546,9 +549,9 @@
   position: relative;
   display: flex;
   min-width: 0;
-  min-height: 500px;
+  min-height: 0;
+  flex: 1;
   flex-direction: column;
-  border-right: 3px solid var(--px-ink);
   background: #2c5236;
 }
 
@@ -749,6 +752,171 @@
 
 .trip-game-map-landing span.is-danger b {
   color: #ffcf9e;
+}
+
+.trip-game-map-intel {
+  position: absolute;
+  z-index: 4;
+  top: 26%;
+  right: 8px;
+  left: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.trip-game-map-intel-left,
+.trip-game-map-intel-right {
+  width: min(168px, 38%);
+  pointer-events: auto;
+}
+
+.trip-game-map-intel .trip-game-odds,
+.trip-game-map-intel .trip-game-captain-read {
+  padding: 5px 6px;
+  border-width: 2px;
+  box-shadow: 2px 2px 0 rgba(6, 15, 10, 0.45);
+  background: rgba(16, 32, 22, 0.88);
+}
+
+.trip-game-map-intel .trip-game-odds {
+  color: #d7e4b8;
+}
+
+.trip-game-map-intel .trip-game-section-label {
+  margin-bottom: 4px;
+  color: #9cb289;
+  font-size: 9px;
+}
+
+.trip-game-map-intel .trip-game-odds-bar {
+  min-height: 28px;
+}
+
+.trip-game-map-intel .trip-game-odds-segment span {
+  font-size: 8px;
+}
+
+.trip-game-map-intel .trip-game-odds-segment b {
+  margin-top: 1px;
+  font-size: 10px;
+}
+
+.trip-game-map-intel .trip-game-captain-read {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.trip-game-map-intel .trip-game-read-call {
+  padding: 0 0 4px;
+  border-right: 0;
+  border-bottom: 1px solid rgba(6, 15, 10, 0.35);
+}
+
+.trip-game-map-intel .trip-game-read-call b {
+  font-size: 11px;
+}
+
+.trip-game-map-intel .trip-game-read-metrics {
+  padding-top: 3px;
+}
+
+.trip-game-map-intel .trip-game-read-metrics b {
+  font-size: 11px;
+}
+
+.trip-game-map-intel .trip-game-read-metrics span {
+  font-size: 8px;
+}
+
+.trip-game-map-intel .trip-game-caddie-tip {
+  padding: 3px 0 0;
+  font-size: 8px;
+}
+
+.trip-game-action-bar {
+  z-index: 3;
+  display: flex;
+  flex: none;
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 2px solid #060f0a;
+  background: #13241a;
+}
+
+.trip-game-captain-select {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.trip-game-captain-select small {
+  color: #89a07a;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+
+.trip-game-captain-select select {
+  width: 100%;
+  min-height: 34px;
+  padding: 4px 8px;
+  border: 2px solid #060f0a;
+  background: var(--px-screen);
+  color: var(--px-ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  box-shadow: 2px 2px 0 #060f0a;
+}
+
+.trip-game-fireball-chip {
+  min-width: 46px;
+  padding: 0 8px;
+  border: 2px solid #060f0a;
+  background: #2a1c12;
+  color: #f0c896;
+  font-family: var(--font-display);
+  font-size: 11px;
+  box-shadow: 2px 2px 0 #060f0a;
+}
+
+.trip-game-fireball-chip.is-selected {
+  background: #cf5a2e;
+  color: #fff4d6;
+}
+
+.trip-game-fireball-chip:disabled {
+  opacity: 0.45;
+}
+
+.trip-game-action-bar .trip-game-primary-button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 118px;
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.trip-game-stage-overlay {
+  position: absolute;
+  z-index: 6;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  max-height: 42%;
+  overflow: auto;
+  pointer-events: auto;
+}
+
+.trip-game-stage-overlay .trip-game-playback,
+.trip-game-stage-overlay .trip-game-result {
+  min-height: 0;
+  padding: 8px;
+  background: rgba(12, 24, 16, 0.92);
 }
 
 /* Game Boy control pad under the screen */
@@ -2678,13 +2846,13 @@
   }
 
   .trip-game-play-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
   }
 
   .trip-game-map-wrap {
-    min-height: 225px;
+    min-height: 0;
     border-right: 0;
-    border-bottom: 3px solid var(--px-ink);
   }
 
   .trip-game-map {
@@ -3167,7 +3335,7 @@
 .trip-game--play .trip-game-scorebar,
 .trip-game--play .trip-game-match-state,
 .trip-game--play .trip-game-hype,
-.trip-game--play .trip-game-roster,
+.trip-game--play .trip-game-action-bar,
 .trip-game--play .trip-game-bottom-status {
   flex: none;
 }
@@ -3256,6 +3424,20 @@
     height: auto;
     min-height: 120px;
     flex: 1;
+  }
+
+  .trip-game--play .trip-game-map-intel-left,
+  .trip-game--play .trip-game-map-intel-right {
+    width: min(120px, 34%);
+  }
+
+  .trip-game--play .trip-game-action-bar {
+    padding: 5px 6px;
+  }
+
+  .trip-game--play .trip-game-action-bar .trip-game-primary-button {
+    min-width: 96px;
+    font-size: 9px;
   }
 
   .trip-game--play .trip-game-command-panel {
