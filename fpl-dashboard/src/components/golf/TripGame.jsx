@@ -2025,9 +2025,9 @@ function liveClubOf(clubId) {
  */
 function buzzTierOf(buzz) {
   const level = Number(buzz) || 0;
-  if (level >= 70) return { id: "lit", label: "LIT", zone: 0.72, speed: 1.3, wobble: true, bonus: 1.15, pulse: 3 };
-  if (level >= 45) return { id: "tipsy", label: "TIPSY", zone: 0.82, speed: 1.18, wobble: true, bonus: 1.1, pulse: 2 };
-  if (level >= 20) return { id: "buzzed", label: "BUZZED", zone: 0.92, speed: 1.08, wobble: false, bonus: 1.06, pulse: 1 };
+  if (level >= 60) return { id: "lit", label: "LIT", zone: 0.72, speed: 1.3, wobble: true, bonus: 1.15, pulse: 3 };
+  if (level >= 34) return { id: "tipsy", label: "TIPSY", zone: 0.82, speed: 1.18, wobble: true, bonus: 1.1, pulse: 2 };
+  if (level >= 12) return { id: "buzzed", label: "BUZZED", zone: 0.92, speed: 1.08, wobble: false, bonus: 1.06, pulse: 1 };
   return { id: "sober", label: "SOBER", zone: 1, speed: 1, wobble: false, bonus: 1, pulse: 0 };
 }
 
@@ -3356,6 +3356,15 @@ export default function TripGame({ data }) {
     if (drink) triggerPartySurge();
   }
 
+  // Unlimited fireball shots: slam one whenever you like. The stadium loves
+  // it; your meter does not.
+  function takeFireballShot() {
+    if (!selected || result) return;
+    updateCondition(selected.key, { buzz: 22, morale: 3 });
+    setEventNote("FIREBALL DOWN THE HATCH · BUZZ CLIMBING");
+    triggerPartySurge();
+  }
+
   function acceptBuyRound() {
     if (!eventOffer) return;
     if (selected) updateCondition(selected.key, { buzz: 18, morale: 6 });
@@ -3927,7 +3936,7 @@ export default function TripGame({ data }) {
       return;
     }
     // Blowing them out? They'll offer to buy a round — a trap either way.
-    if (scoreDifference >= 3 && !buyRoundRef.current && cpuOpponent) {
+    if (scoreDifference >= 2 && !buyRoundRef.current && cpuOpponent) {
       buyRoundRef.current = true;
       setEventOffer({ type: "buy-round", playerKey: selected.key, player: selected });
       return;
@@ -4407,6 +4416,14 @@ export default function TripGame({ data }) {
                     onClick={() => setDecision((current) => ({ ...current, fireball: !current.fireball }))}
                   >
                     🔥 {inventory.fireball}
+                  </button>
+                  <button
+                    type="button"
+                    className="trip-game-fireball-chip is-shot"
+                    disabled={!selected || Boolean(meterPhase)}
+                    onClick={takeFireballShot}
+                  >
+                    🥃 SHOT
                   </button>
                   {liveInfo && (
                     <button type="button" className="trip-game-skip-chip" onClick={skipLiveHole}>

@@ -1732,6 +1732,17 @@
   box-shadow: 2px 2px 0 #060f0a;
 }
 
+.trip-game-fireball-chip.is-shot {
+  background: #8f4a18;
+  color: #ffe2c0;
+  font-size: 8px;
+}
+
+.trip-game-fireball-chip.is-shot:active:not(:disabled) {
+  box-shadow: 1px 1px 0 #060f0a;
+  transform: translate(1px, 1px);
+}
+
 .trip-game-fireball-chip.is-selected {
   background: #cf5a2e;
   color: #fff4d6;
