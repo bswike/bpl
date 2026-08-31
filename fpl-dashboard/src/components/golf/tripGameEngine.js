@@ -42,6 +42,10 @@ const COURSE_META = {
   ballyowen: { slope: 138, rating: 72.2, par: 72, geometry: "/data/ballyowen.json" },
 };
 
+const PLAYER_SCOUTING = {
+  "brett swikle": { stockShape: "cut" },
+};
+
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const sum = (values) => values.reduce((total, value) => total + value, 0);
 const mean = (values) => (values.length ? sum(values) / values.length : 0);
@@ -246,7 +250,8 @@ export function buildTripGameModel(primary, history = []) {
       const hi = Number(player.hi);
       const probs = profileProbabilities(hi, observationByPlayer.get(key) || []);
       const ratings = ratingFromProbabilities(hi, probs);
-      const stockShape = SHAPES[hashString(key) % SHAPES.length].id;
+      const scouting = PLAYER_SCOUTING[key];
+      const stockShape = scouting?.stockShape || SHAPES[hashString(key) % SHAPES.length].id;
       return {
         key,
         name: player.name,
@@ -254,7 +259,7 @@ export function buildTripGameModel(primary, history = []) {
         hi,
         probs,
         stockShape,
-        profileSource: "modeled",
+        profileSource: scouting ? "scouted" : "modeled",
         trait: key === "sean wilson" ? "Fireball Supplier" : null,
         ...ratings,
       };
@@ -316,6 +321,16 @@ function averageHoleWithoutPlayer(hole, playerKey) {
   return values.length ? mean(values) : hole.averageToPar;
 }
 
+function shapeFitAdjustment(profile, hole, shapeId) {
+  const preferred = hole.preferredShape || "straight";
+  const severity = clamp(Number(hole.shapeSeverity) || 0, 0, 1);
+  const execution = shapeId === profile.stockShape ? -0.025 : 0.03;
+  if (preferred === "straight") return execution + (shapeId === "straight" ? -0.02 : 0);
+  if (shapeId === preferred) return execution - 0.18 * severity;
+  if (shapeId === "straight") return execution + 0.055 * severity;
+  return execution + 0.18 * severity;
+}
+
 function landingProbabilities(profile, hole, decision, state) {
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
   const aim = AIMS.find((item) => item.id === decision.aim) || AIMS[1];
@@ -324,14 +339,35 @@ function landingProbabilities(profile, hole, decision, state) {
   const pathBias = aim.offset + shape.bias;
   const intoDanger = Math.max(0, pathBias * danger);
   const awayFromDanger = Math.max(0, -pathBias * danger);
-  const offStock = decision.shape !== profile.stockShape ? 0.055 : 0;
+  const offline = Math.max(0, Math.abs(pathBias) - 0.45);
+  const shapeFit = shapeFitAdjustment(profile, hole, decision.shape);
+  const hazardSeverity = clamp(Number(hole.hazardSeverity) || (hole.hasWater ? 0.55 : 0.25), 0, 1);
+  const clubAggression = club.id === "driver" ? 1 : club.id === "wood" ? 0.58 : 0.2;
   const buzz = Number(state?.buzz) || 0;
   const buzzPenalty = buzz > 35 ? (buzz - 35) / 270 : 0;
   const control = (profile.control - 30) / 69;
 
-  let fairway = 0.44 + control * 0.2 + club.fairway - offStock - buzzPenalty - intoDanger * 0.08;
-  let bunker = 0.06 + club.risk * 0.35 + intoDanger * (hole.primaryHazard === "bunker" ? 0.08 : 0.025);
-  let penalty = 0.015 + Math.max(0, club.risk) * 0.25 + intoDanger * (hole.primaryHazard === "water" ? 0.12 : 0.075);
+  let fairway =
+    0.44 +
+    control * 0.2 +
+    club.fairway -
+    buzzPenalty -
+    intoDanger * 0.08 -
+    offline * 0.14 -
+    shapeFit * 0.24 -
+    hazardSeverity * clubAggression * 0.055;
+  let bunker =
+    0.06 +
+    club.risk * 0.35 +
+    intoDanger * (hole.primaryHazard === "bunker" ? 0.08 : 0.025) +
+    Math.max(0, shapeFit) * 0.08 +
+    hazardSeverity * clubAggression * 0.025;
+  let penalty =
+    0.015 +
+    Math.max(0, club.risk) * 0.25 +
+    intoDanger * (hole.primaryHazard === "water" ? 0.12 : 0.075) +
+    Math.max(0, shapeFit) * 0.06 +
+    hazardSeverity * clubAggression * 0.035;
   if (hole.hasWater) penalty += 0.018;
   penalty -= awayFromDanger * 0.035;
   fairway = clamp(fairway, 0.2, 0.76);
@@ -347,6 +383,17 @@ function stateShift(state) {
   const buzzEffect = buzz <= 35 ? -buzz * 0.0025 : -0.0875 + (buzz - 35) * 0.015;
   const moraleEffect = -(morale - 50) * 0.004;
   return buzzEffect + moraleEffect;
+}
+
+function applyFireballVariance(probs) {
+  const next = [...probs];
+  const moved = Math.min(next[2] * 0.52, 0.22);
+  next[2] -= moved;
+  next[0] += moved * 0.34;
+  next[1] += moved * 0.24;
+  next[3] += moved * 0.24;
+  next[4] += moved * 0.18;
+  return normalize(next);
 }
 
 export function defaultDecision(profile, hole) {
@@ -368,19 +415,19 @@ export function buildHoleOdds({ profile, course, hole, decision, state }) {
   const landing = landingProbabilities(profile, hole, decision, state);
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
   const trouble = landing[1] * 0.08 + landing[2] * 0.22 + landing[3] * 1.25;
-  const offStock = decision.shape !== profile.stockShape ? 0.09 : 0;
-  const fireballShift = decision.fireball ? -0.12 : 0;
-  const fireballRisk = decision.fireball ? 0.16 : 0;
+  const shapeFit = shapeFitAdjustment(profile, hole, decision.shape);
+  const hazardSeverity = clamp(Number(hole.hazardSeverity) || (hole.hasWater ? 0.55 : 0.25), 0, 1);
+  const clubRisk = Math.max(0, club.risk) * (0.2 + hazardSeverity * 1.75);
   const shift =
     tripDifficulty * 0.55 +
     officialDifficulty +
     trouble +
-    offStock +
+    shapeFit +
+    clubRisk +
     stateShift(state) -
-    club.upside +
-    fireballShift +
-    fireballRisk;
+    club.upside;
   probs = shiftDistribution(probs, shift);
+  if (decision.fireball) probs = applyFireballVariance(probs);
   const expectedRelative = sum(probs.map((prob, index) => prob * SCORE_VALUES[index]));
   const actualBucket =
     actualRelative == null ? null : actualRelative <= -1 ? 0 : actualRelative === 0 ? 1 : actualRelative === 1 ? 2 : actualRelative === 2 ? 3 : 4;
@@ -459,19 +506,36 @@ export function resolveMatchHole({ human, cpu, humanOdds, cpuOdds, course, hole,
   };
 }
 
+export function findBestDecision({ profile, course, hole, state }) {
+  const base = defaultDecision(profile, hole);
+  let best = null;
+  let worst = null;
+  for (const club of CLUBS.filter((item) => item.minPar <= hole.par)) {
+    for (const shape of SHAPES) {
+      for (const aim of AIMS) {
+        const decision = { ...base, club: club.id, shape: shape.id, aim: aim.id, fireball: false };
+        const odds = buildHoleOdds({ profile, course, hole, decision, state });
+        const plan = { decision, odds };
+        if (!best || odds.expectedGross < best.odds.expectedGross) best = plan;
+        if (!worst || odds.expectedGross > worst.odds.expectedGross) worst = plan;
+      }
+    }
+  }
+  return { best, worst };
+}
+
 export function chooseCpuPlayer({ players, usage, maxUses, course, hole, stateByPlayer }) {
   const available = players.filter((player) => (usage[player.key] || 0) < maxUses);
   const pool = available.length ? available : players;
   let best = null;
   for (const profile of pool) {
-    const decision = defaultDecision(profile, hole);
-    const odds = buildHoleOdds({
+    const { best: bestPlan } = findBestDecision({
       profile,
       course,
       hole,
-      decision,
       state: stateByPlayer[profile.key],
     });
+    const { decision, odds } = bestPlan;
     const conservation = (usage[profile.key] || 0) * 0.055;
     const score = odds.expectedGross + conservation;
     if (!best || score < best.score) best = { profile, decision, odds, score };

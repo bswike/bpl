@@ -9,6 +9,7 @@ import {
   chooseCpuPlayer,
   courseHandicap,
   defaultDecision,
+  findBestDecision,
   formatOdds,
   makeSeededRandom,
   resolveMatchHole,
@@ -18,6 +19,8 @@ import "./TripGame.css";
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
 const FIREBALL_HOLES = new Set([4, 8, 12, 16]);
+const CART_GIRL_HOLES = new Set([6, 14]);
+const SHOT_REVEAL_MS = 1200;
 const FEATURE_ORDER = { water: 0, fairway: 1, bunker: 2, green: 3, tee: 4 };
 const DEFAULT_PLAYER_STATE = Object.freeze({ buzz: 0, morale: 50 });
 
@@ -113,6 +116,36 @@ function buildTreeSprites(projection, holeNumber) {
   return trees;
 }
 
+function routeShapeProfile(line, tee, pin) {
+  const length = polylineLength(line);
+  if (!length) return { preferredShape: "straight", shapeSeverity: 0 };
+  const samples = [
+    { progress: 0.3, weight: 0.2 },
+    { progress: 0.5, weight: 0.5 },
+    { progress: 0.68, weight: 0.3 },
+  ];
+  const deviation = samples.reduce((total, sample) => {
+    const point = pointAlongPolyline(line, length * sample.progress).point;
+    const directX = tee[0] + (pin[0] - tee[0]) * sample.progress;
+    return total + (point[0] - directX) * sample.weight;
+  }, 0);
+  const shapeSeverity = clamp((Math.abs(deviation) - 3) / 28, 0, 1);
+  return {
+    preferredShape: shapeSeverity < 0.12 ? "straight" : deviation < 0 ? "draw" : "cut",
+    shapeSeverity,
+  };
+}
+
+function polygonArea(points) {
+  let area = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index];
+    const next = points[(index + 1) % points.length];
+    area += current[0] * next[1] - next[0] * current[1];
+  }
+  return Math.abs(area) / 2;
+}
+
 function fallbackProjection(hole) {
   const bend = hole.number % 2 ? -18 : 18;
   const waterSide = hole.number % 3 === 0 ? "right" : hole.number % 4 === 0 ? "left" : null;
@@ -153,6 +186,9 @@ function fallbackProjection(hole) {
     primaryHazard: waterSide ? "water" : "bunker",
     hasWater: Boolean(waterSide),
     hazardLabel: waterSide ? `WATER ${waterSide.toUpperCase()}` : "BUNKERS LEFT",
+    preferredShape: bend < 0 ? "draw" : "cut",
+    shapeSeverity: 0.58,
+    hazardSeverity: waterSide ? 0.68 : 0.32,
     official: null,
     elevation: null,
     source: "prototype",
@@ -203,6 +239,9 @@ function projectHole(geometry, hole) {
   const dangerSide = Math.abs(hazardPull) < 2 ? null : hazardPull < 0 ? "left" : "right";
   const hasWater = hazards.some((feature) => feature.type === "water");
   const primaryHazard = hasWater ? "water" : hazards.length ? "bunker" : null;
+  const hazardArea = hazards.reduce((total, feature) => total + polygonArea(feature.points), 0) / (width * height || 1);
+  const hazardSeverity = clamp(hazards.length * 0.055 + hazardArea * 2.8 + (hasWater ? 0.16 : 0), 0.08, 1);
+  const routeShape = routeShapeProfile(rawLine, rawTee, rawPin);
   const hazardLabel = primaryHazard
     ? `${primaryHazard === "water" ? "WATER" : "BUNKERS"}${dangerSide ? ` ${dangerSide.toUpperCase()}` : ""}`
     : "NO MAJOR HAZARD";
@@ -220,6 +259,8 @@ function projectHole(geometry, hole) {
     primaryHazard,
     hasWater,
     hazardLabel,
+    hazardSeverity,
+    ...routeShape,
     official: sourceHole,
     elevation: Number(sourceHole.elevM) || null,
     source: "OpenStreetMap / ODbL",
@@ -270,7 +311,55 @@ function ScoreOdds({ odds }) {
   );
 }
 
-function HoleMap({ projection, hole, decision, result }) {
+function signedPercent(value) {
+  const points = Math.round((Number(value) || 0) * 100);
+  return `${points > 0 ? "+" : ""}${points}%`;
+}
+
+function CaptainRead({ read }) {
+  if (!read) return null;
+  const bestClub = CLUBS.find((club) => club.id === read.bestDecision.club);
+  const bestShape = SHAPES.find((shape) => shape.id === read.bestDecision.shape);
+  const bestAim = AIMS.find((aim) => aim.id === read.bestDecision.aim);
+  return (
+    <div
+      key={read.planKey}
+      className={`trip-game-captain-read is-${read.tone}`}
+      aria-label={`${read.label}. Player fit rank ${read.playerRank} of ${read.rosterSize}.`}
+    >
+      <div className="trip-game-read-call">
+        <small>CAPTAIN READ</small>
+        <b>{read.label}</b>
+        <span>
+          PICK #{read.playerRank}/{read.rosterSize}
+        </span>
+      </div>
+      <div className="trip-game-read-metrics">
+        <span>
+          <b>{signedPercent(read.scoringDelta)}</b>
+          SCORING
+        </span>
+        <span>
+          <b>{signedPercent(read.bigNumberDelta)}</b>
+          BIG NO.
+        </span>
+        <span>
+          <b>{read.quality}%</b>
+          PLAN FIT
+        </span>
+      </div>
+      <div className="trip-game-caddie-tip">
+        {read.quality >= 94 && !read.fireball
+          ? "★ BEST LINE FOUND — COMMIT TO IT"
+          : read.fireball
+            ? "🔥 BIRDIE/PAR UP · DOUBLE/TRIPLE UP"
+            : `CADDIE LIKES ${bestClub?.short || bestClub?.label} · ${bestShape?.label.toUpperCase()} · ${bestAim?.label.toUpperCase()}`}
+      </div>
+    </div>
+  );
+}
+
+function HoleMap({ projection, hole, decision, result, resolving }) {
   const aim = AIMS.find((item) => item.id === decision.aim) || AIMS[1];
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
@@ -312,7 +401,7 @@ function HoleMap({ projection, hole, decision, result }) {
   const mapId = `trip-hole-${hole.number}`;
 
   return (
-    <div className="trip-game-map-wrap">
+    <div className={`trip-game-map-wrap ${resolving ? "is-resolving" : ""}`}>
       <div className="trip-game-map-hud">
         <span>{projection.hazardLabel}</span>
         <span>
@@ -389,6 +478,11 @@ function HoleMap({ projection, hole, decision, result }) {
         ))}
         <path d={pathFromPoints(projection.line, false)} className="trip-game-centerline" />
         <path d={shotPath} className="trip-game-shot-line" />
+        {resolving && (
+          <circle r="3.8" className="trip-game-flight-ball" filter={`url(#game-pixel-shadow-${hole.number})`}>
+            <animateMotion dur={`${SHOT_REVEAL_MS}ms`} path={shotPath} fill="freeze" />
+          </circle>
+        )}
         <g className="trip-game-target" transform={`translate(${target[0]} ${target[1]})`}>
           <circle r="5.5" />
           <path d="M-8 0 H8 M0 -8 V8" />
@@ -411,7 +505,7 @@ function HoleMap({ projection, hole, decision, result }) {
           <path d="M1,-13 L10,-9 L1,-5 Z" />
           <rect x="-3" y="0" width="6" height="2" />
         </g>
-        {result && (
+        {result && !resolving && (
           <g
             className="trip-game-ball-marker"
             transform={`translate(${clamp(landing[0], 5, projection.width - 5)} ${clamp(landing[1], 5, projection.height - 5)})`}
@@ -454,7 +548,8 @@ function PlayerCard({ player, playerState, course }) {
           {player.trait && <em>{player.trait}</em>}
         </div>
         <div className="trip-game-player-meta">
-          INDEX {player.hi.toFixed(1)} / CH {courseHandicap(player.hi, course)} · MODELED STOCK {player.stockShape.toUpperCase()}
+          INDEX {player.hi.toFixed(1)} / CH {courseHandicap(player.hi, course)} · {player.profileSource.toUpperCase()} STOCK{" "}
+          {player.stockShape.toUpperCase()}
         </div>
       </div>
       <div className="trip-game-ratings">
@@ -539,11 +634,59 @@ function ChoiceRow({ label, choices, value, onChange, disabled, detail }) {
   );
 }
 
+function ShotRoll({ result, decision }) {
+  const club = CLUBS.find((item) => item.id === decision.club);
+  return (
+    <div className="trip-game-shot-roll" role="status" aria-live="polite">
+      <div className="trip-game-roll-burst" aria-hidden="true">
+        {Array.from({ length: 12 }, (_, index) => (
+          <i key={index} style={{ "--burst-index": index }} />
+        ))}
+      </div>
+      <small>TRIP DATA ROLL</small>
+      <b>{lastName(result.human.name).toUpperCase()} SENDS IT!</b>
+      <div className="trip-game-roll-reels" aria-hidden="true">
+        <span>BRD</span>
+        <span>PAR</span>
+        <span>BOG</span>
+      </div>
+      <p>
+        {club?.short || club?.label} · {decision.shape.toUpperCase()} · {decision.aim.toUpperCase()}
+      </p>
+      <div className="trip-game-roll-loader">
+        <i />
+      </div>
+      <em>CPU PICK LOCKED...</em>
+    </div>
+  );
+}
+
+function celebrationFor(result) {
+  if (result.humanBucket.id === "birdie") return { label: "BIRDIE BLAST!", icon: "★", tone: "birdie" };
+  if (result.winner === "human" && result.humanBucket.id === "par") return { label: "CLUTCH PAR!", icon: "!", tone: "win" };
+  if (result.winner === "human") return { label: "HOLE STOLEN!", icon: "▲", tone: "win" };
+  if (result.winner === "tie") return { label: "CLUTCH HALF!", icon: "=", tone: "tie" };
+  if (result.humanBucket.id === "triple") return { label: "BLOW-UP HOLE!", icon: "×", tone: "bust" };
+  return { label: "CPU STRIKES!", icon: "▼", tone: "loss" };
+}
+
 function ResultPanel({ result, humanTeam, cpuTeam, onNext, finalHole }) {
   const humanWon = result.winner === "human";
   const cpuWon = result.winner === "cpu";
+  const celebration = celebrationFor(result);
   return (
     <div className="trip-game-result">
+      <div className={`trip-game-celebration is-${celebration.tone}`}>
+        <div className="trip-game-celebration-particles" aria-hidden="true">
+          {Array.from({ length: 14 }, (_, index) => (
+            <i key={index} style={{ "--particle-index": index }} />
+          ))}
+        </div>
+        <span>{celebration.icon}</span>
+        <strong>{celebration.label}</strong>
+        <em>+{result.hypeGain} HYPE</em>
+        {result.streak >= 2 && <b>HEAT ×{result.streak}</b>}
+      </div>
       <div className={`trip-game-result-call trip-game-result-call--${result.winner}`}>
         {humanWon ? `${humanTeam.toUpperCase()} WINS THE HOLE` : cpuWon ? `${cpuTeam.toUpperCase()} WINS THE HOLE` : "HOLE HALVED"}
       </div>
@@ -567,6 +710,16 @@ function ResultPanel({ result, humanTeam, cpuTeam, onNext, finalHole }) {
       <div className="trip-game-result-log">
         CPU CAPTAIN SENT {lastName(result.cpu.name).toUpperCase()} · {result.cpuBucket.label.toUpperCase()}
       </div>
+      {result.decisionRead && (
+        <div className={`trip-game-result-impact is-${result.decisionRead.tone}`}>
+          <b>{result.decisionRead.label}</b>
+          <span>
+            {result.decisionRead.expectedSaved >= 0 ? "SAVED" : "COST"}{" "}
+            {Math.abs(result.decisionRead.expectedSaved).toFixed(2)} MODELED STROKES VS STOCK
+          </span>
+        </div>
+      )}
+      {result.powerUpEarned && <div className="trip-game-power-earned">⚡ HYPE MAXED · +1 FIREBALL SHOT</div>}
       <button type="button" className="trip-game-primary-button" onClick={onNext}>
         {finalHole ? "FINAL RESULTS" : "NEXT HOLE ▶"}
       </button>
@@ -594,6 +747,34 @@ function FireballOffer({ player, onAccept, onDecline }) {
           <button type="button" onClick={onDecline}>
             <b>DECLINE</b>
             <span>Your morale -5 · Sean heats up</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CartGirlOffer({ player, onDrink, onHydrate }) {
+  return (
+    <div className="trip-game-modal-backdrop" role="presentation">
+      <div className="trip-game-modal trip-game-modal--cart" role="dialog" aria-modal="true" aria-labelledby="cart-girl-title">
+        <div className="trip-game-modal-sprite" aria-hidden="true">
+          <span>🛺</span>
+        </div>
+        <p className="trip-game-modal-kicker">COURSE ENCOUNTER</p>
+        <h3 id="cart-girl-title">THE CART GIRL APPEARS!</h3>
+        <p>
+          {lastName(player.name)} has a choice. Take the short morale pop now, or hydrate and lower the chance of a late-round
+          meltdown.
+        </p>
+        <div className="trip-game-modal-options">
+          <button type="button" onClick={onDrink}>
+            <b>GRAB A COLD ONE</b>
+            <span>Buzz +14 · morale +8</span>
+          </button>
+          <button type="button" onClick={onHydrate}>
+            <b>HYDRATE</b>
+            <span>Buzz -12 · morale +5</span>
           </button>
         </div>
       </div>
@@ -670,8 +851,8 @@ function SetupScreen({ model, courseId, setCourseId, team, setTeam, archiveState
         START CAPTAIN ROUND ▶
       </button>
       <p className="trip-game-disclaimer">
-        Turf and hazard shapes use OpenStreetMap geometry. Trees and mowing texture are illustrative; shot shape remains modeled
-        until scouting profiles are entered.
+        Turf and hazard shapes use OpenStreetMap geometry. Trees and mowing texture are illustrative; unscouted shot shapes remain
+        modeled until player profiles are entered.
       </p>
     </div>
   );
@@ -733,6 +914,9 @@ export default function TripGame({ data }) {
   const [match, setMatch] = useState({ human: 0, cpu: 0, ties: 0 });
   const [history, setHistory] = useState([]);
   const [result, setResult] = useState(null);
+  const [resolutionPhase, setResolutionPhase] = useState("idle");
+  const [hype, setHype] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [geometryBySlug, setGeometryBySlug] = useState({});
   const [inventory, setInventory] = useState({ fireball: 1 });
   const [eventOffer, setEventOffer] = useState(null);
@@ -740,6 +924,7 @@ export default function TripGame({ data }) {
   const [pickLocked, setPickLocked] = useState(false);
   const [eventNote, setEventNote] = useState(null);
   const randomRef = useRef(makeSeededRandom(Date.now()));
+  const resolutionTimerRef = useRef(null);
 
   useEffect(() => {
     let live = true;
@@ -760,6 +945,13 @@ export default function TripGame({ data }) {
       live = false;
     };
   }, []);
+
+  useEffect(
+    () => () => {
+      if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
+    },
+    [],
+  );
 
   const historicalData = useMemo(
     () => archive.filter((dataset) => dataset.trip?.id !== data.trip?.id),
@@ -806,6 +998,9 @@ export default function TripGame({ data }) {
       dangerSide: projection.dangerSide,
       primaryHazard: projection.primaryHazard,
       hasWater: projection.hasWater,
+      hazardSeverity: projection.hazardSeverity,
+      preferredShape: projection.preferredShape,
+      shapeSeverity: projection.shapeSeverity,
     };
   }, [baseHole, projection]);
 
@@ -820,6 +1015,58 @@ export default function TripGame({ data }) {
     () => (selected && course && hole ? buildHoleOdds({ profile: selected, course, hole, decision, state: selectedState }) : null),
     [course, decision, hole, selected, selectedState],
   );
+  const captainRead = useMemo(() => {
+    if (!selected || !course || !hole || !odds) return null;
+    const baselineDecision = defaultDecision(selected, hole);
+    const baselineOdds = buildHoleOdds({
+      profile: selected,
+      course,
+      hole,
+      decision: baselineDecision,
+      state: selectedState,
+    });
+    const { best, worst } = findBestDecision({ profile: selected, course, hole, state: selectedState });
+    const range = Math.max(0.01, worst.odds.expectedGross - best.odds.expectedGross);
+    const rawQuality = 1 - clamp((odds.expectedGross - best.odds.expectedGross) / range, 0, 1);
+    const quality = Math.round(rawQuality * 100);
+    const scoring = odds.probs[0] + odds.probs[1];
+    const baselineScoring = baselineOdds.probs[0] + baselineOdds.probs[1];
+    const bigNumber = odds.probs[3] + odds.probs[4];
+    const baselineBigNumber = baselineOdds.probs[3] + baselineOdds.probs[4];
+    const rankedPlayers = model.players
+      .filter((player) => player.team === captainTeam)
+      .map((player) => {
+        const playerCondition = playerState[player.key] || DEFAULT_PLAYER_STATE;
+        const plan = findBestDecision({ profile: player, course, hole, state: playerCondition });
+        return { key: player.key, expected: plan.best.odds.expectedGross };
+      })
+      .sort((left, right) => left.expected - right.expected);
+    const playerRank = Math.max(1, rankedPlayers.findIndex((player) => player.key === selected.key) + 1);
+    const fireball = Boolean(decision.fireball);
+    const label = fireball
+      ? "CHAOS MODE!"
+      : quality >= 94
+        ? "PERFECT READ!"
+        : quality >= 76
+          ? "SMART PLAY!"
+          : quality >= 52
+            ? "LIVE OPTION"
+            : "DANGER ZONE!";
+    const tone = fireball ? "chaos" : quality >= 94 ? "perfect" : quality >= 76 ? "smart" : quality >= 52 ? "live" : "danger";
+    return {
+      label,
+      tone,
+      quality,
+      scoringDelta: scoring - baselineScoring,
+      bigNumberDelta: bigNumber - baselineBigNumber,
+      expectedSaved: baselineOdds.expectedGross - odds.expectedGross,
+      bestDecision: best.decision,
+      playerRank,
+      rosterSize: rankedPlayers.length,
+      fireball,
+      planKey: `${decision.club}-${decision.shape}-${decision.aim}-${fireball ? "fireball" : "normal"}`,
+    };
+  }, [captainTeam, course, decision, hole, model.players, odds, playerState, selected, selectedState]);
   const scoreDifference = match.human - match.cpu;
   const matchLabel =
     scoreDifference === 0
@@ -832,6 +1079,10 @@ export default function TripGame({ data }) {
 
   function startRound() {
     if (!course || !captainTeam) return;
+    if (resolutionTimerRef.current) {
+      window.clearTimeout(resolutionTimerRef.current);
+      resolutionTimerRef.current = null;
+    }
     setScreen("play");
     setHoleIndex(0);
     setSelectedKey(null);
@@ -842,6 +1093,9 @@ export default function TripGame({ data }) {
     setMatch({ human: 0, cpu: 0, ties: 0 });
     setHistory([]);
     setResult(null);
+    setResolutionPhase("idle");
+    setHype(0);
+    setStreak(0);
     setInventory({ fireball: 1 });
     setEventOffer(null);
     setEventHandled({});
@@ -851,10 +1105,11 @@ export default function TripGame({ data }) {
   }
 
   function pickPlayer(player) {
-    if (result || pickLocked) return;
+    if (result || pickLocked || resolutionPhase !== "idle") return;
     setSelectedKey(player.key);
     setDecision(defaultDecision(player, hole));
     setEventNote(null);
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
   }
 
   function updateCondition(playerKey, update) {
@@ -890,8 +1145,23 @@ export default function TripGame({ data }) {
     setEventOffer(null);
   }
 
+  function chooseCartGirl(drink) {
+    if (!eventOffer) return;
+    updateCondition(eventOffer.playerKey, drink ? { buzz: 14, morale: 8 } : { buzz: -12, morale: 5 });
+    setEventHandled((current) => ({ ...current, [holeIndex]: true }));
+    setPickLocked(true);
+    setEventNote(
+      drink ? "COLD ONE ACQUIRED · SHORT MORALE POP / MORE BUZZ" : "HYDRATION PLAY · BUZZ DOWN / CONTROL RESTORED",
+    );
+    setEventOffer(null);
+  }
+
   function playHole() {
-    if (!selected || !odds || !hole || !course || result) return;
+    if (!selected || !odds || !hole || !course || result || resolutionPhase !== "idle") return;
+    if (CART_GIRL_HOLES.has(hole.number) && !eventHandled[holeIndex]) {
+      setEventOffer({ type: "cart-girl", playerKey: selected.key, player: selected });
+      return;
+    }
     const seanInGroup = humanRoster.some((player) => player.key === "sean wilson");
     if (
       seanInGroup &&
@@ -899,7 +1169,7 @@ export default function TripGame({ data }) {
       FIREBALL_HOLES.has(hole.number) &&
       !eventHandled[holeIndex]
     ) {
-      setEventOffer({ playerKey: selected.key, player: selected });
+      setEventOffer({ type: "fireball", playerKey: selected.key, player: selected });
       return;
     }
     const currentHumanOdds = buildHoleOdds({
@@ -933,27 +1203,53 @@ export default function TripGame({ data }) {
       cpu: cpuPick.profile,
       humanOdds: currentHumanOdds,
       cpuOdds: cpuPick.odds,
+      decisionRead: captainRead,
     };
+    const nextStreak = resolved.winner === "human" ? streak + 1 : resolved.winner === "tie" ? streak : 0;
+    const qualityBonus = Math.round(((captainRead?.quality || 50) / 100) * 12);
+    const resultBonus = resolved.winner === "human" ? 14 : resolved.winner === "tie" ? 7 : 2;
+    const scoreBonus = resolved.humanBucket.id === "birdie" ? 12 : resolved.humanBucket.id === "par" ? 5 : 0;
+    const streakBonus = Math.min(8, Math.max(0, nextStreak - 1) * 3);
+    const hypeGain = clamp(4 + qualityBonus + resultBonus + scoreBonus + streakBonus, 6, 40);
+    const powerUpEarned = hype + hypeGain >= 100;
+    const nextHype = powerUpEarned ? hype + hypeGain - 100 : hype + hypeGain;
+    completeResult.hypeGain = hypeGain;
+    completeResult.streak = nextStreak;
+    completeResult.powerUpEarned = powerUpEarned;
     setResult(completeResult);
-    setUsage((current) => ({ ...current, [selected.key]: (current[selected.key] || 0) + 1 }));
-    setCpuUsage((current) => ({ ...current, [cpuPick.profile.key]: (current[cpuPick.profile.key] || 0) + 1 }));
-    setMatch((current) => ({
-      human: current.human + (resolved.winner === "human" ? 1 : 0),
-      cpu: current.cpu + (resolved.winner === "cpu" ? 1 : 0),
-      ties: current.ties + (resolved.winner === "tie" ? 1 : 0),
-    }));
-    setHistory((current) => [
-      ...current,
-      {
-        hole: hole.number,
-        winner: resolved.winner,
-        human: selected.name,
-        cpu: cpuPick.profile.name,
-        humanGross: resolved.humanGross,
-        cpuGross: resolved.cpuGross,
-      },
-    ]);
-    if (decision.fireball) setInventory((current) => ({ ...current, fireball: Math.max(0, current.fireball - 1) }));
+    setResolutionPhase("rolling");
+    if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
+    resolutionTimerRef.current = window.setTimeout(() => {
+      setResolutionPhase("result");
+      setUsage((current) => ({ ...current, [selected.key]: (current[selected.key] || 0) + 1 }));
+      setCpuUsage((current) => ({ ...current, [cpuPick.profile.key]: (current[cpuPick.profile.key] || 0) + 1 }));
+      setMatch((current) => ({
+        human: current.human + (resolved.winner === "human" ? 1 : 0),
+        cpu: current.cpu + (resolved.winner === "cpu" ? 1 : 0),
+        ties: current.ties + (resolved.winner === "tie" ? 1 : 0),
+      }));
+      setHistory((current) => [
+        ...current,
+        {
+          hole: hole.number,
+          winner: resolved.winner,
+          human: selected.name,
+          cpu: cpuPick.profile.name,
+          humanGross: resolved.humanGross,
+          cpuGross: resolved.cpuGross,
+        },
+      ]);
+      setHype(nextHype);
+      setStreak(nextStreak);
+      setInventory((current) => ({
+        ...current,
+        fireball: Math.max(0, current.fireball - (decision.fireball ? 1 : 0)) + (powerUpEarned ? 1 : 0),
+      }));
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(resolved.winner === "human" ? [35, 30, 65] : 25);
+      }
+      resolutionTimerRef.current = null;
+    }, SHOT_REVEAL_MS);
   }
 
   function nextHole() {
@@ -965,6 +1261,7 @@ export default function TripGame({ data }) {
     setSelectedKey(null);
     setDecision({ club: "driver", aim: "center", shape: "straight", fireball: false });
     setResult(null);
+    setResolutionPhase("idle");
     setEventOffer(null);
     setPickLocked(false);
     setEventNote(null);
@@ -1030,11 +1327,27 @@ export default function TripGame({ data }) {
               </div>
             </div>
             <div className="trip-game-match-state">{matchLabel}</div>
+            <div className={`trip-game-hype ${resolutionPhase === "rolling" ? "is-charging" : ""}`}>
+              <span>HYPE</span>
+              <div className="trip-game-hype-track">
+                <i style={{ width: `${hype}%` }} />
+              </div>
+              <b>{hype}/100</b>
+              {streak >= 2 && <em>HEAT ×{streak}</em>}
+            </div>
             <div className="trip-game-play-grid">
-              <HoleMap projection={projection} hole={hole} decision={decision} result={result} />
+              <HoleMap
+                projection={projection}
+                hole={hole}
+                decision={decision}
+                result={resolutionPhase === "result" ? result : null}
+                resolving={resolutionPhase === "rolling"}
+              />
               <div className="trip-game-command-panel">
                 <PlayerCard player={selected} playerState={selectedState} course={course} />
-                {result ? (
+                {resolutionPhase === "rolling" && result ? (
+                  <ShotRoll result={result} decision={decision} />
+                ) : resolutionPhase === "result" && result ? (
                   <ResultPanel
                     result={result}
                     humanTeam={captainTeam}
@@ -1045,6 +1358,7 @@ export default function TripGame({ data }) {
                 ) : (
                   <>
                     <ScoreOdds odds={odds} />
+                    <CaptainRead read={captainRead} />
                     <div className="trip-game-decisions">
                       <ChoiceRow
                         label="CLUB"
@@ -1060,7 +1374,11 @@ export default function TripGame({ data }) {
                         value={decision.shape}
                         disabled={!selected}
                         onChange={(shape) => setDecision((current) => ({ ...current, shape }))}
-                        detail={selected ? `STOCK ${selected.stockShape.toUpperCase()}` : null}
+                        detail={
+                          selected
+                            ? `STOCK ${selected.stockShape.toUpperCase()} · ROUTE ${hole.preferredShape.toUpperCase()}`
+                            : null
+                        }
                       />
                       <ChoiceRow
                         label="AIM"
@@ -1096,11 +1414,11 @@ export default function TripGame({ data }) {
               selectedKey={selectedKey}
               usage={usage}
               maxUses={maxUses}
-              disabled={Boolean(result) || pickLocked}
+              disabled={Boolean(result) || pickLocked || resolutionPhase !== "idle"}
               onPick={pickPlayer}
             />
             <div className="trip-game-bottom-status">
-              <span>CPU PICK: {result ? lastName(result.cpu.name).toUpperCase() : "HIDDEN"}</span>
+              <span>CPU PICK: {resolutionPhase === "result" && result ? lastName(result.cpu.name).toUpperCase() : "HIDDEN"}</span>
               <span>
                 HOLES LEFT {18 - hole.number} · TIES {match.ties}
               </span>
@@ -1108,8 +1426,15 @@ export default function TripGame({ data }) {
           </>
         )}
       </div>
-      {eventOffer && (
+      {eventOffer?.type === "fireball" && (
         <FireballOffer player={eventOffer.player} onAccept={acceptFireball} onDecline={declineFireball} />
+      )}
+      {eventOffer?.type === "cart-girl" && (
+        <CartGirlOffer
+          player={eventOffer.player}
+          onDrink={() => chooseCartGirl(true)}
+          onHydrate={() => chooseCartGirl(false)}
+        />
       )}
     </section>
   );
