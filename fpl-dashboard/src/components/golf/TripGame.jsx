@@ -16,6 +16,19 @@ import {
   matchCloseout,
   resolveMatchHole,
 } from "./tripGameEngine.js";
+import {
+  contactSound,
+  lockPowerSound,
+  setMeterAudioEnabled,
+  startPowerSweep,
+  stopPowerSweep,
+  swingJudgmentSound,
+  unlockMeterAudio,
+  updatePowerSweep,
+  yardRollTick,
+  yardRollFinal,
+  zoneTick,
+} from "./meterAudio";
 import "./TripGame.css";
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
@@ -287,7 +300,7 @@ function blendCamera(from, to, t) {
   };
 }
 
-function computeMapCamera({ projection, playback, landing, activeShot, flightFrame, flightFrameIndex }) {
+function computeMapCamera({ projection, playback, landing, activeShot, flightFrame }) {
   const overview = fullCamera(projection);
   const pin = projection.pin;
   const greenCam = greenCamera(projection);
@@ -865,6 +878,9 @@ function HoleMap({
   intelRight,
   kickMeter,
   popCall,
+  swingFx,
+  shake,
+  soundControl,
   onAimStep,
   onCycle,
 }) {
@@ -949,7 +965,10 @@ function HoleMap({
   const fullFramed = camera.w > projection.width * 0.9 && camera.h > projection.height * 0.9;
 
   return (
-    <div className={`trip-game-map-wrap ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}`}>
+    <div
+      className={`trip-game-map-wrap ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}`}
+      style={shake ? { "--shake-amp": `${shake.amp}px` } : undefined}
+    >
       <div className="trip-game-map-hud">
         <span className={`trip-game-par-pill is-par-${hole.par}`}>PAR {hole.par}</span>
         <span>{projection.hazardLabel}</span>
@@ -960,6 +979,7 @@ function HoleMap({
               ? "FLYOVER"
               : `${club.short} ${targetYards}Y · ${remainingYards != null ? `${remainingYards}Y LEFT` : "TEE PLAN"}`}
         </span>
+        {soundControl}
       </div>
       {popCall}
       {playback && activeShot && (
@@ -1234,6 +1254,24 @@ function HoleMap({
         </div>
       )}
       {kickMeter}
+      {swingFx && (
+        <div key={swingFx.id} className={`trip-game-judgment is-${swingFx.tier}`} aria-hidden="true">
+          <b>{swingFx.label}</b>
+          <small>{swingFx.sub}</small>
+        </div>
+      )}
+      {swingFx?.tier === "pure" && <div key={`flash-${swingFx.id}`} className="trip-game-pure-flash" aria-hidden="true" />}
+      {playback &&
+        activeShot &&
+        playback.index === 0 &&
+        activeShot.kind !== "putt" &&
+        (playback.phase === "flight" || playback.phase === "settle") &&
+        Number.isFinite(activeShot.yards) && (
+          <YardageTicker
+            yards={activeShot.yards}
+            rollMs={Math.max(0, (activeShot.frames?.length || 8) - 1) * FLIGHT_FRAME_MS}
+          />
+        )}
       {canAct && (
         <div className="trip-game-pad">
           <div className="trip-game-pad-aim">
@@ -1295,37 +1333,145 @@ function HoleMap({
   );
 }
 
-function KickMeter({ phase, power, accuracy, onTap }) {
-  const powerPct = clamp(power / 1.12, 0, 1);
+// Swing judgment tiers. Accuracy is in [-1, 1]; the engine's sweet power band
+// is 0.78–0.96 with overswing punished past 0.96 (see tripGameEngine).
+const ACC_PURE = 0.05;
+const ACC_GREAT = 0.16;
+const ACC_GOOD = 0.34;
+const POWER_SWEET_MIN = 0.78;
+const POWER_SWEET_MAX = 0.96;
+const POWER_METER_MAX = 1.12;
+
+function judgeSwing(power, accuracy) {
+  const off = Math.abs(accuracy);
+  const overswung = power > POWER_SWEET_MAX;
+  const eased = power < 0.72;
+  const tier = off <= ACC_PURE ? "pure" : off <= ACC_GREAT ? "great" : off <= ACC_GOOD ? "good" : "wild";
+  const label =
+    tier === "pure" ? "PURE!" : tier === "great" ? "GREAT" : tier === "good" ? "GOOD" : accuracy < 0 ? "WAY LEFT" : "WAY RIGHT";
+  const sub = `PWR ${Math.round(power * 100)}${overswung ? " · OVERSWUNG" : eased ? " · EASED OFF" : ""}`;
+  // Hit-stop: the world freezes on the tap, longer for better strikes.
+  const hold = tier === "pure" ? 680 : tier === "great" ? 500 : tier === "wild" ? 460 : 400;
+  return { tier, label, sub, hold, overswung };
+}
+
+function KickMeter({ phase, power, accuracy, onTap, judgment }) {
+  const powerPct = clamp(power / POWER_METER_MAX, 0, 1);
   const powerLocked = phase !== "power";
   const accLive = phase === "accuracy";
+  const locked = phase === "locked";
+  const off = Math.abs(accuracy);
+  const heat = !accLive ? "" : off <= 0.06 ? " is-burning" : off <= ACC_GREAT ? " is-hot" : off <= ACC_GOOD ? " is-near" : "";
+  const inSweet = !powerLocked && power >= POWER_SWEET_MIN && power <= POWER_SWEET_MAX;
+  const inRed = !powerLocked && power > POWER_SWEET_MAX;
   return (
     <>
-      <button type="button" className="trip-game-kick-catch" onClick={onTap} aria-label="Tap kick meter" />
-      <div className={`trip-game-kick is-${phase}`} aria-hidden="true">
+      {!locked && <button type="button" className="trip-game-kick-catch" onClick={onTap} aria-label="Tap kick meter" />}
+      <div
+        className={`trip-game-kick is-${phase}${judgment ? ` is-judged is-${judgment.tier}` : ""}`}
+        aria-hidden="true"
+      >
         <div className={`trip-game-kick-col ${powerLocked ? "is-locked" : ""}`}>
           <small>PWR</small>
-          <div className="trip-game-kick-track">
+          <div className={`trip-game-kick-track${inSweet ? " is-charged" : ""}`}>
             <i className="trip-game-kick-redzone" />
             <i className="trip-game-kick-goodzone" />
-            <b className="trip-game-kick-fill" style={{ height: `${powerPct * 100}%` }} />
+            <b className={`trip-game-kick-fill${inRed ? " is-red" : ""}`} style={{ height: `${powerPct * 100}%` }} />
             <em style={{ bottom: `${powerPct * 100}%` }} />
           </div>
         </div>
-        <div className={`trip-game-kick-acc ${accLive ? "is-live" : ""}`}>
+        <div className={`trip-game-kick-acc ${accLive || locked ? "is-live" : ""}`}>
           <small>ACC</small>
           <div className="trip-game-kick-acc-track">
-            <i />
-            <b style={{ left: `${50 + accuracy * 46}%` }} />
+            <i className="trip-game-kick-zone-good" />
+            <i className="trip-game-kick-zone-great" />
+            <i className="trip-game-kick-zone-pure" />
+            <s className="trip-game-kick-acc-center" />
+            <b className={heat} style={{ left: `${50 + accuracy * 46}%` }} />
           </div>
           <span>
             <em>L</em>
             <em>R</em>
           </span>
         </div>
-        <strong>{phase === "power" ? "TAP POWER" : "TAP ACCURACY"}</strong>
+        <strong>{locked ? judgment?.label || "..." : phase === "power" ? "TAP POWER" : "TAP ACCURACY"}</strong>
       </div>
     </>
+  );
+}
+
+// Casino-style odometer that rolls up the drive distance during ball flight.
+// The color heats up live as the number climbs through the distance tiers.
+function yardTierOf(yards) {
+  if (yards >= 300) return "bomb";
+  if (yards >= 270) return "hot";
+  if (yards >= 240) return "long";
+  if (yards >= 200) return "solid";
+  return "base";
+}
+
+function YardageTicker({ yards, rollMs }) {
+  const [shown, setShown] = useState(0);
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (!Number.isFinite(yards) || yards <= 0) return undefined;
+    let frame = 0;
+    let lastTick = 0;
+    const start = performance.now();
+    const duration = Math.max(600, rollMs || 900);
+    const loop = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 2.1);
+      setShown(Math.round(yards * eased));
+      if (t < 1) {
+        if (now - lastTick > 64) {
+          lastTick = now;
+          yardRollTick();
+        }
+        frame = requestAnimationFrame(loop);
+      } else {
+        setDone(true);
+        yardRollFinal(yardTierOf(yards));
+      }
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+  }, [yards, rollMs]);
+  if (!Number.isFinite(yards) || yards <= 0) return null;
+  const tier = yardTierOf(shown);
+  const digits = String(clamp(shown, 0, 999)).padStart(3, "0").split("");
+  return (
+    <div className={`trip-game-yardage is-${tier}${done ? " is-done" : ""}`} aria-hidden="true">
+      <div className="trip-game-yardage-digits">
+        {digits.map((digit, index) => (
+          <span key={index}>{digit}</span>
+        ))}
+        <small>YDS</small>
+      </div>
+      {done && tier === "bomb" && <b className="trip-game-yardage-tag">BOMB!</b>}
+    </div>
+  );
+}
+
+// Ryder-Cup-style hole ladder: one pip per hole, filled in the winning
+// team's color as the match unfolds.
+function HoleLadder({ history, humanTeam, cpuTeam, currentHole }) {
+  const byHole = Object.fromEntries(history.map((row) => [row.hole, row]));
+  return (
+    <div className="trip-game-hole-ladder" aria-label="Hole-by-hole match ladder">
+      {Array.from({ length: 18 }, (_, index) => {
+        const number = index + 1;
+        const row = byHole[number];
+        const tone = !row
+          ? number === currentHole
+            ? "live"
+            : "open"
+          : row.winner === "tie"
+            ? "halved"
+            : (row.winner === "human" ? humanTeam : cpuTeam).toLowerCase();
+        return <i key={number} className={`is-${tone}`} />;
+      })}
+    </div>
   );
 }
 
@@ -1571,7 +1717,7 @@ function ScorecardModal({
   const historyByHole = Object.fromEntries(history.map((row) => [row.hole, row]));
   const celebration = celebrationFor(result);
   const diff = match.human - match.cpu;
-  const matchCall = diff === 0 ? "ALL SQUARE" : `${Math.abs(diff)} UP`;
+  const matchCall = diff === 0 ? "AS" : `${Math.abs(diff)} UP`;
   const leading = diff > 0 ? humanTeam : diff < 0 ? cpuTeam : null;
   const sideKey = {
     human: humanTeam.toLowerCase() === "south" ? "STH" : "NTH",
@@ -1584,7 +1730,7 @@ function ScorecardModal({
           <small>{course?.label || "CAPTAIN'S CUP"}</small>
           <b className={leading ? `is-${leading.toLowerCase()}` : "is-square"}>{leading ? `${leading.toUpperCase()} ${matchCall}` : matchCall}</b>
           <span>
-            {humanTeam.toUpperCase()} {match.human} · {cpuTeam.toUpperCase()} {match.cpu}
+            THRU {history.length}
             {match.ties ? ` · ${match.ties} HALVED` : ""}
           </span>
         </div>
@@ -1616,14 +1762,14 @@ function ScorecardModal({
         <div className="trip-game-scorecard-board">
           <div className={`is-${humanTeam.toLowerCase()} ${diff > 0 ? "is-leading" : ""}`}>
             <small>{humanTeam.toUpperCase()}</small>
-            <b>{match.human}</b>
-            <span>HOLES</span>
+            <b>{diff > 0 ? `${diff} UP` : diff < 0 ? `${Math.abs(diff)} DN` : "AS"}</b>
+            <span>THRU {history.length}</span>
           </div>
           <em>VS</em>
           <div className={`is-${cpuTeam.toLowerCase()} ${diff < 0 ? "is-leading" : ""}`}>
             <small>{cpuTeam.toUpperCase()}</small>
-            <b>{match.cpu}</b>
-            <span>HOLES</span>
+            <b>{diff < 0 ? `${Math.abs(diff)} UP` : diff > 0 ? `${diff} DN` : "AS"}</b>
+            <span>THRU {history.length}</span>
           </div>
         </div>
         {closeout?.decided && <div className="trip-game-scorecard-closeout">MATCH DECIDED · {closeout.label}</div>}
@@ -1768,23 +1914,27 @@ function SetupScreen({ model, courseId, setCourseId, team, setTeam, archiveState
 
 function FinishScreen({ match, history, team, cpuTeam, closeout, onRematch, onSetup }) {
   const winner = match.human > match.cpu ? team : match.cpu > match.human ? cpuTeam : null;
+  const diff = match.human - match.cpu;
   return (
     <div className="trip-game-finish">
       <p className="trip-game-modal-kicker">
         {closeout?.decided ? `MATCH CLOSED OUT AFTER ${closeout.holesPlayed} HOLES` : "ROUND COMPLETE"}
       </p>
-      <h2>{winner ? `${winner.toUpperCase()} WINS${closeout?.label ? ` ${closeout.label}` : ""}` : "MATCH HALVED"}</h2>
+      <h2 className={winner ? `is-${winner.toLowerCase()}` : ""}>
+        {winner ? `${winner.toUpperCase()} WINS${closeout?.label ? ` ${closeout.label}` : ` ${Math.abs(diff)} UP`}` : "MATCH HALVED"}
+      </h2>
       <div className="trip-game-final-score">
-        <div>
+        <div className={`is-${team.toLowerCase()} ${diff > 0 ? "is-leading" : ""}`}>
           <span>{team.toUpperCase()}</span>
-          <b>{match.human}</b>
+          <b>{diff > 0 ? `${diff} UP` : diff < 0 ? `${Math.abs(diff)} DN` : "AS"}</b>
         </div>
-        <em>HOLES</em>
-        <div>
+        <em>FINAL</em>
+        <div className={`is-${cpuTeam.toLowerCase()} ${diff < 0 ? "is-leading" : ""}`}>
           <span>{cpuTeam.toUpperCase()}</span>
-          <b>{match.cpu}</b>
+          <b>{diff < 0 ? `${Math.abs(diff)} UP` : diff > 0 ? `${diff} DN` : "AS"}</b>
         </div>
       </div>
+      <HoleLadder history={history} humanTeam={team} cpuTeam={cpuTeam} currentHole={0} />
       <div className="trip-game-mini-card">
         {history.map((row) => (
           <div key={row.hole} className={`is-${row.winner}`}>
@@ -1840,6 +1990,15 @@ export default function TripGame({ data }) {
   const [cpuOpponent, setCpuOpponent] = useState(null);
   const [meterPhase, setMeterPhase] = useState(null);
   const [meterTick, setMeterTick] = useState({ power: 0, accuracy: 0 });
+  const [swingFx, setSwingFx] = useState(null);
+  const [shakeFx, setShakeFx] = useState(null);
+  const [soundOn, setSoundOn] = useState(() => {
+    try {
+      return window.localStorage.getItem("tripGameSound") !== "off";
+    } catch {
+      return true;
+    }
+  });
   const meterLiveRef = useRef({ power: 0, accuracy: 0, powerDir: 1, accDir: 1 });
   const meterLockRef = useRef(null);
   const meterTapAtRef = useRef(0);
@@ -1871,9 +2030,19 @@ export default function TripGame({ data }) {
   useEffect(
     () => () => {
       if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
+      stopPowerSweep();
     },
     [],
   );
+
+  useEffect(() => {
+    setMeterAudioEnabled(soundOn);
+    try {
+      window.localStorage.setItem("tripGameSound", soundOn ? "on" : "off");
+    } catch {
+      // best effort
+    }
+  }, [soundOn]);
 
   // Game Boy style keyboard aiming on desktop; Space/Enter lock the kick meter.
   useEffect(() => {
@@ -1901,7 +2070,8 @@ export default function TripGame({ data }) {
   });
 
   useEffect(() => {
-    if (!meterPhase) return undefined;
+    // "locked" is the hit-stop phase: the needle stays frozen where it was tapped.
+    if (meterPhase !== "power" && meterPhase !== "accuracy") return undefined;
     let frame = 0;
     let last = performance.now();
     const loop = (now) => {
@@ -1909,17 +2079,24 @@ export default function TripGame({ data }) {
       last = now;
       const live = meterLiveRef.current;
       if (meterPhase === "power") {
+        const before = live.power;
         live.power += dt * 1.08;
-        if (live.power >= 1.12) {
-          live.power = 1.12;
+        updatePowerSweep(live.power / POWER_METER_MAX);
+        if (before < POWER_SWEET_MIN && live.power >= POWER_SWEET_MIN) zoneTick("good");
+        if (before < POWER_SWEET_MAX && live.power >= POWER_SWEET_MAX) zoneTick("warn");
+        if (live.power >= POWER_METER_MAX) {
+          live.power = POWER_METER_MAX;
           live.accuracy = -1;
           live.accDir = 1;
-          meterLockRef.current = { power: 1.12 };
-          setMeterTick({ power: 1.12, accuracy: -1 });
+          meterLockRef.current = { power: POWER_METER_MAX };
+          stopPowerSweep();
+          lockPowerSound(true);
+          setMeterTick({ power: POWER_METER_MAX, accuracy: -1 });
           setMeterPhase("accuracy");
           return;
         }
       } else if (meterPhase === "accuracy") {
+        const beforeOff = Math.abs(live.accuracy);
         live.accuracy += live.accDir * dt * 2.6;
         if (live.accuracy >= 1) {
           live.accuracy = 1;
@@ -1928,6 +2105,9 @@ export default function TripGame({ data }) {
           live.accuracy = -1;
           live.accDir = 1;
         }
+        const offNow = Math.abs(live.accuracy);
+        if (offNow <= ACC_PURE && beforeOff > ACC_PURE) zoneTick("pure");
+        else if (offNow <= ACC_GREAT && beforeOff > ACC_GREAT) zoneTick("good");
       }
       setMeterTick({ power: live.power, accuracy: live.accuracy });
       frame = requestAnimationFrame(loop);
@@ -1958,6 +2138,19 @@ export default function TripGame({ data }) {
               ? 640
               : 300;
     const timer = window.setTimeout(() => {
+      if (playbackStep.phase === "swing") {
+        // Club meets ball: crack + screenshake, scaled by how hard they swung.
+        const kickPower = playbackStep.index === 0 ? result?.kick?.power ?? 0.9 : 0.62;
+        contactSound({
+          power: kickPower,
+          putt: shot.kind === "putt",
+          pure: playbackStep.index === 0 && swingFx?.tier === "pure",
+        });
+        if (playbackStep.index === 0 && shot.kind !== "putt") {
+          setShakeFx({ amp: Math.round(3 + clamp(kickPower, 0, 1.15) * 5), id: Date.now() });
+          window.setTimeout(() => setShakeFx(null), 320);
+        }
+      }
       setPlaybackStep((current) => {
         if (current.phase === "swing") return { ...current, phase: "flight", frame: 0 };
         if (current.phase === "flight") {
@@ -2129,12 +2322,8 @@ export default function TripGame({ data }) {
   const scoreDifference = match.human - match.cpu;
   const holesRemaining = 18 - history.length;
   const dormie = scoreDifference !== 0 && Math.abs(scoreDifference) === holesRemaining;
-  const matchLabel =
-    scoreDifference === 0
-      ? "ALL SQUARE"
-      : `${Math.abs(scoreDifference)} UP · ${scoreDifference > 0 ? captainTeam?.toUpperCase() : cpuTeam.toUpperCase()}${
-          dormie ? " · DORMIE" : ""
-        }`;
+  const leadingTeam = scoreDifference > 0 ? captainTeam : scoreDifference < 0 ? cpuTeam : null;
+  const matchCall = leadingTeam ? `${leadingTeam.toUpperCase()} ${Math.abs(scoreDifference)} UP` : "AS";
 
   function initializePlayerState() {
     return Object.fromEntries(model.players.map((player) => [player.key, { buzz: 0, morale: 50 }]));
@@ -2257,12 +2446,15 @@ export default function TripGame({ data }) {
     meterLockRef.current = null;
     meterTapAtRef.current = 0;
     setMeterTick({ power: 0, accuracy: -1 });
+    setSwingFx(null);
     setMeterPhase("power");
+    unlockMeterAudio();
+    startPowerSweep();
     if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
   }
 
   function tapMeter() {
-    if (!meterPhase || resolvingRef.current) return;
+    if (!meterPhase || meterPhase === "locked" || resolvingRef.current) return;
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     if (now - meterTapAtRef.current < 220) return;
     meterTapAtRef.current = now;
@@ -2271,6 +2463,8 @@ export default function TripGame({ data }) {
       live.accuracy = -1;
       live.accDir = 1;
       meterLockRef.current = { power: live.power };
+      stopPowerSweep();
+      lockPowerSound(live.power > POWER_SWEET_MAX);
       setMeterPhase("accuracy");
       if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
       return;
@@ -2279,8 +2473,21 @@ export default function TripGame({ data }) {
     const accuracy = meterLiveRef.current.accuracy;
     meterLockRef.current = { power, accuracy };
     resolvingRef.current = true;
-    setMeterPhase(null);
-    resolveHole({ power, accuracy });
+    // Hit-stop: freeze the needle where it was tapped, flash the judgment,
+    // then release into the swing after a tier-scaled beat.
+    const judgment = judgeSwing(power, accuracy);
+    setSwingFx({ ...judgment, power, accuracy, id: now });
+    setMeterPhase("locked");
+    swingJudgmentSound(judgment.tier);
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(
+        judgment.tier === "pure" ? [18, 26, 46] : judgment.tier === "great" ? 26 : judgment.tier === "wild" ? [8, 36] : 12,
+      );
+    }
+    window.setTimeout(() => {
+      setMeterPhase(null);
+      resolveHole({ power, accuracy });
+    }, judgment.hold);
   }
 
   function playHole() {
@@ -2464,6 +2671,8 @@ export default function TripGame({ data }) {
     setEventNote(null);
     setCpuOpponent(null);
     setMeterPhase(null);
+    setSwingFx(null);
+    setShakeFx(null);
     resolvingRef.current = false;
     meterLockRef.current = null;
   }
@@ -2515,21 +2724,40 @@ export default function TripGame({ data }) {
         {screen === "play" && course && hole && projection && (
           <>
             <div className="trip-game-scorebar">
-              <div className={`trip-game-score-team is-${captainTeam.toLowerCase()}`}>
+              <div className={`trip-game-score-team is-${captainTeam.toLowerCase()}${scoreDifference > 0 ? " is-leading" : ""}`}>
                 <span>YOU · {captainTeam.toUpperCase()}</span>
-                <b>{match.human}</b>
+                <em className="trip-game-score-pips" aria-label={`${match.human} holes won`}>
+                  {Array.from({ length: match.human }, (_, index) => (
+                    <i key={index} />
+                  ))}
+                </em>
               </div>
               <div className="trip-game-hole-box">
                 <small>HOLE</small>
                 <b>{String(hole.number).padStart(2, "0")}</b>
                 <span className={`trip-game-par-pill is-par-${hole.par}`}>PAR {hole.par}</span>
               </div>
-              <div className={`trip-game-score-team is-${cpuTeam.toLowerCase()}`}>
+              <div className={`trip-game-score-team is-${cpuTeam.toLowerCase()}${scoreDifference < 0 ? " is-leading" : ""}`}>
                 <span>CPU · {cpuTeam.toUpperCase()}</span>
-                <b>{match.cpu}</b>
+                <em className="trip-game-score-pips" aria-label={`${match.cpu} holes won`}>
+                  {Array.from({ length: match.cpu }, (_, index) => (
+                    <i key={index} />
+                  ))}
+                </em>
               </div>
             </div>
-            <div className="trip-game-match-state">{matchLabel}</div>
+            <div className="trip-game-match-state">
+              <b
+                key={matchCall}
+                className={`trip-game-match-call ${leadingTeam ? `is-${leadingTeam.toLowerCase()}` : "is-square"}`}
+              >
+                {matchCall}
+              </b>
+              <HoleLadder history={history} humanTeam={captainTeam} cpuTeam={cpuTeam} currentHole={hole.number} />
+              <span className={`trip-game-match-thru${dormie ? " is-dormie" : ""}`}>
+                {dormie ? "DORMIE" : `THRU ${history.length}`}
+              </span>
+            </div>
             <div className={`trip-game-hype ${resolutionPhase === "rolling" ? "is-charging" : ""}`}>
               <span>HYPE</span>
               <div className="trip-game-hype-track">
@@ -2557,8 +2785,26 @@ export default function TripGame({ data }) {
                 intelRight={resolutionPhase === "idle" && !result && !meterPhase ? <CaptainRead read={captainRead} /> : null}
                 kickMeter={
                   meterPhase ? (
-                    <KickMeter phase={meterPhase} power={meterTick.power} accuracy={meterTick.accuracy} onTap={tapMeter} />
+                    <KickMeter
+                      phase={meterPhase}
+                      power={meterTick.power}
+                      accuracy={meterTick.accuracy}
+                      onTap={tapMeter}
+                      judgment={meterPhase === "locked" ? swingFx : null}
+                    />
                   ) : null
+                }
+                swingFx={swingFx}
+                shake={shakeFx}
+                soundControl={
+                  <button
+                    type="button"
+                    className={`trip-game-sound-chip${soundOn ? " is-on" : ""}`}
+                    onClick={() => setSoundOn((current) => !current)}
+                    aria-label={soundOn ? "Mute game sound" : "Unmute game sound"}
+                  >
+                    {soundOn ? "♪ ON" : "♪ OFF"}
+                  </button>
                 }
                 popCall={
                   livePops && resolutionPhase === "idle" && !result && !meterPhase ? (
@@ -2618,7 +2864,9 @@ export default function TripGame({ data }) {
                       ? "TAP POWER"
                       : meterPhase === "accuracy"
                         ? "TAP ACCURACY"
-                        : selected
+                        : meterPhase === "locked"
+                          ? swingFx?.label || "..."
+                          : selected
                           ? `PLAY ${lastName(selected.name).toUpperCase()}${livePops?.human ? " ●" : livePops?.cpu ? " GIVE" : ""} ▶`
                           : "PLAY ▶"}
                   </button>
