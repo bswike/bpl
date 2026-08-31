@@ -1220,6 +1220,25 @@ function HoleMap({
   );
 }
 
+function OpponentCard({ opponent, course, team }) {
+  if (!opponent?.profile) {
+    return (
+      <div className="trip-game-vs-card">
+        <small>VS {team}</small>
+        <b>…</b>
+      </div>
+    );
+  }
+  const player = opponent.profile;
+  return (
+    <div className="trip-game-vs-card">
+      <small>VS {team}</small>
+      <b>{lastName(player.name)}</b>
+      <span>CH {courseHandicap(player.hi, course)}</span>
+    </div>
+  );
+}
+
 function CaptainSelect({ players, selectedKey, usage, maxUses, disabled, onPick, course }) {
   const ranked = [...players].sort((left, right) => left.hi - right.hi);
   return (
@@ -1544,6 +1563,7 @@ export default function TripGame({ data }) {
   const [eventHandled, setEventHandled] = useState({});
   const [pickLocked, setPickLocked] = useState(false);
   const [eventNote, setEventNote] = useState(null);
+  const [cpuOpponent, setCpuOpponent] = useState(null);
   const randomRef = useRef(makeSeededRandom(Date.now()));
   const resolutionTimerRef = useRef(null);
   const pendingCommitRef = useRef(null);
@@ -1684,6 +1704,23 @@ export default function TripGame({ data }) {
   const cpuRoster = model.players.filter((player) => player.team === cpuTeam);
   const maxUses = Math.max(2, Math.ceil(18 / Math.max(1, humanRoster.length)));
   const cpuMaxUses = Math.max(2, Math.ceil(18 / Math.max(1, cpuRoster.length)));
+
+  useEffect(() => {
+    if (screen !== "play" || !course || !hole || !cpuRoster.length) return;
+    const pick = chooseCpuPlayer({
+      players: cpuRoster,
+      usage: cpuUsage,
+      maxUses: cpuMaxUses,
+      course,
+      hole,
+      stateByPlayer: playerState,
+      random: randomRef.current,
+    });
+    setCpuOpponent(pick || null);
+    // Lock once per hole so the matchup is visible before the captain picks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hole change only
+  }, [screen, holeIndex, course?.id, hole?.number]);
+
   const selected = humanRoster.find((player) => player.key === selectedKey) || null;
   const selectedState = selected ? playerState[selected.key] || DEFAULT_PLAYER_STATE : DEFAULT_PLAYER_STATE;
   const odds = useMemo(
@@ -1788,6 +1825,7 @@ export default function TripGame({ data }) {
     setEventHandled({});
     setPickLocked(false);
     setEventNote(null);
+    setCpuOpponent(null);
     randomRef.current = makeSeededRandom(Date.now());
   }
 
@@ -1881,7 +1919,7 @@ export default function TripGame({ data }) {
       decision,
       state: playerState[selected.key],
     });
-    const cpuPick = chooseCpuPlayer({
+    const cpuPick = cpuOpponent || chooseCpuPlayer({
       players: cpuRoster,
       usage: cpuUsage,
       maxUses: cpuMaxUses,
@@ -1891,11 +1929,18 @@ export default function TripGame({ data }) {
       random: randomRef.current,
     });
     if (!cpuPick) return;
+    const cpuOdds = buildHoleOdds({
+      profile: cpuPick.profile,
+      course,
+      hole,
+      decision: cpuPick.decision || defaultDecision(cpuPick.profile, hole),
+      state: playerState[cpuPick.profile.key],
+    });
     const resolved = resolveMatchHole({
       human: selected,
       cpu: cpuPick.profile,
       humanOdds: currentHumanOdds,
-      cpuOdds: cpuPick.odds,
+      cpuOdds,
       course,
       hole,
       random: randomRef.current,
@@ -1905,7 +1950,7 @@ export default function TripGame({ data }) {
       human: selected,
       cpu: cpuPick.profile,
       humanOdds: currentHumanOdds,
-      cpuOdds: cpuPick.odds,
+      cpuOdds,
       decisionRead: captainRead,
     };
     const nextStreak = resolved.winner === "human" ? streak + 1 : resolved.winner === "tie" ? streak : 0;
@@ -2006,6 +2051,7 @@ export default function TripGame({ data }) {
     setEventOffer(null);
     setPickLocked(false);
     setEventNote(null);
+    setCpuOpponent(null);
   }
 
   if (!model.courses.length && archiveState === "loading") {
@@ -2104,6 +2150,7 @@ export default function TripGame({ data }) {
               />
               {resolutionPhase === "idle" && !result && (
                 <div className="trip-game-action-bar">
+                  <OpponentCard opponent={cpuOpponent} course={course} team={cpuTeam} />
                   <CaptainSelect
                     players={humanRoster}
                     selectedKey={selectedKey}
@@ -2122,7 +2169,9 @@ export default function TripGame({ data }) {
                     🔥 {inventory.fireball}
                   </button>
                   <button type="button" className="trip-game-primary-button" disabled={!selected} onClick={playHole}>
-                    {selected ? `PLAY ${lastName(selected.name).toUpperCase()} ▶` : "PLAY ▶"}
+                    {selected
+                      ? `PLAY ${lastName(selected.name).toUpperCase()} CH${courseHandicap(selected.hi, course)} ▶`
+                      : "PLAY ▶"}
                   </button>
                 </div>
               )}
@@ -2151,7 +2200,12 @@ export default function TripGame({ data }) {
               )}
             </div>
             <div className="trip-game-bottom-status">
-              <span>CPU PICK: {resolutionPhase === "result" && result ? lastName(result.cpu.name).toUpperCase() : "HIDDEN"}</span>
+              <span>
+                VS{" "}
+                {cpuOpponent?.profile
+                  ? `${lastName(cpuOpponent.profile.name).toUpperCase()} · CH ${courseHandicap(cpuOpponent.profile.hi, course)}`
+                  : "…"}
+              </span>
               <span>
                 HOLES LEFT {18 - hole.number} · TIES {match.ties}
               </span>
