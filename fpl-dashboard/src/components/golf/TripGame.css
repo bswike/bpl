@@ -782,9 +782,97 @@
   pointer-events: auto;
 }
 
-.trip-game-skip-chip.is-club {
-  border-color: #f2c14e;
-  color: #f2c14e;
+/* Casino club reel: a slot-machine window that snaps between clubs */
+
+.trip-game-club-reel {
+  position: absolute;
+  z-index: 6;
+  bottom: 12px;
+  left: 50%;
+  display: flex;
+  gap: 4px;
+  align-items: stretch;
+  padding: 5px;
+  border: 3px solid #060f0a;
+  background: #142219;
+  box-shadow: 4px 4px 0 #060f0a, 0 0 16px rgba(242, 193, 78, 0.3);
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.trip-game-club-reel > button {
+  padding: 0 10px;
+  border: 2px solid #060f0a;
+  background: #c85341;
+  box-shadow: 2px 2px 0 #060f0a;
+  color: #fff2e2;
+  font-family: var(--font-display);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.trip-game-club-reel > button:active {
+  box-shadow: 1px 1px 0 #060f0a;
+  transform: translate(1px, 1px);
+}
+
+.trip-game-club-reel-window {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  padding: 2px 9px;
+  border: 2px solid #060f0a;
+  background: #0c1811;
+  box-shadow: inset 0 0 0 1px #2a4633;
+}
+
+.trip-game-club-reel-window span {
+  color: rgba(232, 240, 200, 0.32);
+  font-family: var(--font-display);
+  font-size: 8px;
+}
+
+.trip-game-club-reel-window b {
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+  min-width: 54px;
+  padding: 3px 8px;
+  border: 2px solid #f2c14e;
+  background: linear-gradient(180deg, #23402e 0%, #142219 100%);
+  box-shadow: 0 0 10px rgba(255, 217, 94, 0.4);
+  color: #ffd95e;
+  font-family: var(--font-display);
+  font-size: 13px;
+  animation: trip-game-reel-snap 0.22s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.trip-game-club-reel-window b em {
+  color: #e8f0c8;
+  font-size: 9px;
+  font-style: normal;
+}
+
+@keyframes trip-game-reel-snap {
+  0% {
+    opacity: 0.35;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 540px) {
+  .trip-game-club-reel-window b {
+    min-width: 44px;
+    font-size: 11px;
+  }
+
+  .trip-game-club-reel > button {
+    padding: 0 7px;
+  }
 }
 
 /* Dedicated putting scene: green close-up over the map during putts */
@@ -832,6 +920,69 @@
   stroke: rgba(6, 15, 10, 0.35);
   stroke-width: 0.4;
   animation: trip-game-putt-flow 1.3s ease-in-out infinite;
+}
+
+/* Break severity tiers, Mario-Golf grammar: pale -> amber -> red */
+
+.trip-game-putt-arrows.is-mid path {
+  fill: rgba(242, 193, 78, 0.85);
+  animation-duration: 0.95s;
+}
+
+.trip-game-putt-arrows.is-steep path {
+  fill: rgba(236, 113, 55, 0.95);
+  animation-duration: 0.65s;
+}
+
+/* The player's straight aim line — the game never bends it for you */
+
+.trip-game-putt-aim-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 0.9;
+  stroke-dasharray: 2.6 2;
+}
+
+.trip-game-putt-aim-marker path {
+  fill: #ffd95e;
+  stroke: #060f0a;
+  stroke-width: 0.6;
+  animation: trip-kick-pulse 0.7s ease-in-out infinite;
+}
+
+.trip-game-putt-stimp {
+  padding: 1px 5px;
+  border: 2px solid #060f0a;
+  font-family: var(--font-display);
+  font-size: 6px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+}
+
+.trip-game-putt-stimp.is-slow {
+  background: #35506b;
+  color: #cfe3f2;
+}
+
+.trip-game-putt-stimp.is-medium {
+  background: #4e6b3a;
+  color: #e8f0c8;
+}
+
+.trip-game-putt-stimp.is-fast {
+  background: #8f2418;
+  color: #ffd0c0;
+  animation: trip-kick-pulse 0.8s ease-in-out infinite;
+}
+
+.trip-game-putt-in.is-lip {
+  color: #ff9e4a;
+  font-size: 17px;
+  text-shadow: 3px 3px 0 #060f0a, 0 0 12px rgba(255, 107, 74, 0.8);
+}
+
+.trip-game-club-reel.is-aim {
+  border-color: #f2c14e;
 }
 
 @keyframes trip-game-putt-flow {
@@ -5366,10 +5517,12 @@
   }
 
   .trip-game--play .trip-game-action-bar {
+    flex-wrap: wrap;
     padding: 5px 6px;
   }
 
   .trip-game--play .trip-game-action-bar .trip-game-primary-button {
+    flex: 1 1 auto;
     min-width: 96px;
     font-size: 9px;
   }

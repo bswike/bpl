@@ -738,7 +738,7 @@ function buildShotSequence({ projection, hole, decision, gross, landingLabel, si
       ? sceneCup
       : [sceneCup[0] - breakDir * 2.5, sceneCup[1] + nearBase + seededUnit(seed + salt + 2) * (sceneCarry ? 1.5 : 3.5)];
     sceneCarry = final ? null : end;
-    return { breakDir, slope, start, end, feet };
+    return { breakDir, slope, start, end, feet, stimp: stimpOf(hole) };
   };
   for (let lag = 0; lag < Math.min(3, putts) - 1; lag += 1) {
     const lagSpot = [pin[0] + jitter(13 + lag, 3), pin[1] + 1.6 + jitter(14 + lag, 1.5)];
@@ -880,27 +880,79 @@ function dryVisualPoint(projection, from, point) {
   return from;
 }
 
-/** Make-or-miss for a played putt: line from accuracy, pace from power. */
-function resolveLivePuttStroke({ feet, meter, judgment, puttCount }) {
-  const paceLow = Math.max(0, POWER_SWEET_MIN - meter.power);
-  const paceHigh = Math.max(0, meter.power - POWER_SWEET_MAX);
-  const paceErr = paceLow + paceHigh;
-  const tier = judgment.tier;
-  const made =
-    puttCount >= 2 || // arcade mercy: the third putt drops
-    (tier === "pure" && paceErr < 0.06 && feet <= 16) ||
-    (tier === "great" && paceErr < 0.08 && feet <= 9) ||
-    (tier === "good" && paceErr < 0.1 && feet <= 5) ||
-    (feet <= 2.5 && tier !== "wild");
+// ---- Putting model: read the green, aim against the break, control pace ----
+
+const STIMP_TIERS = {
+  SLOW: { label: "SLOW", stimp: 8, breakMult: 0.8, bandWidth: 0.2, needle: 1, runout: 1.6 },
+  MEDIUM: { label: "MEDIUM", stimp: 10, breakMult: 1, bandWidth: 0.15, needle: 1.08, runout: 2.2 },
+  FAST: { label: "FAST", stimp: 12, breakMult: 1.3, bandWidth: 0.11, needle: 1.16, runout: 3 },
+};
+
+/** Green speed is a per-hole condition, announced and deterministic. */
+function stimpOf(hole) {
+  const roll = seededUnit(hole.number * 17 + 3);
+  return roll < 0.34 ? "SLOW" : roll < 0.72 ? "MEDIUM" : "FAST";
+}
+
+/**
+ * One putt's full read: break, slope, green speed, distances, and the aim
+ * (in cup-width ticks) that would hole it at good pace. Everything the
+ * outcome depends on is visible to the player — no hidden rolls.
+ */
+function makePuttRead({ hole, puttCount, feet, sceneCarry }) {
+  const salt = hole.number * 29 + puttCount * 11 + 5;
+  const breakDir = (seededUnit(salt) - 0.5) * 1.8;
+  const slope = (seededUnit(salt + 1) - 0.5) * 1.6;
+  const stimpKey = stimpOf(hole);
+  const tier = STIMP_TIERS[stimpKey];
+  // Uphill plays longer, downhill shorter; fast greens roll out farther.
+  const effFeet = Math.max(
+    1,
+    Math.round(feet * (1 + slope * 0.28) * (stimpKey === "FAST" ? 0.88 : stimpKey === "SLOW" ? 1.14 : 1)),
+  );
+  // Aim required to hole it at dying pace, in ticks (positive = aim right).
+  const requiredTicks = -breakDir * tier.breakMult * clamp(feet, 2, 30) * 0.16;
+  const start = sceneCarry || [
+    85 - breakDir * clamp(feet * 0.9, 4, 22),
+    36 + clamp(26 + feet * 1.3, 34, 78),
+  ];
+  // Pace band on the power bar: farther/faster putts need more fill.
+  const paceCenter = clamp(0.42 + effFeet * 0.012, 0.45, 0.98);
+  const paceBand = { min: Math.max(0.2, paceCenter - tier.bandWidth / 2), max: Math.min(1.06, paceCenter + tier.bandWidth / 2) };
+  return { feet, effFeet, breakDir, slope, stimp: stimpKey, requiredTicks, start, paceBand, needle: tier.needle };
+}
+
+/**
+ * Deterministic putt resolution: outcome is a pure function of the player's
+ * aim ticks, pace error, and line error against the visible read. Hot putts
+ * shrink the capture width; centered-but-hot earns the horseshoe lip-out.
+ */
+function resolveLivePutt({ read, aimTicks, meter, puttCount }) {
+  const tier = STIMP_TIERS[read.stimp] || STIMP_TIERS.MEDIUM;
+  const paceCenter = (read.paceBand.min + read.paceBand.max) / 2;
+  const paceErr = meter.power - paceCenter;
+  const bandHalf = (read.paceBand.max - read.paceBand.min) / 2;
+  // Firm putts take the break out (Mario Golf rule) but risk the lip.
+  const firm = paceErr > bandHalf * 0.6;
+  const effRequired = read.requiredTicks * (firm ? 0.68 : 1);
+  const lineErr = aimTicks - effRequired + meter.accuracy * 3.4;
+  const hot = paceErr > bandHalf + 0.05;
+  const short = paceErr < -bandHalf - 0.03;
+  const capture = hot ? 0.55 : 1.15;
+  let made = false;
+  let lip = false;
+  if (!short && !hot && Math.abs(lineErr) <= capture) made = true;
+  else if (!short && hot && paceErr < bandHalf + 0.14 && Math.abs(lineErr) <= capture * 0.6) lip = true;
+  if (!made && !lip && puttCount >= 2) made = true; // arcade mercy on the 4th
   let leaveFeet = 0;
   if (!made) {
-    leaveFeet = clamp(
-      feet * (0.16 + Math.abs(meter.accuracy) * 0.7 + paceErr * 1.3) + paceHigh * 6,
-      1.5,
-      Math.max(3, feet * 0.7),
-    );
+    if (lip) leaveFeet = 1.5;
+    else if (short) leaveFeet = clamp(read.feet * Math.min(0.75, -paceErr * 2.4), 1.5, read.feet * 0.8);
+    else if (hot) leaveFeet = clamp(2 + paceErr * read.effFeet * tier.runout * 0.4, 2, 14);
+    else leaveFeet = clamp(1 + Math.abs(lineErr) * 1.4, 1.2, 6);
   }
-  return { made, leaveFeet };
+  const missSide = Math.abs(lineErr) > 0.1 ? Math.sign(lineErr) : read.breakDir >= 0 ? 1 : -1;
+  return { made, lip, leaveFeet, missSide, paceErr, lineErr, effRequired };
 }
 
 function fallbackProjection(hole) {
@@ -1185,27 +1237,38 @@ function GolferSprite({ at, toward, hat = "red", pose = "idle", putting = false,
  * you can actually watch roll and drop, plus Mario-Golf-style break arrows
  * that drift downslope and an uphill/downhill + break readout.
  */
-function PuttingScene({ shot, phase, frame, side }) {
-  const info = shot.putt || { breakDir: 0, slope: 0 };
-  const breakDir = clamp(info.breakDir || 0, -1, 1);
-  const slope = clamp(info.slope || 0, -1, 1);
+const PUTT_TICK_UNITS = 2.4;
+
+function PuttingScene({ shot, phase, frame, side, preview = false, read = null, aimTicks = 0 }) {
+  const info = preview ? read : shot?.putt || { breakDir: 0, slope: 0 };
+  const breakDir = clamp(info?.breakDir || 0, -1, 1);
+  const slope = clamp(info?.slope || 0, -1, 1);
   const cup = [85, 36];
-  const start = info.start || [85, 96];
-  const end = info.end || (shot.final ? cup : [cup[0] - breakDir * 2.5, cup[1] + 7]);
-  const feet = clamp(info.feet || Math.round((shot.yards || 1) * 3), 1, 48);
+  const start = info?.start || [85, 96];
+  const end = preview ? cup : info?.end || (shot?.final ? cup : [cup[0] - breakDir * 2.5, cup[1] + 7]);
+  const feet = clamp(info?.feet || Math.round((shot?.yards || 1) * 3), 1, 48);
+  const effFeet = info?.effFeet || feet;
+  const stimp = info?.stimp || null;
   const startDist = Math.hypot(start[0] - cup[0], start[1] - cup[1]);
   const control = [
     (start[0] + end[0]) / 2 + breakDir * clamp(startDist * 0.45, 2, 24),
     (start[1] + end[1]) / 2 + 2,
   ];
-  const lastFrame = Math.max(1, (shot.frames?.length || 8) - 1);
-  const t = phase === "swing" ? 0 : phase === "flight" ? clamp((frame || 0) / lastFrame, 0, 1) : 1;
+  const lastFrame = Math.max(1, (shot?.frames?.length || 8) - 1);
+  const t = preview || phase === "swing" ? 0 : phase === "flight" ? clamp((frame || 0) / lastFrame, 0, 1) : 1;
   const eased = 1 - Math.pow(1 - t, 1.75);
   const ball = quadPoint(start, control, end, eased);
-  const dropped = shot.final && phase === "settle";
-  const rolled = phase !== "swing";
+  const dropped = !preview && shot?.final && phase === "settle";
+  const rolled = !preview && phase !== "swing";
   const breakLabel = breakDir > 0.12 ? "L → R" : breakDir < -0.12 ? "R → L" : "STRAIGHT";
   const slopeLabel = slope > 0.12 ? "UPHILL" : slope < -0.12 ? "DOWNHILL" : "FLAT";
+  const severity = Math.abs(breakDir) + Math.abs(slope) * 0.5;
+  const severityClass = severity > 1 ? " is-steep" : severity > 0.5 ? " is-mid" : "";
+  // The player's chosen start line: a straight ray from the ball through the
+  // aim point — the game never bends it for you.
+  const aimPoint = [cup[0] + aimTicks * PUTT_TICK_UNITS, cup[1]];
+  const aimShown = preview || (info?.aimTicks != null && !dropped);
+  const aimTarget = preview ? aimPoint : [cup[0] + (info?.aimTicks || 0) * PUTT_TICK_UNITS, cup[1]];
   const flowing = Math.hypot(breakDir, slope) > 0.12;
   const angle = (Math.atan2(slope, breakDir || 0.0001) * 180) / Math.PI;
   const arrows = [];
@@ -1233,7 +1296,7 @@ function PuttingScene({ shot, phase, frame, side }) {
         <path d="M28,48 Q85,58 142,46" className="trip-game-putt-contour" />
         {flowing && (
           <g
-            className="trip-game-putt-arrows"
+            className={`trip-game-putt-arrows${severityClass}`}
             style={{ "--flow-x": `${breakDir * 7}px`, "--flow-y": `${slope * 7}px` }}
           >
             {arrows.map(([x, y], index) => (
@@ -1246,10 +1309,23 @@ function PuttingScene({ shot, phase, frame, side }) {
             ))}
           </g>
         )}
-        <path
-          d={`M${start[0].toFixed(1)},${start[1].toFixed(1)} Q${control[0].toFixed(1)},${control[1].toFixed(1)} ${end[0].toFixed(1)},${end[1].toFixed(1)}`}
-          className={`trip-game-putt-line${phase === "swing" ? " is-preview" : ""}`}
-        />
+        {aimShown && (
+          <>
+            <path
+              d={`M${start[0].toFixed(1)},${start[1].toFixed(1)} L${aimTarget[0].toFixed(1)},${aimTarget[1].toFixed(1)}`}
+              className="trip-game-putt-aim-line"
+            />
+            <g className="trip-game-putt-aim-marker" transform={`translate(${aimTarget[0].toFixed(1)} ${aimTarget[1].toFixed(1)})`}>
+              <path d="M0,-3.4 L3,0 L0,3.4 L-3,0 Z" />
+            </g>
+          </>
+        )}
+        {!preview && (
+          <path
+            d={`M${start[0].toFixed(1)},${start[1].toFixed(1)} Q${control[0].toFixed(1)},${control[1].toFixed(1)} ${end[0].toFixed(1)},${end[1].toFixed(1)}`}
+            className={`trip-game-putt-line${phase === "swing" ? " is-preview" : ""}`}
+          />
+        )}
         <g transform={`translate(${cup[0]} ${cup[1]})`} className="trip-game-putt-cup">
           <ellipse rx="4.6" ry="2.7" className="trip-game-putt-cup-rim" />
           <ellipse rx="3.4" ry="1.9" className="trip-game-putt-cup-hole" />
@@ -1260,7 +1336,7 @@ function PuttingScene({ shot, phase, frame, side }) {
           at={[start[0] + 7, start[1] + 1]}
           toward={cup}
           hat={side === "cpu" ? "blue" : "red"}
-          pose={phase === "swing" ? "swing" : dropped ? "celebrate" : "through"}
+          pose={preview ? "idle" : phase === "swing" ? "swing" : dropped ? "celebrate" : "through"}
           putting
           scale={0.9}
         />
@@ -1284,9 +1360,12 @@ function PuttingScene({ shot, phase, frame, side }) {
         <span>{side === "cpu" ? "THEM" : "YOU"}</span>
         <b>{feet} FT</b>
         <em>
+          {effFeet !== feet ? `PLAYS ${effFeet} · ` : ""}
           {breakLabel} · {slopeLabel}
         </em>
+        {stimp && <i className={`trip-game-putt-stimp is-${stimp.toLowerCase()}`}>{stimp} GREEN</i>}
       </div>
+      {shot?.lip && phase === "settle" && <div className="trip-game-putt-in is-lip">LIP OUT!</div>}
       {dropped && <div className="trip-game-putt-in">IN!</div>}
     </div>
   );
@@ -1314,6 +1393,8 @@ function HoleMap({
   liveStatus,
   livePos,
   livePreview,
+  clubReel,
+  puttPreview,
   onAimStep,
   onCycle,
 }) {
@@ -1413,8 +1494,12 @@ function HoleMap({
   const ballEscaping = Boolean(
     playback?.phase === "flight" && ballAir && cameraRef.current && !cameraContains(cameraRef.current, ballAir, 18),
   );
+  // Between live swings there are no continuous re-renders to carry a slow
+  // lerp, so snap straight to the club-selection framing.
   const cameraEase = !playback
-    ? 0.4
+    ? livePos
+      ? 1
+      : 0.4
     : firstFlightFrame || ballEscaping
       ? 1
       : playback.phase === "flight"
@@ -1782,6 +1867,8 @@ function HoleMap({
       {playback && activeShot?.kind === "putt" && (
         <PuttingScene shot={activeShot} phase={playback.phase} frame={playback.frame} side={activeShot.side} />
       )}
+      {!playback && puttPreview}
+      {!playback && clubReel}
       {intro && (
         <button type="button" className="trip-game-hole-intro" onClick={onIntroDismiss} aria-label="Dismiss hole intro">
           <small>HOLE {hole.number}</small>
@@ -1948,8 +2035,8 @@ function judgeSwing(power, accuracy, mods = {}) {
   const greatZone = ACC_GREAT * zoneScale;
   const goodZone = ACC_GOOD * zoneScale;
   const off = Math.abs(accuracy);
-  const overswung = power > POWER_SWEET_MAX;
-  const eased = power < 0.72;
+  const overswung = mods.paceBand ? power > mods.paceBand.max : power > POWER_SWEET_MAX;
+  const eased = mods.paceBand ? power < mods.paceBand.min : power < 0.72;
   const tier = off <= pureZone ? "pure" : off <= greatZone ? "great" : off <= goodZone ? "good" : "wild";
   const label =
     tier === "pure"
@@ -2000,8 +2087,10 @@ function KickMeter({ phase, power, accuracy, onTap, judgment, streak, mods }) {
         : off <= ACC_GOOD * zoneScale
           ? " is-near"
           : "";
-  const inSweet = !powerLocked && power >= POWER_SWEET_MIN && power <= POWER_SWEET_MAX;
-  const inRed = power > POWER_SWEET_MAX;
+  const bandMin = mods?.paceBand ? mods.paceBand.min : POWER_SWEET_MIN;
+  const bandMax = mods?.paceBand ? mods.paceBand.max : POWER_SWEET_MAX;
+  const inSweet = !powerLocked && power >= bandMin && power <= bandMax;
+  const inRed = power > bandMax;
   const streakClass = streak >= 4 ? " is-streak-fire" : streak >= 2 ? " is-streak-hot" : "";
   return (
     <>
@@ -2018,10 +2107,20 @@ function KickMeter({ phase, power, accuracy, onTap, judgment, streak, mods }) {
           </div>
         )}
         <div className={`trip-game-kick-col ${powerLocked ? "is-locked" : ""}`}>
-          <small>PWR</small>
+          <small>{mods?.paceBand ? "PACE" : "PWR"}</small>
           <div className={`trip-game-kick-track${inSweet ? " is-charged" : ""}`}>
-            <i className="trip-game-kick-redzone" />
-            <i className="trip-game-kick-goodzone" />
+            {!mods?.paceBand && <i className="trip-game-kick-redzone" />}
+            <i
+              className="trip-game-kick-goodzone"
+              style={
+                mods?.paceBand
+                  ? {
+                      bottom: `${(mods.paceBand.min / POWER_METER_MAX) * 100}%`,
+                      height: `${((mods.paceBand.max - mods.paceBand.min) / POWER_METER_MAX) * 100}%`,
+                    }
+                  : undefined
+              }
+            />
             <b
               className={`trip-game-kick-fill${inRed && (!powerLocked || redBet) ? " is-red" : ""}`}
               style={{ height: `${powerPct * 100}%` }}
@@ -2692,6 +2791,7 @@ export default function TripGame({ data }) {
   });
   const [liveInfo, setLiveInfo] = useState(null);
   const [liveClubId, setLiveClubId] = useState(null);
+  const [puttAim, setPuttAim] = useState(0);
   const liveRef = useRef(null);
   const [soundOn, setSoundOn] = useState(() => {
     try {
@@ -2792,8 +2892,11 @@ export default function TripGame({ data }) {
         const before = live.power;
         live.power += dt * (meterModsRef.current.powerSpeed || BASE_POWER_SPEED);
         updatePowerSweep(live.power / POWER_METER_MAX);
-        if (before < POWER_SWEET_MIN && live.power >= POWER_SWEET_MIN) zoneTick("good");
-        if (before < POWER_SWEET_MAX && live.power >= POWER_SWEET_MAX) zoneTick("warn");
+        const band = meterModsRef.current.paceBand;
+        const bandMin = band ? band.min : POWER_SWEET_MIN;
+        const bandMax = band ? band.max : POWER_SWEET_MAX;
+        if (before < bandMin && live.power >= bandMin) zoneTick("good");
+        if (before < bandMax && live.power >= bandMax) zoneTick("warn");
         if (live.power >= POWER_METER_MAX) {
           live.power = POWER_METER_MAX;
           live.accuracy = -1;
@@ -3191,7 +3294,8 @@ export default function TripGame({ data }) {
     const liveClub = liveClubOf(clubId);
     const lieMod = LIE_METER_MODS[options.lie] || { zone: 1, speed: 1 };
     const skill = skillOf(selected?.hi);
-    const skillSpeed = (1 + (1 - skill) * SKILL_SPEED_PENALTY) * lieMod.speed;
+    const stimpNeedle = options.needle || 1;
+    const skillSpeed = (1 + (1 - skill) * SKILL_SPEED_PENALTY) * lieMod.speed * stimpNeedle;
     const baseZone =
       (liveClub?.zone ?? CLUB_ZONE_SCALE[clubId] ?? 1) * (SKILL_ZONE_MIN + skill * SKILL_ZONE_RANGE) * lieMod.zone;
     const clubSpeed = liveClub?.speed ?? CLUB_METER_SPEED[clubId] ?? 1;
@@ -3206,8 +3310,9 @@ export default function TripGame({ data }) {
       redBet: false,
       clutch,
       club: clubId,
+      paceBand: options.paceBand || null,
     };
-    setMeterMods({ zoneScale: baseZone, redBet: false, clutch, club: clubId });
+    setMeterMods({ zoneScale: baseZone, redBet: false, clutch, club: clubId, paceBand: options.paceBand || null });
     setMeterTick({ power: 0, accuracy: -1 });
     setSwingFx(null);
     setMeterPhase("power");
@@ -3427,13 +3532,30 @@ export default function TripGame({ data }) {
     else beginHumanTurn();
   }
 
-  // Human's turn: tee shots and putts arm the meter directly; approach shots
-  // pause first so the player can cycle clubs and see the carry preview.
+  // Human's turn: the meter NEVER auto-starts — every stroke waits for the
+  // player. The tee arms off the PLAY press; approaches pause for club
+  // selection; putts pause until PUTT is pressed.
   function beginHumanTurn() {
     const live = liveRef.current;
     if (!live || !projection) return;
-    if (live.strokes === 0 || live.feet != null) {
+    if (live.strokes === 0) {
       startNextLiveSwing();
+      return;
+    }
+    if (live.feet != null) {
+      // Build the green read once so aiming, the meter's pace band, and the
+      // resolution all agree on the same break/slope/speed.
+      live.puttRead = makePuttRead({
+        hole,
+        puttCount: live.puttCount,
+        feet: live.feet,
+        sceneCarry: live.sceneCarry,
+      });
+      live.aimTicks = 0;
+      setPuttAim(0);
+      live.awaitingHuman = true;
+      setLiveClubId(null);
+      setLiveInfo(liveStatusOf());
       return;
     }
     const scale = live.yardsScale || 1;
@@ -3444,13 +3566,14 @@ export default function TripGame({ data }) {
     setLiveInfo(liveStatusOf());
   }
 
-  function cycleLiveClub() {
+  function cycleLiveClub(direction = 1) {
     const live = liveRef.current;
     if (!live || !live.awaitingHuman) return;
     const index = LIVE_CLUBS.findIndex((club) => club.id === live.club);
-    const next = LIVE_CLUBS[(index + 1) % LIVE_CLUBS.length];
+    const next = LIVE_CLUBS[(index + direction + LIVE_CLUBS.length) % LIVE_CLUBS.length];
     live.club = next.id;
     setLiveClubId(next.id);
+    zoneTick("good");
   }
 
   function playNextCpuShot() {
@@ -3474,36 +3597,54 @@ export default function TripGame({ data }) {
     const from = live.pos;
     let shot = null;
     if (live.feet != null) {
-      const feet = live.feet;
-      const { made, leaveFeet } = resolveLivePuttStroke({ feet, meter, judgment, puttCount: live.puttCount });
+      const read =
+        live.puttRead ||
+        makePuttRead({ hole, puttCount: live.puttCount, feet: live.feet, sceneCarry: live.sceneCarry });
+      const aimTicks = live.aimTicks ?? Math.round(read.requiredTicks);
+      const result = resolveLivePutt({ read, aimTicks, meter, puttCount: live.puttCount });
       live.strokes += 1;
       live.puttCount += 1;
-      const salt = hole.number * 29 + live.strokes * 7;
-      const breakDir = (seededUnit(salt) - 0.5) * 1.8;
-      const slope = (seededUnit(salt + 1) - 0.5) * 1.6;
-      const start = live.sceneCarry || [
-        85 - breakDir * clamp(feet * 0.9, 4, 22),
-        36 + clamp(26 + feet * 1.3, 34, 78),
-      ];
-      // A missed putt leaves the ball on the side you actually missed on.
-      const missSide = Math.abs(meter.accuracy) > 0.05 ? Math.sign(meter.accuracy) : breakDir >= 0 ? 1 : -1;
-      const end = made
+      const end = result.made
         ? [85, 36]
-        : [85 + missSide * (2.5 + Math.min(4, Math.abs(meter.accuracy) * 5)), 36 + clamp(leaveFeet * 2.5, 3.5, 44)];
-      live.sceneCarry = made ? null : end;
-      if (made) {
+        : [
+            85 + result.missSide * (2.5 + Math.min(5, Math.abs(result.lineErr) * 2.2)),
+            36 + clamp(result.leaveFeet * 2.5, 3.5, 44),
+          ];
+      live.sceneCarry = result.made ? null : end;
+      live.puttRead = null;
+      live.aimTicks = null;
+      if (result.made) {
         live.holed = true;
         live.feet = null;
       } else {
-        live.feet = Math.max(1, Math.round(leaveFeet));
+        live.feet = Math.max(1, Math.round(result.leaveFeet));
+      }
+      // Teach the read: show what the putt actually needed.
+      if (animate) {
+        const neededLabel = `NEEDED ${Math.abs(result.effRequired).toFixed(1)} ${result.effRequired > 0 ? "R" : "L"}`;
+        const paceLabel = `PACE ${result.paceErr >= 0 ? "+" : ""}${Math.round(result.paceErr * 100)}`;
+        setSwingFx((current) =>
+          current
+            ? { ...current, sub: result.made ? `${paceLabel} · PURE READ` : `${neededLabel} · ${paceLabel}` }
+            : current,
+        );
       }
       shot = {
-        ...makeShot({ from, to: made ? projection.pin : from, kind: "putt", final: made, yardsScale }),
-        putt: { breakDir, slope, start, end, feet },
+        ...makeShot({
+          from,
+          to: result.made ? projection.pin : from,
+          kind: "putt",
+          final: result.made,
+          yardsScale,
+          caption: result.lip ? "LIPS OUT!" : null,
+        }),
+        putt: { ...read, start: read.start, end, aimTicks },
+        lip: result.lip,
         side: "human",
         kickPower: meter.power,
         shotNumber: live.strokes,
       };
+      if (animate && result.lip) nearMissSound();
     } else {
       const res = resolveLiveStroke({
         projection,
@@ -3585,7 +3726,21 @@ export default function TripGame({ data }) {
     live.club = clubId;
     live.awaitingHuman = false;
     setLiveClubId(null);
-    startKickMeter({ club: clubId, lie: live.feet != null ? "Green" : live.lie });
+    startKickMeter({
+      club: clubId,
+      lie: live.feet != null ? "Green" : live.lie,
+      paceBand: live.feet != null ? live.puttRead?.paceBand : null,
+      needle: live.feet != null ? live.puttRead?.needle : 1,
+    });
+  }
+
+  function adjustPuttAim(direction) {
+    const live = liveRef.current;
+    if (!live || !live.awaitingHuman || live.feet == null) return;
+    const next = clamp((live.aimTicks ?? 0) + direction, -8, 8);
+    live.aimTicks = next;
+    setPuttAim(next);
+    zoneTick("good");
   }
 
   function completeLiveHole() {
@@ -3998,6 +4153,55 @@ export default function TripGame({ data }) {
                 liveStatus={liveInfo && !result ? liveInfo.label : null}
                 livePos={liveInfo && !result && liveRef.current ? liveRef.current.pos : null}
                 livePreview={livePreview}
+                puttPreview={
+                  liveInfo && !result && liveRef.current?.feet != null && liveRef.current?.puttRead ? (
+                    <PuttingScene preview read={liveRef.current.puttRead} aimTicks={puttAim} side="human" />
+                  ) : null
+                }
+                clubReel={
+                  liveInfo && !result && liveRef.current?.awaitingHuman && liveRef.current?.feet != null ? (
+                    <div className="trip-game-club-reel is-aim" role="group" aria-label="Putt aim">
+                      <button type="button" onClick={() => adjustPuttAim(-1)} aria-label="Aim left">
+                        ◀
+                      </button>
+                      <div className="trip-game-club-reel-window">
+                        <span>AIM</span>
+                        <b key={puttAim}>
+                          {puttAim === 0 ? "CENTER" : `${Math.abs(puttAim)} ${puttAim > 0 ? "R" : "L"}`}
+                          <em>{liveRef.current.puttRead.feet} FT</em>
+                        </b>
+                        <span>{liveRef.current.puttRead.stimp}</span>
+                      </div>
+                      <button type="button" onClick={() => adjustPuttAim(1)} aria-label="Aim right">
+                        ▶
+                      </button>
+                    </div>
+                  ) : livePreview && liveClubEntry
+                    ? (() => {
+                        const reelIndex = LIVE_CLUBS.findIndex((clubItem) => clubItem.id === liveClubId);
+                        const prevClub = LIVE_CLUBS[(reelIndex - 1 + LIVE_CLUBS.length) % LIVE_CLUBS.length];
+                        const nextClub = LIVE_CLUBS[(reelIndex + 1) % LIVE_CLUBS.length];
+                        return (
+                          <div className="trip-game-club-reel" role="group" aria-label="Club selection">
+                            <button type="button" onClick={() => cycleLiveClub(-1)} aria-label="Previous club">
+                              ◀
+                            </button>
+                            <div className="trip-game-club-reel-window">
+                              <span>{prevClub.short}</span>
+                              <b key={liveClubId}>
+                                {liveClubEntry.short}
+                                <em>{livePreview.carryYards}Y</em>
+                              </b>
+                              <span>{nextClub.short}</span>
+                            </div>
+                            <button type="button" onClick={() => cycleLiveClub(1)} aria-label="Next club">
+                              ▶
+                            </button>
+                          </div>
+                        );
+                      })()
+                    : null
+                }
                 intro={holeIntro && resolutionPhase === "idle" && !result && !meterPhase && !liveInfo}
                 onIntroDismiss={() => setHoleIntro(false)}
                 odds={resolutionPhase === "idle" && !result && !meterPhase && !liveInfo ? odds : null}
@@ -4089,11 +4293,6 @@ export default function TripGame({ data }) {
                   >
                     🔥 {inventory.fireball}
                   </button>
-                  {liveInfo && liveClubId && (
-                    <button type="button" className="trip-game-skip-chip is-club" onClick={cycleLiveClub}>
-                      ⛳ {liveClubEntry?.short} · {livePreview?.carryYards}Y
-                    </button>
-                  )}
                   {liveInfo && (
                     <button type="button" className="trip-game-skip-chip" onClick={skipLiveHole}>
                       SKIP ▶▶
@@ -4116,7 +4315,9 @@ export default function TripGame({ data }) {
                         : meterPhase === "locked"
                           ? swingFx?.label || "..."
                           : liveInfo
-                            ? "SWING ▶"
+                            ? liveRef.current?.feet != null
+                              ? "PUTT ▶"
+                              : "SWING ▶"
                             : selected
                               ? `PLAY ${lastName(selected.name).toUpperCase()}${livePops?.human ? " ●" : livePops?.cpu ? " GIVE" : ""} ▶`
                               : "PLAY ▶"}
