@@ -748,6 +748,28 @@
   text-align: center;
 }
 
+/* The waiting player's ball rests on the map while the other side plays */
+
+.trip-game-resting-core {
+  fill: #f4f7ee;
+  stroke: #060f0a;
+  stroke-width: 0.5;
+}
+
+.trip-game-resting-ring {
+  fill: none;
+  stroke-width: 1;
+  opacity: 0.85;
+}
+
+.trip-game-resting-ball.is-cpu .trip-game-resting-ring {
+  stroke: var(--px-blue);
+}
+
+.trip-game-resting-ball.is-human .trip-game-resting-ring {
+  stroke: var(--px-red);
+}
+
 /* The other team's shots read blue */
 
 .trip-game-playcap.is-cpu {

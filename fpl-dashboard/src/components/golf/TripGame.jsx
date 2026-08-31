@@ -648,13 +648,18 @@ function buildShotSequence({ projection, hole, decision, gross, landingLabel, si
   }
   remaining = Math.max(1, remaining);
 
+  // On the green already (drove a par 4, reached in regulation, etc.):
+  // everything left is putts — nobody chips off the putting surface.
+  const teeBallOnGreen = landingType !== "Penalty area" && pointNearGreen(current, projection);
   let putts;
-  if (hole.par === 3 && (landingType === "Fairway" || landingType === "Rough") && remaining <= 2) {
+  if (teeBallOnGreen) {
+    putts = remaining;
+  } else if (hole.par === 3 && (landingType === "Fairway" || landingType === "Rough") && remaining <= 2) {
     putts = remaining; // par-3 tee ball is greenside; just putt out
   } else {
     putts = remaining >= 3 ? 2 : remaining === 2 ? (hole.par === 3 ? 2 : 1) : 1;
   }
-  putts = clamp(putts, 1, 2);
+  putts = clamp(putts, 1, 3);
   let approaches = remaining - putts;
   if (approaches < 0) {
     approaches = 0;
@@ -663,6 +668,11 @@ function buildShotSequence({ projection, hole, decision, gross, landingLabel, si
 
   const greenEntry = [pin[0] + jitter(1, 10), pin[1] + 5 + jitter(2, 4)];
   for (let index = 0; index < approaches; index += 1) {
+    // An earlier shot already found the green — putt out from here instead.
+    if (pointNearGreen(current, projection)) {
+      putts += approaches - index;
+      break;
+    }
     const last = index === approaches - 1;
     const destination = last
       ? greenEntry
@@ -680,13 +690,39 @@ function buildShotSequence({ projection, hole, decision, gross, landingLabel, si
     current = destination;
   }
 
-  if (putts === 2) {
-    const lagSpot = [pin[0] + jitter(13, 3), pin[1] + 1.6 + jitter(14, 1.5)];
+  for (let lag = 0; lag < Math.min(3, putts) - 1; lag += 1) {
+    const lagSpot = [pin[0] + jitter(13 + lag, 3), pin[1] + 1.6 + jitter(14 + lag, 1.5)];
     shots.push(makeShot({ from: current, to: lagSpot, kind: "putt", yardsScale }));
     current = lagSpot;
   }
   shots.push(makeShot({ from: current, to: pin, kind: "putt", final: true, yardsScale }));
   return shots.map((shot) => ({ ...shot, side }));
+}
+
+/**
+ * Interleave the two sides match-play style: honors off the tee, then the
+ * ball farther from the hole plays — and keeps playing while still away.
+ */
+function mergeMatchPlayShots(firstSide, secondSide, pin) {
+  if (!pin) return [...firstSide, ...secondSide];
+  const merged = [];
+  let a = 0;
+  let b = 0;
+  if (firstSide.length) merged.push(firstSide[a++]);
+  if (secondSide.length) merged.push(secondSide[b++]);
+  const away = (shot) => Math.hypot(shot.from[0] - pin[0], shot.from[1] - pin[1]);
+  while (a < firstSide.length || b < secondSide.length) {
+    if (a >= firstSide.length) {
+      merged.push(secondSide[b++]);
+    } else if (b >= secondSide.length) {
+      merged.push(firstSide[a++]);
+    } else if (away(firstSide[a]) >= away(secondSide[b])) {
+      merged.push(firstSide[a++]);
+    } else {
+      merged.push(secondSide[b++]);
+    }
+  }
+  return merged;
 }
 
 function fallbackProjection(hole) {
@@ -983,14 +1019,25 @@ function HoleMap({
   // Comet trail on the metered tee shot: gold for PURE, green for GREAT,
   // flames for a red-band bet that paid off. Human shots only — the CPU
   // never swings your meter.
-  const trailTier =
-    playback?.index === 0 && (kickTier === "pure" || kickTier === "great" || kickTier === "fire") ? kickTier : null;
+  const firstHumanIndex = playback ? playback.shots.findIndex((shot) => shot.side !== "cpu") : -1;
   const firstCpuIndex = playback ? playback.shots.findIndex((shot) => shot.side === "cpu") : -1;
-  const firstOfSide = playback ? playback.index === 0 || playback.index === firstCpuIndex : false;
+  const trailTier =
+    playback?.index === firstHumanIndex && (kickTier === "pure" || kickTier === "great" || kickTier === "fire")
+      ? kickTier
+      : null;
+  const firstOfSide = playback ? playback.index === firstHumanIndex || playback.index === firstCpuIndex : false;
   const sideShotNumber =
     playback && activeShot
       ? playback.shots.slice(0, playback.index + 1).filter((shot) => shot.side === activeShot.side).length
       : 0;
+  // Where the waiting player's ball rests while the other side plays.
+  const otherSidePlayed =
+    playback && activeShot && playback.shots.slice(0, playback.index).some((shot) => shot.side !== activeShot.side);
+  const nextOtherShot =
+    playback && activeShot
+      ? playback.shots.slice(playback.index + 1).find((shot) => shot.side !== activeShot.side)
+      : null;
+  const restingBall = otherSidePlayed && nextOtherShot ? nextOtherShot.from : null;
   const remainingYards = hole.yards ? Math.max(0, Math.round(hole.yards - targetYards)) : null;
   const trees = buildTreeSprites(projection, hole.number);
   const mapId = `trip-hole-${hole.number}`;
@@ -1190,6 +1237,15 @@ function HoleMap({
               .map((shot, index) => (
                 <circle key={index} cx={shot.to[0]} cy={shot.to[1]} r="1.5" className="trip-game-crumb" />
               ))}
+            {restingBall && (
+              <g
+                className={`trip-game-resting-ball ${activeShot.side === "cpu" ? "is-human" : "is-cpu"}`}
+                transform={`translate(${restingBall[0]} ${restingBall[1]})`}
+              >
+                <circle r="3.4" className="trip-game-resting-ring" />
+                <circle r="1.9" className="trip-game-resting-core" />
+              </g>
+            )}
             <GolferSprite
               at={
                 firstOfSide
@@ -1343,12 +1399,11 @@ function HoleMap({
       {swingFx?.tier === "pure" && <div key={`flash-${swingFx.id}`} className="trip-game-pure-flash" aria-hidden="true" />}
       {playback &&
         activeShot &&
-        firstOfSide &&
         activeShot.kind !== "putt" &&
         (playback.phase === "flight" || playback.phase === "settle") &&
         Number.isFinite(activeShot.yards) && (
           <YardageTicker
-            key={activeShot.side}
+            key={playback.index}
             yards={activeShot.yards}
             rollMs={Math.max(0, (activeShot.frames?.length || 8) - 1) * FLIGHT_FRAME_MS}
           />
@@ -2302,13 +2357,16 @@ export default function TripGame({ data }) {
     const timer = window.setTimeout(() => {
       if (playbackStep.phase === "swing") {
         // Club meets ball: crack + screenshake, scaled by how hard they swung.
-        const kickPower = playbackStep.index === 0 ? result?.kick?.power ?? 0.9 : 0.62;
+        // The meter-earned effects belong to the human tee ball, wherever the
+        // match-play order put it.
+        const humanTee = playbackStep.index === playbackShots.findIndex((item) => item.side !== "cpu");
+        const kickPower = humanTee ? result?.kick?.power ?? 0.9 : 0.62;
         contactSound({
           power: kickPower,
           putt: shot.kind === "putt",
-          pure: playbackStep.index === 0 && swingFx?.tier === "pure",
+          pure: humanTee && swingFx?.tier === "pure",
         });
-        if (playbackStep.index === 0 && shot.kind !== "putt") {
+        if (humanTee && shot.kind !== "putt") {
           setShakeFx({ amp: Math.round(3 + clamp(kickPower, 0, 1.15) * 5), id: Date.now() });
           window.setTimeout(() => setShakeFx(null), 320);
           // A flushed drive gets the gallery murmuring while it hangs up there.
@@ -2815,7 +2873,6 @@ export default function TripGame({ data }) {
       powerUpEarned,
       nextCloseout,
     };
-    // Your ball first, then the opponent answers shot for shot.
     const humanShots = projection
       ? buildShotSequence({
           projection,
@@ -2837,7 +2894,13 @@ export default function TripGame({ data }) {
           seedSalt: 5,
         })
       : [];
-    const shots = [...humanShots, ...cpuShots];
+    // Match-play order: last hole's winner has honors (retained through ties),
+    // then whoever is away plays until they're inside the opponent.
+    const lastWinner = [...history].reverse().find((row) => row.winner !== "tie")?.winner;
+    const shots =
+      lastWinner === "cpu"
+        ? mergeMatchPlayShots(cpuShots, humanShots, projection?.pin)
+        : mergeMatchPlayShots(humanShots, cpuShots, projection?.pin);
     setPlaybackShots(shots);
     setPlaybackStep({ index: 0, phase: "swing", frame: 0 });
     setResult(completeResult);
