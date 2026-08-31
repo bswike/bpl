@@ -128,6 +128,30 @@ export function stopPowerSweep() {
   sweep = null;
 }
 
+// Slow lub-dub heartbeat for clutch shots — the match is on the line.
+let heartbeat = null;
+
+export function startHeartbeat() {
+  if (heartbeat || typeof window === "undefined") return;
+  const thump = () => {
+    tone({ freq: 58, type: "sine", duration: 0.14, peak: 0.09, attack: 0.01 });
+    tone({ freq: 52, type: "sine", at: 0.22, duration: 0.12, peak: 0.07, attack: 0.01 });
+  };
+  thump();
+  heartbeat = window.setInterval(thump, 950);
+}
+
+export function stopHeartbeat() {
+  if (heartbeat && typeof window !== "undefined") window.clearInterval(heartbeat);
+  heartbeat = null;
+}
+
+// Danger sting when power locks inside the red band — the bet is placed.
+export function riskArmedSound() {
+  tone({ freq: 196, type: "sawtooth", duration: 0.12, peak: 0.055 });
+  tone({ freq: 233.08, type: "sawtooth", at: 0.1, duration: 0.16, peak: 0.05 });
+}
+
 // Geiger-style tick when the needle or bar crosses into a scoring zone.
 export function zoneTick(kind) {
   if (kind === "pure") tone({ freq: 1560, duration: 0.045, peak: 0.05 });

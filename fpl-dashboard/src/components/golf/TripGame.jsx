@@ -23,9 +23,12 @@ import {
   holeoutSound,
   lockPowerSound,
   nearMissSound,
+  riskArmedSound,
   setMeterAudioEnabled,
   splashSound,
+  startHeartbeat,
   startPowerSweep,
+  stopHeartbeat,
   stopPowerSweep,
   swingJudgmentSound,
   unlockMeterAudio,
@@ -887,6 +890,7 @@ function HoleMap({
   shake,
   soundControl,
   kickTier,
+  clutch,
   onAimStep,
   onCycle,
 }) {
@@ -931,8 +935,10 @@ function HoleMap({
   const flightFrameIndex = playback ? clamp(playback.frame || 0, 0, Math.max(0, flightFrames.length - 1)) : 0;
   const flightFrame = flightFrames[flightFrameIndex] || null;
   const flownFrames = playback?.phase === "flight" ? flightFrames.slice(0, flightFrameIndex + 1) : [];
-  // Comet trail on the metered tee shot: gold for PURE, green for GREAT.
-  const trailTier = playback?.index === 0 && (kickTier === "pure" || kickTier === "great") ? kickTier : null;
+  // Comet trail on the metered tee shot: gold for PURE, green for GREAT,
+  // flames for a red-band bet that paid off.
+  const trailTier =
+    playback?.index === 0 && (kickTier === "pure" || kickTier === "great" || kickTier === "fire") ? kickTier : null;
   const remainingYards = hole.yards ? Math.max(0, Math.round(hole.yards - targetYards)) : null;
   const trees = buildTreeSprites(projection, hole.number);
   const mapId = `trip-hole-${hole.number}`;
@@ -974,7 +980,7 @@ function HoleMap({
 
   return (
     <div
-      className={`trip-game-map-wrap ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}`}
+      className={`trip-game-map-wrap ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}`}
       style={shake ? { "--shake-amp": `${shake.amp}px` } : undefined}
     >
       <div className="trip-game-map-hud">
@@ -1183,7 +1189,10 @@ function HoleMap({
                     key={`trail-${index}`}
                     cx={frame.x}
                     cy={frame.y}
-                    r={(activeShot.air ? 1.35 : 1.05) * (trailTier === "pure" ? 1.5 : trailTier === "great" ? 1.2 : 1)}
+                    r={
+                      (activeShot.air ? 1.35 : 1.05) *
+                      (trailTier === "pure" || trailTier === "fire" ? 1.5 : trailTier === "great" ? 1.2 : 1)
+                    }
                     className={`trip-game-air-trail${trailTier ? ` is-${trailTier}` : ""}`}
                   />
                 ))}
@@ -1268,7 +1277,7 @@ function HoleMap({
       {swingFx && (
         <div
           key={swingFx.id}
-          className={`trip-game-judgment is-${swingFx.tier}${swingFx.nearMiss ? " is-near-miss" : ""}`}
+          className={`trip-game-judgment is-${swingFx.tier}${swingFx.nearMiss ? " is-near-miss" : ""}${swingFx.redBet && swingFx.tier === "pure" ? " is-fire" : ""}`}
           aria-hidden="true"
         >
           <b>{swingFx.label}</b>
@@ -1358,17 +1367,39 @@ const POWER_SWEET_MIN = 0.78;
 const POWER_SWEET_MAX = 0.96;
 const POWER_METER_MAX = 1.12;
 
-function judgeSwing(power, accuracy) {
+// The red-band bet: locking power in the overswing band shrinks every accuracy
+// zone and speeds the needle up — more distance, on your own dare.
+const RED_BET_ZONE_SCALE = 0.6;
+const RED_BET_SPEED = 1.25;
+const CLUTCH_SPEED = 0.7;
+const CLUB_METER_SPEED = { driver: 1, wood: 0.92, iron: 0.84 };
+const BASE_ACC_SPEED = 2.6;
+
+function judgeSwing(power, accuracy, mods = {}) {
+  const zoneScale = mods.zoneScale || 1;
+  const pureZone = ACC_PURE * zoneScale;
+  const greatZone = ACC_GREAT * zoneScale;
+  const goodZone = ACC_GOOD * zoneScale;
   const off = Math.abs(accuracy);
   const overswung = power > POWER_SWEET_MAX;
   const eased = power < 0.72;
-  const tier = off <= ACC_PURE ? "pure" : off <= ACC_GREAT ? "great" : off <= ACC_GOOD ? "good" : "wild";
+  const tier = off <= pureZone ? "pure" : off <= greatZone ? "great" : off <= goodZone ? "good" : "wild";
   const label =
-    tier === "pure" ? "PURE!" : tier === "great" ? "GREAT" : tier === "good" ? "GOOD" : accuracy < 0 ? "WAY LEFT" : "WAY RIGHT";
+    tier === "pure"
+      ? mods.redBet
+        ? "PURE! FULL SEND!"
+        : "PURE!"
+      : tier === "great"
+        ? "GREAT"
+        : tier === "good"
+          ? "GOOD"
+          : accuracy < 0
+            ? "WAY LEFT"
+            : "WAY RIGHT";
   // Near-miss: just barely outside the PURE sliver. Neurologically half a win —
   // call it out explicitly so the player knows exactly how close they came.
-  const nearMiss = tier !== "pure" && off <= ACC_PURE * 2.4;
-  const fromPure = Math.max(1, Math.round((off - ACC_PURE) * 100));
+  const nearMiss = tier !== "pure" && off <= pureZone * 2.4;
+  const fromPure = Math.max(1, Math.round((off - pureZone) * 100));
   const sub = nearMiss
     ? `SO CLOSE · ${fromPure} FROM PURE`
     : `PWR ${Math.round(power * 100)}${overswung ? " · OVERSWUNG" : eased ? " · EASED OFF" : ""}`;
@@ -1376,26 +1407,44 @@ function judgeSwing(power, accuracy) {
   // beat longer on near-misses so the ache lands.
   const base = tier === "pure" ? 680 : tier === "great" ? 500 : tier === "wild" ? 460 : 400;
   const hold = nearMiss ? base + 160 : base;
-  return { tier, label, sub, hold, overswung, nearMiss };
+  return { tier, label, sub, hold, overswung, nearMiss, redBet: Boolean(mods.redBet) };
 }
 
-function KickMeter({ phase, power, accuracy, onTap, judgment, streak }) {
+function zoneStyle(threshold, zoneScale) {
+  const half = threshold * zoneScale * 46;
+  return { left: `${50 - half}%`, width: `${half * 2}%` };
+}
+
+function KickMeter({ phase, power, accuracy, onTap, judgment, streak, mods }) {
   const powerPct = clamp(power / POWER_METER_MAX, 0, 1);
   const powerLocked = phase !== "power";
   const accLive = phase === "accuracy";
   const locked = phase === "locked";
+  const zoneScale = mods?.zoneScale || 1;
+  const redBet = Boolean(mods?.redBet);
+  const clutch = Boolean(mods?.clutch);
   const off = Math.abs(accuracy);
-  const heat = !accLive ? "" : off <= 0.06 ? " is-burning" : off <= ACC_GREAT ? " is-hot" : off <= ACC_GOOD ? " is-near" : "";
+  const heat = !accLive
+    ? ""
+    : off <= ACC_PURE * zoneScale * 1.2
+      ? " is-burning"
+      : off <= ACC_GREAT * zoneScale
+        ? " is-hot"
+        : off <= ACC_GOOD * zoneScale
+          ? " is-near"
+          : "";
   const inSweet = !powerLocked && power >= POWER_SWEET_MIN && power <= POWER_SWEET_MAX;
-  const inRed = !powerLocked && power > POWER_SWEET_MAX;
+  const inRed = power > POWER_SWEET_MAX;
   const streakClass = streak >= 4 ? " is-streak-fire" : streak >= 2 ? " is-streak-hot" : "";
   return (
     <>
       {!locked && <button type="button" className="trip-game-kick-catch" onClick={onTap} aria-label="Tap kick meter" />}
       <div
-        className={`trip-game-kick is-${phase}${judgment ? ` is-judged is-${judgment.tier}` : ""}${streakClass}`}
+        className={`trip-game-kick is-${phase}${judgment ? ` is-judged is-${judgment.tier}` : ""}${streakClass}${redBet ? " is-red-bet" : ""}`}
         aria-hidden="true"
       >
+        {clutch && <div className="trip-game-kick-clutch">♥ CLUTCH TIME</div>}
+        {redBet && <div className="trip-game-kick-bet">🔥 RISK ON</div>}
         {streak >= 2 && (
           <div className="trip-game-kick-streak">
             {streak >= 4 ? "🔥" : "●"} STRIPING ×{streak}
@@ -1406,16 +1455,19 @@ function KickMeter({ phase, power, accuracy, onTap, judgment, streak }) {
           <div className={`trip-game-kick-track${inSweet ? " is-charged" : ""}`}>
             <i className="trip-game-kick-redzone" />
             <i className="trip-game-kick-goodzone" />
-            <b className={`trip-game-kick-fill${inRed ? " is-red" : ""}`} style={{ height: `${powerPct * 100}%` }} />
+            <b
+              className={`trip-game-kick-fill${inRed && (!powerLocked || redBet) ? " is-red" : ""}`}
+              style={{ height: `${powerPct * 100}%` }}
+            />
             <em style={{ bottom: `${powerPct * 100}%` }} />
           </div>
         </div>
         <div className={`trip-game-kick-acc ${accLive || locked ? "is-live" : ""}`}>
           <small>ACC</small>
           <div className="trip-game-kick-acc-track">
-            <i className="trip-game-kick-zone-good" />
-            <i className="trip-game-kick-zone-great" />
-            <i className="trip-game-kick-zone-pure" />
+            <i className="trip-game-kick-zone-good" style={zoneStyle(ACC_GOOD, zoneScale)} />
+            <i className="trip-game-kick-zone-great" style={zoneStyle(ACC_GREAT, zoneScale)} />
+            <i className="trip-game-kick-zone-pure" style={zoneStyle(ACC_PURE, zoneScale)} />
             <s className="trip-game-kick-acc-center" />
             <b className={heat} style={{ left: `${50 + accuracy * 46}%` }} />
           </div>
@@ -1424,7 +1476,15 @@ function KickMeter({ phase, power, accuracy, onTap, judgment, streak }) {
             <em>R</em>
           </span>
         </div>
-        <strong>{locked ? judgment?.label || "..." : phase === "power" ? "TAP POWER" : "TAP ACCURACY"}</strong>
+        <strong>
+          {locked
+            ? judgment?.label || "..."
+            : phase === "power"
+              ? "TAP POWER"
+              : redBet
+                ? "TAP ACCURACY · RISK ON"
+                : "TAP ACCURACY"}
+        </strong>
       </div>
     </>
   );
@@ -2023,6 +2083,8 @@ export default function TripGame({ data }) {
   const [swingFx, setSwingFx] = useState(null);
   const [shakeFx, setShakeFx] = useState(null);
   const [swingStreak, setSwingStreak] = useState(0);
+  const [meterMods, setMeterMods] = useState({ zoneScale: 1, redBet: false, clutch: false });
+  const meterModsRef = useRef({ speed: BASE_ACC_SPEED, clubSpeed: 1, zoneScale: 1, redBet: false, clutch: false });
   const [soundOn, setSoundOn] = useState(() => {
     try {
       return window.localStorage.getItem("tripGameSound") !== "off";
@@ -2062,6 +2124,7 @@ export default function TripGame({ data }) {
     () => () => {
       if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
       stopPowerSweep();
+      stopHeartbeat();
     },
     [],
   );
@@ -2122,13 +2185,14 @@ export default function TripGame({ data }) {
           meterLockRef.current = { power: POWER_METER_MAX };
           stopPowerSweep();
           lockPowerSound(true);
+          armAccuracyPhase(POWER_METER_MAX);
           setMeterTick({ power: POWER_METER_MAX, accuracy: -1 });
           setMeterPhase("accuracy");
           return;
         }
       } else if (meterPhase === "accuracy") {
         const beforeOff = Math.abs(live.accuracy);
-        live.accuracy += live.accDir * dt * 2.6;
+        live.accuracy += live.accDir * dt * meterModsRef.current.speed;
         if (live.accuracy >= 1) {
           live.accuracy = 1;
           live.accDir = -1;
@@ -2137,8 +2201,9 @@ export default function TripGame({ data }) {
           live.accDir = 1;
         }
         const offNow = Math.abs(live.accuracy);
-        if (offNow <= ACC_PURE && beforeOff > ACC_PURE) zoneTick("pure");
-        else if (offNow <= ACC_GREAT && beforeOff > ACC_GREAT) zoneTick("good");
+        const zoneScale = meterModsRef.current.zoneScale || 1;
+        if (offNow <= ACC_PURE * zoneScale && beforeOff > ACC_PURE * zoneScale) zoneTick("pure");
+        else if (offNow <= ACC_GREAT * zoneScale && beforeOff > ACC_GREAT * zoneScale) zoneTick("good");
       }
       setMeterTick({ power: live.power, accuracy: live.accuracy });
       frame = requestAnimationFrame(loop);
@@ -2486,12 +2551,37 @@ export default function TripGame({ data }) {
     meterLiveRef.current = { power: 0, accuracy: -1, powerDir: 1, accDir: 1 };
     meterLockRef.current = null;
     meterTapAtRef.current = 0;
+    // Contextual meter: shorter clubs swing an easier (slower) needle, and a
+    // match-deciding hole drops into clutch time — slow-mo needle, heartbeat.
+    const clubSpeed = CLUB_METER_SPEED[decision.club] ?? 1;
+    const clutch = dormie || hole?.number === 18;
+    meterModsRef.current = {
+      speed: BASE_ACC_SPEED * clubSpeed * (clutch ? CLUTCH_SPEED : 1),
+      clubSpeed,
+      zoneScale: 1,
+      redBet: false,
+      clutch,
+    };
+    setMeterMods({ zoneScale: 1, redBet: false, clutch });
     setMeterTick({ power: 0, accuracy: -1 });
     setSwingFx(null);
     setMeterPhase("power");
     unlockMeterAudio();
     startPowerSweep();
+    if (clutch) startHeartbeat();
     if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
+  }
+
+  // Called the instant power locks: if it landed in the red band, the bet is
+  // on — zones shrink and the needle speeds up, visibly, before the second tap.
+  function armAccuracyPhase(lockedPower) {
+    const live = meterModsRef.current;
+    const redBet = lockedPower > POWER_SWEET_MAX;
+    live.redBet = redBet;
+    live.zoneScale = redBet ? RED_BET_ZONE_SCALE : 1;
+    live.speed = BASE_ACC_SPEED * (live.clubSpeed ?? 1) * (live.clutch ? CLUTCH_SPEED : 1) * (redBet ? RED_BET_SPEED : 1);
+    setMeterMods({ zoneScale: live.zoneScale, redBet, clutch: live.clutch });
+    if (redBet) riskArmedSound();
   }
 
   function tapMeter() {
@@ -2506,6 +2596,7 @@ export default function TripGame({ data }) {
       meterLockRef.current = { power: live.power };
       stopPowerSweep();
       lockPowerSound(live.power > POWER_SWEET_MAX);
+      armAccuracyPhase(live.power);
       setMeterPhase("accuracy");
       if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
       return;
@@ -2514,9 +2605,10 @@ export default function TripGame({ data }) {
     const accuracy = meterLiveRef.current.accuracy;
     meterLockRef.current = { power, accuracy };
     resolvingRef.current = true;
+    stopHeartbeat();
     // Hit-stop: freeze the needle where it was tapped, flash the judgment,
     // then release into the swing after a tier-scaled beat.
-    const judgment = judgeSwing(power, accuracy);
+    const judgment = judgeSwing(power, accuracy, meterModsRef.current);
     // Striping streak: consecutive GREAT-or-better swings. PUREs climb the
     // chord up the scale; any lesser strike resets it.
     const nextStreak = judgment.tier === "pure" || judgment.tier === "great" ? swingStreak + 1 : 0;
@@ -2720,6 +2812,8 @@ export default function TripGame({ data }) {
     setMeterPhase(null);
     setSwingFx(null);
     setShakeFx(null);
+    setMeterMods({ zoneScale: 1, redBet: false, clutch: false });
+    stopHeartbeat();
     resolvingRef.current = false;
     meterLockRef.current = null;
   }
@@ -2839,12 +2933,20 @@ export default function TripGame({ data }) {
                       onTap={tapMeter}
                       judgment={meterPhase === "locked" ? swingFx : null}
                       streak={swingStreak}
+                      mods={meterMods}
                     />
                   ) : null
                 }
                 swingFx={swingFx}
                 shake={shakeFx}
-                kickTier={swingFx?.tier || null}
+                clutch={Boolean(meterPhase) && meterMods.clutch}
+                kickTier={
+                  swingFx
+                    ? swingFx.redBet && (swingFx.tier === "pure" || swingFx.tier === "great")
+                      ? "fire"
+                      : swingFx.tier
+                    : null
+                }
                 soundControl={
                   <button
                     type="button"
