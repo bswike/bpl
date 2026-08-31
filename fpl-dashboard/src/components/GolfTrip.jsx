@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   Trophy,
@@ -8,9 +8,12 @@ import {
   BarChart3,
   Flag,
   ExternalLink,
+  Gamepad2,
   Users,
 } from "lucide-react";
 import "./GolfTrip.css";
+
+const TripGame = lazy(() => import("./golf/TripGame.jsx"));
 
 const TRIP_FILES = {
   nj26: "/data/golftrip-nj26.json",
@@ -3990,6 +3993,7 @@ const TABS = [
   { id: "rounds", label: "Rounds", icon: Swords },
   { id: "stats", label: "Stats", icon: BarChart3 },
   { id: "versus", label: "Versus", icon: Users },
+  { id: "game", label: "Game", icon: Gamepad2 },
 ];
 
 function ThemeToggle({ dark, onToggle }) {
@@ -4110,6 +4114,11 @@ export default function GolfTrip() {
         {tab === "rounds" && <Rounds rounds={data.rounds} netlow={data.netlow} players={data.players} />}
         {tab === "stats" && <Stats data={data} tripId={tripId === "2025" ? "2025" : "nj26"} />}
         {tab === "versus" && <Versus rounds={data.rounds} players={data.players} />}
+        {tab === "game" && (
+          <Suspense fallback={<div className="h-72 rounded-2xl border border-slate-700 bg-slate-900" />}>
+            <TripGame data={data} />
+          </Suspense>
+        )}
 
         <footer className="mt-6 text-[10px] text-gray-600">
           Data from Golf Genius · updated {data.trip.fetched}
