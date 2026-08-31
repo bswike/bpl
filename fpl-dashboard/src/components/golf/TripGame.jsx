@@ -690,18 +690,42 @@ function buildShotSequence({ projection, hole, decision, gross, landingLabel, si
     current = destination;
   }
 
-  // Each putt gets a deterministic read: lateral break and up/down slope,
-  // rendered by the dedicated putting scene.
-  const puttTrait = (salt) => ({
-    breakDir: (seededUnit(seed + salt) - 0.5) * 1.8,
-    slope: (seededUnit(seed + salt + 1) - 0.5) * 1.6,
-  });
+  // Each putt gets a deterministic read (break + slope) and chained scene
+  // geometry: the next putt starts exactly where the last one finished, so a
+  // good lag leaves a short one instead of resetting across the green.
+  const sceneCup = [85, 36];
+  let sceneCarry = null;
+  const puttScene = (salt, mapFrom, mapTo, final) => {
+    const breakDir = (seededUnit(seed + salt) - 0.5) * 1.8;
+    const slope = (seededUnit(seed + salt + 1) - 0.5) * 1.6;
+    const yardsFeet = yardsScale
+      ? Math.round((Math.hypot(mapTo[0] - mapFrom[0], mapTo[1] - mapFrom[1]) / yardsScale) * 3)
+      : 8;
+    const start = sceneCarry || [
+      sceneCup[0] - breakDir * clamp(yardsFeet * 0.9, 4, 22),
+      sceneCup[1] + clamp(26 + yardsFeet * 1.3, 34, 78),
+    ];
+    const distFromCup = Math.hypot(start[0] - sceneCup[0], start[1] - sceneCup[1]);
+    const feet = sceneCarry ? Math.max(1, Math.round(distFromCup / 2.5)) : clamp(Math.max(2, yardsFeet), 2, 48);
+    const nearBase = sceneCarry ? 3.2 : 6;
+    const end = final
+      ? sceneCup
+      : [sceneCup[0] - breakDir * 2.5, sceneCup[1] + nearBase + seededUnit(seed + salt + 2) * (sceneCarry ? 1.5 : 3.5)];
+    sceneCarry = final ? null : end;
+    return { breakDir, slope, start, end, feet };
+  };
   for (let lag = 0; lag < Math.min(3, putts) - 1; lag += 1) {
     const lagSpot = [pin[0] + jitter(13 + lag, 3), pin[1] + 1.6 + jitter(14 + lag, 1.5)];
-    shots.push({ ...makeShot({ from: current, to: lagSpot, kind: "putt", yardsScale }), putt: puttTrait(40 + lag * 2) });
+    shots.push({
+      ...makeShot({ from: current, to: lagSpot, kind: "putt", yardsScale }),
+      putt: puttScene(40 + lag * 3, current, lagSpot, false),
+    });
     current = lagSpot;
   }
-  shots.push({ ...makeShot({ from: current, to: pin, kind: "putt", final: true, yardsScale }), putt: puttTrait(48) });
+  shots.push({
+    ...makeShot({ from: current, to: pin, kind: "putt", final: true, yardsScale }),
+    putt: puttScene(48, current, pin, true),
+  });
   return shots.map((shot) => ({ ...shot, side }));
 }
 
@@ -968,12 +992,15 @@ function PuttingScene({ shot, phase, frame, side }) {
   const info = shot.putt || { breakDir: 0, slope: 0 };
   const breakDir = clamp(info.breakDir || 0, -1, 1);
   const slope = clamp(info.slope || 0, -1, 1);
-  const feet = clamp(Math.round((shot.yards || 1) * 3), 2, 48);
   const cup = [85, 36];
-  const startDist = clamp(26 + feet * 1.3, 34, 78);
-  const start = [85 - breakDir * clamp(feet * 0.9, 4, 22), cup[1] + startDist];
-  const control = [start[0] + breakDir * clamp(feet * 1.5, 6, 26), (start[1] + cup[1]) / 2 + 4];
-  const end = shot.final ? cup : [cup[0] - breakDir * 2.5, cup[1] + 7];
+  const start = info.start || [85, 96];
+  const end = info.end || (shot.final ? cup : [cup[0] - breakDir * 2.5, cup[1] + 7]);
+  const feet = clamp(info.feet || Math.round((shot.yards || 1) * 3), 1, 48);
+  const startDist = Math.hypot(start[0] - cup[0], start[1] - cup[1]);
+  const control = [
+    (start[0] + end[0]) / 2 + breakDir * clamp(startDist * 0.45, 2, 24),
+    (start[1] + end[1]) / 2 + 2,
+  ];
   const lastFrame = Math.max(1, (shot.frames?.length || 8) - 1);
   const t = phase === "swing" ? 0 : phase === "flight" ? clamp((frame || 0) / lastFrame, 0, 1) : 1;
   const eased = 1 - Math.pow(1 - t, 1.75);
