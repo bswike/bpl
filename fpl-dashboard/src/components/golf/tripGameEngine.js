@@ -437,11 +437,24 @@ function conditionOnLanding(probs, landing, landingIndex) {
   return conditional;
 }
 
+/**
+ * Ball-striking skill from handicap index: 1 for a scratch golfer, 0 at 24+.
+ * Drives the carry boost and the swing-meter difficulty scaling.
+ */
+export function skillOf(hi) {
+  return clamp(1 - (Number(hi) || 0) / 24, 0, 1);
+}
+
+/** Better players simply hit it farther — carry multiplier from skill. */
+export function carryBoostOf(hi) {
+  return 1 + skillOf(hi) * 0.08;
+}
+
 /** Penalty for leaving an awkward approach — or flying the green — with the chosen club. */
-function distanceShiftFor(hole, club, power = 0.9) {
+function distanceShiftFor(hole, club, power = 0.9, carryBoost = 1) {
   const yards = Number(hole.yards);
   if (!Number.isFinite(yards) || yards <= 0) return 0;
-  const carry = club.carry * (0.7 + clamp(power, 0, 1.15) * 0.4);
+  const carry = club.carry * (0.7 + clamp(power, 0, 1.15) * 0.4) * (Number(carryBoost) || 1);
   const comfortZone = hole.par === 3 ? 10 : hole.par === 4 ? 150 : 265;
   const leftover = Math.max(0, yards - carry);
   let shift = clamp((leftover - comfortZone) / 320, 0, 0.4);
@@ -456,6 +469,7 @@ export function defaultDecision(profile, hole) {
     aim: hole.dangerSide === "right" ? -0.42 : hole.dangerSide === "left" ? 0.42 : 0,
     shape: profile.stockShape,
     fireball: false,
+    carryBoost: carryBoostOf(profile.hi),
   };
 }
 
@@ -472,7 +486,7 @@ export function buildHoleOdds({ profile, course, hole, decision, state }) {
   const shapeFit = shapeFitAdjustment(profile, hole, decision.shape);
   const hazardSeverity = clamp(Number(hole.hazardSeverity) || (hole.hasWater ? 0.55 : 0.25), 0, 1);
   const clubRisk = Math.max(0, club.risk) * (0.2 + hazardSeverity * 1.75);
-  const distanceShift = distanceShiftFor(hole, club, meterPowerOf(decision));
+  const distanceShift = distanceShiftFor(hole, club, meterPowerOf(decision), decision.carryBoost);
   const shift =
     tripDifficulty * 0.55 +
     officialDifficulty +

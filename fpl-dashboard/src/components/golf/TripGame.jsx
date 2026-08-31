@@ -15,6 +15,7 @@ import {
   makeSeededRandom,
   matchCloseout,
   resolveMatchHole,
+  skillOf,
 } from "./tripGameEngine.js";
 import {
   contactSound,
@@ -363,7 +364,8 @@ function computeShotTarget(projection, hole, decision) {
   const lineLength = polylineLength(projection.line);
   const metered = Number.isFinite(Number(decision.power));
   const power = metered ? clamp(Number(decision.power), 0, 1.18) : 0.9;
-  const carry = metered ? club.carry * (0.7 + clamp(power, 0, 1.15) * 0.4) : club.carry;
+  const boost = Number(decision.carryBoost) || 1;
+  const carry = (metered ? club.carry * (0.7 + clamp(power, 0, 1.15) * 0.4) : club.carry) * boost;
   const targetYards = hole.yards ? Math.min(Math.round(carry), Math.round(hole.yards * 0.98)) : Math.round(carry);
   const targetDistance = hole.yards ? lineLength * (targetYards / hole.yards) : lineLength * (hole.par <= 3 ? 0.94 : 0.58);
   const centerTarget = pointAlongPolyline(projection.line, targetDistance);
@@ -461,6 +463,17 @@ function placeInRough(projection, seed, perpendicular) {
   return [seed[0] + perpendicular[0] * 24 * prefer, seed[1] + perpendicular[1] * 24 * prefer];
 }
 
+function treeCollision(projection, holeNumber, point) {
+  for (const tree of buildTreeSprites(projection, holeNumber)) {
+    if (Math.hypot(point[0] - tree.x, point[1] - tree.y) <= tree.size * 1.15) return tree;
+  }
+  return null;
+}
+
+function outOfBounds(projection, point) {
+  return point[0] < 2 || point[0] > projection.width - 2 || point[1] < 2 || point[1] > projection.height - 2;
+}
+
 function placeTeeLanding(projection, hole, decision, wantedType) {
   const { target, perpendicular } = computeShotTarget(projection, hole, decision);
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
@@ -488,13 +501,35 @@ function placeTeeLanding(projection, hole, decision, wantedType) {
 
   const waterHit = firstWaterOnPath(projection.features, projection.tee, point, bend);
   if (waterHit) return { point: waterHit, type: "Penalty area" };
-  return { point, type: classifyTerrain(projection.features, point) };
+
+  // The trees are real now: a ball landing in a canopy kicks out toward the tee.
+  let treeHit = false;
+  const tree = treeCollision(projection, hole.number, point);
+  if (tree) {
+    treeHit = true;
+    const toTee = [projection.tee[0] - point[0], projection.tee[1] - point[1]];
+    const away = Math.hypot(toTee[0], toTee[1]) || 1;
+    const kick = tree.size * 1.15 + 5;
+    point = [point[0] + (toTee[0] / away) * kick, point[1] + (toTee[1] / away) * kick];
+  }
+
+  // Off the mapped corridor entirely = OB, stroke and distance.
+  if (outOfBounds(projection, point)) {
+    return {
+      point: [clamp(point[0], 3, projection.width - 3), clamp(point[1], 3, projection.height - 3)],
+      type: "Penalty area",
+      ob: true,
+      treeHit,
+    };
+  }
+  return { point, type: classifyTerrain(projection.features, point), treeHit };
 }
 
 const SHOT_CAPTIONS = {
   drive: "CRUSHED OFF THE TEE!",
   tee: "TEE SHOT AWAY!",
   splash: "OH NO... SPLASH!",
+  ob: "OB! STROKE AND DISTANCE!",
   sand: "OUT OF THE SAND!",
   punch: "PUNCHES FROM THE ROUGH!",
   approach: "APPROACH SHOT...",
@@ -541,7 +576,7 @@ function buildFlightFrames({ from, to, control, apex, air }) {
   return frames;
 }
 
-function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0 }) {
+function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0, caption = null }) {
   const distance = Math.hypot(to[0] - from[0], to[1] - from[1]);
   const air = kind !== "putt";
   const dx = to[0] - from[0];
@@ -567,7 +602,7 @@ function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0 }) {
     airPath: framesToPath(frames, true),
     groundPath: framesToPath(frames, false),
     yards: yardsScale ? Math.max(1, Math.round(distance / yardsScale)) : null,
-    caption: final ? "FOR THE HOLE..." : SHOT_CAPTIONS[kind] || "SWINGS...",
+    caption: caption || (final ? "FOR THE HOLE..." : SHOT_CAPTIONS[kind] || "SWINGS..."),
     duration: frames.length * FLIGHT_FRAME_MS,
   };
 }
@@ -593,11 +628,20 @@ function buildShotSequence({ projection, hole, decision, result }) {
   let remaining = result.humanGross;
 
   if (landingType === "Penalty area") {
-    shots.push(makeShot({ from: current, to: landing, kind: "splash", bend, yardsScale }));
+    shots.push(makeShot({ from: current, to: landing, kind: placed.ob ? "ob" : "splash", bend, yardsScale }));
     remaining -= 2; // stroke plus penalty
     current = interpolate(landing, projection.tee, 0.24);
   } else {
-    shots.push(makeShot({ from: current, to: landing, kind: hole.par <= 3 ? "tee" : "drive", bend, yardsScale }));
+    shots.push(
+      makeShot({
+        from: current,
+        to: landing,
+        kind: hole.par <= 3 ? "tee" : "drive",
+        bend,
+        yardsScale,
+        caption: placed.treeHit ? "CLIPS A TREE!" : null,
+      }),
+    );
     remaining -= 1;
     current = landing;
   }
@@ -1373,7 +1417,14 @@ const RED_BET_ZONE_SCALE = 0.6;
 const RED_BET_SPEED = 1.25;
 const CLUTCH_SPEED = 0.7;
 const CLUB_METER_SPEED = { driver: 1, wood: 0.92, iron: 0.84 };
+// Laying up is a real choice: shorter clubs also get wider judgment zones.
+const CLUB_ZONE_SCALE = { driver: 1, wood: 1.12, iron: 1.3 };
 const BASE_ACC_SPEED = 2.6;
+const BASE_POWER_SPEED = 1.08;
+// Skill scaling (from handicap): scratch players get up to 22% wider zones,
+// while high handicaps swing a meter up to 55% faster on both phases.
+const SKILL_ZONE_BONUS = 0.22;
+const SKILL_SPEED_PENALTY = 0.55;
 
 function judgeSwing(power, accuracy, mods = {}) {
   const zoneScale = mods.zoneScale || 1;
@@ -2174,7 +2225,7 @@ export default function TripGame({ data }) {
       const live = meterLiveRef.current;
       if (meterPhase === "power") {
         const before = live.power;
-        live.power += dt * 1.08;
+        live.power += dt * (meterModsRef.current.powerSpeed || BASE_POWER_SPEED);
         updatePowerSweep(live.power / POWER_METER_MAX);
         if (before < POWER_SWEET_MIN && live.power >= POWER_SWEET_MIN) zoneTick("good");
         if (before < POWER_SWEET_MAX && live.power >= POWER_SWEET_MAX) zoneTick("warn");
@@ -2254,6 +2305,7 @@ export default function TripGame({ data }) {
       if (playbackStep.phase === "flight" && (playbackStep.frame || 0) >= lastFrame) {
         // Ball is about to land.
         if (shot.kind === "splash") splashSound();
+        else if (shot.kind === "ob") zoneTick("warn");
         else if (shot.final) holeoutSound();
       }
       setPlaybackStep((current) => {
@@ -2551,18 +2603,25 @@ export default function TripGame({ data }) {
     meterLiveRef.current = { power: 0, accuracy: -1, powerDir: 1, accDir: 1 };
     meterLockRef.current = null;
     meterTapAtRef.current = 0;
-    // Contextual meter: shorter clubs swing an easier (slower) needle, and a
-    // match-deciding hole drops into clutch time — slow-mo needle, heartbeat.
+    // Contextual meter: shorter clubs swing an easier (slower, wider) needle,
+    // better players get wider zones, higher handicaps get a faster meter, and
+    // a match-deciding hole drops into clutch time — slow-mo needle, heartbeat.
+    const skill = skillOf(selected?.hi);
+    const skillSpeed = 1 + (1 - skill) * SKILL_SPEED_PENALTY;
+    const baseZone = (CLUB_ZONE_SCALE[decision.club] ?? 1) * (1 + skill * SKILL_ZONE_BONUS);
     const clubSpeed = CLUB_METER_SPEED[decision.club] ?? 1;
     const clutch = dormie || hole?.number === 18;
     meterModsRef.current = {
-      speed: BASE_ACC_SPEED * clubSpeed * (clutch ? CLUTCH_SPEED : 1),
+      speed: BASE_ACC_SPEED * clubSpeed * skillSpeed * (clutch ? CLUTCH_SPEED : 1),
+      powerSpeed: BASE_POWER_SPEED * skillSpeed * (clutch ? 0.85 : 1),
       clubSpeed,
-      zoneScale: 1,
+      skillSpeed,
+      baseZone,
+      zoneScale: baseZone,
       redBet: false,
       clutch,
     };
-    setMeterMods({ zoneScale: 1, redBet: false, clutch });
+    setMeterMods({ zoneScale: baseZone, redBet: false, clutch });
     setMeterTick({ power: 0, accuracy: -1 });
     setSwingFx(null);
     setMeterPhase("power");
@@ -2578,8 +2637,13 @@ export default function TripGame({ data }) {
     const live = meterModsRef.current;
     const redBet = lockedPower > POWER_SWEET_MAX;
     live.redBet = redBet;
-    live.zoneScale = redBet ? RED_BET_ZONE_SCALE : 1;
-    live.speed = BASE_ACC_SPEED * (live.clubSpeed ?? 1) * (live.clutch ? CLUTCH_SPEED : 1) * (redBet ? RED_BET_SPEED : 1);
+    live.zoneScale = (live.baseZone ?? 1) * (redBet ? RED_BET_ZONE_SCALE : 1);
+    live.speed =
+      BASE_ACC_SPEED *
+      (live.clubSpeed ?? 1) *
+      (live.skillSpeed ?? 1) *
+      (live.clutch ? CLUTCH_SPEED : 1) *
+      (redBet ? RED_BET_SPEED : 1);
     setMeterMods({ zoneScale: live.zoneScale, redBet, clutch: live.clutch });
     if (redBet) riskArmedSound();
   }
