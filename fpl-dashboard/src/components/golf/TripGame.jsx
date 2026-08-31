@@ -610,22 +610,23 @@ function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0, cap
 /**
  * Turn a sampled hole outcome into a cartoon shot-by-shot sequence:
  * tee ball -> (drop) -> approaches -> putts, ending in the cup.
+ * Works for either side — shots are tagged so the theater knows who is hitting.
  */
-function buildShotSequence({ projection, hole, decision, result }) {
+function buildShotSequence({ projection, hole, decision, gross, landingLabel, side = "human", seedSalt = 0 }) {
   const { lineLength } = computeShotTarget(projection, hole, decision);
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
   const yardsScale = hole.yards ? lineLength / hole.yards : 0;
   const pin = projection.pin;
-  const placed = placeTeeLanding(projection, hole, decision, result.humanLanding);
+  const placed = placeTeeLanding(projection, hole, decision, landingLabel);
   const landingType = placed.type;
   const landing = placed.point;
   const bend = shapeBend(projection, shape);
-  const seed = hole.number * 37 + result.humanGross * 11;
+  const seed = hole.number * 37 + gross * 11 + seedSalt;
   const jitter = (index, scale) => (seededUnit(seed + index) - 0.5) * scale;
 
   const shots = [];
   let current = projection.tee;
-  let remaining = result.humanGross;
+  let remaining = gross;
 
   if (landingType === "Penalty area") {
     shots.push(makeShot({ from: current, to: landing, kind: placed.ob ? "ob" : "splash", bend, yardsScale }));
@@ -685,7 +686,7 @@ function buildShotSequence({ projection, hole, decision, result }) {
     current = lagSpot;
   }
   shots.push(makeShot({ from: current, to: pin, kind: "putt", final: true, yardsScale }));
-  return shots;
+  return shots.map((shot) => ({ ...shot, side }));
 }
 
 function fallbackProjection(hole) {
@@ -980,9 +981,16 @@ function HoleMap({
   const flightFrame = flightFrames[flightFrameIndex] || null;
   const flownFrames = playback?.phase === "flight" ? flightFrames.slice(0, flightFrameIndex + 1) : [];
   // Comet trail on the metered tee shot: gold for PURE, green for GREAT,
-  // flames for a red-band bet that paid off.
+  // flames for a red-band bet that paid off. Human shots only — the CPU
+  // never swings your meter.
   const trailTier =
     playback?.index === 0 && (kickTier === "pure" || kickTier === "great" || kickTier === "fire") ? kickTier : null;
+  const firstCpuIndex = playback ? playback.shots.findIndex((shot) => shot.side === "cpu") : -1;
+  const firstOfSide = playback ? playback.index === 0 || playback.index === firstCpuIndex : false;
+  const sideShotNumber =
+    playback && activeShot
+      ? playback.shots.slice(0, playback.index + 1).filter((shot) => shot.side === activeShot.side).length
+      : 0;
   const remainingYards = hole.yards ? Math.max(0, Math.round(hole.yards - targetYards)) : null;
   const trees = buildTreeSprites(projection, hole.number);
   const mapId = `trip-hole-${hole.number}`;
@@ -1041,9 +1049,9 @@ function HoleMap({
       </div>
       {popCall}
       {playback && activeShot && (
-        <div className="trip-game-playcap" aria-live="polite">
+        <div className={`trip-game-playcap${activeShot.side === "cpu" ? " is-cpu" : ""}`} aria-live="polite">
           <small>
-            SHOT {Math.min(playback.index + 1, playback.shots.length)}/{playback.shots.length}
+            {activeShot.side === "cpu" ? "THEM" : "YOU"} · SHOT {sideShotNumber}
             {activeShot.yards ? ` · ${activeShot.yards}Y` : ""}
           </small>
           <b>{activeShot.caption}</b>
@@ -1176,23 +1184,26 @@ function HoleMap({
         </g>
         {playback && activeShot && (
           <g className="trip-game-theater">
-            {playback.shots.slice(0, playback.index).map((shot, index) => (
-              <circle key={index} cx={shot.to[0]} cy={shot.to[1]} r="1.5" className="trip-game-crumb" />
-            ))}
+            {playback.shots
+              .slice(0, playback.index)
+              .filter((shot) => shot.side === activeShot.side)
+              .map((shot, index) => (
+                <circle key={index} cx={shot.to[0]} cy={shot.to[1]} r="1.5" className="trip-game-crumb" />
+              ))}
             <GolferSprite
               at={
-                playback.index === 0
+                firstOfSide
                   ? sidePoint(projection.tee, projection.pin, 8)
                   : sidePoint(activeShot.from, activeShot.to, 10)
               }
-              toward={playback.index === 0 ? projection.pin : activeShot.to}
-              hat="blue"
+              toward={firstOfSide ? projection.pin : activeShot.to}
+              hat={activeShot.side === "cpu" ? "red" : "blue"}
               scale={1.2}
             />
             <GolferSprite
               at={activeShot.from}
               toward={activeShot.to}
-              hat="red"
+              hat={activeShot.side === "cpu" ? "blue" : "red"}
               pose={playback.phase === "swing" ? "swing" : "through"}
               putting={activeShot.kind === "putt"}
               scale={1.3}
@@ -1332,11 +1343,12 @@ function HoleMap({
       {swingFx?.tier === "pure" && <div key={`flash-${swingFx.id}`} className="trip-game-pure-flash" aria-hidden="true" />}
       {playback &&
         activeShot &&
-        playback.index === 0 &&
+        firstOfSide &&
         activeShot.kind !== "putt" &&
         (playback.phase === "flight" || playback.phase === "settle") &&
         Number.isFinite(activeShot.yards) && (
           <YardageTicker
+            key={activeShot.side}
             yards={activeShot.yards}
             rollMs={Math.max(0, (activeShot.frames?.length || 8) - 1) * FLIGHT_FRAME_MS}
           />
@@ -1748,19 +1760,22 @@ function CaptainWheel({ players, selectedKey, usage, maxUses, disabled, onPick, 
 
 function PlaybackPanel({ result, shots, shotIndex, onSkip }) {
   const shot = shots[Math.min(shotIndex, shots.length - 1)];
+  const cpuSide = shot?.side === "cpu";
+  // Only count this side's shots so far — the total would spoil the score.
+  const sideShotCount = shots.slice(0, shotIndex + 1).filter((item) => item.side === shot?.side).length;
   return (
-    <div className="trip-game-playback" role="status" aria-live="polite">
-      <small>NOW ON THE TEE</small>
-      <b>{lastName(result.human.name).toUpperCase()}</b>
+    <div className={`trip-game-playback${cpuSide ? " is-cpu" : ""}`} role="status" aria-live="polite">
+      <small>{cpuSide ? `${result.cpu ? lastName(result.cpu.name).toUpperCase() : "CPU"} ANSWERS` : "NOW ON THE TEE"}</small>
+      <b>{lastName((cpuSide ? result.cpu : result.human).name).toUpperCase()}</b>
       <div className="trip-game-playback-pips" aria-hidden="true">
-        {shots.map((item, index) => (
-          <span key={index} className={index < shotIndex ? "is-done" : index === shotIndex ? "is-live" : ""}>
+        {Array.from({ length: sideShotCount }, (_, index) => (
+          <span key={index} className={index === sideShotCount - 1 ? "is-live" : "is-done"}>
             {index + 1}
           </span>
         ))}
       </div>
       <p>{shot?.caption || "..."}</p>
-      {result.kick && (
+      {result.kick && !cpuSide && (
         <em className="trip-game-kick-read">
           PWR {Math.round(result.kick.power * 100)} · ACC{" "}
           {result.kick.accuracy > 0.12 ? "RIGHT" : result.kick.accuracy < -0.12 ? "LEFT" : "CENTER"}
@@ -2800,16 +2815,40 @@ export default function TripGame({ data }) {
       powerUpEarned,
       nextCloseout,
     };
-    const shots = projection
-      ? buildShotSequence({ projection, hole, decision: visualDecision, result: resolved })
+    // Your ball first, then the opponent answers shot for shot.
+    const humanShots = projection
+      ? buildShotSequence({
+          projection,
+          hole,
+          decision: visualDecision,
+          gross: resolved.humanGross,
+          landingLabel: resolved.humanLanding,
+          side: "human",
+        })
       : [];
+    const cpuShots = projection
+      ? buildShotSequence({
+          projection,
+          hole,
+          decision: cpuPick.decision || defaultDecision(cpuPick.profile, hole),
+          gross: resolved.cpuGross,
+          landingLabel: resolved.cpuLanding,
+          side: "cpu",
+          seedSalt: 5,
+        })
+      : [];
+    const shots = [...humanShots, ...cpuShots];
     setPlaybackShots(shots);
     setPlaybackStep({ index: 0, phase: "swing", frame: 0 });
     setResult(completeResult);
     setResolutionPhase("playback");
     if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
     if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
-    resolutionTimerRef.current = window.setTimeout(() => finishPlayback(), PLAYBACK_SAFETY_MS);
+    const safetyMs = Math.max(
+      PLAYBACK_SAFETY_MS,
+      shots.reduce((total, shot) => total + 420 + (shot.frames?.length || 8) * FLIGHT_FRAME_MS + 700, 4000),
+    );
+    resolutionTimerRef.current = window.setTimeout(() => finishPlayback(), safetyMs);
   }
 
   function finishPlayback() {

@@ -748,6 +748,25 @@
   text-align: center;
 }
 
+/* The other team's shots read blue */
+
+.trip-game-playcap.is-cpu {
+  border-bottom-color: var(--px-blue);
+  background: #0b141d;
+}
+
+.trip-game-playcap.is-cpu small {
+  color: #7fa0bd;
+}
+
+.trip-game-playback.is-cpu {
+  border-color: var(--px-blue);
+}
+
+.trip-game-playback.is-cpu small {
+  color: #7fa0bd;
+}
+
 .trip-game-playcap small {
   color: #7a9078;
   font-size: 10px;
