@@ -1051,24 +1051,73 @@ function sidePoint(from, toward, offset) {
   return [from[0] + (-dy / len) * offset, from[1] + (dx / len) * offset];
 }
 
-function GolferSprite({ at, toward, hat = "red", pose = "idle", putting = false, scale = 1.25 }) {
-  const flipped = toward ? toward[0] < at[0] : false;
+/**
+ * Arcade golf ball: dimpled, spinning, with a shine dot and (for earned
+ * tiers) a twinkling glint. Nested groups keep deformation (squash/stretch)
+ * separate from the spin layer, per the classic squash-and-stretch rig.
+ */
+function BallSprite({ r = 2.6, spin = "none", tier = null, launch = false, angle = 0 }) {
+  const dimple = Math.max(0.28, r * 0.15);
   return (
     <g
-      className={`trip-game-golfer is-${hat}${pose !== "idle" ? ` trip-game-swinger ${pose === "swing" ? "is-swinging" : "is-through"}${putting ? " is-putting" : ""}` : ""}`}
+      className={`trip-game-ball-deform${launch ? " is-launching" : ""}`}
+      transform={angle ? `rotate(${angle})` : undefined}
+    >
+      <circle r={r} className="trip-game-ball-core" />
+      <g className={`trip-game-ball-spin${spin === "fast" ? " is-fast" : spin === "roll" ? " is-roll" : ""}`}>
+        <circle cx={-r * 0.38} cy={-r * 0.12} r={dimple} />
+        <circle cx={r * 0.12} cy={-r * 0.42} r={dimple * 0.9} />
+        <circle cx={r * 0.36} cy={r * 0.22} r={dimple} />
+        <circle cx={-r * 0.12} cy={r * 0.44} r={dimple * 0.9} />
+      </g>
+      <circle className="trip-game-ball-shine" cx={-r * 0.32} cy={-r * 0.34} r={Math.max(0.5, r * 0.26)} />
+      {(tier === "pure" || tier === "fire") && (
+        <path
+          className={`trip-game-ball-glint${tier === "fire" ? " is-fire" : ""}`}
+          d={`M0,${-r - 1.6} L0.6,${-r + 0.2} L${r + 1.6},${-r + 0.8} L0.6,${-r + 1.4} Z`}
+          transform={`translate(${r * 0.4} ${-r * 0.2}) scale(0.9)`}
+        />
+      )}
+    </g>
+  );
+}
+
+function GolferSprite({ at, toward, hat = "red", pose = "idle", putting = false, scale = 1.25 }) {
+  const flipped = toward ? toward[0] < at[0] : false;
+  const poseClass =
+    pose === "swing"
+      ? " trip-game-swinger is-swinging"
+      : pose === "through"
+        ? " trip-game-swinger is-through"
+        : pose === "celebrate"
+          ? " trip-game-swinger is-through is-celebrating"
+          : pose === "slump"
+            ? " trip-game-swinger is-through is-slumping"
+            : "";
+  return (
+    <g
+      className={`trip-game-golfer is-${hat}${poseClass}${putting && pose !== "idle" ? " is-putting" : ""}`}
       transform={`translate(${at[0]} ${at[1]}) scale(${flipped ? -scale : scale} ${scale})`}
     >
       <ellipse className="trip-game-swinger-shadow" cx="0" cy="1.4" rx="5.4" ry="1.7" />
       <g transform="translate(-4.8 -15)">
-        <rect className="trip-game-golfer-legs" x="1" y="10" width="3" height="5.5" />
-        <rect className="trip-game-golfer-legs" x="5.8" y="10" width="3" height="5.5" />
-        <rect className="trip-game-golfer-shirt" x="0.4" y="4.6" width="9" height="5.8" />
-        <rect className="trip-game-golfer-skin" x="2.4" y="0.2" width="5" height="4.6" />
-        <rect className={`trip-game-golfer-cap${hat === "blue" ? " is-blue" : ""}`} x="1.8" y="-1.8" width="6.2" height="2.4" />
-        {hat === "blue" && <rect className="trip-game-golfer-cap is-blue" x="7.2" y="-0.2" width="2.2" height="1.1" />}
-        <g className="trip-game-swing-arm">
-          <rect className="trip-game-golfer-club" x="8.2" y="4.8" width="1.4" height="10.5" />
-          <rect className="trip-game-club-head" x="7.4" y="14.4" width="3.2" height="2" />
+        <g className="trip-game-golfer-body">
+          <rect className="trip-game-golfer-legs" x="1" y="10" width="3" height="5.5" />
+          <rect className="trip-game-golfer-legs" x="5.8" y="10" width="3" height="5.5" />
+          <rect className="trip-game-golfer-shirt" x="0.4" y="4.6" width="9" height="5.8" />
+          <rect className="trip-game-golfer-skin" x="2.4" y="0.2" width="5" height="4.6" />
+          <rect
+            className={`trip-game-golfer-cap${hat === "blue" ? " is-blue" : ""}`}
+            x="1.8"
+            y="-1.8"
+            width="6.2"
+            height="2.4"
+          />
+          {hat === "blue" && <rect className="trip-game-golfer-cap is-blue" x="7.2" y="-0.2" width="2.2" height="1.1" />}
+          <g className="trip-game-swing-arm">
+            <rect className="trip-game-golfer-club" x="8.2" y="4.8" width="1.4" height="10.5" />
+            <rect className="trip-game-club-head" x="7.4" y="14.4" width="3.2" height="2" />
+          </g>
         </g>
       </g>
     </g>
@@ -1098,6 +1147,7 @@ function PuttingScene({ shot, phase, frame, side }) {
   const eased = 1 - Math.pow(1 - t, 1.75);
   const ball = quadPoint(start, control, end, eased);
   const dropped = shot.final && phase === "settle";
+  const rolled = phase !== "swing";
   const breakLabel = breakDir > 0.12 ? "L → R" : breakDir < -0.12 ? "R → L" : "STRAIGHT";
   const slopeLabel = slope > 0.12 ? "UPHILL" : slope < -0.12 ? "DOWNHILL" : "FLAT";
   const flowing = Math.hypot(breakDir, slope) > 0.12;
@@ -1154,15 +1204,14 @@ function PuttingScene({ shot, phase, frame, side }) {
           at={[start[0] + 7, start[1] + 1]}
           toward={cup}
           hat={side === "cpu" ? "blue" : "red"}
-          pose={phase === "swing" ? "swing" : "through"}
+          pose={phase === "swing" ? "swing" : dropped ? "celebrate" : "through"}
           putting
           scale={0.9}
         />
         {!dropped && (
           <g transform={`translate(${ball[0].toFixed(1)} ${ball[1].toFixed(1)})`}>
             <ellipse cx="0" cy="1.4" rx="2.4" ry="1" className="trip-game-putt-ball-shadow" />
-            <circle r="2.2" className="trip-game-putt-ball" />
-            <circle cx="-0.6" cy="-0.6" r="0.7" className="trip-game-putt-ball-shine" />
+            <BallSprite r={2.2} spin={rolled ? "roll" : "none"} />
           </g>
         )}
         {dropped && (
@@ -1490,13 +1539,24 @@ function HoleMap({
               }
               toward={firstOfSide ? projection.pin : activeShot.to}
               hat={activeShot.side === "cpu" ? "red" : "blue"}
+              pose={playback.phase === "settle" && activeShot.final ? "slump" : "idle"}
               scale={1.2}
             />
             <GolferSprite
               at={activeShot.from}
               toward={activeShot.to}
               hat={activeShot.side === "cpu" ? "blue" : "red"}
-              pose={playback.phase === "swing" ? "swing" : "through"}
+              pose={
+                playback.phase === "swing"
+                  ? "swing"
+                  : playback.phase === "settle"
+                    ? activeShot.final
+                      ? "celebrate"
+                      : activeShot.kind === "splash" || activeShot.kind === "ob"
+                        ? "slump"
+                        : "through"
+                    : "through"
+              }
               putting={activeShot.kind === "putt"}
               scale={1.3}
             />
@@ -1508,8 +1568,7 @@ function HoleMap({
             {playback.phase === "swing" && (
               <g className="trip-game-theater-ball-wrap" transform={`translate(${activeShot.from[0]} ${activeShot.from[1]})`}>
                 <ellipse className="trip-game-theater-shadow" cx="0" cy="1.2" rx="3" ry="1.4" />
-                <circle r="2.6" className="trip-game-theater-ball" />
-                <circle className="trip-game-theater-ball-shine" cx="-0.7" cy="-0.8" r="0.8" />
+                <BallSprite r={2.6} />
               </g>
             )}
             {playback.phase === "flight" && flightFrame && (
@@ -1567,12 +1626,12 @@ function HoleMap({
                       <rect x={-flightFrame.size - 11} y="1.8" width="3.4" height="1.1" />
                     </g>
                   )}
-                  <circle r={flightFrame.size} className="trip-game-theater-ball" />
-                  <circle
-                    className="trip-game-theater-ball-shine"
-                    cx={-flightFrame.size * 0.28}
-                    cy={-flightFrame.size * 0.32}
-                    r={Math.max(0.7, flightFrame.size * 0.32)}
+                  <BallSprite
+                    r={flightFrame.size}
+                    spin="fast"
+                    tier={trailTier}
+                    launch={flightFrameIndex === 0}
+                    angle={shotFlipped ? 24 : -24}
                   />
                 </g>
               </>
@@ -1585,8 +1644,20 @@ function HoleMap({
               </g>
             )}
             {playback.phase === "settle" && activeShot.kind !== "splash" && !activeShot.final && (
-              <circle cx={activeShot.to[0]} cy={activeShot.to[1]} r="2.3" className="trip-game-theater-ball is-settled" />
+              <g className="trip-game-ball-settle" transform={`translate(${activeShot.to[0]} ${activeShot.to[1]})`}>
+                <BallSprite r={2.3} />
+              </g>
             )}
+            {playback.phase === "settle" &&
+              activeShot.air &&
+              activeShot.kind !== "splash" &&
+              activeShot.kind !== "putt" &&
+              !activeShot.final && (
+                <g className="trip-game-land-puff" transform={`translate(${activeShot.to[0]} ${activeShot.to[1]})`}>
+                  <circle r="2.4" />
+                  <circle r="1.7" />
+                </g>
+              )}
             {playback.phase === "settle" && activeShot.final && (
               <g className="trip-game-holeout" transform={`translate(${activeShot.to[0]} ${activeShot.to[1] - 4})`}>
                 <path d="M0,-8 L2.3,-2.4 L8,-2.4 L3.4,1.2 L5.4,7 L0,3.4 L-5.4,7 L-3.4,1.2 L-8,-2.4 L-2.3,-2.4 Z" />

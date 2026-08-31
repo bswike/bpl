@@ -2537,6 +2537,163 @@
   animation: trip-game-ball-bounce 260ms steps(3, end) 1;
 }
 
+/* Arcade ball rig: dimples on a spin layer inside a deformation group */
+
+.trip-game-ball-core {
+  fill: #fffbe0;
+  stroke: #0a1c11;
+  stroke-width: 1.35;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(1px 1px 0 #07180f);
+}
+
+.trip-game-ball-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.trip-game-ball-spin circle {
+  fill: rgba(10, 28, 17, 0.28);
+}
+
+.trip-game-ball-spin.is-fast {
+  animation: trip-game-ball-spin 240ms steps(4, end) infinite;
+}
+
+.trip-game-ball-spin.is-roll {
+  animation: trip-game-ball-spin 460ms steps(4, end) infinite;
+}
+
+.trip-game-ball-shine {
+  fill: #ffffff;
+}
+
+.trip-game-ball-deform {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Launch: two-frame white flash + stretch along the flight line */
+
+.trip-game-ball-deform.is-launching .trip-game-ball-core {
+  animation: trip-game-ball-flash 140ms steps(2, end) 1;
+}
+
+.trip-game-ball-deform.is-launching {
+  animation: trip-game-ball-stretch 180ms ease-out 1;
+}
+
+/* Glint: casino twinkle reserved for PURE / FULL SEND balls */
+
+.trip-game-ball-glint {
+  fill: #ffffff;
+  stroke: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trip-game-ball-twinkle 640ms ease-out infinite;
+}
+
+.trip-game-ball-glint.is-fire {
+  fill: #ffd95e;
+}
+
+.trip-game-ball-settle .trip-game-ball-deform {
+  animation: trip-game-ball-land 300ms ease-out 1;
+}
+
+@keyframes trip-game-ball-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes trip-game-ball-flash {
+  0% {
+    fill: #ffffff;
+  }
+
+  100% {
+    fill: #fffbe0;
+  }
+}
+
+@keyframes trip-game-ball-stretch {
+  0% {
+    transform: scale(1.55, 0.65);
+  }
+
+  60% {
+    transform: scale(0.92, 1.1);
+  }
+
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@keyframes trip-game-ball-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.15) rotate(18deg);
+  }
+}
+
+@keyframes trip-game-ball-land {
+  0% {
+    transform: translateY(-2.5px) scale(1.35, 0.65);
+  }
+
+  45% {
+    transform: translateY(0) scale(0.85, 1.15);
+  }
+
+  75% {
+    transform: translateY(0) scale(1.1, 0.92);
+  }
+
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+/* Landing dust puff */
+
+.trip-game-land-puff circle {
+  fill: none;
+  stroke: rgba(232, 240, 200, 0.75);
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trip-game-land-puff 320ms ease-out forwards;
+}
+
+.trip-game-land-puff circle:nth-child(2) {
+  animation-delay: 70ms;
+}
+
+@keyframes trip-game-land-puff {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
 .trip-game-theater-shadow {
   fill: rgba(7, 24, 15, 0.45);
 }
@@ -2630,18 +2787,19 @@
   vector-effect: non-scaling-stroke;
 }
 
-.trip-game-swinger .trip-game-swing-arm {
+.trip-game-swinger .trip-game-swing-arm,
+.trip-game-golfer .trip-game-swing-arm {
   transform-box: fill-box;
   transform-origin: top center;
   transform: rotate(0deg);
 }
 
 .trip-game-swinger.is-swinging .trip-game-swing-arm {
-  animation: trip-game-swing 420ms steps(5, end) forwards;
+  animation: trip-game-swing 420ms forwards;
 }
 
 .trip-game-swinger.is-swinging.is-putting .trip-game-swing-arm {
-  animation: trip-game-putt-stroke 320ms steps(3, end) forwards;
+  animation: trip-game-putt-stroke 320ms forwards;
 }
 
 .trip-game-swinger.is-through .trip-game-swing-arm {
@@ -2650,6 +2808,46 @@
 
 .trip-game-swinger.is-through.is-putting .trip-game-swing-arm {
   transform: rotate(16deg);
+}
+
+/* Body rig: coil on the backswing, stretch through impact, settle */
+
+.trip-game-golfer-body {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+.trip-game-swinger.is-swinging .trip-game-golfer-body {
+  animation: trip-game-body-coil 420ms forwards;
+}
+
+/* Idle liveliness: gentle two-frame bob plus an occasional club waggle */
+
+.trip-game-golfer:not(.trip-game-swinger) .trip-game-golfer-body {
+  animation: trip-game-idle-bob 1150ms steps(2, jump-none) infinite;
+}
+
+.trip-game-golfer:not(.trip-game-swinger) .trip-game-swing-arm {
+  animation: trip-game-club-waggle 7s ease-in-out infinite;
+}
+
+/* Result reactions: hop-and-pump for a holed ball, slump for a disaster */
+
+.trip-game-swinger.is-celebrating .trip-game-golfer-body {
+  animation: trip-game-celebrate-hop 900ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.trip-game-swinger.is-celebrating .trip-game-swing-arm {
+  animation: trip-game-celebrate-arm 900ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.trip-game-swinger.is-slumping .trip-game-golfer-body {
+  animation: trip-game-slump 620ms ease-out forwards;
+}
+
+.trip-game-swinger.is-slumping .trip-game-swing-arm {
+  transform: rotate(70deg);
+  transition: transform 400ms ease-out;
 }
 
 .trip-game-swinger-shadow {
@@ -4211,17 +4409,37 @@
   }
 }
 
+/* Anticipation -> tension hold -> violent strike -> contact freeze ->
+   overshoot follow-through -> settle. The dead-flat segments ARE the juice. */
 @keyframes trip-game-swing {
   0% {
     transform: rotate(0deg);
+    animation-timing-function: ease-out;
   }
 
   45% {
     transform: rotate(-152deg);
+    animation-timing-function: steps(1, end);
   }
 
-  80% {
-    transform: rotate(48deg);
+  58% {
+    transform: rotate(-152deg);
+    animation-timing-function: cubic-bezier(0.9, 0, 1, 1);
+  }
+
+  64% {
+    transform: rotate(18deg);
+    animation-timing-function: steps(1, end);
+  }
+
+  72% {
+    transform: rotate(18deg);
+    animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  86% {
+    transform: rotate(86deg);
+    animation-timing-function: ease-out;
   }
 
   100% {
@@ -4232,14 +4450,145 @@
 @keyframes trip-game-putt-stroke {
   0% {
     transform: rotate(0deg);
+    animation-timing-function: ease-out;
   }
 
-  50% {
-    transform: rotate(-28deg);
+  42% {
+    transform: rotate(-26deg);
+    animation-timing-function: steps(1, end);
+  }
+
+  56% {
+    transform: rotate(-26deg);
+    animation-timing-function: cubic-bezier(0.7, 0, 1, 1);
+  }
+
+  74% {
+    transform: rotate(20deg);
+    animation-timing-function: ease-out;
   }
 
   100% {
     transform: rotate(16deg);
+  }
+}
+
+@keyframes trip-game-body-coil {
+  0% {
+    transform: scale(1, 1);
+    animation-timing-function: ease-out;
+  }
+
+  45% {
+    transform: scale(1.05, 0.93) translateY(0.5px);
+    animation-timing-function: steps(1, end);
+  }
+
+  58% {
+    transform: scale(1.05, 0.93) translateY(0.5px);
+    animation-timing-function: cubic-bezier(0.9, 0, 1, 1);
+  }
+
+  66% {
+    transform: scale(0.95, 1.08);
+    animation-timing-function: ease-out;
+  }
+
+  80% {
+    transform: scale(1.04, 0.96);
+  }
+
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@keyframes trip-game-idle-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(0.55px);
+  }
+}
+
+@keyframes trip-game-club-waggle {
+  0%,
+  86%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  89% {
+    transform: rotate(-6deg);
+  }
+
+  92% {
+    transform: rotate(5deg);
+  }
+
+  95% {
+    transform: rotate(-3deg);
+  }
+}
+
+@keyframes trip-game-celebrate-hop {
+  0% {
+    transform: translateY(0) scale(1, 1);
+  }
+
+  18% {
+    transform: translateY(-6.5px) scale(0.94, 1.08);
+  }
+
+  36% {
+    transform: translateY(0) scale(1.1, 0.88);
+  }
+
+  52% {
+    transform: translateY(-4px) scale(0.96, 1.05);
+  }
+
+  68% {
+    transform: translateY(0) scale(1.06, 0.93);
+  }
+
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+@keyframes trip-game-celebrate-arm {
+  0% {
+    transform: rotate(62deg);
+  }
+
+  30% {
+    transform: rotate(-165deg);
+  }
+
+  45% {
+    transform: rotate(-140deg);
+  }
+
+  62% {
+    transform: rotate(-162deg);
+  }
+
+  100% {
+    transform: rotate(-148deg);
+  }
+}
+
+@keyframes trip-game-slump {
+  0% {
+    transform: rotate(0deg) translateY(0);
+  }
+
+  100% {
+    transform: rotate(14deg) translateY(1.6px) scale(1.02, 0.94);
   }
 }
 
@@ -5371,6 +5720,11 @@
   .trip-game-celebration-particles i,
   .trip-game-modal,
   .trip-game-modal-sprite,
+  .trip-game-golfer-body,
+  .trip-game-ball-spin,
+  .trip-game-ball-deform,
+  .trip-game-ball-glint,
+  .trip-game-land-puff circle,
   .trip-game-power-earned {
     animation: none !important;
   }
