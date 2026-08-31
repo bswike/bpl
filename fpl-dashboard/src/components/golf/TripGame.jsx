@@ -348,7 +348,10 @@ function computeMapCamera({ projection, playback, landing, activeShot, flightFra
 function computeShotTarget(projection, hole, decision) {
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
   const lineLength = polylineLength(projection.line);
-  const targetYards = hole.yards ? Math.min(club.carry, Math.round(hole.yards * 0.96)) : club.carry;
+  const metered = Number.isFinite(Number(decision.power));
+  const power = metered ? clamp(Number(decision.power), 0, 1.18) : 0.9;
+  const carry = metered ? club.carry * (0.7 + clamp(power, 0, 1.15) * 0.4) : club.carry;
+  const targetYards = hole.yards ? Math.min(Math.round(carry), Math.round(hole.yards * 0.98)) : Math.round(carry);
   const targetDistance = hole.yards ? lineLength * (targetYards / hole.yards) : lineLength * (hole.par <= 3 ? 0.94 : 0.58);
   const centerTarget = pointAlongPolyline(projection.line, targetDistance);
   const perpendicular = [-centerTarget.tangent[1], centerTarget.tangent[0]];
@@ -750,6 +753,7 @@ function HoleMap({
   canAct,
   intelLeft,
   intelRight,
+  kickMeter,
   stockShape,
   menu,
   onAimStep,
@@ -1125,6 +1129,7 @@ function HoleMap({
           <div className="trip-game-map-intel-right">{intelRight}</div>
         </div>
       )}
+      {kickMeter}
       {canAct && (
         <div className="trip-game-pad">
           <div className="trip-game-pad-aim">
@@ -1220,6 +1225,40 @@ function HoleMap({
   );
 }
 
+function KickMeter({ phase, power, accuracy, onTap }) {
+  const powerPct = clamp(power / 1.12, 0, 1);
+  const powerLocked = phase !== "power";
+  const accLive = phase === "accuracy";
+  return (
+    <>
+      <button type="button" className="trip-game-kick-catch" onClick={onTap} aria-label="Tap kick meter" />
+      <div className={`trip-game-kick is-${phase}`} aria-hidden="true">
+        <div className={`trip-game-kick-col ${powerLocked ? "is-locked" : ""}`}>
+          <small>PWR</small>
+          <div className="trip-game-kick-track">
+            <i className="trip-game-kick-redzone" />
+            <i className="trip-game-kick-goodzone" />
+            <b className="trip-game-kick-fill" style={{ height: `${powerPct * 100}%` }} />
+            <em style={{ bottom: `${powerPct * 100}%` }} />
+          </div>
+        </div>
+        <div className={`trip-game-kick-acc ${accLive ? "is-live" : ""}`}>
+          <small>ACC</small>
+          <div className="trip-game-kick-acc-track">
+            <i />
+            <b style={{ left: `${50 + accuracy * 46}%` }} />
+          </div>
+          <span>
+            <em>L</em>
+            <em>R</em>
+          </span>
+        </div>
+        <strong>{phase === "power" ? "TAP POWER" : "TAP ACCURACY"}</strong>
+      </div>
+    </>
+  );
+}
+
 function OpponentCard({ opponent, course, team }) {
   if (!opponent?.profile) {
     return (
@@ -1284,6 +1323,12 @@ function PlaybackPanel({ result, shots, shotIndex, onSkip }) {
         ))}
       </div>
       <p>{shot?.caption || "..."}</p>
+      {result.kick && (
+        <em className="trip-game-kick-read">
+          PWR {Math.round(result.kick.power * 100)} · ACC{" "}
+          {result.kick.accuracy > 0.12 ? "RIGHT" : result.kick.accuracy < -0.12 ? "LEFT" : "CENTER"}
+        </em>
+      )}
       <button type="button" onClick={onSkip}>
         SKIP ▶▶
       </button>
@@ -1564,6 +1609,12 @@ export default function TripGame({ data }) {
   const [pickLocked, setPickLocked] = useState(false);
   const [eventNote, setEventNote] = useState(null);
   const [cpuOpponent, setCpuOpponent] = useState(null);
+  const [meterPhase, setMeterPhase] = useState(null);
+  const [meterTick, setMeterTick] = useState({ power: 0, accuracy: 0 });
+  const meterLiveRef = useRef({ power: 0, accuracy: 0, powerDir: 1, accDir: 1 });
+  const meterLockRef = useRef(null);
+  const meterTapAtRef = useRef(0);
+  const resolvingRef = useRef(false);
   const randomRef = useRef(makeSeededRandom(Date.now()));
   const resolutionTimerRef = useRef(null);
   const pendingCommitRef = useRef(null);
@@ -1595,10 +1646,17 @@ export default function TripGame({ data }) {
     [],
   );
 
-  // Game Boy style keyboard aiming on desktop.
+  // Game Boy style keyboard aiming on desktop; Space/Enter lock the kick meter.
   useEffect(() => {
     if (screen !== "play") return undefined;
     const onKey = (event) => {
+      if (meterPhase && (event.key === " " || event.key === "Enter")) {
+        if (event.repeat) return;
+        event.preventDefault();
+        tapMeter();
+        return;
+      }
+      if (meterPhase) return;
       if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
       event.preventDefault();
       stepAim(event.key === "ArrowLeft" ? -1 : 1);
@@ -1606,6 +1664,42 @@ export default function TripGame({ data }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
+
+  useEffect(() => {
+    if (!meterPhase) return undefined;
+    let frame = 0;
+    let last = performance.now();
+    const loop = (now) => {
+      const dt = Math.min(0.04, (now - last) / 1000);
+      last = now;
+      const live = meterLiveRef.current;
+      if (meterPhase === "power") {
+        live.power += dt * 1.08;
+        if (live.power >= 1.12) {
+          live.power = 1.12;
+          live.accuracy = -1;
+          live.accDir = 1;
+          meterLockRef.current = { power: 1.12 };
+          setMeterTick({ power: 1.12, accuracy: -1 });
+          setMeterPhase("accuracy");
+          return;
+        }
+      } else if (meterPhase === "accuracy") {
+        live.accuracy += live.accDir * dt * 2.6;
+        if (live.accuracy >= 1) {
+          live.accuracy = 1;
+          live.accDir = -1;
+        } else if (live.accuracy <= -1) {
+          live.accuracy = -1;
+          live.accDir = 1;
+        }
+      }
+      setMeterTick({ power: live.power, accuracy: live.accuracy });
+      frame = requestAnimationFrame(loop);
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+  }, [meterPhase]);
 
   // Advance the cartoon shot playback: swing -> frame-by-frame flight -> settle.
   useEffect(() => {
@@ -1826,6 +1920,9 @@ export default function TripGame({ data }) {
     setPickLocked(false);
     setEventNote(null);
     setCpuOpponent(null);
+    setMeterPhase(null);
+    resolvingRef.current = false;
+    meterLockRef.current = null;
     randomRef.current = makeSeededRandom(Date.now());
   }
 
@@ -1835,11 +1932,14 @@ export default function TripGame({ data }) {
     setDecision(defaultDecision(player, hole));
     setMenu(null);
     setEventNote(null);
+    setMeterPhase(null);
+    resolvingRef.current = false;
+    meterLockRef.current = null;
     if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
   }
 
   function stepAim(direction) {
-    if (!selected || result || resolutionPhase !== "idle") return;
+    if (!selected || result || resolutionPhase !== "idle" || meterPhase) return;
     setDecision((current) => ({
       ...current,
       aim: clamp(aimOffsetOf(current.aim) + direction * AIM_STEP, -AIM_MAX, AIM_MAX),
@@ -1896,7 +1996,44 @@ export default function TripGame({ data }) {
     setEventOffer(null);
   }
 
+  function startKickMeter() {
+    setHoleIntro(false);
+    resolvingRef.current = false;
+    meterLiveRef.current = { power: 0, accuracy: -1, powerDir: 1, accDir: 1 };
+    meterLockRef.current = null;
+    meterTapAtRef.current = 0;
+    setMeterTick({ power: 0, accuracy: -1 });
+    setMeterPhase("power");
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
+  }
+
+  function tapMeter() {
+    if (!meterPhase || resolvingRef.current) return;
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (now - meterTapAtRef.current < 220) return;
+    meterTapAtRef.current = now;
+    if (meterPhase === "power") {
+      const live = meterLiveRef.current;
+      live.accuracy = -1;
+      live.accDir = 1;
+      meterLockRef.current = { power: live.power };
+      setMeterPhase("accuracy");
+      if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
+      return;
+    }
+    const power = meterLockRef.current?.power ?? meterLiveRef.current.power;
+    const accuracy = meterLiveRef.current.accuracy;
+    meterLockRef.current = { power, accuracy };
+    resolvingRef.current = true;
+    setMeterPhase(null);
+    resolveHole({ power, accuracy });
+  }
+
   function playHole() {
+    if (meterPhase) {
+      tapMeter();
+      return;
+    }
     if (!selected || !odds || !hole || !course || result || resolutionPhase !== "idle") return;
     if (CART_GIRL_HOLES.has(hole.number) && !eventHandled[holeIndex]) {
       setEventOffer({ type: "cart-girl", playerKey: selected.key, player: selected });
@@ -1912,11 +2049,25 @@ export default function TripGame({ data }) {
       setEventOffer({ type: "fireball", playerKey: selected.key, player: selected });
       return;
     }
+    startKickMeter();
+  }
+
+  function resolveHole(meter) {
+    if (!selected || !hole || !course || result || resolutionPhase !== "idle") return;
+    const swung = {
+      ...decision,
+      power: meter.power,
+      accuracy: meter.accuracy,
+    };
+    const visualDecision = {
+      ...swung,
+      aim: clamp(aimOffsetOf(decision.aim) + meter.accuracy * 0.45, -AIM_MAX, AIM_MAX),
+    };
     const currentHumanOdds = buildHoleOdds({
       profile: selected,
       course,
       hole,
-      decision,
+      decision: swung,
       state: playerState[selected.key],
     });
     const cpuPick = cpuOpponent || chooseCpuPlayer({
@@ -1952,6 +2103,7 @@ export default function TripGame({ data }) {
       humanOdds: currentHumanOdds,
       cpuOdds,
       decisionRead: captainRead,
+      kick: { power: meter.power, accuracy: meter.accuracy },
     };
     const nextStreak = resolved.winner === "human" ? streak + 1 : resolved.winner === "tie" ? streak : 0;
     const qualityBonus = Math.round(((captainRead?.quality || 50) / 100) * 12);
@@ -1982,7 +2134,7 @@ export default function TripGame({ data }) {
       nextCloseout,
     };
     const shots = projection
-      ? buildShotSequence({ projection, hole, decision, result: resolved })
+      ? buildShotSequence({ projection, hole, decision: visualDecision, result: resolved })
       : [];
     setPlaybackShots(shots);
     setPlaybackStep({ index: 0, phase: "swing", frame: 0 });
@@ -2052,6 +2204,9 @@ export default function TripGame({ data }) {
     setPickLocked(false);
     setEventNote(null);
     setCpuOpponent(null);
+    setMeterPhase(null);
+    resolvingRef.current = false;
+    meterLockRef.current = null;
   }
 
   if (!model.courses.length && archiveState === "loading") {
@@ -2135,12 +2290,17 @@ export default function TripGame({ data }) {
                     ? { shots: playbackShots, index: playbackStep.index, phase: playbackStep.phase, frame: playbackStep.frame }
                     : null
                 }
-                intro={holeIntro && resolutionPhase === "idle" && !result}
+                intro={holeIntro && resolutionPhase === "idle" && !result && !meterPhase}
                 onIntroDismiss={() => setHoleIntro(false)}
-                odds={resolutionPhase === "idle" && !result ? odds : null}
-                canAct={Boolean(selected) && resolutionPhase === "idle" && !result}
-                intelLeft={resolutionPhase === "idle" && !result ? <ScoreOdds odds={odds} /> : null}
-                intelRight={resolutionPhase === "idle" && !result ? <CaptainRead read={captainRead} /> : null}
+                odds={resolutionPhase === "idle" && !result && !meterPhase ? odds : null}
+                canAct={Boolean(selected) && resolutionPhase === "idle" && !result && !meterPhase}
+                intelLeft={resolutionPhase === "idle" && !result && !meterPhase ? <ScoreOdds odds={odds} /> : null}
+                intelRight={resolutionPhase === "idle" && !result && !meterPhase ? <CaptainRead read={captainRead} /> : null}
+                kickMeter={
+                  meterPhase ? (
+                    <KickMeter phase={meterPhase} power={meterTick.power} accuracy={meterTick.accuracy} onTap={tapMeter} />
+                  ) : null
+                }
                 stockShape={selected?.stockShape}
                 menu={menu}
                 onAimStep={stepAim}
@@ -2156,22 +2316,31 @@ export default function TripGame({ data }) {
                     selectedKey={selectedKey}
                     usage={usage}
                     maxUses={maxUses}
-                    disabled={pickLocked}
+                    disabled={pickLocked || Boolean(meterPhase)}
                     onPick={pickPlayer}
                     course={course}
                   />
                   <button
                     type="button"
                     className={`trip-game-fireball-chip ${decision.fireball ? "is-selected" : ""}`}
-                    disabled={!selected || inventory.fireball < 1}
+                    disabled={!selected || inventory.fireball < 1 || Boolean(meterPhase)}
                     onClick={() => setDecision((current) => ({ ...current, fireball: !current.fireball }))}
                   >
                     🔥 {inventory.fireball}
                   </button>
-                  <button type="button" className="trip-game-primary-button" disabled={!selected} onClick={playHole}>
-                    {selected
-                      ? `PLAY ${lastName(selected.name).toUpperCase()} CH${courseHandicap(selected.hi, course)} ▶`
-                      : "PLAY ▶"}
+                  <button
+                    type="button"
+                    className={`trip-game-primary-button ${meterPhase ? "is-kick" : ""}`}
+                    disabled={!selected}
+                    onClick={meterPhase ? tapMeter : playHole}
+                  >
+                    {meterPhase === "power"
+                      ? "TAP POWER"
+                      : meterPhase === "accuracy"
+                        ? "TAP ACCURACY"
+                        : selected
+                          ? `PLAY ${lastName(selected.name).toUpperCase()} CH${courseHandicap(selected.hi, course)} ▶`
+                          : "PLAY ▶"}
                   </button>
                 </div>
               )}

@@ -338,11 +338,26 @@ export function aimOffsetOf(aim) {
   return preset ? preset.offset : 0;
 }
 
+function meterPowerOf(decision) {
+  const value = Number(decision?.power);
+  return Number.isFinite(value) ? clamp(value, 0, 1.18) : 0.9;
+}
+
+function meterAccuracyOf(decision) {
+  const value = Number(decision?.accuracy);
+  return Number.isFinite(value) ? clamp(value, -1, 1) : 0;
+}
+
 function landingProbabilities(profile, hole, decision, state) {
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
   const danger = hole.dangerSide === "left" ? -1 : hole.dangerSide === "right" ? 1 : 0;
-  const pathBias = aimOffsetOf(decision.aim) + shape.bias;
+  const metered = Number.isFinite(Number(decision.power));
+  const power = meterPowerOf(decision);
+  const accuracy = meterAccuracyOf(decision);
+  const overswing = metered ? Math.max(0, power - 0.96) : 0;
+  const underswing = metered ? Math.max(0, 0.78 - power) : 0;
+  const pathBias = aimOffsetOf(decision.aim) + shape.bias + accuracy * 0.82;
   const intoDanger = Math.max(0, pathBias * danger);
   const awayFromDanger = Math.max(0, -pathBias * danger);
   const offline = Math.max(0, Math.abs(pathBias) - 0.45);
@@ -361,7 +376,10 @@ function landingProbabilities(profile, hole, decision, state) {
     intoDanger * 0.08 -
     offline * 0.14 -
     shapeFit * 0.24 -
-    hazardSeverity * clubAggression * 0.055;
+    hazardSeverity * clubAggression * 0.055 -
+    overswing * 0.38 -
+    underswing * 0.1 -
+    Math.abs(accuracy) * 0.18;
   let bunker =
     0.06 +
     club.risk * 0.35 +
@@ -373,7 +391,9 @@ function landingProbabilities(profile, hole, decision, state) {
     Math.max(0, club.risk) * 0.25 +
     intoDanger * (hole.primaryHazard === "water" ? 0.12 : 0.075) +
     Math.max(0, shapeFit) * 0.06 +
-    hazardSeverity * clubAggression * 0.035;
+    hazardSeverity * clubAggression * 0.035 +
+    overswing * 0.32 +
+    Math.abs(accuracy) * 0.09;
   if (hole.hasWater) penalty += 0.018;
   penalty -= awayFromDanger * 0.035;
   fairway = clamp(fairway, 0.2, 0.76);
@@ -417,13 +437,14 @@ function conditionOnLanding(probs, landing, landingIndex) {
 }
 
 /** Penalty for leaving an awkward approach — or flying the green — with the chosen club. */
-function distanceShiftFor(hole, club) {
+function distanceShiftFor(hole, club, power = 0.9) {
   const yards = Number(hole.yards);
   if (!Number.isFinite(yards) || yards <= 0) return 0;
+  const carry = club.carry * (0.7 + clamp(power, 0, 1.15) * 0.4);
   const comfortZone = hole.par === 3 ? 10 : hole.par === 4 ? 150 : 265;
-  const leftover = Math.max(0, yards - club.carry);
+  const leftover = Math.max(0, yards - carry);
   let shift = clamp((leftover - comfortZone) / 320, 0, 0.4);
-  if (club.carry > yards + 20) shift += clamp((club.carry - yards - 20) / 260, 0, 0.3);
+  if (carry > yards + 20) shift += clamp((carry - yards - 20) / 260, 0, 0.3);
   return shift;
 }
 
@@ -450,7 +471,7 @@ export function buildHoleOdds({ profile, course, hole, decision, state }) {
   const shapeFit = shapeFitAdjustment(profile, hole, decision.shape);
   const hazardSeverity = clamp(Number(hole.hazardSeverity) || (hole.hasWater ? 0.55 : 0.25), 0, 1);
   const clubRisk = Math.max(0, club.risk) * (0.2 + hazardSeverity * 1.75);
-  const distanceShift = distanceShiftFor(hole, club);
+  const distanceShift = distanceShiftFor(hole, club, meterPowerOf(decision));
   const shift =
     tripDifficulty * 0.55 +
     officialDifficulty +

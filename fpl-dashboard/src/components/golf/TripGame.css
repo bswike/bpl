@@ -932,6 +932,195 @@
   font-size: 11px;
 }
 
+.trip-game-action-bar .trip-game-primary-button.is-kick {
+  min-width: 128px;
+  background: linear-gradient(180deg, #f2c14e 0%, #e09a2a 45%, #c47b18 100%);
+  color: #1a1406;
+  text-shadow: none;
+  animation: trip-kick-pulse 0.7s steps(2, end) infinite;
+}
+
+.trip-game-kick-catch {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.trip-game-kick-catch:hover,
+.trip-game-kick-catch:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.trip-game-kick {
+  position: absolute;
+  z-index: 6;
+  right: 10px;
+  bottom: 14px;
+  display: grid;
+  width: 92px;
+  gap: 6px;
+  padding: 8px 7px 7px;
+  border: 3px solid #060f0a;
+  background: #142219;
+  box-shadow: 4px 4px 0 #060f0a;
+  pointer-events: none;
+  color: #e8f0c8;
+}
+
+.trip-game-kick small {
+  display: block;
+  margin-bottom: 3px;
+  color: #f2c14e;
+  font-family: var(--font-display);
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.trip-game-kick-col {
+  display: grid;
+  justify-items: center;
+}
+
+.trip-game-kick-track {
+  position: relative;
+  overflow: hidden;
+  width: 22px;
+  height: 118px;
+  border: 2px solid #060f0a;
+  background: #0c1811;
+  box-shadow: inset 0 0 0 1px #2a4633;
+}
+
+.trip-game-kick-redzone {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 14.3%;
+  background: repeating-linear-gradient(-45deg, rgba(200, 83, 65, 0.72) 0 4px, rgba(168, 60, 46, 0.5) 4px 8px);
+}
+
+.trip-game-kick-goodzone {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 73.2%;
+  left: 0;
+  height: 10.7%;
+  background: rgba(95, 216, 106, 0.35);
+  box-shadow: inset 0 0 0 2px #5fd86a;
+}
+
+.trip-game-kick-fill {
+  position: absolute;
+  z-index: 0;
+  right: 2px;
+  bottom: 0;
+  left: 2px;
+  background: linear-gradient(180deg, #f2c14e 0%, #ec7137 70%, #c85341 100%);
+}
+
+.trip-game-kick-col.is-locked .trip-game-kick-fill {
+  background: linear-gradient(180deg, #8fce62 0%, #4e9a46 100%);
+}
+
+.trip-game-kick-track em {
+  position: absolute;
+  right: -3px;
+  left: -3px;
+  z-index: 2;
+  height: 3px;
+  margin-bottom: -1px;
+  background: #f4f7ee;
+  box-shadow: 0 0 0 1px #060f0a;
+}
+
+.trip-game-kick-acc {
+  opacity: 0.4;
+}
+
+.trip-game-kick-acc.is-live {
+  opacity: 1;
+}
+
+.trip-game-kick-acc-track {
+  position: relative;
+  height: 14px;
+  border: 2px solid #060f0a;
+  background: #0c1811;
+}
+
+.trip-game-kick-acc-track i {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 42%;
+  width: 16%;
+  background: #5fd86a;
+}
+
+.trip-game-kick-acc-track b {
+  position: absolute;
+  top: -3px;
+  width: 4px;
+  height: 16px;
+  margin-left: -2px;
+  background: #f4f7ee;
+  box-shadow: 1px 1px 0 #060f0a;
+}
+
+.trip-game-kick-acc span {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  color: #89a07a;
+  font-size: 9px;
+}
+
+.trip-game-kick strong {
+  display: block;
+  padding-top: 2px;
+  color: #f2c14e;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.trip-game-kick.is-accuracy strong {
+  color: #8fce62;
+}
+
+.trip-game-kick-read {
+  display: block;
+  margin: 2px 0 6px;
+  color: #f2c14e;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+@keyframes trip-kick-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
+
 .trip-game-stage-overlay {
   position: absolute;
   z-index: 6;
@@ -3469,6 +3658,22 @@
   .trip-game--play .trip-game-action-bar .trip-game-primary-button {
     min-width: 96px;
     font-size: 9px;
+  }
+
+  .trip-game--play .trip-game-kick {
+    right: 6px;
+    bottom: 10px;
+    width: 78px;
+    padding: 6px 5px 5px;
+  }
+
+  .trip-game--play .trip-game-kick-track {
+    width: 18px;
+    height: 96px;
+  }
+
+  .trip-game--play .trip-game-kick strong {
+    font-size: 5px;
   }
 
   .trip-game--play .trip-game-command-panel {
