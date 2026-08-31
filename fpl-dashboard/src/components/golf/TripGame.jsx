@@ -227,13 +227,42 @@ function fullCamera(projection) {
   return { x: 0, y: 0, w: projection.width, h: projection.height };
 }
 
-function cameraWindow(cx, cy, height, worldW, worldH) {
-  const aspect = worldW / worldH;
-  const h = clamp(height, worldH * 0.26, worldH);
+function cameraWindow(cx, cy, height, worldW, worldH, aspect = 0.82) {
+  const h = clamp(height, 80, worldH);
   let w = h * aspect;
   if (w > worldW) w = worldW;
-  const finalH = Math.min(w / aspect, worldH);
+  const finalH = Math.min(Math.max(w / aspect, 80), worldH);
   return clampCamera({ x: cx - w / 2, y: cy - finalH / 2, w, h: finalH }, worldW, worldH);
+}
+
+function lookAheadPoint(from, to, distance) {
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const length = Math.hypot(dx, dy) || 1;
+  const t = clamp(distance / length, 0, 1);
+  return [from[0] + dx * t, from[1] + dy * t];
+}
+
+function cameraContains(camera, point, margin = 14) {
+  return (
+    point[0] >= camera.x + margin &&
+    point[0] <= camera.x + camera.w - margin &&
+    point[1] >= camera.y + margin &&
+    point[1] <= camera.y + camera.h - margin
+  );
+}
+
+function trackShotCamera({ projection, ballAir, ballGround, destination, kind, onGreen }) {
+  const worldW = projection.width;
+  const worldH = projection.height;
+  const look = lookAheadPoint(ballGround, destination, onGreen || kind === "putt" ? 34 : 86);
+  const cx = ballAir[0] * 0.52 + look[0] * 0.48;
+  const cy = ballAir[1] * 0.45 + look[1] * 0.45 + ballGround[1] * 0.1;
+  const coverH = Math.abs(look[1] - ballAir[1]) + Math.abs(ballGround[1] - ballAir[1]) + 52;
+  const coverW = Math.abs(look[0] - ballAir[0]) + 42;
+  const minH = onGreen || kind === "putt" ? 102 : 132;
+  const maxH = onGreen || kind === "putt" ? 138 : kind === "drive" || kind === "tee" ? 188 : 158;
+  return cameraWindow(cx, cy, clamp(Math.max(coverH, coverW / 0.82, minH), minH, maxH), worldW, worldH, 0.82);
 }
 
 function usableGreen(projection) {
@@ -280,57 +309,48 @@ function blendCamera(from, to, t) {
 }
 
 function computeMapCamera({ projection, playback, landing, activeShot, flightFrame, flightFrameIndex }) {
-  const worldW = projection.width;
-  const worldH = projection.height;
   const overview = fullCamera(projection);
   const pin = projection.pin;
   const greenCam = greenCamera(projection);
 
   if (playback && activeShot) {
-    const ball = flightFrame
+    const ground = flightFrame
       ? [flightFrame.gx, flightFrame.gy]
       : playback.phase === "settle"
         ? activeShot.to
         : activeShot.from;
-    const progress =
-      activeShot.frames?.length > 1 ? clamp(flightFrameIndex / (activeShot.frames.length - 1), 0, 1) : playback.phase === "settle" ? 1 : 0;
+    const air = flightFrame ? [flightFrame.x, flightFrame.y] : ground;
     const openingTee = playback.index === 0 && (activeShot.kind === "drive" || activeShot.kind === "tee" || activeShot.kind === "splash");
     const onGreenNow =
       activeShot.kind === "putt" ||
       activeShot.final ||
-      (pointNearGreen(ball, projection) && !openingTee);
-    const landingOnGreen =
-      activeShot.kind === "putt" ||
-      activeShot.final ||
-      ((activeShot.kind === "approach" || activeShot.kind === "sand" || activeShot.kind === "punch") &&
-        pointNearGreen(activeShot.to, projection));
+      (pointNearGreen(ground, projection) && !openingTee);
 
-    const look = playback.phase === "flight" ? 0.32 : 0.1;
-    const follow = cameraWindow(
-      lerp(ball[0], activeShot.to[0], look),
-      lerp(ball[1], activeShot.to[1], look),
-      openingTee ? worldH * 0.62 : activeShot.kind === "approach" ? worldH * 0.48 : activeShot.air ? worldH * 0.52 : worldH * 0.4,
-      worldW,
-      worldH,
-    );
+    if (openingTee && playback.phase === "swing") return overview;
 
-    if (openingTee) {
-      const pull =
-        playback.phase === "swing" ? 0.12 : playback.phase === "flight" ? 0.2 + progress * 0.8 : 1;
-      return blendCamera(overview, follow, pull);
-    }
+    const follow = trackShotCamera({
+      projection,
+      ballAir: air,
+      ballGround: ground,
+      destination: activeShot.to,
+      kind: activeShot.kind,
+      onGreen: onGreenNow,
+    });
 
-    if (onGreenNow || (landingOnGreen && (playback.phase === "settle" || progress > 0.55))) {
-      const zoomT = onGreenNow ? 1 : clamp((progress - 0.55) / 0.45, 0, 1);
-      return blendCamera(follow, greenCam, 0.2 + zoomT * 0.8);
-    }
+    if (onGreenNow) return blendCamera(follow, greenCam, 0.55);
 
     return follow;
   }
 
   if (landing) {
-    if (pointNearGreen(landing, projection)) return blendCamera(overview, greenCam, 0.55);
-    return cameraWindow(lerp(landing[0], pin[0], 0.12), lerp(landing[1], pin[1], 0.12), worldH * 0.7, worldW, worldH);
+    return trackShotCamera({
+      projection,
+      ballAir: landing,
+      ballGround: landing,
+      destination: pin,
+      kind: "approach",
+      onGreen: pointNearGreen(landing, projection),
+    });
   }
 
   return overview;
@@ -423,7 +443,7 @@ function buildFlightFrames({ from, to, control, apex, air }) {
       x: ground[0],
       y: ground[1] - lift,
       lift,
-      size: air ? 3.2 + lift * 0.16 : 2.4,
+      size: air ? clamp(3.6 + lift * 0.08, 3.6, 7.2) : 3,
       shadow: Math.max(1.1, 3.1 - lift * 0.045),
     });
   }
@@ -812,10 +832,21 @@ function HoleMap({
     landing,
     activeShot,
     flightFrame,
-    flightFrameIndex,
   });
-  const openingPull = Boolean(playback && playback.index === 0 && playback.phase !== "settle");
-  const cameraEase = openingPull ? 0.18 : playback?.phase === "flight" ? 0.48 : playback ? 0.28 : 0.35;
+  const firstFlightFrame = playback?.phase === "flight" && (playback.frame || 0) === 0;
+  const ballAir = flightFrame ? [flightFrame.x, flightFrame.y] : null;
+  const ballEscaping = Boolean(
+    playback?.phase === "flight" && ballAir && cameraRef.current && !cameraContains(cameraRef.current, ballAir, 18),
+  );
+  const cameraEase = !playback
+    ? 0.4
+    : firstFlightFrame || ballEscaping
+      ? 1
+      : playback.phase === "flight"
+        ? 0.84
+        : playback.phase === "swing" && playback.index === 0
+          ? 0.12
+          : 0.5;
   cameraRef.current = blendCamera(cameraRef.current, targetCam, cameraRef.current ? cameraEase : 1);
   const camera = cameraRef.current;
   const fullFramed = camera.w > projection.width * 0.9 && camera.h > projection.height * 0.9;
@@ -1014,6 +1045,14 @@ function HoleMap({
                 {activeShot.air && activeShot.airPath && (
                   <path d={activeShot.airPath} className="trip-game-air-arc" />
                 )}
+                <path
+                  d={curvedPath([flightFrame.gx, flightFrame.gy], activeShot.to, 0)}
+                  className="trip-game-aim-ahead"
+                />
+                <g className="trip-game-target trip-game-shot-ahead" transform={`translate(${activeShot.to[0]} ${activeShot.to[1]})`}>
+                  <circle r="5.2" />
+                  <path d="M-7 0 H7 M0 -7 V7" />
+                </g>
                 {flownFrames.length > 1 && (
                   <path d={framesToPath(flownFrames, activeShot.air)} className="trip-game-air-trail-line" />
                 )}

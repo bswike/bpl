@@ -1170,6 +1170,18 @@
   vector-effect: non-scaling-stroke;
 }
 
+.trip-game-aim-ahead {
+  fill: none;
+  stroke: #ffb659;
+  stroke-width: 1.8;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-shot-ahead {
+  opacity: 0.85;
+}
+
 .trip-game-air-trail-line {
   fill: none;
   stroke: rgba(255, 251, 224, 0.7);
