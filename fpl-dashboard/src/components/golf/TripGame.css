@@ -782,6 +782,11 @@
   pointer-events: auto;
 }
 
+.trip-game-skip-chip.is-club {
+  border-color: #f2c14e;
+  color: #f2c14e;
+}
+
 /* Dedicated putting scene: green close-up over the map during putts */
 
 .trip-game-putt-scene {

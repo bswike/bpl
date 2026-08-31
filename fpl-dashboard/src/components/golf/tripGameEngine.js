@@ -563,8 +563,10 @@ export function resolveMatchHole({
   random = Math.random,
   remapHumanLanding,
   humanGrossOverride = null,
+  cpuGrossOverride = null,
 }) {
   const playedGross = Number.isFinite(humanGrossOverride) ? Math.max(1, Math.round(humanGrossOverride)) : null;
+  const fixedCpuGross = Number.isFinite(cpuGrossOverride) ? Math.max(1, Math.round(cpuGrossOverride)) : null;
   let humanLandingIndex = sampleIndex(
     [humanOdds.landing.fairway, humanOdds.landing.rough, humanOdds.landing.bunker, humanOdds.landing.penalty],
     random,
@@ -582,9 +584,11 @@ export function resolveMatchHole({
   const humanBucket = playedGross
     ? clamp(playedGross - hole.par + 1, 0, SCORE_VALUES.length - 1)
     : sampleIndex(conditionOnLanding(humanOdds.probs, humanOdds.landing, humanLandingIndex), random);
-  const cpuBucket = sampleIndex(conditionOnLanding(cpuOdds.probs, cpuOdds.landing, cpuLandingIndex), random);
+  const cpuBucket = fixedCpuGross
+    ? clamp(fixedCpuGross - hole.par + 1, 0, SCORE_VALUES.length - 1)
+    : sampleIndex(conditionOnLanding(cpuOdds.probs, cpuOdds.landing, cpuLandingIndex), random);
   const humanGross = playedGross ?? Math.max(1, hole.par + SCORE_VALUES[humanBucket]);
-  const cpuGross = Math.max(1, hole.par + SCORE_VALUES[cpuBucket]);
+  const cpuGross = fixedCpuGross ?? Math.max(1, hole.par + SCORE_VALUES[cpuBucket]);
   const humanHcp = courseHandicap(human.hi, course);
   const cpuHcp = courseHandicap(cpu.hi, course);
   const humanStroke = strokeOnHole(Math.max(0, humanHcp - cpuHcp), hole.si);
