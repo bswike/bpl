@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  AIMS,
   CLUBS,
   SCORE_BUCKETS,
   SHAPES,
+  aimOffsetOf,
   buildHoleOdds,
   buildTripGameModel,
   chooseCpuPlayer,
@@ -26,6 +26,16 @@ const FEATURE_ORDER = { water: 0, fairway: 1, bunker: 2, green: 3, tee: 4 };
 const DEFAULT_PLAYER_STATE = Object.freeze({ buzz: 0, morale: 50 });
 
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
+
+const AIM_STEP = 0.155;
+const AIM_MAX = 0.93;
+
+function aimText(aim) {
+  const offset = aimOffsetOf(aim);
+  const yards = Math.round((offset / AIM_MAX) * 25);
+  if (yards === 0) return "CENTER";
+  return `${Math.abs(yards)}Y ${yards < 0 ? "LEFT" : "RIGHT"}`;
+}
 
 function lastName(name) {
   return String(name || "").trim().split(/\s+/).at(-1) || name;
@@ -314,13 +324,6 @@ function ScoreOdds({ odds }) {
           </div>
         ))}
       </div>
-      <div className="trip-game-landing">
-        {Object.entries(odds.landing).map(([label, value]) => (
-          <span key={label}>
-            {label === "penalty" ? "PENALTY" : label.toUpperCase()} <b>{formatOdds(value)}</b>
-          </span>
-        ))}
-      </div>
       {odds.actualGross != null ? (
         <div className="trip-game-memory">
           ACTUAL TRIP MEMORY: <b>{odds.actualGross}</b> ({scoreLabel(odds.actualRelative)}) · CURRENT MODEL CHANCE{" "}
@@ -342,7 +345,6 @@ function CaptainRead({ read }) {
   if (!read) return null;
   const bestClub = CLUBS.find((club) => club.id === read.bestDecision.club);
   const bestShape = SHAPES.find((shape) => shape.id === read.bestDecision.shape);
-  const bestAim = AIMS.find((aim) => aim.id === read.bestDecision.aim);
   return (
     <div
       key={read.planKey}
@@ -375,14 +377,28 @@ function CaptainRead({ read }) {
           ? "★ BEST LINE FOUND — COMMIT TO IT"
           : read.fireball
             ? "🔥 BIRDIE/PAR UP · DOUBLE/TRIPLE UP"
-            : `CADDIE LIKES ${bestClub?.short || bestClub?.label} · ${bestShape?.label.toUpperCase()} · ${bestAim?.label.toUpperCase()}`}
+            : `CADDIE LIKES ${bestClub?.short || bestClub?.label} · ${bestShape?.label.toUpperCase()} · ${aimText(read.bestDecision.aim)}`}
       </div>
     </div>
   );
 }
 
-function HoleMap({ projection, hole, decision, result, resolving }) {
-  const aim = AIMS.find((item) => item.id === decision.aim) || AIMS[1];
+function HoleMap({
+  projection,
+  hole,
+  decision,
+  result,
+  resolving,
+  odds,
+  canAct,
+  stockShape,
+  menu,
+  onAimStep,
+  onOpenMenu,
+  onMenuSelect,
+  onMenuClose,
+}) {
+  const aimOffset = aimOffsetOf(decision.aim);
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
   const lineLength = polylineLength(projection.line);
@@ -390,7 +406,7 @@ function HoleMap({ projection, hole, decision, result, resolving }) {
   const targetDistance = hole.yards ? lineLength * (targetYards / hole.yards) : lineLength * (hole.par <= 3 ? 0.94 : 0.58);
   const centerTarget = pointAlongPolyline(projection.line, targetDistance);
   const perpendicular = [-centerTarget.tangent[1], centerTarget.tangent[0]];
-  const lateralAim = aim.offset * clamp(projection.width * 0.12, 10, 22);
+  const lateralAim = aimOffset * clamp(projection.width * 0.12, 10, 22);
   const target = [
     centerTarget.point[0] + perpendicular[0] * lateralAim,
     centerTarget.point[1] + perpendicular[1] * lateralAim,
@@ -437,6 +453,22 @@ function HoleMap({ projection, hole, decision, result, resolving }) {
           {club.short} {targetYards}Y · {remainingYards != null ? `${remainingYards}Y LEFT` : "TEE PLAN"}
         </span>
       </div>
+      {odds && (
+        <div className="trip-game-map-landing" aria-label="Landing odds for this exact aim">
+          <span>
+            FRWY <b>{formatOdds(odds.landing.fairway)}</b>
+          </span>
+          <span>
+            RGH <b>{formatOdds(odds.landing.rough)}</b>
+          </span>
+          <span>
+            BNKR <b>{formatOdds(odds.landing.bunker)}</b>
+          </span>
+          <span className={odds.landing.penalty >= 0.12 ? "is-danger" : ""}>
+            PNLTY <b>{formatOdds(odds.landing.penalty)}</b>
+          </span>
+        </div>
+      )}
       <svg
         className="trip-game-map"
         viewBox={`0 0 ${projection.width} ${projection.height}`}
@@ -558,6 +590,66 @@ function HoleMap({ projection, hole, decision, result, resolving }) {
           </g>
         )}
       </svg>
+      {canAct && (
+        <div className="trip-game-pad">
+          <div className="trip-game-pad-aim">
+            <button type="button" onClick={() => onAimStep(-1)} disabled={aimOffset <= -AIM_MAX + 0.01} aria-label="Aim left">
+              ◀
+            </button>
+            <span>
+              <small>AIM</small>
+              <b>{aimText(aimOffset)}</b>
+            </span>
+            <button type="button" onClick={() => onAimStep(1)} disabled={aimOffset >= AIM_MAX - 0.01} aria-label="Aim right">
+              ▶
+            </button>
+          </div>
+          <div className="trip-game-pad-menus">
+            <button type="button" className={menu === "club" ? "is-open" : ""} onClick={() => onOpenMenu("club")}>
+              <small>CLUB</small>
+              <b>{club.short}</b>
+            </button>
+            <button type="button" className={menu === "shape" ? "is-open" : ""} onClick={() => onOpenMenu("shape")}>
+              <small>SHAPE</small>
+              <b>{shape.label.toUpperCase()}</b>
+            </button>
+          </div>
+        </div>
+      )}
+      {menu && (
+        <>
+          <button type="button" className="trip-game-gb-menu-backdrop" aria-label="Close menu" onClick={onMenuClose} />
+          <div className="trip-game-gb-menu" role="menu" aria-label={menu === "club" ? "Select club" : "Select shot shape"}>
+            <div className="trip-game-gb-menu-title">{menu === "club" ? "SELECT CLUB" : "SELECT SHAPE"}</div>
+            {menu === "club"
+              ? CLUBS.filter((item) => item.minPar <= hole.par).map((item) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={item.id === decision.club ? "is-selected" : ""}
+                    onClick={() => onMenuSelect("club", item.id)}
+                  >
+                    <i>{item.id === decision.club ? "▶" : ""}</i>
+                    <b>{item.label.toUpperCase()}</b>
+                    <span>~{item.carry}Y</span>
+                  </button>
+                ))
+              : SHAPES.map((item) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    className={item.id === decision.shape ? "is-selected" : ""}
+                    onClick={() => onMenuSelect("shape", item.id)}
+                  >
+                    <i>{item.id === decision.shape ? "▶" : ""}</i>
+                    <b>{item.label.toUpperCase()}</b>
+                    <span>{item.id === stockShape ? "STOCK" : item.id === hole.preferredShape ? "ROUTE" : ""}</span>
+                  </button>
+                ))}
+            {menu === "shape" && <div className="trip-game-gb-menu-hint">ROUTE FAVORS {String(hole.preferredShape || "straight").toUpperCase()}</div>}
+          </div>
+        </>
+      )}
       <div className="trip-game-map-foot">
         <span>
           PAR {hole.par} · {hole.yards ? `${hole.yards} YDS` : "YARDAGE N/A"}
@@ -652,30 +744,6 @@ function PlayerPicker({ players, selectedKey, usage, maxUses, disabled, onPick }
   );
 }
 
-function ChoiceRow({ label, choices, value, onChange, disabled, detail }) {
-  return (
-    <div className="trip-game-choice-row">
-      <div className="trip-game-section-label">
-        <span>{label}</span>
-        {detail && <span>{detail}</span>}
-      </div>
-      <div className="trip-game-choice-buttons">
-        {choices.map((choice) => (
-          <button
-            type="button"
-            key={choice.id}
-            className={choice.id === value ? "is-selected" : ""}
-            disabled={disabled}
-            onClick={() => onChange(choice.id)}
-          >
-            {choice.short || choice.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function ShotRoll({ result, decision }) {
   const club = CLUBS.find((item) => item.id === decision.club);
   return (
@@ -693,7 +761,7 @@ function ShotRoll({ result, decision }) {
         <span>BOG</span>
       </div>
       <p>
-        {club?.short || club?.label} · {decision.shape.toUpperCase()} · {decision.aim.toUpperCase()}
+        {club?.short || club?.label} · {decision.shape.toUpperCase()} · AIM {aimText(decision.aim)}
       </p>
       <div className="trip-game-roll-loader">
         <i />
@@ -954,7 +1022,8 @@ export default function TripGame({ data }) {
   const [screen, setScreen] = useState("setup");
   const [holeIndex, setHoleIndex] = useState(0);
   const [selectedKey, setSelectedKey] = useState(null);
-  const [decision, setDecision] = useState({ club: "driver", aim: "center", shape: "straight", fireball: false });
+  const [decision, setDecision] = useState({ club: "driver", aim: 0, shape: "straight", fireball: false });
+  const [menu, setMenu] = useState(null);
   const [usage, setUsage] = useState({});
   const [cpuUsage, setCpuUsage] = useState({});
   const [playerState, setPlayerState] = useState({});
@@ -1000,6 +1069,18 @@ export default function TripGame({ data }) {
     },
     [],
   );
+
+  // Game Boy style keyboard aiming on desktop.
+  useEffect(() => {
+    if (screen !== "play") return undefined;
+    const onKey = (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      stepAim(event.key === "ArrowLeft" ? -1 : 1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const historicalData = useMemo(
     () => archive.filter((dataset) => dataset.trip?.id !== data.trip?.id),
@@ -1141,7 +1222,8 @@ export default function TripGame({ data }) {
     setScreen("play");
     setHoleIndex(0);
     setSelectedKey(null);
-    setDecision({ club: "driver", aim: "center", shape: "straight", fireball: false });
+    setDecision({ club: "driver", aim: 0, shape: "straight", fireball: false });
+    setMenu(null);
     setUsage({});
     setCpuUsage({});
     setPlayerState(initializePlayerState());
@@ -1164,8 +1246,23 @@ export default function TripGame({ data }) {
     if (result || pickLocked || resolutionPhase !== "idle") return;
     setSelectedKey(player.key);
     setDecision(defaultDecision(player, hole));
+    setMenu(null);
     setEventNote(null);
     if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(8);
+  }
+
+  function stepAim(direction) {
+    if (!selected || result || resolutionPhase !== "idle") return;
+    setDecision((current) => ({
+      ...current,
+      aim: clamp(aimOffsetOf(current.aim) + direction * AIM_STEP, -AIM_MAX, AIM_MAX),
+    }));
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(4);
+  }
+
+  function chooseFromMenu(type, id) {
+    setDecision((current) => ({ ...current, [type]: id }));
+    setMenu(null);
   }
 
   function updateCondition(playerKey, update) {
@@ -1322,7 +1419,8 @@ export default function TripGame({ data }) {
     }
     setHoleIndex((current) => current + 1);
     setSelectedKey(null);
-    setDecision({ club: "driver", aim: "center", shape: "straight", fireball: false });
+    setDecision({ club: "driver", aim: 0, shape: "straight", fireball: false });
+    setMenu(null);
     setResult(null);
     setResolutionPhase("idle");
     setEventOffer(null);
@@ -1406,6 +1504,14 @@ export default function TripGame({ data }) {
                 decision={decision}
                 result={resolutionPhase === "result" ? result : null}
                 resolving={resolutionPhase === "rolling"}
+                odds={resolutionPhase === "idle" && !result ? odds : null}
+                canAct={Boolean(selected) && resolutionPhase === "idle" && !result}
+                stockShape={selected?.stockShape}
+                menu={menu}
+                onAimStep={stepAim}
+                onOpenMenu={(type) => setMenu((current) => (current === type ? null : type))}
+                onMenuSelect={chooseFromMenu}
+                onMenuClose={() => setMenu(null)}
               />
               <div className="trip-game-command-panel">
                 <PlayerCard player={selected} playerState={selectedState} course={course} />
@@ -1424,36 +1530,6 @@ export default function TripGame({ data }) {
                   <>
                     <ScoreOdds odds={odds} />
                     <CaptainRead read={captainRead} />
-                    <div className="trip-game-decisions">
-                      <ChoiceRow
-                        label="CLUB"
-                        choices={CLUBS.filter((club) => club.minPar <= hole.par)}
-                        value={decision.club}
-                        disabled={!selected}
-                        onChange={(club) => setDecision((current) => ({ ...current, club }))}
-                        detail={CLUBS.find((club) => club.id === decision.club)?.carry ? `~${CLUBS.find((club) => club.id === decision.club).carry}Y` : null}
-                      />
-                      <ChoiceRow
-                        label="SHOT SHAPE"
-                        choices={SHAPES}
-                        value={decision.shape}
-                        disabled={!selected}
-                        onChange={(shape) => setDecision((current) => ({ ...current, shape }))}
-                        detail={
-                          selected
-                            ? `STOCK ${selected.stockShape.toUpperCase()} · ROUTE ${hole.preferredShape.toUpperCase()}`
-                            : null
-                        }
-                      />
-                      <ChoiceRow
-                        label="AIM"
-                        choices={AIMS}
-                        value={decision.aim}
-                        disabled={!selected}
-                        onChange={(aim) => setDecision((current) => ({ ...current, aim }))}
-                        detail={projection.hazardLabel}
-                      />
-                    </div>
                     <div className="trip-game-items">
                       <button
                         type="button"

@@ -331,12 +331,18 @@ function shapeFitAdjustment(profile, hole, shapeId) {
   return execution + 0.18 * severity;
 }
 
+/** Aim is a continuous lateral offset (-0.93 left .. 0.93 right); legacy string ids still resolve. */
+export function aimOffsetOf(aim) {
+  if (typeof aim === "number") return clamp(aim, -0.93, 0.93);
+  const preset = AIMS.find((item) => item.id === aim);
+  return preset ? preset.offset : 0;
+}
+
 function landingProbabilities(profile, hole, decision, state) {
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
-  const aim = AIMS.find((item) => item.id === decision.aim) || AIMS[1];
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
   const danger = hole.dangerSide === "left" ? -1 : hole.dangerSide === "right" ? 1 : 0;
-  const pathBias = aim.offset + shape.bias;
+  const pathBias = aimOffsetOf(decision.aim) + shape.bias;
   const intoDanger = Math.max(0, pathBias * danger);
   const awayFromDanger = Math.max(0, -pathBias * danger);
   const offline = Math.max(0, Math.abs(pathBias) - 0.45);
@@ -425,7 +431,7 @@ export function defaultDecision(profile, hole) {
   const yards = Number(hole.yards) || 0;
   return {
     club: hole.par <= 3 ? (yards > 195 ? "wood" : "iron") : "driver",
-    aim: hole.dangerSide === "right" ? "left" : hole.dangerSide === "left" ? "right" : "center",
+    aim: hole.dangerSide === "right" ? -0.42 : hole.dangerSide === "left" ? 0.42 : 0,
     shape: profile.stockShape,
     fireball: false,
   };
@@ -551,14 +557,16 @@ export function matchCloseout({ humanWins, cpuWins, holesPlayed, totalHoles = 18
   return { decided: false, dormie: diff > 0 && diff === remaining };
 }
 
+const AIM_SEARCH = [-0.62, -0.31, 0, 0.31, 0.62];
+
 export function findBestDecision({ profile, course, hole, state }) {
   const base = defaultDecision(profile, hole);
   let best = null;
   let worst = null;
   for (const club of CLUBS.filter((item) => item.minPar <= hole.par)) {
     for (const shape of SHAPES) {
-      for (const aim of AIMS) {
-        const decision = { ...base, club: club.id, shape: shape.id, aim: aim.id, fireball: false };
+      for (const aim of AIM_SEARCH) {
+        const decision = { ...base, club: club.id, shape: shape.id, aim, fireball: false };
         const odds = buildHoleOdds({ profile, course, hole, decision, state });
         const plan = { decision, odds };
         if (!best || odds.expectedGross < best.odds.expectedGross) best = plan;

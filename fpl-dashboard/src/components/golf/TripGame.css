@@ -587,6 +587,241 @@
   text-align: right;
 }
 
+/* live landing odds for the current aim */
+
+.trip-game-map-landing {
+  z-index: 2;
+  display: flex;
+  border-bottom: 2px solid #060f0a;
+  background: #0b1a11;
+}
+
+.trip-game-map-landing span {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+  padding: 4px 3px;
+  border-right: 1px solid #24382b;
+  color: #93ab80;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+.trip-game-map-landing span:last-child {
+  border-right: 0;
+}
+
+.trip-game-map-landing b {
+  color: #e6eecb;
+  font-size: 14px;
+}
+
+.trip-game-map-landing span.is-danger {
+  background: #3c1f1a;
+  color: #eba083;
+}
+
+.trip-game-map-landing span.is-danger b {
+  color: #ffcf9e;
+}
+
+/* Game Boy control pad under the screen */
+
+.trip-game-pad {
+  z-index: 2;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  border-top: 2px solid #060f0a;
+  background: linear-gradient(180deg, #223829 0%, #182a1e 100%);
+}
+
+.trip-game-pad-aim {
+  display: flex;
+  align-items: stretch;
+  gap: 5px;
+}
+
+.trip-game-pad-aim button {
+  width: 46px;
+  border: 2px solid #060f0a;
+  background: linear-gradient(180deg, #4a5c50 0%, #37473c 100%);
+  color: #e7f0cc;
+  font-size: 15px;
+  box-shadow:
+    2px 2px 0 #060f0a,
+    inset 0 2px 0 rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.trip-game-pad-aim button:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #060f0a;
+}
+
+.trip-game-pad-aim button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.trip-game-pad-aim > span {
+  display: grid;
+  min-width: 86px;
+  align-content: center;
+  justify-items: center;
+  padding: 2px 7px;
+  border: 2px solid #060f0a;
+  background: var(--px-screen);
+  color: var(--px-ink);
+  text-align: center;
+}
+
+.trip-game-pad-aim > span small {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  opacity: 0.75;
+}
+
+.trip-game-pad-aim > span b {
+  font-size: 14px;
+  line-height: 1.05;
+}
+
+.trip-game-pad-menus {
+  display: flex;
+  gap: 6px;
+}
+
+.trip-game-pad-menus button {
+  display: grid;
+  min-width: 74px;
+  align-content: center;
+  justify-items: center;
+  padding: 3px 8px;
+  border: 2px solid #060f0a;
+  background: linear-gradient(180deg, #b05836 0%, #91401f 100%);
+  color: #ffedc2;
+  box-shadow:
+    2px 2px 0 #060f0a,
+    inset 0 2px 0 rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.trip-game-pad-menus button:last-child {
+  background: linear-gradient(180deg, #3f6a7f 0%, #2e4f61 100%);
+}
+
+.trip-game-pad-menus button:active,
+.trip-game-pad-menus button.is-open {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #060f0a;
+}
+
+.trip-game-pad-menus button small {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  opacity: 0.8;
+}
+
+.trip-game-pad-menus button b {
+  font-size: 15px;
+  line-height: 1.05;
+}
+
+/* Game Boy pop-up menu window */
+
+.trip-game-gb-menu-backdrop {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  border: 0;
+  background: rgba(4, 12, 7, 0.45);
+  cursor: pointer;
+}
+
+.trip-game-gb-menu {
+  position: absolute;
+  z-index: 30;
+  top: 46%;
+  left: 50%;
+  display: grid;
+  width: min(250px, 88%);
+  gap: 3px;
+  padding: 8px;
+  border: 3px solid #060f0a;
+  background: var(--px-paper);
+  color: var(--px-ink);
+  transform: translate(-50%, -50%);
+  box-shadow:
+    5px 5px 0 rgba(6, 15, 10, 0.6),
+    inset 0 0 0 2px #8aa070;
+  animation: trip-game-read-pop 140ms steps(2, end);
+}
+
+.trip-game-gb-menu-title {
+  padding: 2px 4px 5px;
+  border-bottom: 2px solid var(--px-ink);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-align: center;
+}
+
+.trip-game-gb-menu > button {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 4px 6px;
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--px-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.trip-game-gb-menu > button:hover,
+.trip-game-gb-menu > button.is-selected {
+  border-color: var(--px-ink);
+  background: var(--px-screen);
+}
+
+.trip-game-gb-menu > button i {
+  color: var(--px-orange);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.trip-game-gb-menu > button b {
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-game-gb-menu > button span {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  opacity: 0.75;
+}
+
+.trip-game-gb-menu-hint {
+  margin-top: 2px;
+  padding: 3px 4px 1px;
+  border-top: 1px solid rgba(11, 26, 16, 0.35);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-align: center;
+  opacity: 0.75;
+}
+
 .trip-game-map {
   display: block;
   width: 100%;
@@ -1221,48 +1456,7 @@
   color: #f5c67e;
 }
 
-/* decisions */
-
-.trip-game-decisions {
-  display: grid;
-  gap: 7px;
-}
-
-.trip-game-choice-buttons {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  gap: 4px;
-}
-
-.trip-game-choice-buttons button {
-  min-width: 0;
-  min-height: 31px;
-  padding: 5px 3px;
-  border: 2px solid #060f0a;
-  background: #305040;
-  color: #a7bb92;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  box-shadow: 2px 2px 0 #060f0a;
-  cursor: pointer;
-}
-
-.trip-game-choice-buttons button:hover:not(:disabled) {
-  color: #dbe6bd;
-}
-
-.trip-game-choice-buttons button.is-selected {
-  background: var(--px-screen);
-  color: var(--px-ink);
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 #060f0a;
-}
-
-.trip-game-choice-buttons button:disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
-}
+/* items */
 
 .trip-game-items button {
   display: grid;
@@ -2183,7 +2377,7 @@
   }
 
   .trip-game-map {
-    height: 185px;
+    height: 172px;
     flex: none;
   }
 
@@ -2192,6 +2386,56 @@
     min-height: 21px;
     padding: 3px 6px;
     font-size: 9px;
+  }
+
+  .trip-game-map-foot {
+    display: none;
+  }
+
+  .trip-game-map-landing span {
+    padding: 2px 2px;
+    font-size: 9px;
+    gap: 3px;
+  }
+
+  .trip-game-map-landing b {
+    font-size: 12px;
+  }
+
+  .trip-game-pad {
+    gap: 6px;
+    padding: 5px 6px;
+  }
+
+  .trip-game-pad-aim button {
+    width: 40px;
+    font-size: 13px;
+  }
+
+  .trip-game-pad-aim > span {
+    min-width: 72px;
+    padding: 1px 5px;
+  }
+
+  .trip-game-pad-aim > span small {
+    font-size: 8px;
+  }
+
+  .trip-game-pad-aim > span b {
+    font-size: 12px;
+  }
+
+  .trip-game-pad-menus button {
+    min-width: 60px;
+    padding: 2px 6px;
+  }
+
+  .trip-game-pad-menus button small {
+    font-size: 8px;
+  }
+
+  .trip-game-pad-menus button b {
+    font-size: 13px;
   }
 
   .trip-game-command-panel {
@@ -2297,20 +2541,6 @@
   .trip-game-caddie-tip {
     padding: 2px 4px;
     font-size: 9px;
-  }
-
-  .trip-game-decisions {
-    gap: 4px;
-  }
-
-  .trip-game-choice-row .trip-game-section-label {
-    margin-bottom: 2px;
-  }
-
-  .trip-game-choice-buttons button {
-    min-height: 24px;
-    padding: 2px;
-    font-size: 11px;
   }
 
   .trip-game-items button {
@@ -2544,7 +2774,7 @@
   }
 
   .trip-game-map {
-    height: 185px;
+    height: 172px;
   }
 
   .trip-game-command-panel {
@@ -2600,6 +2830,7 @@
   .trip-game-roll-reels span,
   .trip-game-roll-loader i,
   .trip-game-roll-burst i,
+  .trip-game-gb-menu,
   .trip-game-celebration,
   .trip-game-celebration-particles i,
   .trip-game-modal,
