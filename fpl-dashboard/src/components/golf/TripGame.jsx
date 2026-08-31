@@ -786,7 +786,19 @@ function mergeMatchPlayShots(firstSide, secondSide, pin) {
  * Resolve one played full swing in shot-by-shot mode: carry from club/power,
  * scatter from accuracy, then real terrain — trees, water, OB, sand, green.
  */
-function resolveLiveStroke({ projection, hole, from, lie, meter, judgment, clubId, carryBoost, yardsScale, aimUnits = 0 }) {
+function resolveLiveStroke({
+  projection,
+  hole,
+  from,
+  lie,
+  meter,
+  judgment,
+  clubId,
+  carryBoost,
+  yardsScale,
+  aimUnits = 0,
+  drunk = false,
+}) {
   const pin = projection.pin;
   const scale = yardsScale > 0 ? yardsScale : 1;
   const dx = pin[0] - from[0];
@@ -802,15 +814,19 @@ function resolveLiveStroke({ projection, hole, from, lie, meter, judgment, clubI
   const power = clamp(Number(meter.power) || 0.9, 0, 1.15);
   const liveClub = liveClubOf(clubId);
   const baseCarry = liveClub ? liveClub.carry : (CLUBS.find((club) => club.id === clubId) || CLUBS[2]).carry;
-  const carryYards = baseCarry * (0.7 + power * 0.4) * (carryBoost || 1) * lieMult;
-  const lateralYards = meter.accuracy * (liveClub?.lateral ?? CLUB_LATERAL_YARDS[clubId] ?? 16);
+  // A wild miss isn't a gentle push — it's a banana ball: way more scatter
+  // (worse still with a drink in you), and slices lose carry.
+  const wild = judgment.tier === "wild";
+  const sliceFactor = wild ? 2.2 * (drunk ? 1.3 : 1) : 1;
+  const carryYards = baseCarry * (0.7 + power * 0.4) * (carryBoost || 1) * lieMult * (wild ? 0.85 : 1);
+  const lateralYards = meter.accuracy * (liveClub?.lateral ?? CLUB_LATERAL_YARDS[clubId] ?? 16) * sliceFactor;
   let to = [
     from[0] + dir[0] * carryYards * scale + perp[0] * (lateralYards * scale + aimUnits),
     from[1] + dir[1] * carryYards * scale + perp[1] * (lateralYards * scale + aimUnits),
   ];
   const kind = lie === "Tee" ? (hole.par <= 3 ? "tee" : "drive") : lie === "Bunker" ? "sand" : lie === "Rough" ? "punch" : "approach";
-  // The drawn flight curves with the swing — check water along the same curve.
-  const bend = clamp(meter.accuracy * 20, -24, 24);
+  // The drawn flight curves with the swing — a wild one visibly banana-slices.
+  const bend = clamp(meter.accuracy * 20 * (wild ? 2.4 : 1), -55, 55);
 
   const splash = (wet) => ({
     kind: "splash",
@@ -840,6 +856,7 @@ function resolveLiveStroke({ projection, hole, from, lie, meter, judgment, clubI
       nextLie: lie,
       penalty: 1,
       bend,
+      caption: wild ? (meter.accuracy > 0 ? "SLICED WAY RIGHT... OB!" : "SNAP HOOKED... OB!") : null,
     };
   }
   // Wherever the ball graphic rests decides: water is water, before any
@@ -1754,6 +1771,14 @@ function HoleMap({
             {playback.phase === "flight" && (
               <g className="trip-game-impact" transform={`translate(${activeShot.from[0] + (shotFlipped ? -6 : 6)} ${activeShot.from[1] - 4})`}>
                 <path d="M0,-5 L1.6,-1.6 L5,0 L1.6,1.6 L0,5 L-1.6,1.6 L-5,0 L-1.6,-1.6 Z" />
+              </g>
+            )}
+            {activeShot.terrible && playback.phase !== "settle" && (
+              <g transform={`translate(${activeShot.from[0]} ${activeShot.from[1] - 26})`}>
+                <g className="trip-game-terrible">
+                  <rect x="-2.2" y="-9" width="4.4" height="11" />
+                  <rect x="-2.2" y="4.4" width="4.4" height="4.4" />
+                </g>
               </g>
             )}
             {playback.phase === "swing" && (
@@ -2942,15 +2967,39 @@ export default function TripGame({ data }) {
       last = now;
       const live = meterLiveRef.current;
       if (meterPhase === "power") {
-        const before = live.power;
-        live.power += dt * (meterModsRef.current.powerSpeed || BASE_POWER_SPEED);
-        updatePowerSweep(live.power / POWER_METER_MAX);
         const band = meterModsRef.current.paceBand;
+        const putterMode = Boolean(band);
+        const before = live.power;
+        live.power += dt * (meterModsRef.current.powerSpeed || BASE_POWER_SPEED) * (putterMode ? live.powerDir : 1);
+        updatePowerSweep(live.power / POWER_METER_MAX);
         const bandMin = band ? band.min : POWER_SWEET_MIN;
         const bandMax = band ? band.max : POWER_SWEET_MAX;
-        if (before < bandMin && live.power >= bandMin) zoneTick("good");
-        if (before < bandMax && live.power >= bandMax) zoneTick("warn");
-        if (live.power >= POWER_METER_MAX) {
+        if ((before < bandMin && live.power >= bandMin) || (before > bandMin && live.power <= bandMin)) zoneTick("good");
+        if ((before < bandMax && live.power >= bandMax) || (before > bandMax && live.power <= bandMax)) zoneTick("warn");
+        if (putterMode) {
+          // The pace bar ping-pongs: up to 3 full passes before it settles.
+          if (live.power >= POWER_METER_MAX) {
+            live.power = POWER_METER_MAX;
+            live.powerDir = -1;
+            live.powerBounces = (live.powerBounces || 0) + 1;
+          } else if (live.power <= 0) {
+            live.power = 0;
+            live.powerDir = 1;
+            live.powerBounces = (live.powerBounces || 0) + 1;
+          }
+          if ((live.powerBounces || 0) >= 6) {
+            const settled = live.power;
+            live.accuracy = -1;
+            live.accDir = 1;
+            meterLockRef.current = { power: settled };
+            stopPowerSweep();
+            lockPowerSound(settled > bandMax);
+            armAccuracyPhase(settled);
+            setMeterTick({ power: settled, accuracy: -1 });
+            setMeterPhase("accuracy");
+            return;
+          }
+        } else if (live.power >= POWER_METER_MAX) {
           live.power = POWER_METER_MAX;
           live.accuracy = -1;
           live.accDir = 1;
@@ -3383,7 +3432,7 @@ export default function TripGame({ data }) {
   function startKickMeter(options = {}) {
     setHoleIntro(false);
     resolvingRef.current = false;
-    meterLiveRef.current = { power: 0, accuracy: -1, powerDir: 1, accDir: 1 };
+    meterLiveRef.current = { power: 0, accuracy: -1, powerDir: 1, accDir: 1, powerBounces: 0 };
     meterLockRef.current = null;
     meterTapAtRef.current = 0;
     // Contextual meter: shorter clubs swing an easier (slower, wider) needle,
@@ -3762,6 +3811,7 @@ export default function TripGame({ data }) {
         clubId: live.club,
         // Buzzed flush = super shot: the ball goes extra.
         carryBoost: (decision.carryBoost || 1) * (judgment.buzzBonus ? meterModsRef.current.buzzBonus || 1 : 1),
+        drunk: Boolean(meterModsRef.current.buzzWobble),
         yardsScale,
         // The planning aim applies to the tee ball; approaches aim at the pin.
         aimUnits: live.strokes === 0 ? aimOffsetOf(decision.aim) * clamp(projection.width * 0.12, 10, 22) : 0,
@@ -3788,6 +3838,7 @@ export default function TripGame({ data }) {
         side: "human",
         kickPower: meter.power,
         shotNumber: live.strokes,
+        terrible: judgment.tier === "wild",
       };
     }
     if (animate && shot) {

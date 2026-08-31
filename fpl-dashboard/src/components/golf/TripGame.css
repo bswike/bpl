@@ -3153,6 +3153,36 @@
   fill: #8f97a1;
 }
 
+/* Terrible-shot panic marker: a big bouncing "!" over the golfer */
+
+.trip-game-terrible rect {
+  fill: #ff5c39;
+  stroke: #060f0a;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-terrible {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: trip-game-terrible-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1), trip-kick-pulse 0.4s ease-in-out 0.5s infinite;
+}
+
+@keyframes trip-game-terrible-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) translateY(4px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.25) translateY(-1px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 .trip-game-impact path {
   fill: #ffe14d;
   stroke: #0a1c11;
