@@ -255,14 +255,14 @@ function cameraContains(camera, point, margin = 14) {
 function trackShotCamera({ projection, ballAir, ballGround, destination, kind, onGreen }) {
   const worldW = projection.width;
   const worldH = projection.height;
-  const look = lookAheadPoint(ballGround, destination, onGreen || kind === "putt" ? 34 : 86);
-  const cx = ballAir[0] * 0.52 + look[0] * 0.48;
-  const cy = ballAir[1] * 0.45 + look[1] * 0.45 + ballGround[1] * 0.1;
-  const coverH = Math.abs(look[1] - ballAir[1]) + Math.abs(ballGround[1] - ballAir[1]) + 52;
-  const coverW = Math.abs(look[0] - ballAir[0]) + 42;
-  const minH = onGreen || kind === "putt" ? 102 : 132;
-  const maxH = onGreen || kind === "putt" ? 138 : kind === "drive" || kind === "tee" ? 188 : 158;
-  return cameraWindow(cx, cy, clamp(Math.max(coverH, coverW / 0.82, minH), minH, maxH), worldW, worldH, 0.82);
+  const look = lookAheadPoint(ballGround, destination, onGreen || kind === "putt" ? 42 : 110);
+  const cx = ballAir[0] * 0.48 + look[0] * 0.52;
+  const cy = ballAir[1] * 0.42 + look[1] * 0.48 + ballGround[1] * 0.1;
+  const coverH = Math.abs(look[1] - ballAir[1]) + Math.abs(ballGround[1] - ballAir[1]) + 58;
+  const coverW = Math.abs(look[0] - ballAir[0]) + 46;
+  const minH = onGreen || kind === "putt" ? 128 : 168;
+  const maxH = onGreen || kind === "putt" ? 168 : kind === "drive" || kind === "tee" ? 236 : 200;
+  return cameraWindow(cx, cy, clamp(Math.max(coverH, coverW / 0.78, minH), minH, maxH), worldW, worldH, 0.78);
 }
 
 function usableGreen(projection) {
@@ -277,7 +277,7 @@ function usableGreen(projection) {
 function greenCamera(projection) {
   const green = usableGreen(projection);
   const pin = projection.pin;
-  const span = projection.height * 0.34;
+  const span = projection.height * 0.4;
   if (green) {
     const cx = lerp(green.cx, pin[0], 0.3);
     const cy = lerp(green.cy, pin[1], 0.3);
