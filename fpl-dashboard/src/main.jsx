@@ -27,6 +27,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/masters" element={<MastersCalcutta />} />
         <Route path="/rounds" element={<Rounds />} />
         <Route
+          path="/golftrip/game"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+              <GolfTrip gameOnly />
+            </Suspense>
+          }
+        />
+        <Route
           path="/golftrip/:tripId?"
           element={
             <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
