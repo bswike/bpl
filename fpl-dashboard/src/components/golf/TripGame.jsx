@@ -309,10 +309,30 @@ function blendCamera(from, to, t) {
   };
 }
 
-function computeMapCamera({ projection, playback, landing, activeShot, flightFrame }) {
+function computeMapCamera({ projection, playback, landing, activeShot, flightFrame, liveFocus }) {
   const overview = fullCamera(projection);
   const pin = projection.pin;
   const greenCam = greenCamera(projection);
+
+  // Shot-by-shot club selection: show the whole hole so the player can judge
+  // the club; zoom in only once the ball is on the green.
+  if (liveFocus && !playback) {
+    if (pointNearGreen(liveFocus, projection)) {
+      return blendCamera(
+        trackShotCamera({
+          projection,
+          ballAir: liveFocus,
+          ballGround: liveFocus,
+          destination: pin,
+          kind: "approach",
+          onGreen: true,
+        }),
+        greenCam,
+        0.55,
+      );
+    }
+    return overview;
+  }
 
   if (playback && activeShot) {
     const ground = flightFrame
@@ -759,14 +779,18 @@ function mergeMatchPlayShots(firstSide, secondSide, pin) {
  * Resolve one played full swing in shot-by-shot mode: carry from club/power,
  * scatter from accuracy, then real terrain — trees, water, OB, sand, green.
  */
-function resolveLiveStroke({ projection, hole, from, lie, meter, judgment, clubId, carryBoost, yardsScale }) {
+function resolveLiveStroke({ projection, hole, from, lie, meter, judgment, clubId, carryBoost, yardsScale, aimUnits = 0 }) {
   const pin = projection.pin;
   const scale = yardsScale > 0 ? yardsScale : 1;
   const dx = pin[0] - from[0];
   const dy = pin[1] - from[1];
   const distUnits = Math.hypot(dx, dy) || 1;
   const dir = [dx / distUnits, dy / distUnits];
-  const perp = [-dir[1], dir[0]];
+  // Miss direction matches the meter as the PLAYER sees it: the needle's
+  // right is the screen's right, so the lateral axis always points screen-
+  // right — even on shots played back toward the tee.
+  let perp = [-dir[1], dir[0]];
+  if (perp[0] < 0) perp = [-perp[0], -perp[1]];
   const lieMult = lie === "Rough" ? 0.88 : lie === "Bunker" ? 0.8 : 1;
   const power = clamp(Number(meter.power) || 0.9, 0, 1.15);
   const liveClub = liveClubOf(clubId);
@@ -774,8 +798,8 @@ function resolveLiveStroke({ projection, hole, from, lie, meter, judgment, clubI
   const carryYards = baseCarry * (0.7 + power * 0.4) * (carryBoost || 1) * lieMult;
   const lateralYards = meter.accuracy * (liveClub?.lateral ?? CLUB_LATERAL_YARDS[clubId] ?? 16);
   let to = [
-    from[0] + dir[0] * carryYards * scale + perp[0] * lateralYards * scale,
-    from[1] + dir[1] * carryYards * scale + perp[1] * lateralYards * scale,
+    from[0] + dir[0] * carryYards * scale + perp[0] * (lateralYards * scale + aimUnits),
+    from[1] + dir[1] * carryYards * scale + perp[1] * (lateralYards * scale + aimUnits),
   ];
   const kind = lie === "Tee" ? (hole.par <= 3 ? "tee" : "drive") : lie === "Bunker" ? "sand" : lie === "Rough" ? "punch" : "approach";
 
@@ -1337,9 +1361,10 @@ function HoleMap({
   const targetCam = computeMapCamera({
     projection,
     playback,
-    landing: landing || livePos || null,
+    landing,
     activeShot,
     flightFrame,
+    liveFocus: livePos || null,
   });
   const firstFlightFrame = playback?.phase === "flight" && (playback.frame || 0) === 0;
   const ballAir = flightFrame ? [flightFrame.x, flightFrame.y] : null;
@@ -3418,7 +3443,11 @@ export default function TripGame({ data }) {
         85 - breakDir * clamp(feet * 0.9, 4, 22),
         36 + clamp(26 + feet * 1.3, 34, 78),
       ];
-      const end = made ? [85, 36] : [85 - breakDir * 2.5, 36 + clamp(leaveFeet * 2.5, 3.5, 44)];
+      // A missed putt leaves the ball on the side you actually missed on.
+      const missSide = Math.abs(meter.accuracy) > 0.05 ? Math.sign(meter.accuracy) : breakDir >= 0 ? 1 : -1;
+      const end = made
+        ? [85, 36]
+        : [85 + missSide * (2.5 + Math.min(4, Math.abs(meter.accuracy) * 5)), 36 + clamp(leaveFeet * 2.5, 3.5, 44)];
       live.sceneCarry = made ? null : end;
       if (made) {
         live.holed = true;
@@ -3444,6 +3473,8 @@ export default function TripGame({ data }) {
         clubId: live.club,
         carryBoost: decision.carryBoost,
         yardsScale,
+        // The planning aim applies to the tee ball; approaches aim at the pin.
+        aimUnits: live.strokes === 0 ? aimOffsetOf(decision.aim) * clamp(projection.width * 0.12, 10, 22) : 0,
       });
       live.strokes += 1 + (res.penalty || 0);
       live.pos = res.nextPos || res.to;
