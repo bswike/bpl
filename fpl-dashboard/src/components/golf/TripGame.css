@@ -451,7 +451,7 @@
   min-height: 500px;
   flex-direction: column;
   border-right: 3px solid var(--px-ink);
-  background: #2b5037;
+  background: #294e34;
 }
 
 .trip-game-map-hud,
@@ -477,56 +477,184 @@
   font-size: 6px;
 }
 
+.trip-game-map-foot span:nth-child(2) {
+  flex: 1;
+  text-align: center;
+}
+
+.trip-game-map-foot span:last-child {
+  text-align: right;
+}
+
 .trip-game-map {
   display: block;
   width: 100%;
   min-height: 0;
   flex: 1;
-  filter: saturate(0.88) contrast(1.08);
+  background: #315a39;
+  filter: saturate(0.96) contrast(1.04);
   image-rendering: pixelated;
 }
 
 .trip-game-map-rough {
-  fill: #365f3c;
+  fill: #315a39;
 }
 
-.trip-game-map-feature {
-  stroke: rgba(7, 24, 15, 0.72);
+.trip-game-rough-pixel {
+  fill: rgba(17, 48, 29, 0.31);
+}
+
+.trip-game-rough-pixel--light {
+  fill: rgba(137, 166, 94, 0.2);
+}
+
+.trip-game-carry-arc {
+  fill: none;
+  stroke: rgba(244, 231, 175, 0.28);
   stroke-width: 1.2;
+  stroke-dasharray: 3 5;
   vector-effect: non-scaling-stroke;
 }
 
+.trip-game-tree-layer {
+  pointer-events: none;
+}
+
+.trip-game-tree-shadow {
+  fill: rgba(4, 19, 10, 0.35);
+}
+
+.trip-game-tree-trunk {
+  fill: #684a2c;
+  stroke: #1a2b1e;
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-tree-back {
+  fill: #183f29;
+  stroke: #102d1d;
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-tree-front {
+  fill: #2b6540;
+  stroke: #183f29;
+  stroke-width: 0.65;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-tree--1 .trip-game-tree-back {
+  fill: #235334;
+}
+
+.trip-game-tree--1 .trip-game-tree-front {
+  fill: #3b7446;
+}
+
+.trip-game-tree--2 .trip-game-tree-back {
+  fill: #183a27;
+}
+
+.trip-game-tree--2 .trip-game-tree-front {
+  fill: #315f3d;
+}
+
+.trip-game-map-feature {
+  stroke: rgba(18, 50, 28, 0.78);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  paint-order: stroke fill;
+}
+
 .trip-game-map-feature--fairway {
-  fill: #729b52;
+  fill: #77a957;
+  stroke: #416f3d;
+  stroke-width: 2.2;
 }
 
 .trip-game-map-feature--green {
-  fill: #aac96e;
+  fill: #a9ce70;
+  stroke: #6c9b50;
+  stroke-width: 3.5;
 }
 
 .trip-game-map-feature--tee {
-  fill: #8caf61;
+  fill: #91b966;
+  stroke: #547c45;
+  stroke-width: 1.8;
 }
 
 .trip-game-map-feature--bunker {
-  fill: #d9c582;
+  fill: #dbc78d;
+  stroke: #8b784a;
+  stroke-width: 1.6;
 }
 
 .trip-game-map-feature--water {
-  fill: #3d7788;
+  fill: #397789;
+  stroke: #174a5b;
+  stroke-width: 1.8;
+  filter: drop-shadow(1.5px 2px 0 rgba(8, 35, 24, 0.38));
+}
+
+.trip-game-map-texture {
+  stroke: none;
+  pointer-events: none;
+}
+
+.trip-game-map-texture--fairway {
+  opacity: 0.28;
+}
+
+.trip-game-map-texture--green {
+  opacity: 0.28;
+}
+
+.trip-game-map-texture--bunker {
+  opacity: 0.52;
+}
+
+.trip-game-map-texture--water {
+  opacity: 0.5;
+}
+
+.trip-game-fairway-stripe {
+  fill: rgba(41, 98, 50, 0.2);
+}
+
+.trip-game-fairway-stripe--light {
+  fill: rgba(211, 227, 145, 0.12);
+}
+
+.trip-game-green-cut {
+  fill: none;
+  stroke: rgba(57, 111, 55, 0.33);
+  stroke-width: 0.8;
+}
+
+.trip-game-sand-grain {
+  fill: rgba(116, 87, 44, 0.46);
+}
+
+.trip-game-water-ripple {
+  fill: none;
+  stroke: rgba(170, 216, 214, 0.42);
+  stroke-width: 0.9;
 }
 
 .trip-game-centerline {
   fill: none;
-  stroke: rgba(230, 239, 193, 0.35);
-  stroke-width: 1.2;
-  stroke-dasharray: 4 5;
+  stroke: rgba(233, 240, 195, 0.28);
+  stroke-width: 1;
+  stroke-dasharray: 3 6;
   vector-effect: non-scaling-stroke;
 }
 
 .trip-game-shot-line {
   fill: none;
-  stroke: #f2a24b;
+  stroke: #f5ae55;
   stroke-width: 2;
   stroke-dasharray: 5 3;
   vector-effect: non-scaling-stroke;
@@ -534,10 +662,32 @@
 }
 
 .trip-game-target {
-  fill: #fff1b5;
-  stroke: #07180f;
+  color: #fff1b5;
+}
+
+.trip-game-target circle {
+  fill: rgba(255, 241, 181, 0.12);
+  stroke: #fff1b5;
+  stroke-width: 1.3;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-target path {
+  fill: none;
+  stroke: #fff1b5;
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
+}
+
+.trip-game-carry-label {
+  fill: #fff2b8;
+  stroke: #0a1c11;
+  stroke-width: 1.8;
+  paint-order: stroke fill;
+  font-family: "Courier New", ui-monospace, monospace;
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
 }
 
 .trip-game-golfer {
@@ -561,9 +711,11 @@
   vector-effect: non-scaling-stroke;
 }
 
-.trip-game-map-grid-line {
-  stroke: rgba(7, 24, 15, 0.08);
-  stroke-width: 0.7;
+.trip-game-ball-halo {
+  fill: rgba(255, 240, 154, 0.42);
+  stroke: #fff0a5;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
 }
 
 .trip-game-command-panel {

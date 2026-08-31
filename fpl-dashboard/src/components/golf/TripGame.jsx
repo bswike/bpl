@@ -43,6 +43,76 @@ function pathFromPoints(points, close = true) {
   return `${commands.join(" ")}${close ? " Z" : ""}`;
 }
 
+function polylineLength(points) {
+  let total = 0;
+  for (let index = 1; index < (points?.length || 0); index += 1) {
+    total += Math.hypot(points[index][0] - points[index - 1][0], points[index][1] - points[index - 1][1]);
+  }
+  return total;
+}
+
+function pointAlongPolyline(points, distance) {
+  if (!points?.length) return { point: [0, 0], tangent: [0, -1] };
+  if (points.length === 1) return { point: points[0], tangent: [0, -1] };
+  let remaining = Math.max(0, distance);
+  for (let index = 1; index < points.length; index += 1) {
+    const start = points[index - 1];
+    const end = points[index];
+    const dx = end[0] - start[0];
+    const dy = end[1] - start[1];
+    const length = Math.hypot(dx, dy);
+    if (!length) continue;
+    if (remaining <= length) {
+      const ratio = remaining / length;
+      return {
+        point: [start[0] + dx * ratio, start[1] + dy * ratio],
+        tangent: [dx / length, dy / length],
+      };
+    }
+    remaining -= length;
+  }
+  const end = points.at(-1);
+  const previous = points.at(-2);
+  const dx = end[0] - previous[0];
+  const dy = end[1] - previous[1];
+  const length = Math.hypot(dx, dy) || 1;
+  return { point: end, tangent: [dx / length, dy / length] };
+}
+
+function seededUnit(seed) {
+  const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+function buildTreeSprites(projection, holeNumber) {
+  const length = polylineLength(projection.line);
+  if (!length) return [];
+  const rows = clamp(Math.round(projection.height / 44), 6, 13);
+  const trees = [];
+  for (let row = 0; row < rows; row += 1) {
+    const progress = 0.08 + (row / Math.max(1, rows - 1)) * 0.82;
+    const axis = pointAlongPolyline(projection.line, length * progress);
+    const perpendicular = [-axis.tangent[1], axis.tangent[0]];
+    for (const side of [-1, 1]) {
+      const seed = holeNumber * 101 + row * 17 + (side > 0 ? 7 : 3);
+      if (seededUnit(seed) < 0.13) continue;
+      const corridor = clamp(projection.width * 0.22, 18, 43);
+      const offset = corridor + seededUnit(seed + 1) * 13;
+      const along = (seededUnit(seed + 2) - 0.5) * 12;
+      const x = axis.point[0] + perpendicular[0] * offset * side + axis.tangent[0] * along;
+      const y = axis.point[1] + perpendicular[1] * offset * side + axis.tangent[1] * along;
+      if (x < 5 || x > projection.width - 5 || y < 8 || y > projection.height - 8) continue;
+      trees.push({
+        x,
+        y,
+        size: 4.2 + seededUnit(seed + 3) * 3.6,
+        variant: Math.floor(seededUnit(seed + 4) * 3),
+      });
+    }
+  }
+  return trees;
+}
+
 function fallbackProjection(hole) {
   const bend = hole.number % 2 ? -18 : 18;
   const waterSide = hole.number % 3 === 0 ? "right" : hole.number % 4 === 0 ? "left" : null;
@@ -84,6 +154,7 @@ function fallbackProjection(hole) {
     hasWater: Boolean(waterSide),
     hazardLabel: waterSide ? `WATER ${waterSide.toUpperCase()}` : "BUNKERS LEFT",
     official: null,
+    elevation: null,
     source: "prototype",
   };
 }
@@ -150,6 +221,7 @@ function projectHole(geometry, hole) {
     hasWater,
     hazardLabel,
     official: sourceHole,
+    elevation: Number(sourceHole.elevM) || null,
     source: "OpenStreetMap / ODbL",
   };
 }
@@ -201,29 +273,51 @@ function ScoreOdds({ odds }) {
 function HoleMap({ projection, hole, decision, result }) {
   const aim = AIMS.find((item) => item.id === decision.aim) || AIMS[1];
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
-  const offset = projection.width * 0.14 * aim.offset;
-  const bend = projection.width * 0.3 * shape.bias;
-  const target = [projection.pin[0] + offset, projection.pin[1]];
-  const middleY = (projection.tee[1] + projection.pin[1]) / 2;
-  const shotPath = `M${projection.tee[0].toFixed(1)},${projection.tee[1].toFixed(1)} Q${(
-    (projection.tee[0] + target[0]) / 2 +
-    bend
-  ).toFixed(1)},${middleY.toFixed(1)} ${target[0].toFixed(1)},${target[1].toFixed(1)}`;
-  const landingOffset =
+  const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
+  const lineLength = polylineLength(projection.line);
+  const targetYards = hole.yards ? Math.min(club.carry, Math.round(hole.yards * 0.96)) : club.carry;
+  const targetDistance = hole.yards ? lineLength * (targetYards / hole.yards) : lineLength * (hole.par <= 3 ? 0.94 : 0.58);
+  const centerTarget = pointAlongPolyline(projection.line, targetDistance);
+  const perpendicular = [-centerTarget.tangent[1], centerTarget.tangent[0]];
+  const lateralAim = aim.offset * clamp(projection.width * 0.12, 10, 22);
+  const target = [
+    centerTarget.point[0] + perpendicular[0] * lateralAim,
+    centerTarget.point[1] + perpendicular[1] * lateralAim,
+  ];
+  const middle = [
+    (projection.tee[0] + target[0]) / 2,
+    (projection.tee[1] + target[1]) / 2,
+  ];
+  const bend = shape.bias * clamp(projection.width * 0.32, 20, 48);
+  const control = [middle[0] + perpendicular[0] * bend, middle[1] + perpendicular[1] * bend];
+  const shotPath = `M${projection.tee[0].toFixed(1)},${projection.tee[1].toFixed(1)} Q${control[0].toFixed(
+    1,
+  )},${control[1].toFixed(1)} ${target[0].toFixed(1)},${target[1].toFixed(1)}`;
+  const dangerDirection = projection.dangerSide === "left" ? -1 : 1;
+  const landingDistance =
     result?.humanLanding === "Penalty area"
-      ? (projection.dangerSide === "left" ? -1 : 1) * projection.width * 0.24
+      ? 31
       : result?.humanLanding === "Bunker"
-        ? (projection.dangerSide === "right" ? 1 : -1) * projection.width * 0.12
+        ? 19
         : result?.humanLanding === "Rough"
-          ? projection.width * 0.09
-          : 0;
-  const landing = [target[0] + landingOffset, target[1] + projection.height * 0.28];
+          ? 11
+          : 2;
+  const landingDirection = result?.humanLanding === "Fairway" ? (hole.number % 2 ? -1 : 1) : dangerDirection;
+  const landing = [
+    target[0] + perpendicular[0] * landingDistance * landingDirection,
+    target[1] + perpendicular[1] * landingDistance * landingDirection,
+  ];
+  const remainingYards = hole.yards ? Math.max(0, Math.round(hole.yards - targetYards)) : null;
+  const trees = buildTreeSprites(projection, hole.number);
+  const mapId = `trip-hole-${hole.number}`;
 
   return (
     <div className="trip-game-map-wrap">
       <div className="trip-game-map-hud">
         <span>{projection.hazardLabel}</span>
-        <span>{projection.source === "prototype" ? "PROTOTYPE MAP" : "COURSE MAP"}</span>
+        <span>
+          {club.short} {targetYards}Y · {remainingYards != null ? `${remainingYards}Y LEFT` : "TEE PLAN"}
+        </span>
       </div>
       <svg
         className="trip-game-map"
@@ -233,31 +327,79 @@ function HoleMap({ projection, hole, decision, result }) {
         role="img"
       >
         <defs>
-          <pattern id={`game-grid-${hole.number}`} width="12" height="12" patternUnits="userSpaceOnUse">
-            <path d="M 12 0 L 0 0 0 12" className="trip-game-map-grid-line" fill="none" />
+          <pattern id={`${mapId}-rough`} width="13" height="13" patternUnits="userSpaceOnUse">
+            <rect width="13" height="13" fill="transparent" />
+            <rect x="2" y="3" width="2" height="2" className="trip-game-rough-pixel" />
+            <rect x="9" y="8" width="1.5" height="1.5" className="trip-game-rough-pixel trip-game-rough-pixel--light" />
+          </pattern>
+          <pattern id={`${mapId}-fairway`} width="18" height="18" patternUnits="userSpaceOnUse">
+            <rect width="9" height="18" className="trip-game-fairway-stripe" />
+            <rect x="9" width="9" height="18" className="trip-game-fairway-stripe trip-game-fairway-stripe--light" />
+          </pattern>
+          <pattern id={`${mapId}-green`} width="8" height="8" patternUnits="userSpaceOnUse">
+            <path d="M0 8 L8 0 M-2 2 L2 -2 M6 10 L10 6" className="trip-game-green-cut" />
+          </pattern>
+          <pattern id={`${mapId}-sand`} width="9" height="9" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="3" r="0.8" className="trip-game-sand-grain" />
+            <circle cx="7" cy="6" r="0.55" className="trip-game-sand-grain" />
+          </pattern>
+          <pattern id={`${mapId}-water`} width="16" height="10" patternUnits="userSpaceOnUse">
+            <path d="M-2 3 Q2 0 6 3 T14 3 T22 3 M3 8 Q7 5 11 8 T19 8" className="trip-game-water-ripple" />
           </pattern>
           <filter id={`game-pixel-shadow-${hole.number}`} x="-40%" y="-40%" width="180%" height="180%">
             <feDropShadow dx="2" dy="2" stdDeviation="0" floodColor="#07180f" />
           </filter>
         </defs>
         <rect width={projection.width} height={projection.height} className="trip-game-map-rough" />
+        <rect width={projection.width} height={projection.height} fill={`url(#${mapId}-rough)`} />
+        <circle
+          cx={projection.tee[0]}
+          cy={projection.tee[1]}
+          r={Math.max(0, targetDistance)}
+          className="trip-game-carry-arc"
+        />
+        <g className="trip-game-tree-layer" aria-hidden="true">
+          {trees.map((tree, index) => (
+            <g
+              key={`${tree.x.toFixed(1)}-${tree.y.toFixed(1)}-${index}`}
+              className={`trip-game-tree trip-game-tree--${tree.variant}`}
+              transform={`translate(${tree.x.toFixed(1)} ${tree.y.toFixed(1)}) scale(${(tree.size / 6).toFixed(2)})`}
+            >
+              <ellipse className="trip-game-tree-shadow" cx="2" cy="4.5" rx="5.5" ry="2.2" />
+              <rect className="trip-game-tree-trunk" x="-1" y="-1" width="2.3" height="7" />
+              <path className="trip-game-tree-back" d="M0,-9 L-6,-1 L-3,-1 L-7,4 L7,4 L3,-1 L6,-1 Z" />
+              <rect className="trip-game-tree-front" x="-4.5" y="-3.5" width="9" height="6.5" />
+            </g>
+          ))}
+        </g>
         {projection.features.map((feature, index) => (
-          <path
-            key={`${feature.type}-${index}`}
-            d={pathFromPoints(feature.points)}
-            className={`trip-game-map-feature trip-game-map-feature--${feature.type}`}
-          />
+          <g key={`${feature.type}-${index}`}>
+            <path
+              d={pathFromPoints(feature.points)}
+              className={`trip-game-map-feature trip-game-map-feature--${feature.type}`}
+            />
+            {["fairway", "green", "bunker", "water"].includes(feature.type) && (
+              <path
+                d={pathFromPoints(feature.points)}
+                className={`trip-game-map-texture trip-game-map-texture--${feature.type}`}
+                fill={`url(#${mapId}-${feature.type === "bunker" ? "sand" : feature.type})`}
+              />
+            )}
+          </g>
         ))}
         <path d={pathFromPoints(projection.line, false)} className="trip-game-centerline" />
         <path d={shotPath} className="trip-game-shot-line" />
-        <rect
-          x={target[0] - 3}
-          y={target[1] - 3}
-          width="6"
-          height="6"
-          className="trip-game-target"
-          transform={`rotate(45 ${target[0]} ${target[1]})`}
-        />
+        <g className="trip-game-target" transform={`translate(${target[0]} ${target[1]})`}>
+          <circle r="5.5" />
+          <path d="M-8 0 H8 M0 -8 V8" />
+        </g>
+        <text
+          x={clamp(target[0] + 7, 8, projection.width - 44)}
+          y={clamp(target[1] - 7, 10, projection.height - 8)}
+          className="trip-game-carry-label"
+        >
+          {targetYards}Y
+        </text>
         <g className="trip-game-golfer" transform={`translate(${projection.tee[0] - 5} ${projection.tee[1] - 13})`}>
           <rect x="3" y="0" width="5" height="5" />
           <rect x="2" y="5" width="7" height="7" />
@@ -270,19 +412,21 @@ function HoleMap({ projection, hole, decision, result }) {
           <rect x="-3" y="0" width="6" height="2" />
         </g>
         {result && (
-          <rect
-            x={clamp(landing[0], 3, projection.width - 6)}
-            y={clamp(landing[1], 3, projection.height - 6)}
-            width="5"
-            height="5"
-            className="trip-game-ball"
+          <g
+            className="trip-game-ball-marker"
+            transform={`translate(${clamp(landing[0], 5, projection.width - 5)} ${clamp(landing[1], 5, projection.height - 5)})`}
             filter={`url(#game-pixel-shadow-${hole.number})`}
-          />
+          >
+            <circle r="4.5" className="trip-game-ball-halo" />
+            <rect x="-2.5" y="-2.5" width="5" height="5" className="trip-game-ball" />
+          </g>
         )}
-        <rect width={projection.width} height={projection.height} fill={`url(#game-grid-${hole.number})`} />
       </svg>
       <div className="trip-game-map-foot">
-        <span>{hole.yards ? `${hole.yards} YDS` : `PAR ${hole.par}`}</span>
+        <span>
+          PAR {hole.par} · {hole.yards ? `${hole.yards} YDS` : "YARDAGE N/A"}
+        </span>
+        <span>{projection.elevation ? `ELEV ${projection.elevation}M` : ""}</span>
         <span>{projection.source}</span>
       </div>
     </div>
@@ -526,7 +670,8 @@ function SetupScreen({ model, courseId, setCourseId, team, setTeam, archiveState
         START CAPTAIN ROUND ▶
       </button>
       <p className="trip-game-disclaimer">
-        Hole maps use OpenStreetMap geometry. Shot shape is a modeled placeholder until scouting profiles are entered.
+        Turf and hazard shapes use OpenStreetMap geometry. Trees and mowing texture are illustrative; shot shape remains modeled
+        until scouting profiles are entered.
       </p>
     </div>
   );
