@@ -950,11 +950,20 @@
 
 .trip-game-map {
   display: block;
+  overflow: hidden;
   width: 100%;
   min-height: 0;
   flex: 1;
   background: #37633e;
   filter: saturate(1.04) contrast(1.05);
+}
+
+.trip-game-map-wrap.is-flyover::before {
+  box-shadow: inset 0 0 52px 16px rgba(5, 16, 9, 0.58);
+}
+
+.trip-game-map-wrap.is-green-zoom::before {
+  box-shadow: inset 0 0 64px 22px rgba(5, 16, 9, 0.62);
 }
 
 .trip-game-map-rough {

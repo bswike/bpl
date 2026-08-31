@@ -195,6 +195,148 @@ function curvedPath(from, to, bend) {
   )},${to[1].toFixed(1)}`;
 }
 
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function featureBounds(features, type) {
+  const points = features.filter((feature) => feature.type === type).flatMap((feature) => feature.points);
+  if (!points.length) return null;
+  return {
+    minX: Math.min(...points.map((point) => point[0])),
+    maxX: Math.max(...points.map((point) => point[0])),
+    minY: Math.min(...points.map((point) => point[1])),
+    maxY: Math.max(...points.map((point) => point[1])),
+    cx: points.reduce((total, point) => total + point[0], 0) / points.length,
+    cy: points.reduce((total, point) => total + point[1], 0) / points.length,
+  };
+}
+
+function clampCamera(camera, worldW, worldH) {
+  const w = clamp(camera.w, 12, worldW);
+  const h = clamp(camera.h, 12, worldH);
+  return {
+    x: clamp(camera.x, 0, Math.max(0, worldW - w)),
+    y: clamp(camera.y, 0, Math.max(0, worldH - h)),
+    w,
+    h,
+  };
+}
+
+function cameraWindow(cx, cy, height, worldW, worldH) {
+  const h = clamp(height, 34, worldH);
+  const w = clamp(h * 0.9, 34, worldW);
+  const finalH = Math.min(w / 0.9, worldH);
+  return clampCamera({ x: cx - w / 2, y: cy - finalH / 2, w, h: finalH }, worldW, worldH);
+}
+
+function usableGreen(projection) {
+  const green = featureBounds(projection.features, "green");
+  if (!green) return null;
+  const wide = green.maxX - green.minX;
+  const tall = green.maxY - green.minY;
+  if (wide > projection.width * 0.62 || tall > projection.height * 0.32) return null;
+  return green;
+}
+
+function greenCamera(projection) {
+  const green = usableGreen(projection);
+  const pin = projection.pin;
+  if (green) {
+    const cx = lerp(green.cx, pin[0], 0.35);
+    const cy = lerp(green.cy, pin[1], 0.35);
+    const span = clamp(Math.max(green.maxY - green.minY, green.maxX - green.minX) * 1.55, 40, 68);
+    return cameraWindow(cx, cy, span, projection.width, projection.height);
+  }
+  return cameraWindow(pin[0], pin[1], 50, projection.width, projection.height);
+}
+
+function pointNearGreen(point, projection) {
+  if (Math.hypot(point[0] - projection.pin[0], point[1] - projection.pin[1]) < 22) return true;
+  const green = usableGreen(projection);
+  if (!green) return false;
+  return (
+    point[0] >= green.minX - 6 &&
+    point[0] <= green.maxX + 6 &&
+    point[1] >= green.minY - 6 &&
+    point[1] <= green.maxY + 6
+  );
+}
+
+function blendCamera(from, to, t) {
+  if (!from) return to;
+  return {
+    x: lerp(from.x, to.x, t),
+    y: lerp(from.y, to.y, t),
+    w: lerp(from.w, to.w, t),
+    h: lerp(from.h, to.h, t),
+  };
+}
+
+function computeMapCamera({ projection, playback, planning, target, landing, activeShot, flightFrame, flightFrameIndex }) {
+  const worldW = projection.width;
+  const worldH = projection.height;
+  const pin = projection.pin;
+  const greenCam = greenCamera(projection);
+
+  if (playback && activeShot) {
+    const ball = flightFrame
+      ? [flightFrame.gx, flightFrame.gy]
+      : playback.phase === "settle"
+        ? activeShot.to
+        : activeShot.from;
+    const onGreenNow =
+      activeShot.kind === "putt" ||
+      activeShot.final ||
+      (pointNearGreen(ball, projection) && activeShot.kind !== "drive" && activeShot.kind !== "tee" && activeShot.kind !== "splash");
+    const landingOnGreen =
+      activeShot.kind === "putt" ||
+      activeShot.final ||
+      ((activeShot.kind === "approach" || activeShot.kind === "sand" || activeShot.kind === "punch") &&
+        pointNearGreen(activeShot.to, projection));
+    const progress =
+      activeShot.frames?.length > 1 ? clamp(flightFrameIndex / (activeShot.frames.length - 1), 0, 1) : playback.phase === "settle" ? 1 : 0;
+
+    if (onGreenNow || (landingOnGreen && (playback.phase === "settle" || progress > 0.5))) {
+      const fly = cameraWindow(
+        lerp(ball[0], activeShot.to[0], 0.2),
+        lerp(ball[1], activeShot.to[1], 0.2),
+        activeShot.air ? 78 : 56,
+        worldW,
+        worldH,
+      );
+      const zoomT = onGreenNow ? 1 : clamp((progress - 0.5) / 0.5, 0, 1);
+      return blendCamera(fly, greenCam, 0.25 + zoomT * 0.75);
+    }
+
+    const look = playback.phase === "flight" ? 0.38 : 0.12;
+    const cx = lerp(ball[0], activeShot.to[0], look);
+    const cy = lerp(ball[1], activeShot.to[1], look);
+    const span =
+      activeShot.kind === "drive" || activeShot.kind === "tee"
+        ? 98
+        : activeShot.kind === "approach"
+          ? 74
+          : activeShot.air
+            ? 82
+            : 54;
+    return cameraWindow(cx, cy, span, worldW, worldH);
+  }
+
+  if (landing) {
+    if (pointNearGreen(landing, projection)) return greenCam;
+    return cameraWindow(lerp(landing[0], pin[0], 0.18), lerp(landing[1], pin[1], 0.18), 88, worldW, worldH);
+  }
+
+  if (planning && target) {
+    const cx = lerp(projection.tee[0], target[0], 0.38);
+    const cy = lerp(projection.tee[1], target[1], 0.36);
+    return cameraWindow(cx, cy, 118, worldW, worldH);
+  }
+
+  return { x: 0, y: 0, w: worldW, h: worldH };
+}
+
 function computeShotTarget(projection, hole, decision) {
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
   const lineLength = polylineLength(projection.line);
@@ -615,6 +757,7 @@ function HoleMap({
 }) {
   const aimOffset = aimOffsetOf(decision.aim);
   const aimHoldRef = useRef(null);
+  const cameraRef = useRef(null);
 
   function stopAimHold() {
     if (!aimHoldRef.current) return;
@@ -634,6 +777,9 @@ function HoleMap({
   }
 
   useEffect(() => () => stopAimHold(), []);
+  useEffect(() => {
+    cameraRef.current = null;
+  }, [hole.number]);
 
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
   const { club, targetYards, targetDistance, perpendicular, target } = computeShotTarget(projection, hole, decision);
@@ -650,14 +796,42 @@ function HoleMap({
   const remainingYards = hole.yards ? Math.max(0, Math.round(hole.yards - targetYards)) : null;
   const trees = buildTreeSprites(projection, hole.number);
   const mapId = `trip-hole-${hole.number}`;
+  const ballPoint = flightFrame ? [flightFrame.gx, flightFrame.gy] : activeShot ? (playback.phase === "settle" ? activeShot.to : activeShot.from) : null;
+  const onGreenCam = Boolean(
+    activeShot &&
+      (activeShot.kind === "putt" ||
+        activeShot.final ||
+        (ballPoint &&
+          pointNearGreen(ballPoint, projection) &&
+          activeShot.kind !== "drive" &&
+          activeShot.kind !== "tee" &&
+          activeShot.kind !== "splash")),
+  );
+  const targetCam = computeMapCamera({
+    projection,
+    playback,
+    planning,
+    target,
+    landing,
+    activeShot,
+    flightFrame,
+    flightFrameIndex,
+  });
+  const cameraEase = playback?.phase === "flight" ? 0.72 : playback ? 0.4 : 0.28;
+  cameraRef.current = blendCamera(cameraRef.current, targetCam, cameraRef.current ? cameraEase : 1);
+  const camera = cameraRef.current;
 
   return (
-    <div className={`trip-game-map-wrap ${playback ? "is-resolving" : ""}`}>
+    <div className={`trip-game-map-wrap ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}`}>
       <div className="trip-game-map-hud">
         <span className={`trip-game-par-pill is-par-${hole.par}`}>PAR {hole.par}</span>
         <span>{projection.hazardLabel}</span>
         <span>
-          {playback ? "NOW PLAYING" : `${club.short} ${targetYards}Y · ${remainingYards != null ? `${remainingYards}Y LEFT` : "TEE PLAN"}`}
+          {onGreenCam
+            ? "ON THE GREEN"
+            : playback
+              ? "FLYOVER"
+              : `${club.short} ${targetYards}Y · ${remainingYards != null ? `${remainingYards}Y LEFT` : "TEE PLAN"}`}
         </span>
       </div>
       {playback && activeShot && (
@@ -687,8 +861,8 @@ function HoleMap({
       )}
       <svg
         className="trip-game-map"
-        viewBox={`0 0 ${projection.width} ${projection.height}`}
-        preserveAspectRatio="xMidYMid meet"
+        viewBox={`${camera.x.toFixed(2)} ${camera.y.toFixed(2)} ${camera.w.toFixed(2)} ${camera.h.toFixed(2)}`}
+        preserveAspectRatio="xMidYMid slice"
         aria-label={`Top-down map of hole ${hole.number}`}
         role="img"
       >
