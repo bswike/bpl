@@ -133,7 +133,7 @@ function routeShapeProfile(line, tee, pin) {
   }, 0);
   const shapeSeverity = clamp((Math.abs(deviation) - 3) / 28, 0, 1);
   return {
-    preferredShape: shapeSeverity < 0.12 ? "straight" : deviation < 0 ? "draw" : "cut",
+    preferredShape: shapeSeverity < 0.12 ? "straight" : deviation < 0 ? "cut" : "draw",
     shapeSeverity,
   };
 }
@@ -146,17 +146,6 @@ function polygonCentroid(points) {
     y += point[1];
   }
   return [x / points.length, y / points.length];
-}
-
-function nearestFeatureCentroid(features, type, reference) {
-  let best = null;
-  for (const feature of features) {
-    if (feature.type !== type) continue;
-    const centroid = polygonCentroid(feature.points);
-    const distance = Math.hypot(centroid[0] - reference[0], centroid[1] - reference[1]);
-    if (!best || distance < best.distance) best = { centroid, distance };
-  }
-  return best?.centroid || null;
 }
 
 function polygonArea(points) {
@@ -369,30 +358,116 @@ function computeShotTarget(projection, hole, decision) {
   };
 }
 
-function computeLandingPoint(projection, hole, target, perpendicular, landingType) {
-  const dangerDirection = projection.dangerSide === "left" ? -1 : 1;
-  const fairwayJitter = (hole.number % 3) - 1;
-  if (landingType === "Penalty area") {
-    return (
-      nearestFeatureCentroid(projection.features, "water", target) || [
-        target[0] + perpendicular[0] * 30 * dangerDirection,
-        target[1] + perpendicular[1] * 30 * dangerDirection,
-      ]
-    );
+function pointInPolygon(point, polygon) {
+  let inside = false;
+  for (let index = 0, prior = polygon.length - 1; index < polygon.length; prior = index, index += 1) {
+    const current = polygon[index];
+    const previous = polygon[prior];
+    const crosses =
+      current[1] > point[1] !== previous[1] > point[1] &&
+      point[0] < ((previous[0] - current[0]) * (point[1] - current[1])) / ((previous[1] - current[1]) || 1e-6) + current[0];
+    if (crosses) inside = !inside;
   }
-  if (landingType === "Bunker") {
-    return (
-      nearestFeatureCentroid(projection.features, "bunker", target) || [
-        target[0] + perpendicular[0] * 18 * dangerDirection,
-        target[1] + perpendicular[1] * 18 * dangerDirection,
-      ]
-    );
+  return inside;
+}
+
+function classifyTerrain(features, point) {
+  const hit = (type) =>
+    (features || []).some((feature) => feature.type === type && feature.points?.length >= 3 && pointInPolygon(point, feature.points));
+  if (hit("water")) return "Penalty area";
+  if (hit("bunker")) return "Bunker";
+  if (hit("green") || hit("fairway") || hit("tee")) return "Fairway";
+  return "Rough";
+}
+
+function pointInsideFeature(feature, target) {
+  if (pointInPolygon(target, feature.points)) return target;
+  const centroid = polygonCentroid(feature.points);
+  if (pointInPolygon(centroid, feature.points)) return centroid;
+  for (const vertex of feature.points) {
+    const inward = [vertex[0] * 0.72 + centroid[0] * 0.28, vertex[1] * 0.72 + centroid[1] * 0.28];
+    if (pointInPolygon(inward, feature.points)) return inward;
   }
-  if (landingType === "Rough") {
-    const direction = fairwayJitter || dangerDirection;
-    return [target[0] + perpendicular[0] * 13 * direction, target[1] + perpendicular[1] * 13 * direction];
+  return centroid;
+}
+
+function nearestFeaturePoint(features, types, target, maxDist) {
+  const wanted = new Set(Array.isArray(types) ? types : [types]);
+  let best = null;
+  for (const feature of features || []) {
+    if (!wanted.has(feature.type) || !feature.points || feature.points.length < 3) continue;
+    const point = pointInsideFeature(feature, target);
+    const distance = Math.hypot(point[0] - target[0], point[1] - target[1]);
+    if (distance > maxDist) continue;
+    if (!best || distance < best.distance) best = { point, distance };
   }
-  return [target[0] + perpendicular[0] * 3 * fairwayJitter, target[1] - 2];
+  return best;
+}
+
+function shapeBend(projection, shape) {
+  return (shape?.bias || 0) * clamp(projection.width * 0.62, 40, 96);
+}
+
+function shapeDrift(projection, shape) {
+  return (shape?.bias || 0) * clamp(projection.width * 0.24, 18, 44);
+}
+
+function flightControl(from, to, bend) {
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const length = Math.hypot(dx, dy) || 1;
+  return [(from[0] + to[0]) / 2 + (-dy / length) * bend, (from[1] + to[1]) / 2 + (dx / length) * bend];
+}
+
+function firstWaterOnPath(features, from, to, bend) {
+  const control = flightControl(from, to, bend);
+  for (let index = 12; index <= 20; index += 1) {
+    const point = quadPoint(from, control, to, index / 20);
+    if (classifyTerrain(features, point) === "Penalty area") return point;
+  }
+  return null;
+}
+
+function placeInRough(projection, seed, perpendicular) {
+  const prefer = projection.dangerSide === "left" ? -1 : 1;
+  const sides = prefer < 0 ? [-1, 1] : [1, -1];
+  for (const side of sides) {
+    for (const distance of [18, 26, 34, 44]) {
+      const point = [seed[0] + perpendicular[0] * distance * side, seed[1] + perpendicular[1] * distance * side];
+      if (classifyTerrain(projection.features, point) === "Rough") return point;
+    }
+  }
+  return [seed[0] + perpendicular[0] * 24 * prefer, seed[1] + perpendicular[1] * 24 * prefer];
+}
+
+function placeTeeLanding(projection, hole, decision, wantedType) {
+  const { target, perpendicular } = computeShotTarget(projection, hole, decision);
+  const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
+  const drift = shapeDrift(projection, shape);
+  const aimed = [target[0] + perpendicular[0] * drift, target[1] + perpendicular[1] * drift];
+  const bend = shapeBend(projection, shape);
+  let point = aimed;
+  let type = wantedType;
+
+  if (type === "Penalty area") {
+    const water = nearestFeaturePoint(projection.features, "water", aimed, 72);
+    if (water) point = water.point;
+    else type = "Rough";
+  }
+  if (type === "Bunker") {
+    const bunker = nearestFeaturePoint(projection.features, "bunker", aimed, 48);
+    if (bunker) point = bunker.point;
+    else type = "Rough";
+  }
+  if (type === "Fairway") {
+    const fairway = nearestFeaturePoint(projection.features, ["fairway", "green"], aimed, 56);
+    if (fairway) point = fairway.point;
+  }
+  if (type === "Rough") point = placeInRough(projection, aimed, perpendicular);
+
+  const waterHit = firstWaterOnPath(projection.features, projection.tee, point, bend);
+  if (waterHit) return { point: waterHit, type: "Penalty area" };
+  return { point, type: classifyTerrain(projection.features, point) };
 }
 
 const SHOT_CAPTIONS = {
@@ -481,13 +556,14 @@ function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0 }) {
  * tee ball -> (drop) -> approaches -> putts, ending in the cup.
  */
 function buildShotSequence({ projection, hole, decision, result }) {
-  const { target, perpendicular, lineLength } = computeShotTarget(projection, hole, decision);
+  const { lineLength } = computeShotTarget(projection, hole, decision);
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
   const yardsScale = hole.yards ? lineLength / hole.yards : 0;
   const pin = projection.pin;
-  const landingType = result.humanLanding;
-  const landing = computeLandingPoint(projection, hole, target, perpendicular, landingType);
-  const bend = shape.bias * clamp(projection.width * 0.3, 16, 42);
+  const placed = placeTeeLanding(projection, hole, decision, result.humanLanding);
+  const landingType = placed.type;
+  const landing = placed.point;
+  const bend = shapeBend(projection, shape);
   const seed = hole.number * 37 + result.humanGross * 11;
   const jitter = (index, scale) => (seededUnit(seed + index) - 0.5) * scale;
 
@@ -587,7 +663,7 @@ function fallbackProjection(hole) {
     primaryHazard: waterSide ? "water" : "bunker",
     hasWater: Boolean(waterSide),
     hazardLabel: waterSide ? `WATER ${waterSide.toUpperCase()}` : "BUNKERS LEFT",
-    preferredShape: bend < 0 ? "draw" : "cut",
+    preferredShape: bend < 0 ? "cut" : "draw",
     shapeSeverity: 0.58,
     hazardSeverity: waterSide ? 0.68 : 0.32,
     official: null,
@@ -789,12 +865,8 @@ function HoleMap({
   intelRight,
   kickMeter,
   popCall,
-  stockShape,
-  menu,
   onAimStep,
-  onOpenMenu,
-  onMenuSelect,
-  onMenuClose,
+  onCycle,
 }) {
   const aimOffset = aimOffsetOf(decision.aim);
   const aimHoldRef = useRef(null);
@@ -822,11 +894,14 @@ function HoleMap({
     cameraRef.current = null;
   }, [hole.number]);
 
-  const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
-  const { club, targetYards, targetDistance, perpendicular, target } = computeShotTarget(projection, hole, decision);
-  const bend = shape.bias * clamp(projection.width * 0.32, 20, 48);
-  const shotPath = curvedPath(projection.tee, target, bend);
-  const landing = result ? computeLandingPoint(projection, hole, target, perpendicular, result.humanLanding) : null;
+  const shotDecision = result?.shotDecision || decision;
+  const shape = SHAPES.find((item) => item.id === shotDecision.shape) || SHAPES[1];
+  const { club, targetYards, targetDistance, perpendicular, target } = computeShotTarget(projection, hole, shotDecision);
+  const drift = shapeDrift(projection, shape);
+  const previewTarget = [target[0] + perpendicular[0] * drift, target[1] + perpendicular[1] * drift];
+  const bend = shapeBend(projection, shape);
+  const shotPath = curvedPath(projection.tee, previewTarget, bend);
+  const landing = result ? placeTeeLanding(projection, hole, shotDecision, result.humanLanding).point : null;
   const planning = !playback && !result;
   const activeShot = playback ? playback.shots[Math.min(playback.index, playback.shots.length - 1)] : null;
   const shotFlipped = activeShot ? activeShot.to[0] < activeShot.from[0] : false;
@@ -997,13 +1072,13 @@ function HoleMap({
         {planning && (
           <>
             <path d={shotPath} className="trip-game-shot-line" />
-            <g className="trip-game-target" transform={`translate(${target[0]} ${target[1]})`}>
+            <g className="trip-game-target" transform={`translate(${previewTarget[0]} ${previewTarget[1]})`}>
               <circle r="5.5" />
               <path d="M-8 0 H8 M0 -8 V8" />
             </g>
             <text
-              x={clamp(target[0] + 7, 8, projection.width - 44)}
-              y={clamp(target[1] - 7, 10, projection.height - 8)}
+              x={clamp(previewTarget[0] + 7, 8, projection.width - 44)}
+              y={clamp(previewTarget[1] - 7, 10, projection.height - 8)}
               className="trip-game-carry-label"
             >
               {targetYards}Y
@@ -1198,50 +1273,16 @@ function HoleMap({
             </button>
           </div>
           <div className="trip-game-pad-menus">
-            <button type="button" className={menu === "club" ? "is-open" : ""} onClick={() => onOpenMenu("club")}>
+            <button type="button" onClick={() => onCycle("club")} aria-label="Next club">
               <small>CLUB</small>
               <b>{club.short}</b>
             </button>
-            <button type="button" className={menu === "shape" ? "is-open" : ""} onClick={() => onOpenMenu("shape")}>
+            <button type="button" onClick={() => onCycle("shape")} aria-label="Next shape">
               <small>SHAPE</small>
               <b>{shape.label.toUpperCase()}</b>
             </button>
           </div>
         </div>
-      )}
-      {menu && (
-        <>
-          <button type="button" className="trip-game-gb-menu-backdrop" aria-label="Close menu" onClick={onMenuClose} />
-          <div className="trip-game-gb-menu" role="menu" aria-label={menu === "club" ? "Select club" : "Select shot shape"}>
-            <div className="trip-game-gb-menu-title">{menu === "club" ? "SELECT CLUB" : "SELECT SHAPE"}</div>
-            {menu === "club"
-              ? CLUBS.filter((item) => item.minPar <= hole.par).map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    className={item.id === decision.club ? "is-selected" : ""}
-                    onClick={() => onMenuSelect("club", item.id)}
-                  >
-                    <i>{item.id === decision.club ? "▶" : ""}</i>
-                    <b>{item.label.toUpperCase()}</b>
-                    <span>~{item.carry}Y</span>
-                  </button>
-                ))
-              : SHAPES.map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    className={item.id === decision.shape ? "is-selected" : ""}
-                    onClick={() => onMenuSelect("shape", item.id)}
-                  >
-                    <i>{item.id === decision.shape ? "▶" : ""}</i>
-                    <b>{item.label.toUpperCase()}</b>
-                    <span>{item.id === stockShape ? "STOCK" : item.id === hole.preferredShape ? "ROUTE" : ""}</span>
-                  </button>
-                ))}
-            {menu === "shape" && <div className="trip-game-gb-menu-hint">ROUTE FAVORS {String(hole.preferredShape || "straight").toUpperCase()}</div>}
-          </div>
-        </>
       )}
       <div className="trip-game-map-foot">
         <span>
@@ -1777,7 +1818,6 @@ export default function TripGame({ data }) {
   const [holeIndex, setHoleIndex] = useState(0);
   const [selectedKey, setSelectedKey] = useState(null);
   const [decision, setDecision] = useState({ club: "driver", aim: 0, shape: "straight", fireball: false });
-  const [menu, setMenu] = useState(null);
   const [usage, setUsage] = useState({});
   const [cpuUsage, setCpuUsage] = useState({});
   const [playerState, setPlayerState] = useState({});
@@ -2110,7 +2150,6 @@ export default function TripGame({ data }) {
     setHoleIndex(0);
     setSelectedKey(null);
     setDecision({ club: "driver", aim: 0, shape: "straight", fireball: false });
-    setMenu(null);
     setUsage({});
     setCpuUsage({});
     setPlayerState(initializePlayerState());
@@ -2140,7 +2179,6 @@ export default function TripGame({ data }) {
     if (result || pickLocked || resolutionPhase !== "idle") return;
     setSelectedKey(player.key);
     setDecision(defaultDecision(player, hole));
-    setMenu(null);
     setEventNote(null);
     setMeterPhase(null);
     resolvingRef.current = false;
@@ -2157,9 +2195,15 @@ export default function TripGame({ data }) {
     if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(4);
   }
 
-  function chooseFromMenu(type, id) {
-    setDecision((current) => ({ ...current, [type]: id }));
-    setMenu(null);
+  function cycleDecision(type) {
+    if (!selected || result || resolutionPhase !== "idle" || meterPhase) return;
+    setDecision((current) => {
+      const options = type === "club" ? CLUBS.filter((item) => item.minPar <= (hole?.par || 3)) : SHAPES;
+      if (!options.length) return current;
+      const index = Math.max(0, options.findIndex((item) => item.id === current[type]));
+      return { ...current, [type]: options[(index + 1) % options.length].id };
+    });
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(4);
   }
 
   function updateCondition(playerKey, update) {
@@ -2305,6 +2349,9 @@ export default function TripGame({ data }) {
       course,
       hole,
       random: randomRef.current,
+      remapHumanLanding: projection
+        ? (wanted) => placeTeeLanding(projection, hole, visualDecision, wanted).type
+        : undefined,
     });
     const completeResult = {
       ...resolved,
@@ -2326,6 +2373,7 @@ export default function TripGame({ data }) {
     completeResult.hypeGain = hypeGain;
     completeResult.streak = nextStreak;
     completeResult.powerUpEarned = powerUpEarned;
+    completeResult.shotDecision = visualDecision;
     const nextCloseout = matchCloseout({
       humanWins: match.human + (resolved.winner === "human" ? 1 : 0),
       cpuWins: match.cpu + (resolved.winner === "cpu" ? 1 : 0),
@@ -2406,7 +2454,6 @@ export default function TripGame({ data }) {
     setHoleIndex((current) => current + 1);
     setSelectedKey(null);
     setDecision({ club: "driver", aim: 0, shape: "straight", fireball: false });
-    setMenu(null);
     setResult(null);
     setResolutionPhase("idle");
     setPlaybackShots(null);
@@ -2536,12 +2583,8 @@ export default function TripGame({ data }) {
                     </div>
                   ) : null
                 }
-                stockShape={selected?.stockShape}
-                menu={menu}
                 onAimStep={stepAim}
-                onOpenMenu={(type) => setMenu((current) => (current === type ? null : type))}
-                onMenuSelect={chooseFromMenu}
-                onMenuClose={() => setMenu(null)}
+                onCycle={cycleDecision}
               />
               {resolutionPhase === "idle" && !result && (
                 <div className="trip-game-action-bar">

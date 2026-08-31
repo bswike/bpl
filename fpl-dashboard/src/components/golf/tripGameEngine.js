@@ -21,9 +21,9 @@ export const AIMS = [
 ];
 
 export const SHAPES = [
-  { id: "draw", label: "Draw", bias: -0.28 },
+  { id: "draw", label: "Draw", bias: 0.52 },
   { id: "straight", label: "Straight", bias: 0 },
-  { id: "cut", label: "Cut", bias: 0.28 },
+  { id: "cut", label: "Cut", bias: -0.52 },
 ];
 
 const PRIOR_HI = [-5, 0, 10, 20, 30];
@@ -43,7 +43,8 @@ const COURSE_META = {
 };
 
 const PLAYER_SCOUTING = {
-  "brett swikle": { stockShape: "cut" },
+  "braeden zanni": { stockShape: "draw" },
+  "garrett kunkel": { stockShape: "draw" },
 };
 
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
@@ -53,15 +54,6 @@ const mean = (values) => (values.length ? sum(values) / values.length : 0);
 function normalize(probs) {
   const total = sum(probs);
   return total > 0 ? probs.map((value) => value / total) : [0.05, 0.35, 0.4, 0.15, 0.05];
-}
-
-function hashString(value) {
-  let hash = 2166136261;
-  for (const char of String(value)) {
-    hash ^= char.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
 }
 
 export function canonicalPlayer(name) {
@@ -251,7 +243,7 @@ export function buildTripGameModel(primary, history = []) {
       const probs = profileProbabilities(hi, observationByPlayer.get(key) || []);
       const ratings = ratingFromProbabilities(hi, probs);
       const scouting = PLAYER_SCOUTING[key];
-      const stockShape = scouting?.stockShape || SHAPES[hashString(key) % SHAPES.length].id;
+      const stockShape = scouting?.stockShape || "cut";
       return {
         key,
         name: player.name,
@@ -423,8 +415,8 @@ function applyFireballVariance(probs) {
 }
 
 /* Same weights used for the mean "trouble" shift in buildHoleOdds, so conditioning stays consistent. */
-const LANDING_SHIFTS = [0, 0.08, 0.22, 1.25];
-const LANDING_LABELS = ["Fairway", "Rough", "Bunker", "Penalty area"];
+const LANDING_SHIFTS = [0, 0.38, 0.22, 1.25];
+export const LANDING_LABELS = ["Fairway", "Rough", "Bunker", "Penalty area"];
 
 /** Score distribution conditioned on where the tee shot actually finished. */
 function conditionOnLanding(probs, landing, landingIndex) {
@@ -433,6 +425,15 @@ function conditionOnLanding(probs, landing, landingIndex) {
   let conditional = shiftDistribution(probs, LANDING_SHIFTS[landingIndex] - meanShift);
   if (landingIndex === 3) conditional = normalize(conditional.map((prob, index) => (index === 0 ? prob * 0.05 : prob)));
   else if (landingIndex === 2) conditional = normalize(conditional.map((prob, index) => (index === 0 ? prob * 0.45 : prob)));
+  else if (landingIndex === 1) {
+    conditional = normalize(
+      conditional.map((prob, index) => {
+        if (index === 0) return prob * 0.2;
+        if (index === 1) return prob * 0.48;
+        return prob;
+      }),
+    );
+  }
   return conditional;
 }
 
@@ -467,7 +468,7 @@ export function buildHoleOdds({ profile, course, hole, decision, state }) {
   const officialDifficulty = ((9.5 - (hole.si || 9.5)) / 8.5) * 0.12;
   const landing = landingProbabilities(profile, hole, decision, state);
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
-  const trouble = landing[1] * 0.08 + landing[2] * 0.22 + landing[3] * 1.25;
+  const trouble = landing[1] * 0.38 + landing[2] * 0.22 + landing[3] * 1.25;
   const shapeFit = shapeFitAdjustment(profile, hole, decision.shape);
   const hazardSeverity = clamp(Number(hole.hazardSeverity) || (hole.hasWater ? 0.55 : 0.25), 0, 1);
   const clubRisk = Math.max(0, club.risk) * (0.2 + hazardSeverity * 1.75);
@@ -538,11 +539,25 @@ function sampleIndex(probs, random) {
   return probs.length - 1;
 }
 
-export function resolveMatchHole({ human, cpu, humanOdds, cpuOdds, course, hole, random = Math.random }) {
-  const humanLandingIndex = sampleIndex(
+export function resolveMatchHole({
+  human,
+  cpu,
+  humanOdds,
+  cpuOdds,
+  course,
+  hole,
+  random = Math.random,
+  remapHumanLanding,
+}) {
+  let humanLandingIndex = sampleIndex(
     [humanOdds.landing.fairway, humanOdds.landing.rough, humanOdds.landing.bunker, humanOdds.landing.penalty],
     random,
   );
+  if (typeof remapHumanLanding === "function") {
+    const mapped = remapHumanLanding(LANDING_LABELS[humanLandingIndex]);
+    const next = LANDING_LABELS.indexOf(mapped);
+    if (next >= 0) humanLandingIndex = next;
+  }
   const cpuLandingIndex = sampleIndex(
     [cpuOdds.landing.fairway, cpuOdds.landing.rough, cpuOdds.landing.bunker, cpuOdds.landing.penalty],
     random,
