@@ -396,9 +396,35 @@ function applyFireballVariance(probs) {
   return normalize(next);
 }
 
+/* Same weights used for the mean "trouble" shift in buildHoleOdds, so conditioning stays consistent. */
+const LANDING_SHIFTS = [0, 0.08, 0.22, 1.25];
+const LANDING_LABELS = ["Fairway", "Rough", "Bunker", "Penalty area"];
+
+/** Score distribution conditioned on where the tee shot actually finished. */
+function conditionOnLanding(probs, landing, landingIndex) {
+  const weights = [landing.fairway, landing.rough, landing.bunker, landing.penalty];
+  const meanShift = weights.reduce((total, weight, index) => total + weight * LANDING_SHIFTS[index], 0);
+  let conditional = shiftDistribution(probs, LANDING_SHIFTS[landingIndex] - meanShift);
+  if (landingIndex === 3) conditional = normalize(conditional.map((prob, index) => (index === 0 ? prob * 0.05 : prob)));
+  else if (landingIndex === 2) conditional = normalize(conditional.map((prob, index) => (index === 0 ? prob * 0.45 : prob)));
+  return conditional;
+}
+
+/** Penalty for leaving an awkward approach — or flying the green — with the chosen club. */
+function distanceShiftFor(hole, club) {
+  const yards = Number(hole.yards);
+  if (!Number.isFinite(yards) || yards <= 0) return 0;
+  const comfortZone = hole.par === 3 ? 10 : hole.par === 4 ? 150 : 265;
+  const leftover = Math.max(0, yards - club.carry);
+  let shift = clamp((leftover - comfortZone) / 320, 0, 0.4);
+  if (club.carry > yards + 20) shift += clamp((club.carry - yards - 20) / 260, 0, 0.3);
+  return shift;
+}
+
 export function defaultDecision(profile, hole) {
+  const yards = Number(hole.yards) || 0;
   return {
-    club: hole.par <= 3 ? "iron" : "driver",
+    club: hole.par <= 3 ? (yards > 195 ? "wood" : "iron") : "driver",
     aim: hole.dangerSide === "right" ? "left" : hole.dangerSide === "left" ? "right" : "center",
     shape: profile.stockShape,
     fireball: false,
@@ -418,12 +444,14 @@ export function buildHoleOdds({ profile, course, hole, decision, state }) {
   const shapeFit = shapeFitAdjustment(profile, hole, decision.shape);
   const hazardSeverity = clamp(Number(hole.hazardSeverity) || (hole.hasWater ? 0.55 : 0.25), 0, 1);
   const clubRisk = Math.max(0, club.risk) * (0.2 + hazardSeverity * 1.75);
+  const distanceShift = distanceShiftFor(hole, club);
   const shift =
     tripDifficulty * 0.55 +
     officialDifficulty +
     trouble +
     shapeFit +
     clubRisk +
+    distanceShift +
     stateShift(state) -
     club.upside;
   probs = shiftDistribution(probs, shift);
@@ -473,15 +501,17 @@ function sampleIndex(probs, random) {
   return probs.length - 1;
 }
 
-function sampleLanding(landing, random) {
-  const labels = ["Fairway", "Rough", "Bunker", "Penalty area"];
-  const index = sampleIndex([landing.fairway, landing.rough, landing.bunker, landing.penalty], random);
-  return labels[index];
-}
-
 export function resolveMatchHole({ human, cpu, humanOdds, cpuOdds, course, hole, random = Math.random }) {
-  const humanBucket = sampleIndex(humanOdds.probs, random);
-  const cpuBucket = sampleIndex(cpuOdds.probs, random);
+  const humanLandingIndex = sampleIndex(
+    [humanOdds.landing.fairway, humanOdds.landing.rough, humanOdds.landing.bunker, humanOdds.landing.penalty],
+    random,
+  );
+  const cpuLandingIndex = sampleIndex(
+    [cpuOdds.landing.fairway, cpuOdds.landing.rough, cpuOdds.landing.bunker, cpuOdds.landing.penalty],
+    random,
+  );
+  const humanBucket = sampleIndex(conditionOnLanding(humanOdds.probs, humanOdds.landing, humanLandingIndex), random);
+  const cpuBucket = sampleIndex(conditionOnLanding(cpuOdds.probs, cpuOdds.landing, cpuLandingIndex), random);
   const humanGross = Math.max(1, hole.par + SCORE_VALUES[humanBucket]);
   const cpuGross = Math.max(1, hole.par + SCORE_VALUES[cpuBucket]);
   const humanHcp = courseHandicap(human.hi, course);
@@ -499,11 +529,26 @@ export function resolveMatchHole({ human, cpu, humanOdds, cpuOdds, course, hole,
     cpuNet,
     humanStroke,
     cpuStroke,
-    humanLanding: sampleLanding(humanOdds.landing, random),
-    cpuLanding: sampleLanding(cpuOdds.landing, random),
+    humanLanding: LANDING_LABELS[humanLandingIndex],
+    cpuLanding: LANDING_LABELS[cpuLandingIndex],
     humanBucket: SCORE_BUCKETS[humanBucket],
     cpuBucket: SCORE_BUCKETS[cpuBucket],
   };
+}
+
+/** Match-play closeout: the match is decided once the lead exceeds the holes remaining. */
+export function matchCloseout({ humanWins, cpuWins, holesPlayed, totalHoles = 18 }) {
+  const remaining = totalHoles - holesPlayed;
+  const diff = Math.abs(humanWins - cpuWins);
+  if (diff > remaining) {
+    return {
+      decided: true,
+      leader: humanWins > cpuWins ? "human" : "cpu",
+      label: remaining > 0 ? `${diff}&${remaining}` : `${diff} UP`,
+      holesPlayed,
+    };
+  }
+  return { decided: false, dormie: diff > 0 && diff === remaining };
 }
 
 export function findBestDecision({ profile, course, hole, state }) {
@@ -524,7 +569,7 @@ export function findBestDecision({ profile, course, hole, state }) {
   return { best, worst };
 }
 
-export function chooseCpuPlayer({ players, usage, maxUses, course, hole, stateByPlayer }) {
+export function chooseCpuPlayer({ players, usage, maxUses, course, hole, stateByPlayer, random = Math.random }) {
   const available = players.filter((player) => (usage[player.key] || 0) < maxUses);
   const pool = available.length ? available : players;
   let best = null;
@@ -536,8 +581,9 @@ export function chooseCpuPlayer({ players, usage, maxUses, course, hole, stateBy
       state: stateByPlayer[profile.key],
     });
     const { decision, odds } = bestPlan;
-    const conservation = (usage[profile.key] || 0) * 0.055;
-    const score = odds.expectedGross + conservation;
+    const conservation = (usage[profile.key] || 0) * 0.075;
+    const noise = (random() - 0.5) * 0.12;
+    const score = odds.expectedGross + conservation + noise;
     if (!best || score < best.score) best = { profile, decision, odds, score };
   }
   return best;
