@@ -782,6 +782,134 @@
   pointer-events: auto;
 }
 
+/* Stadium party pulse: the drunker the golfer, the more the place rocks */
+
+.trip-game-map-wrap.is-party-1 {
+  --party-amp: 0.25deg;
+  --party-bob: 0.8px;
+  --party-speed: 2.6s;
+  --party-glow: 0.1;
+}
+
+.trip-game-map-wrap.is-party-2 {
+  --party-amp: 0.5deg;
+  --party-bob: 1.6px;
+  --party-speed: 1.9s;
+  --party-glow: 0.18;
+}
+
+.trip-game-map-wrap.is-party-3 {
+  --party-amp: 0.9deg;
+  --party-bob: 2.6px;
+  --party-speed: 1.4s;
+  --party-glow: 0.28;
+}
+
+.trip-game-map-wrap[class*="is-party"] .trip-game-map {
+  animation: trip-game-party-rock var(--party-speed, 2.4s) ease-in-out infinite;
+}
+
+.trip-game-map-wrap[class*="is-party"]::before {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 100%, rgba(242, 193, 78, var(--party-glow, 0.12)) 0%, transparent 62%);
+  animation: trip-game-party-glow calc(var(--party-speed, 2.4s) / 2) ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.trip-game-map-wrap.is-party-surge .trip-game-map {
+  animation: trip-game-party-surge 0.42s ease-in-out 6;
+}
+
+.trip-game-map-wrap.is-party-surge::before {
+  background: radial-gradient(ellipse at 50% 100%, rgba(242, 193, 78, 0.4) 0%, transparent 70%);
+}
+
+@keyframes trip-game-party-rock {
+  0%,
+  100% {
+    transform: rotate(calc(var(--party-amp, 0.3deg) * -1)) translateY(0);
+  }
+  50% {
+    transform: rotate(var(--party-amp, 0.3deg)) translateY(var(--party-bob, 1px));
+  }
+}
+
+@keyframes trip-game-party-surge {
+  0%,
+  100% {
+    transform: rotate(-1.1deg) translateY(0);
+  }
+  50% {
+    transform: rotate(1.1deg) translateY(3px);
+  }
+}
+
+@keyframes trip-game-party-glow {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Buzz meter row */
+
+.trip-game-buzz-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 8px;
+  border-bottom: 2px solid #060f0a;
+  background: #1c1424;
+}
+
+.trip-game-buzz-row span {
+  color: #cfa3e8;
+  font-family: var(--font-display);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+}
+
+.trip-game-buzz-track {
+  position: relative;
+  overflow: hidden;
+  height: 8px;
+  border: 2px solid #060f0a;
+  background: #120b18;
+}
+
+.trip-game-buzz-track i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(90deg, #f2c14e 0%, #ec7137 55%, #c85341 100%);
+  transition: width 400ms ease-out;
+}
+
+.trip-game-buzz-row b {
+  color: #f2c14e;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.trip-game-buzz-row.is-tipsy b,
+.trip-game-buzz-row.is-lit b {
+  color: #ff9e4a;
+  animation: trip-kick-pulse 0.7s ease-in-out infinite;
+}
+
+.trip-game-judgment em.is-buzz {
+  background: linear-gradient(90deg, #f2c14e 0%, #ec7137 100%);
+  animation: trip-kick-pulse 0.5s ease-in-out infinite;
+}
+
 /* Casino club reel: a slot-machine window that snaps between clubs */
 
 .trip-game-club-reel {

@@ -256,6 +256,13 @@ export function yardRollFinal(tier) {
   tone({ freq: 520, type: "triangle", duration: 0.1, peak: 0.04 });
 }
 
+// Glasses clink + crowd woo for a round of drinks.
+export function clinkSound() {
+  tone({ freq: 1720, type: "triangle", duration: 0.09, peak: 0.06 });
+  tone({ freq: 2140, type: "triangle", at: 0.07, duration: 0.14, peak: 0.05 });
+  noise({ at: 0.1, duration: 0.7, peak: 0.045, filterFrom: 650, filterTo: 1500, type: "bandpass", attack: 0.08 });
+}
+
 // Club-on-ball crack when the swing animation connects.
 export function contactSound({ power = 0.9, putt = false, pure = false }) {
   if (putt) {

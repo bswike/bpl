@@ -18,6 +18,7 @@ import {
   skillOf,
 } from "./tripGameEngine.js";
 import {
+  clinkSound,
   contactSound,
   crowdSwell,
   holeWinSound,
@@ -1390,6 +1391,8 @@ function HoleMap({
   soundControl,
   kickTier,
   clutch,
+  party = 0,
+  partySurge = false,
   liveStatus,
   livePos,
   livePreview,
@@ -1513,7 +1516,7 @@ function HoleMap({
 
   return (
     <div
-      className={`trip-game-map-wrap ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}`}
+      className={`trip-game-map-wrap ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}${party > 0 ? ` is-party-${party}` : ""}${partySurge ? " is-party-surge" : ""}`}
       style={shake ? { "--shake-amp": `${shake.amp}px` } : undefined}
     >
       <div className="trip-game-map-hud">
@@ -1894,6 +1897,7 @@ function HoleMap({
           <b>{swingFx.label}</b>
           <small>{swingFx.sub}</small>
           {swingFx.streak >= 2 && <em>STRIPING ×{swingFx.streak}</em>}
+          {swingFx.buzzBonus && <em className="is-buzz">🍺 SUPER SHOT</em>}
         </div>
       )}
       {swingFx?.tier === "pure" && <div key={`flash-${swingFx.id}`} className="trip-game-pure-flash" aria-hidden="true" />}
@@ -2014,6 +2018,19 @@ function liveClubOf(clubId) {
   return LIVE_CLUBS.find((club) => club.id === clubId) || null;
 }
 
+/**
+ * Booze tiers: the drunker you are, the faster and tighter the meter — but a
+ * flushed shot while buzzed is a SUPER shot with bonus carry. Pulse is the
+ * stadium-party intensity level.
+ */
+function buzzTierOf(buzz) {
+  const level = Number(buzz) || 0;
+  if (level >= 70) return { id: "lit", label: "LIT", zone: 0.72, speed: 1.3, wobble: true, bonus: 1.15, pulse: 3 };
+  if (level >= 45) return { id: "tipsy", label: "TIPSY", zone: 0.82, speed: 1.18, wobble: true, bonus: 1.1, pulse: 2 };
+  if (level >= 20) return { id: "buzzed", label: "BUZZED", zone: 0.92, speed: 1.08, wobble: false, bonus: 1.06, pulse: 1 };
+  return { id: "sober", label: "SOBER", zone: 1, speed: 1, wobble: false, bonus: 1, pulse: 0 };
+}
+
 /** Default club for the lie/distance; the player can cycle from here. */
 function defaultLiveClub(remainingYards, lie) {
   if (lie === "Bunker") return remainingYards > 90 ? "wedge" : "sandwedge";
@@ -2061,7 +2078,10 @@ function judgeSwing(power, accuracy, mods = {}) {
   // beat longer on near-misses so the ache lands.
   const base = tier === "pure" ? 680 : tier === "great" ? 500 : tier === "wild" ? 460 : 400;
   const hold = nearMiss ? base + 160 : base;
-  return { tier, label, sub, hold, overswung, nearMiss, redBet: Boolean(mods.redBet) };
+  // Flushing one while buzzed is a SUPER shot.
+  const buzzBonus = (mods.buzzBonus || 1) > 1.05 && (tier === "pure" || tier === "great");
+  const finalLabel = buzzBonus && tier === "pure" ? "LIQUID GOLD!" : label;
+  return { tier, label: finalLabel, sub, hold, overswung, nearMiss, redBet: Boolean(mods.redBet), buzzBonus };
 }
 
 function zoneStyle(threshold, zoneScale) {
@@ -2571,6 +2591,35 @@ function FireballOffer({ player, onAccept, onDecline }) {
   );
 }
 
+function BuyRoundOffer({ opponent, onAccept, onDecline }) {
+  const name = opponent ? lastName(opponent.name) : "They";
+  return (
+    <div className="trip-game-modal-backdrop" role="presentation">
+      <div className="trip-game-modal trip-game-modal--round" role="dialog" aria-modal="true" aria-labelledby="buy-round-title">
+        <div className="trip-game-modal-sprite" aria-hidden="true">
+          <span>🍻</span>
+        </div>
+        <p className="trip-game-modal-kicker">OPPONENT EVENT</p>
+        <h3 id="buy-round-title">{name.toUpperCase()} OFFERS TO BUY A ROUND</h3>
+        <p>
+          You&apos;re running away with this match, and {name} just waved down the cart. Accept and the whole place starts
+          rocking. Decline... and they take it personally.
+        </p>
+        <div className="trip-game-modal-options">
+          <button type="button" onClick={onAccept}>
+            <b>CHEERS 🍺</b>
+            <span>Buzz +18 · stadium pulses harder</span>
+          </button>
+          <button type="button" onClick={onDecline}>
+            <b>DECLINE</b>
+            <span>They&apos;re insulted · their game locks in</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CartGirlOffer({ player, onDrink, onHydrate }) {
   return (
     <div className="trip-game-modal-backdrop" role="presentation">
@@ -2792,6 +2841,10 @@ export default function TripGame({ data }) {
   const [liveInfo, setLiveInfo] = useState(null);
   const [liveClubId, setLiveClubId] = useState(null);
   const [puttAim, setPuttAim] = useState(0);
+  const [partySurge, setPartySurge] = useState(false);
+  const partyTimerRef = useRef(null);
+  const buyRoundRef = useRef(false);
+  const cpuEdgeRef = useRef(false);
   const liveRef = useRef(null);
   const [soundOn, setSoundOn] = useState(() => {
     try {
@@ -2911,7 +2964,9 @@ export default function TripGame({ data }) {
         }
       } else if (meterPhase === "accuracy") {
         const beforeOff = Math.abs(live.accuracy);
-        live.accuracy += live.accDir * dt * meterModsRef.current.speed;
+        // A few drinks deep, the needle surges and slows — good luck.
+        const drunkWobble = meterModsRef.current.buzzWobble ? 1 + Math.sin(now / 150) * 0.35 : 1;
+        live.accuracy += live.accDir * dt * meterModsRef.current.speed * drunkWobble;
         if (live.accuracy >= 1) {
           live.accuracy = 1;
           live.accDir = -1;
@@ -3193,6 +3248,9 @@ export default function TripGame({ data }) {
     setSwingStreak(0);
     liveRef.current = null;
     setLiveInfo(null);
+    buyRoundRef.current = false;
+    cpuEdgeRef.current = false;
+    setPartySurge(false);
     setInventory({ fireball: 1 });
     setEventOffer(null);
     setEventHandled({});
@@ -3249,6 +3307,22 @@ export default function TripGame({ data }) {
     });
   }
 
+  function triggerPartySurge() {
+    clinkSound();
+    crowdSwell(0.85);
+    setPartySurge(true);
+    if (partyTimerRef.current) window.clearTimeout(partyTimerRef.current);
+    partyTimerRef.current = window.setTimeout(() => setPartySurge(false), 2600);
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate([20, 40, 20, 40, 60]);
+  }
+
+  // CPU state, with the "declined our round" edge applied when earned.
+  function cpuStateOf(key) {
+    const base = playerState[key] || DEFAULT_PLAYER_STATE;
+    if (!cpuEdgeRef.current) return base;
+    return { ...base, morale: (base.morale ?? 50) + 25 };
+  }
+
   function acceptFireball() {
     if (!eventOffer) return;
     updateCondition(eventOffer.playerKey, { buzz: 22, morale: 5 });
@@ -3256,6 +3330,7 @@ export default function TripGame({ data }) {
     setPickLocked(true);
     setEventNote("FIREBALL ACCEPTED · EARLY BOOST / TIPPING RISK");
     setEventOffer(null);
+    triggerPartySurge();
   }
 
   function declineFireball() {
@@ -3278,6 +3353,22 @@ export default function TripGame({ data }) {
       drink ? "COLD ONE ACQUIRED · SHORT MORALE POP / MORE BUZZ" : "HYDRATION PLAY · BUZZ DOWN / CONTROL RESTORED",
     );
     setEventOffer(null);
+    if (drink) triggerPartySurge();
+  }
+
+  function acceptBuyRound() {
+    if (!eventOffer) return;
+    if (selected) updateCondition(selected.key, { buzz: 18, morale: 6 });
+    setEventNote("ROUND ACCEPTED · CROWD'S ROCKING / METER'S SWIMMING");
+    setEventOffer(null);
+    triggerPartySurge();
+  }
+
+  function declineBuyRound() {
+    if (!eventOffer) return;
+    cpuEdgeRef.current = true;
+    setEventNote("ROUND DECLINED · THEY'RE INSULTED AND LOCKED IN");
+    setEventOffer(null);
   }
 
   function startKickMeter(options = {}) {
@@ -3295,9 +3386,13 @@ export default function TripGame({ data }) {
     const lieMod = LIE_METER_MODS[options.lie] || { zone: 1, speed: 1 };
     const skill = skillOf(selected?.hi);
     const stimpNeedle = options.needle || 1;
-    const skillSpeed = (1 + (1 - skill) * SKILL_SPEED_PENALTY) * lieMod.speed * stimpNeedle;
+    const buzz = buzzTierOf(selectedState?.buzz);
+    const skillSpeed = (1 + (1 - skill) * SKILL_SPEED_PENALTY) * lieMod.speed * stimpNeedle * buzz.speed;
     const baseZone =
-      (liveClub?.zone ?? CLUB_ZONE_SCALE[clubId] ?? 1) * (SKILL_ZONE_MIN + skill * SKILL_ZONE_RANGE) * lieMod.zone;
+      (liveClub?.zone ?? CLUB_ZONE_SCALE[clubId] ?? 1) *
+      (SKILL_ZONE_MIN + skill * SKILL_ZONE_RANGE) *
+      lieMod.zone *
+      buzz.zone;
     const clubSpeed = liveClub?.speed ?? CLUB_METER_SPEED[clubId] ?? 1;
     const clutch = dormie || hole?.number === 18;
     meterModsRef.current = {
@@ -3311,6 +3406,8 @@ export default function TripGame({ data }) {
       clutch,
       club: clubId,
       paceBand: options.paceBand || null,
+      buzzWobble: buzz.wobble,
+      buzzBonus: buzz.bonus,
     };
     setMeterMods({ zoneScale: baseZone, redBet: false, clutch, club: clubId, paceBand: options.paceBand || null });
     setMeterTick({ power: 0, accuracy: -1 });
@@ -3423,7 +3520,7 @@ export default function TripGame({ data }) {
       course,
       hole,
       decision: cpuDecision,
-      state: playerState[cpuPick.profile.key],
+      state: cpuStateOf(cpuPick.profile.key),
     });
     // Sample the CPU's whole hole up front so it can be interleaved live.
     const cpuSample = resolveMatchHole({
@@ -3654,7 +3751,8 @@ export default function TripGame({ data }) {
         meter,
         judgment,
         clubId: live.club,
-        carryBoost: decision.carryBoost,
+        // Buzzed flush = super shot: the ball goes extra.
+        carryBoost: (decision.carryBoost || 1) * (judgment.buzzBonus ? meterModsRef.current.buzzBonus || 1 : 1),
         yardsScale,
         // The planning aim applies to the tee ball; approaches aim at the pin.
         aimUnits: live.strokes === 0 ? aimOffsetOf(decision.aim) * clamp(projection.width * 0.12, 10, 22) : 0,
@@ -3828,6 +3926,12 @@ export default function TripGame({ data }) {
       setEventOffer({ type: "fireball", playerKey: selected.key, player: selected });
       return;
     }
+    // Blowing them out? They'll offer to buy a round — a trap either way.
+    if (scoreDifference >= 3 && !buyRoundRef.current && cpuOpponent) {
+      buyRoundRef.current = true;
+      setEventOffer({ type: "buy-round", playerKey: selected.key, player: selected });
+      return;
+    }
     if (swingMode === "full") {
       setupLiveHole();
       advanceMatchFlow();
@@ -3869,7 +3973,7 @@ export default function TripGame({ data }) {
       course,
       hole,
       decision: cpuPick.decision || defaultDecision(cpuPick.profile, hole),
-      state: playerState[cpuPick.profile.key],
+      state: cpuStateOf(cpuPick.profile.key),
     });
     const resolved = resolveMatchHole({
       human: selected,
@@ -4139,6 +4243,15 @@ export default function TripGame({ data }) {
               <b>{hype}/100</b>
               {streak >= 2 && <em>HEAT ×{streak}</em>}
             </div>
+            {selected && buzzTierOf(selectedState.buzz).pulse > 0 && (
+              <div className={`trip-game-buzz-row is-${buzzTierOf(selectedState.buzz).id}`}>
+                <span>🍺 BUZZ</span>
+                <div className="trip-game-buzz-track">
+                  <i style={{ width: `${clamp(selectedState.buzz, 0, 100)}%` }} />
+                </div>
+                <b>{buzzTierOf(selectedState.buzz).label}</b>
+              </div>
+            )}
             <div className="trip-game-play-grid">
               <HoleMap
                 projection={projection}
@@ -4228,6 +4341,8 @@ export default function TripGame({ data }) {
                 swingFx={swingFx}
                 shake={shakeFx}
                 clutch={Boolean(meterPhase) && meterMods.clutch}
+                party={selected ? buzzTierOf(selectedState.buzz).pulse : 0}
+                partySurge={partySurge}
                 kickTier={
                   swingFx
                     ? swingFx.redBet && (swingFx.tier === "pure" || swingFx.tier === "great")
@@ -4378,6 +4493,9 @@ export default function TripGame({ data }) {
           onDrink={() => chooseCartGirl(true)}
           onHydrate={() => chooseCartGirl(false)}
         />
+      )}
+      {eventOffer?.type === "buy-round" && (
+        <BuyRoundOffer opponent={cpuOpponent?.profile} onAccept={acceptBuyRound} onDecline={declineBuyRound} />
       )}
     </section>
   );
