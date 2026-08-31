@@ -1713,6 +1713,10 @@
   fill: var(--px-red);
 }
 
+.trip-game-golfer-cap.is-blue {
+  fill: #3d7ec8;
+}
+
 .trip-game-golfer-shirt {
   fill: #e8ecf2;
 }

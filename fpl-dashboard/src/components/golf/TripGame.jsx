@@ -315,7 +315,9 @@ function computeMapCamera({ projection, playback, landing, activeShot, flightFra
       activeShot.final ||
       (pointNearGreen(ground, projection) && !openingTee);
 
-    if (openingTee && playback.phase === "swing") return overview;
+    if (openingTee && playback.phase === "swing") {
+      return cameraWindow(activeShot.from[0], activeShot.from[1] - 2, 84, projection.width, projection.height, 1.15);
+    }
 
     const follow = trackShotCamera({
       projection,
@@ -741,6 +743,37 @@ function CaptainRead({ read }) {
   );
 }
 
+function sidePoint(from, toward, offset) {
+  const dx = toward[0] - from[0];
+  const dy = toward[1] - from[1];
+  const len = Math.hypot(dx, dy) || 1;
+  return [from[0] + (-dy / len) * offset, from[1] + (dx / len) * offset];
+}
+
+function GolferSprite({ at, toward, hat = "red", pose = "idle", putting = false, scale = 1.25 }) {
+  const flipped = toward ? toward[0] < at[0] : false;
+  return (
+    <g
+      className={`trip-game-golfer is-${hat}${pose !== "idle" ? ` trip-game-swinger ${pose === "swing" ? "is-swinging" : "is-through"}${putting ? " is-putting" : ""}` : ""}`}
+      transform={`translate(${at[0]} ${at[1]}) scale(${flipped ? -scale : scale} ${scale})`}
+    >
+      <ellipse className="trip-game-swinger-shadow" cx="0" cy="1.4" rx="5.4" ry="1.7" />
+      <g transform="translate(-4.8 -15)">
+        <rect className="trip-game-golfer-legs" x="1" y="10" width="3" height="5.5" />
+        <rect className="trip-game-golfer-legs" x="5.8" y="10" width="3" height="5.5" />
+        <rect className="trip-game-golfer-shirt" x="0.4" y="4.6" width="9" height="5.8" />
+        <rect className="trip-game-golfer-skin" x="2.4" y="0.2" width="5" height="4.6" />
+        <rect className={`trip-game-golfer-cap${hat === "blue" ? " is-blue" : ""}`} x="1.8" y="-1.8" width="6.2" height="2.4" />
+        {hat === "blue" && <rect className="trip-game-golfer-cap is-blue" x="7.2" y="-0.2" width="2.2" height="1.1" />}
+        <g className="trip-game-swing-arm">
+          <rect className="trip-game-golfer-club" x="8.2" y="4.8" width="1.4" height="10.5" />
+          <rect className="trip-game-club-head" x="7.4" y="14.4" width="3.2" height="2" />
+        </g>
+      </g>
+    </g>
+  );
+}
+
 function HoleMap({
   projection,
   hole,
@@ -832,7 +865,7 @@ function HoleMap({
       : playback.phase === "flight"
         ? 0.84
         : playback.phase === "swing" && playback.index === 0
-          ? 0.12
+          ? 1
           : 0.5;
   cameraRef.current = blendCamera(cameraRef.current, targetCam, cameraRef.current ? cameraEase : 1);
   const camera = cameraRef.current;
@@ -975,14 +1008,10 @@ function HoleMap({
           </>
         )}
         {!playback && (
-          <g className="trip-game-golfer" transform={`translate(${projection.tee[0] - 5} ${projection.tee[1] - 13})`}>
-            <rect className="trip-game-golfer-club" x="10" y="2" width="1.4" height="12" transform="rotate(20 10.7 2)" />
-            <rect className="trip-game-golfer-cap" x="2.4" y="-1.6" width="6.2" height="2.2" />
-            <rect className="trip-game-golfer-skin" x="3" y="0.6" width="5" height="4.4" />
-            <rect className="trip-game-golfer-shirt" x="2" y="5" width="7" height="7" />
-            <rect className="trip-game-golfer-legs" x="0" y="12" width="4" height="7" />
-            <rect className="trip-game-golfer-legs" x="7" y="12" width="4" height="7" />
-          </g>
+          <>
+            <GolferSprite at={sidePoint(projection.tee, projection.pin, -8)} toward={projection.pin} hat="red" scale={1.15} />
+            <GolferSprite at={sidePoint(projection.tee, projection.pin, 8)} toward={projection.pin} hat="blue" scale={1.15} />
+          </>
         )}
         <g className="trip-game-flag" transform={`translate(${projection.pin[0]} ${projection.pin[1]})`}>
           <rect className="trip-game-flag-base" x="-3" y="0" width="6" height="2" />
@@ -994,32 +1023,29 @@ function HoleMap({
             {playback.shots.slice(0, playback.index).map((shot, index) => (
               <circle key={index} cx={shot.to[0]} cy={shot.to[1]} r="1.5" className="trip-game-crumb" />
             ))}
-            <g transform={`translate(${activeShot.from[0]} ${activeShot.from[1]})`}>
-              <g
-                className={`trip-game-swinger ${playback.phase === "swing" ? "is-swinging" : "is-through"} ${
-                  activeShot.kind === "putt" ? "is-putting" : ""
-                }`}
-                transform={`scale(${shotFlipped ? -1.3 : 1.3} 1.3)`}
-              >
-                <ellipse className="trip-game-swinger-shadow" cx="0" cy="1.4" rx="5.4" ry="1.7" />
-                <g transform="translate(-4.8 -15)">
-                  <rect className="trip-game-golfer-legs" x="1" y="10" width="3" height="5.5" />
-                  <rect className="trip-game-golfer-legs" x="5.8" y="10" width="3" height="5.5" />
-                  <rect className="trip-game-golfer-shirt" x="0.4" y="4.6" width="9" height="5.8" />
-                  <rect className="trip-game-golfer-skin" x="2.4" y="0.2" width="5" height="4.6" />
-                  <rect className="trip-game-golfer-cap" x="1.8" y="-1.8" width="6.2" height="2.4" />
-                  <g className="trip-game-swing-arm">
-                    <rect className="trip-game-golfer-club" x="8.2" y="4.8" width="1.4" height="10.5" />
-                    <rect className="trip-game-club-head" x="7.4" y="14.4" width="3.2" height="2" />
-                  </g>
-                </g>
+            <GolferSprite
+              at={
+                playback.index === 0
+                  ? sidePoint(projection.tee, projection.pin, 8)
+                  : sidePoint(activeShot.from, activeShot.to, 10)
+              }
+              toward={playback.index === 0 ? projection.pin : activeShot.to}
+              hat="blue"
+              scale={1.2}
+            />
+            <GolferSprite
+              at={activeShot.from}
+              toward={activeShot.to}
+              hat="red"
+              pose={playback.phase === "swing" ? "swing" : "through"}
+              putting={activeShot.kind === "putt"}
+              scale={1.3}
+            />
+            {playback.phase === "flight" && (
+              <g className="trip-game-impact" transform={`translate(${activeShot.from[0] + (shotFlipped ? -6 : 6)} ${activeShot.from[1] - 4})`}>
+                <path d="M0,-5 L1.6,-1.6 L5,0 L1.6,1.6 L0,5 L-1.6,1.6 L-5,0 L-1.6,-1.6 Z" />
               </g>
-              {playback.phase === "flight" && (
-                <g className="trip-game-impact" transform={`translate(${shotFlipped ? -6 : 6} -4)`}>
-                  <path d="M0,-5 L1.6,-1.6 L5,0 L1.6,1.6 L0,5 L-1.6,1.6 L-5,0 L-1.6,-1.6 Z" />
-                </g>
-              )}
-            </g>
+            )}
             {playback.phase === "swing" && (
               <g className="trip-game-theater-ball-wrap" transform={`translate(${activeShot.from[0]} ${activeShot.from[1]})`}>
                 <ellipse className="trip-game-theater-shadow" cx="0" cy="1.2" rx="3" ry="1.4" />
@@ -2426,7 +2452,7 @@ export default function TripGame({ data }) {
                 </div>
               )}
               {eventNote && resolutionPhase === "idle" && !result && <div className="trip-game-event-note">{eventNote}</div>}
-              {resolutionPhase === "playback" && result && (
+              {resolutionPhase === "playback" && result && !(playbackStep.index === 0 && playbackStep.phase === "swing") && (
                 <div className="trip-game-stage-overlay">
                   <PlaybackPanel
                     result={result}
