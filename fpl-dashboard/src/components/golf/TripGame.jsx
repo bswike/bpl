@@ -1256,6 +1256,7 @@ function HoleMap({
   kickTier,
   clutch,
   liveStatus,
+  livePos,
   onAimStep,
   onCycle,
 }) {
@@ -1293,7 +1294,9 @@ function HoleMap({
   const bend = shapeBend(projection, shape);
   const shotPath = curvedPath(projection.tee, previewTarget, bend);
   const landing = result ? placeTeeLanding(projection, hole, shotDecision, result.humanLanding).point : null;
-  const planning = !playback && !result;
+  // Shot-by-shot mode: between swings the ball sits at its real lie, not the
+  // tee — suppress the tee-planning overlays and focus the camera there.
+  const planning = !playback && !result && !livePos;
   const activeShot = playback ? playback.shots[Math.min(playback.index, playback.shots.length - 1)] : null;
   const shotFlipped = activeShot ? activeShot.to[0] < activeShot.from[0] : false;
   const flightFrames = activeShot?.frames || [];
@@ -1339,7 +1342,7 @@ function HoleMap({
   const targetCam = computeMapCamera({
     projection,
     playback,
-    landing,
+    landing: landing || livePos || null,
     activeShot,
     flightFrame,
   });
@@ -1503,10 +1506,23 @@ function HoleMap({
             </text>
           </>
         )}
-        {!playback && (
+        {!playback && !livePos && (
           <>
             <GolferSprite at={sidePoint(projection.tee, projection.pin, -8)} toward={projection.pin} hat="red" scale={1.15} />
             <GolferSprite at={sidePoint(projection.tee, projection.pin, 8)} toward={projection.pin} hat="blue" scale={1.15} />
+          </>
+        )}
+        {!playback && livePos && (
+          <>
+            <path
+              d={curvedPath(livePos, projection.pin, 0)}
+              className="trip-game-aim-ahead"
+            />
+            <GolferSprite at={sidePoint(livePos, projection.pin, 7)} toward={projection.pin} hat="red" scale={1.25} />
+            <g transform={`translate(${livePos[0]} ${livePos[1]})`}>
+              <ellipse className="trip-game-theater-shadow" cx="0" cy="1.2" rx="3" ry="1.4" />
+              <BallSprite r={2.4} />
+            </g>
           </>
         )}
         <g className="trip-game-flag" transform={`translate(${projection.pin[0]} ${projection.pin[1]})`}>
@@ -3712,6 +3728,7 @@ export default function TripGame({ data }) {
                     : null
                 }
                 liveStatus={liveInfo && !result ? liveInfo.label : null}
+                livePos={liveInfo && !result && liveRef.current ? liveRef.current.pos : null}
                 intro={holeIntro && resolutionPhase === "idle" && !result && !meterPhase && !liveInfo}
                 onIntroDismiss={() => setHoleIntro(false)}
                 odds={resolutionPhase === "idle" && !result && !meterPhase && !liveInfo ? odds : null}
