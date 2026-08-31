@@ -4065,7 +4065,7 @@ export default function GolfTrip({ gameOnly = false }) {
 
   if (gameOnly) {
     return (
-      <div className={shell}>
+      <div className={`min-h-dvh overflow-hidden bg-slate-950 text-gray-100 ${gg ? "gg-theme" : ""}`}>
         <main className="max-w-3xl mx-auto px-3 sm:px-6 py-1.5 sm:py-8">
           <Suspense fallback={<div className="h-72 rounded-2xl border border-slate-700 bg-slate-900" />}>
             <TripGame data={data} />

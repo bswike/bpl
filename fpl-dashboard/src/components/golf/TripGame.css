@@ -636,9 +636,12 @@
   align-items: stretch;
   justify-content: space-between;
   gap: 8px;
-  padding: 7px 9px;
+  padding: 8px 10px;
   border-top: 2px solid #060f0a;
   background: linear-gradient(180deg, #223829 0%, #182a1e 100%);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .trip-game-pad-aim {
@@ -648,11 +651,12 @@
 }
 
 .trip-game-pad-aim button {
-  width: 46px;
+  width: 58px;
+  min-height: 46px;
   border: 2px solid #060f0a;
   background: linear-gradient(180deg, #4a5c50 0%, #37473c 100%);
   color: #e7f0cc;
-  font-size: 15px;
+  font-size: 18px;
   box-shadow:
     2px 2px 0 #060f0a,
     inset 0 2px 0 rgba(255, 255, 255, 0.18);
@@ -660,22 +664,21 @@
   touch-action: manipulation;
 }
 
-.trip-game-pad-aim button:active:not(:disabled) {
+.trip-game-pad-aim button:active {
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0 #060f0a;
 }
 
-.trip-game-pad-aim button:disabled {
+.trip-game-pad-aim button.is-maxed {
   opacity: 0.35;
-  cursor: not-allowed;
 }
 
 .trip-game-pad-aim > span {
   display: grid;
-  min-width: 86px;
+  min-width: 96px;
   align-content: center;
   justify-items: center;
-  padding: 2px 7px;
+  padding: 2px 8px;
   border: 2px solid #060f0a;
   background: var(--px-screen);
   color: var(--px-ink);
@@ -683,13 +686,13 @@
 }
 
 .trip-game-pad-aim > span small {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   opacity: 0.75;
 }
 
 .trip-game-pad-aim > span b {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.05;
 }
 
@@ -700,10 +703,10 @@
 
 .trip-game-pad-menus button {
   display: grid;
-  min-width: 74px;
+  min-width: 88px;
   align-content: center;
   justify-items: center;
-  padding: 3px 8px;
+  padding: 4px 9px;
   border: 2px solid #060f0a;
   background: linear-gradient(180deg, #b05836 0%, #91401f 100%);
   color: #ffedc2;
@@ -725,13 +728,13 @@
 }
 
 .trip-game-pad-menus button small {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.2em;
   opacity: 0.8;
 }
 
 .trip-game-pad-menus button b {
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.05;
 }
 
@@ -2404,38 +2407,39 @@
 
   .trip-game-pad {
     gap: 6px;
-    padding: 5px 6px;
+    padding: 6px 7px;
   }
 
   .trip-game-pad-aim button {
-    width: 40px;
-    font-size: 13px;
+    width: 52px;
+    min-height: 44px;
+    font-size: 16px;
   }
 
   .trip-game-pad-aim > span {
-    min-width: 72px;
-    padding: 1px 5px;
+    min-width: 80px;
+    padding: 1px 6px;
   }
 
   .trip-game-pad-aim > span small {
-    font-size: 8px;
+    font-size: 9px;
   }
 
   .trip-game-pad-aim > span b {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .trip-game-pad-menus button {
-    min-width: 60px;
-    padding: 2px 6px;
+    min-width: 68px;
+    padding: 3px 7px;
   }
 
   .trip-game-pad-menus button small {
-    font-size: 8px;
+    font-size: 9px;
   }
 
   .trip-game-pad-menus button b {
-    font-size: 13px;
+    font-size: 15px;
   }
 
   .trip-game-command-panel {
@@ -2811,6 +2815,378 @@
 
   .trip-game-modal-options {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Play screen: lock to the viewport, course fills the space ---------- */
+
+.trip-game--play .trip-game-shell {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 66px);
+  height: calc(100dvh - 66px);
+  min-height: 480px;
+}
+
+.trip-game--play .trip-game-console-head,
+.trip-game--play .trip-game-scorebar,
+.trip-game--play .trip-game-match-state,
+.trip-game--play .trip-game-hype,
+.trip-game--play .trip-game-roster,
+.trip-game--play .trip-game-bottom-status {
+  flex: none;
+}
+
+.trip-game--play .trip-game-play-grid {
+  flex: 1;
+  min-height: 0;
+}
+
+.trip-game--play .trip-game-map-wrap {
+  min-height: 0;
+}
+
+.trip-game--play .trip-game-map-foot {
+  display: none;
+}
+
+.trip-game--play .trip-game-command-panel {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* compress desktop chrome so the course gets the vertical space */
+
+.trip-game--play .trip-game-score-team,
+.trip-game--play .trip-game-hole-box {
+  min-height: 52px;
+  padding: 5px 9px;
+}
+
+.trip-game--play .trip-game-score-team b {
+  font-size: 26px;
+}
+
+.trip-game--play .trip-game-hole-box b {
+  font-size: 22px;
+}
+
+.trip-game--play .trip-game-match-state {
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.trip-game--play .trip-game-hype {
+  min-height: 22px;
+  padding: 3px 9px;
+  font-size: 11px;
+}
+
+.trip-game--play .trip-game-roster-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.trip-game--play .trip-game-roster-player {
+  min-height: 40px;
+}
+
+.trip-game--play .trip-game-bottom-status {
+  min-height: 24px;
+  padding: 3px 10px;
+  font-size: 11px;
+}
+
+@media (max-width: 699px) {
+  .trip-game--play .trip-game-shell {
+    height: calc(100vh - 14px);
+    height: calc(100dvh - 14px);
+    min-height: 430px;
+  }
+
+  .trip-game--play .trip-game-console-head {
+    display: none;
+  }
+
+  .trip-game--play .trip-game-play-grid {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .trip-game--play .trip-game-map-wrap {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .trip-game--play .trip-game-map {
+    height: auto;
+    min-height: 120px;
+    flex: 1;
+  }
+
+  .trip-game--play .trip-game-command-panel {
+    flex: none;
+    gap: 4px;
+    padding: 5px;
+    overflow: visible;
+  }
+
+  /* shrink the info chrome so the course + controls get the pixels */
+
+  .trip-game--play .trip-game-score-team,
+  .trip-game--play .trip-game-hole-box {
+    min-height: 38px;
+    padding: 3px 6px;
+  }
+
+  .trip-game--play .trip-game-score-team b,
+  .trip-game--play .trip-game-hole-box b {
+    font-size: 16px;
+  }
+
+  .trip-game--play .trip-game-score-team span {
+    font-size: 9px;
+  }
+
+  .trip-game--play .trip-game-hole-box small,
+  .trip-game--play .trip-game-hole-box span {
+    font-size: 8px;
+  }
+
+  .trip-game--play .trip-game-match-state {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+
+  .trip-game--play .trip-game-hype {
+    min-height: 16px;
+    padding: 2px 8px;
+    font-size: 9px;
+    gap: 6px;
+  }
+
+  .trip-game--play .trip-game-hype em {
+    font-size: 8px;
+  }
+
+  .trip-game--play .trip-game-hype-track {
+    height: 6px;
+  }
+
+  .trip-game--play .trip-game-player-card {
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 2px 6px;
+    padding: 4px 6px;
+  }
+
+  .trip-game--play .trip-game-avatar {
+    width: 26px;
+    height: 26px;
+    font-size: 7px;
+  }
+
+  .trip-game--play .trip-game-player-name b {
+    font-size: 12px;
+  }
+
+  .trip-game--play .trip-game-player-meta {
+    margin-top: 0;
+    font-size: 9px;
+  }
+
+  .trip-game--play .trip-game-condition span {
+    padding: 0 3px;
+    font-size: 8px;
+  }
+
+  .trip-game--play .trip-game-condition b {
+    font-size: 10px;
+  }
+
+  .trip-game--play .trip-game-odds {
+    padding: 4px;
+  }
+
+  .trip-game--play .trip-game-section-label {
+    margin-bottom: 2px;
+    font-size: 9px;
+  }
+
+  .trip-game--play .trip-game-odds-bar {
+    min-height: 24px;
+  }
+
+  .trip-game--play .trip-game-odds-segment span {
+    font-size: 7px;
+  }
+
+  .trip-game--play .trip-game-odds-segment b {
+    margin-top: 1px;
+    font-size: 9px;
+  }
+
+  .trip-game--play .trip-game-empty {
+    min-height: 52px;
+    font-size: 11px;
+  }
+
+  .trip-game--play .trip-game-read-call {
+    padding: 3px 5px;
+  }
+
+  .trip-game--play .trip-game-read-call small,
+  .trip-game--play .trip-game-read-call span {
+    font-size: 7px;
+  }
+
+  .trip-game--play .trip-game-read-call b {
+    margin: 1px 0;
+    font-size: 10px;
+  }
+
+  .trip-game--play .trip-game-read-metrics span {
+    padding: 2px 1px;
+    font-size: 7px;
+  }
+
+  .trip-game--play .trip-game-read-metrics b {
+    margin-bottom: 0;
+    font-size: 10px;
+  }
+
+  .trip-game--play .trip-game-caddie-tip {
+    padding: 2px 3px;
+    font-size: 8px;
+  }
+
+  .trip-game--play .trip-game-items button {
+    min-height: 26px;
+    padding: 3px 6px;
+  }
+
+  .trip-game--play .trip-game-items button > span {
+    font-size: 12px;
+  }
+
+  .trip-game--play .trip-game-items b {
+    font-size: 10px;
+  }
+
+  .trip-game--play .trip-game-items small {
+    font-size: 8px;
+  }
+
+  .trip-game--play .trip-game-event-note {
+    padding: 3px 5px;
+    font-size: 9px;
+  }
+
+  .trip-game--play .trip-game-primary-button,
+  .trip-game--play .trip-game-secondary-button {
+    min-height: 44px;
+  }
+
+  .trip-game--play .trip-game-roster {
+    padding: 3px 5px;
+  }
+
+  .trip-game--play .trip-game-roster .trip-game-section-label {
+    margin-bottom: 2px;
+  }
+
+  .trip-game--play .trip-game-roster-player {
+    min-height: 32px;
+    flex: 0 0 92px;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    padding: 2px 4px;
+  }
+
+  .trip-game--play .trip-game-roster-avatar {
+    width: 20px;
+    height: 20px;
+    font-size: 8px;
+  }
+
+  .trip-game--play .trip-game-roster-name {
+    font-size: 10px;
+  }
+
+  .trip-game--play .trip-game-roster-hi {
+    font-size: 8px;
+  }
+
+  .trip-game--play .trip-game-use-pips i {
+    width: 6px;
+    height: 3px;
+  }
+
+  /* compress result-phase panels the same way */
+
+  .trip-game--play .trip-game-result {
+    gap: 3px;
+  }
+
+  .trip-game--play .trip-game-shot-roll {
+    min-height: 0;
+    padding: 8px;
+  }
+
+  .trip-game--play .trip-game-celebration {
+    min-height: 50px;
+    padding: 5px 8px;
+  }
+
+  .trip-game--play .trip-game-celebration > span {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .trip-game--play .trip-game-celebration strong {
+    font-size: 9px;
+  }
+
+  .trip-game--play .trip-game-celebration em {
+    font-size: 9px;
+  }
+
+  .trip-game--play .trip-game-celebration > b {
+    font-size: 8px;
+  }
+
+  .trip-game--play .trip-game-result-call {
+    padding: 4px;
+    font-size: 10px;
+  }
+
+  .trip-game--play .trip-game-result-matchup > div {
+    padding: 4px 3px;
+  }
+
+  .trip-game--play .trip-game-result-matchup span {
+    font-size: 10px;
+  }
+
+  .trip-game--play .trip-game-result-matchup b {
+    font-size: 20px;
+  }
+
+  .trip-game--play .trip-game-result-matchup small {
+    font-size: 9px;
+  }
+
+  .trip-game--play .trip-game-result-impact {
+    padding: 3px 5px;
+    font-size: 8px;
+  }
+
+  .trip-game--play .trip-game-power-earned {
+    padding: 4px;
+    font-size: 10px;
+  }
+
+  .trip-game--play .trip-game-closeout-note {
+    padding: 3px;
+    font-size: 10px;
   }
 }
 

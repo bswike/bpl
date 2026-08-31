@@ -399,6 +399,27 @@ function HoleMap({
   onMenuClose,
 }) {
   const aimOffset = aimOffsetOf(decision.aim);
+  const aimHoldRef = useRef(null);
+
+  function stopAimHold() {
+    if (!aimHoldRef.current) return;
+    window.clearTimeout(aimHoldRef.current.delay);
+    if (aimHoldRef.current.repeat) window.clearInterval(aimHoldRef.current.repeat);
+    aimHoldRef.current = null;
+  }
+
+  function startAimHold(direction) {
+    stopAimHold();
+    onAimStep(direction);
+    const delay = window.setTimeout(() => {
+      if (aimHoldRef.current) aimHoldRef.current.repeat = window.setInterval(() => onAimStep(direction), 85);
+    }, 300);
+    aimHoldRef.current = { delay, repeat: null };
+    window.addEventListener("pointerup", stopAimHold, { once: true });
+  }
+
+  useEffect(() => () => stopAimHold(), []);
+
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
   const lineLength = polylineLength(projection.line);
@@ -593,14 +614,38 @@ function HoleMap({
       {canAct && (
         <div className="trip-game-pad">
           <div className="trip-game-pad-aim">
-            <button type="button" onClick={() => onAimStep(-1)} disabled={aimOffset <= -AIM_MAX + 0.01} aria-label="Aim left">
+            <button
+              type="button"
+              className={aimOffset <= -AIM_MAX + 0.01 ? "is-maxed" : ""}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                startAimHold(-1);
+              }}
+              onPointerUp={stopAimHold}
+              onPointerLeave={stopAimHold}
+              onPointerCancel={stopAimHold}
+              onContextMenu={(event) => event.preventDefault()}
+              aria-label="Aim left (hold to sweep)"
+            >
               ◀
             </button>
             <span>
               <small>AIM</small>
               <b>{aimText(aimOffset)}</b>
             </span>
-            <button type="button" onClick={() => onAimStep(1)} disabled={aimOffset >= AIM_MAX - 0.01} aria-label="Aim right">
+            <button
+              type="button"
+              className={aimOffset >= AIM_MAX - 0.01 ? "is-maxed" : ""}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                startAimHold(1);
+              }}
+              onPointerUp={stopAimHold}
+              onPointerLeave={stopAimHold}
+              onPointerCancel={stopAimHold}
+              onContextMenu={(event) => event.preventDefault()}
+              aria-label="Aim right (hold to sweep)"
+            >
               ▶
             </button>
           </div>
@@ -1440,7 +1485,10 @@ export default function TripGame({ data }) {
   }
 
   return (
-    <section className="trip-game" aria-label="Captain's Cup pixel golf game">
+    <section
+      className={`trip-game${screen === "play" ? " trip-game--play" : ""}`}
+      aria-label="Captain's Cup pixel golf game"
+    >
       <div className="trip-game-shell">
         <header className="trip-game-console-head">
           <span>GG POCKET</span>
