@@ -755,6 +755,98 @@ function mergeMatchPlayShots(firstSide, secondSide, pin) {
   return merged;
 }
 
+/** Auto club selection for shot-by-shot mode, after the tee ball. */
+function liveClubFor(remainingYards, lie) {
+  if (lie === "Bunker") return "wedge";
+  if (remainingYards > 210 && lie === "Fairway") return "wood";
+  if (remainingYards > 135) return "iron";
+  return "wedge";
+}
+
+/**
+ * Resolve one played full swing in shot-by-shot mode: carry from club/power,
+ * scatter from accuracy, then real terrain — trees, water, OB, sand, green.
+ */
+function resolveLiveStroke({ projection, hole, from, lie, meter, judgment, clubId, carryBoost, yardsScale }) {
+  const pin = projection.pin;
+  const scale = yardsScale > 0 ? yardsScale : 1;
+  const dx = pin[0] - from[0];
+  const dy = pin[1] - from[1];
+  const distUnits = Math.hypot(dx, dy) || 1;
+  const dir = [dx / distUnits, dy / distUnits];
+  const perp = [-dir[1], dir[0]];
+  const remainingYards = distUnits / scale;
+  const lieMult = lie === "Rough" ? 0.88 : lie === "Bunker" ? 0.8 : 1;
+  const power = clamp(Number(meter.power) || 0.9, 0, 1.15);
+  const carryYards =
+    clubId === "wedge"
+      ? Math.max(8, remainingYards * (0.5 + power * 0.55)) * lieMult
+      : (CLUBS.find((club) => club.id === clubId) || CLUBS[2]).carry * (0.7 + power * 0.4) * (carryBoost || 1) * lieMult;
+  const lateralYards = meter.accuracy * (CLUB_LATERAL_YARDS[clubId] || 16);
+  let to = [
+    from[0] + dir[0] * carryYards * scale + perp[0] * lateralYards * scale,
+    from[1] + dir[1] * carryYards * scale + perp[1] * lateralYards * scale,
+  ];
+  const kind = lie === "Tee" ? (hole.par <= 3 ? "tee" : "drive") : lie === "Bunker" ? "sand" : lie === "Rough" ? "punch" : "approach";
+
+  const waterHit = firstWaterOnPath(projection.features, from, to, 0);
+  if (waterHit) {
+    return { kind: "splash", to: waterHit, nextPos: interpolate(waterHit, from, 0.22), nextLie: "Rough", penalty: 1 };
+  }
+  let caption = null;
+  const tree = treeCollision(projection, hole.number, to);
+  if (tree) {
+    caption = "CLIPS A TREE!";
+    const toTee = [from[0] - to[0], from[1] - to[1]];
+    const away = Math.hypot(toTee[0], toTee[1]) || 1;
+    const kick = tree.size * 1.15 + 5;
+    to = [to[0] + (toTee[0] / away) * kick, to[1] + (toTee[1] / away) * kick];
+  }
+  if (outOfBounds(projection, to)) {
+    return {
+      kind: "ob",
+      to: [clamp(to[0], 3, projection.width - 3), clamp(to[1], 3, projection.height - 3)],
+      nextPos: from,
+      nextLie: lie,
+      penalty: 1,
+    };
+  }
+  const pinDist = Math.hypot(to[0] - pin[0], to[1] - pin[1]);
+  // A flushed wedge can drop right in the bucket.
+  if (judgment.tier === "pure" && clubId === "wedge" && pinDist <= 2.4) {
+    return { kind, to: pin, nextPos: pin, holed: true, caption: "JARRED IT!" };
+  }
+  if (pointNearGreen(to, projection)) {
+    const feet = clamp(Math.round((pinDist / scale) * 3), 2, 60);
+    return { kind, to, nextPos: to, nextLie: "Green", feet, caption };
+  }
+  const terrain = classifyTerrain(projection.features, to);
+  return { kind, to, nextPos: to, nextLie: terrain === "Fairway" ? "Fairway" : terrain, caption };
+}
+
+/** Make-or-miss for a played putt: line from accuracy, pace from power. */
+function resolveLivePuttStroke({ feet, meter, judgment, puttCount }) {
+  const paceLow = Math.max(0, POWER_SWEET_MIN - meter.power);
+  const paceHigh = Math.max(0, meter.power - POWER_SWEET_MAX);
+  const paceErr = paceLow + paceHigh;
+  const tier = judgment.tier;
+  const made =
+    puttCount >= 2 || // arcade mercy: the third putt drops
+    (tier === "pure" && paceErr < 0.06 && feet <= 16) ||
+    (tier === "great" && paceErr < 0.08 && feet <= 9) ||
+    (tier === "good" && paceErr < 0.1 && feet <= 5) ||
+    (feet <= 2.5 && tier !== "wild");
+  let leaveFeet = 0;
+  if (!made) {
+    leaveFeet = clamp(
+      feet * (0.16 + Math.abs(meter.accuracy) * 0.7 + paceErr * 1.3) + paceHigh * 6,
+      1.5,
+      Math.max(3, feet * 0.7),
+    );
+  }
+  return { made, leaveFeet };
+}
+
 function fallbackProjection(hole) {
   const bend = hole.number % 2 ? -18 : 18;
   const waterSide = hole.number % 3 === 0 ? "right" : hole.number % 4 === 0 ? "left" : null;
@@ -1114,6 +1206,7 @@ function HoleMap({
   soundControl,
   kickTier,
   clutch,
+  liveStatus,
   onAimStep,
   onCycle,
 }) {
@@ -1236,6 +1329,7 @@ function HoleMap({
         </span>
         {soundControl}
       </div>
+      {liveStatus && <div className="trip-game-live-status">{liveStatus}</div>}
       {popCall}
       {playback && activeShot && (
         <div className={`trip-game-playcap${activeShot.side === "cpu" ? " is-cpu" : ""}`} aria-live="polite">
@@ -1628,9 +1722,12 @@ const POWER_METER_MAX = 1.12;
 const RED_BET_ZONE_SCALE = 0.6;
 const RED_BET_SPEED = 1.25;
 const CLUTCH_SPEED = 0.7;
-const CLUB_METER_SPEED = { driver: 1, wood: 0.92, iron: 0.84 };
+const CLUB_METER_SPEED = { driver: 1, wood: 0.92, iron: 0.84, wedge: 0.8, putter: 0.72 };
 // Laying up is a real choice: shorter clubs also get wider judgment zones.
-const CLUB_ZONE_SCALE = { driver: 1, wood: 1.12, iron: 1.3 };
+const CLUB_ZONE_SCALE = { driver: 1, wood: 1.12, iron: 1.3, wedge: 1.42, putter: 1.5 };
+// A bad lie tightens the zones and jitters the needle.
+const LIE_METER_MODS = { Rough: { zone: 0.85, speed: 1.06 }, Bunker: { zone: 0.72, speed: 1.12 } };
+const CLUB_LATERAL_YARDS = { driver: 36, wood: 27, iron: 18, wedge: 10 };
 const BASE_ACC_SPEED = 2.6;
 const BASE_POWER_SPEED = 1.08;
 // Skill scaling (from handicap): scratch players get up to 22% wider zones,
@@ -1743,10 +1840,14 @@ function KickMeter({ phase, power, accuracy, onTap, judgment, streak, mods }) {
           {locked
             ? judgment?.label || "..."
             : phase === "power"
-              ? "TAP POWER"
-              : redBet
-                ? "TAP ACCURACY · RISK ON"
-                : "TAP ACCURACY"}
+              ? mods?.club === "putter"
+                ? "TAP PACE"
+                : "TAP POWER"
+              : mods?.club === "putter"
+                ? "TAP LINE"
+                : redBet
+                  ? "TAP ACCURACY · RISK ON"
+                  : "TAP ACCURACY"}
         </strong>
       </div>
     </>
@@ -2192,7 +2293,7 @@ function CartGirlOffer({ player, onDrink, onHydrate }) {
   );
 }
 
-function SetupScreen({ model, courseId, setCourseId, team, setTeam, archiveState, onStart }) {
+function SetupScreen({ model, courseId, setCourseId, team, setTeam, swingMode, setSwingMode, archiveState, onStart }) {
   return (
     <div className="trip-game-setup">
       <div className="trip-game-title-screen">
@@ -2244,6 +2345,30 @@ function SetupScreen({ model, courseId, setCourseId, team, setTeam, archiveState
               <span>{model.players.filter((player) => player.team === name).length} GOLFERS</span>
             </button>
           ))}
+        </div>
+      </div>
+      <div className="trip-game-setup-block">
+        <div className="trip-game-section-label">
+          <span>3. SWING STYLE</span>
+          <span>SKIP ANY HOLE IN-GAME</span>
+        </div>
+        <div className="trip-game-team-grid">
+          <button
+            type="button"
+            className={swingMode === "full" ? "is-selected" : ""}
+            onClick={() => setSwingMode("full")}
+          >
+            <b>EVERY SHOT</b>
+            <span>METER ON DRIVES · APPROACHES · PUTTS</span>
+          </button>
+          <button
+            type="button"
+            className={swingMode === "single" ? "is-selected" : ""}
+            onClick={() => setSwingMode("single")}
+          >
+            <b>ONE SWING</b>
+            <span>TEE METER ONLY · MODEL PLAYS IT OUT</span>
+          </button>
         </div>
       </div>
       <div className="trip-game-model-status">
@@ -2349,8 +2474,17 @@ export default function TripGame({ data }) {
   const [swingFx, setSwingFx] = useState(null);
   const [shakeFx, setShakeFx] = useState(null);
   const [swingStreak, setSwingStreak] = useState(0);
-  const [meterMods, setMeterMods] = useState({ zoneScale: 1, redBet: false, clutch: false });
+  const [meterMods, setMeterMods] = useState({ zoneScale: 1, redBet: false, clutch: false, club: null });
   const meterModsRef = useRef({ speed: BASE_ACC_SPEED, clubSpeed: 1, zoneScale: 1, redBet: false, clutch: false });
+  const [swingMode, setSwingMode] = useState(() => {
+    try {
+      return window.localStorage.getItem("tripGameSwingMode") === "full" ? "full" : "single";
+    } catch {
+      return "single";
+    }
+  });
+  const [liveInfo, setLiveInfo] = useState(null);
+  const liveRef = useRef(null);
   const [soundOn, setSoundOn] = useState(() => {
     try {
       return window.localStorage.getItem("tripGameSound") !== "off";
@@ -2403,6 +2537,14 @@ export default function TripGame({ data }) {
       // best effort
     }
   }, [soundOn]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("tripGameSwingMode", swingMode);
+    } catch {
+      // best effort
+    }
+  }, [swingMode]);
 
   // Game Boy style keyboard aiming on desktop; Space/Enter lock the kick meter.
   useEffect(() => {
@@ -2479,11 +2621,13 @@ export default function TripGame({ data }) {
   }, [meterPhase]);
 
   // Advance the cartoon shot playback: swing -> frame-by-frame flight -> settle.
+  // Runs both the full-hole replay ("playback") and single live shots ("liveshot").
   useEffect(() => {
-    if (resolutionPhase !== "playback" || !playbackShots) return undefined;
+    if ((resolutionPhase !== "playback" && resolutionPhase !== "liveshot") || !playbackShots) return undefined;
     const shot = playbackShots[playbackStep.index];
     if (!shot) {
-      finishPlayback();
+      if (resolutionPhase === "liveshot") handleLiveShotDone();
+      else finishPlayback();
       return undefined;
     }
     const lastFrame = Math.max(0, (shot.frames?.length || 1) - 1);
@@ -2505,7 +2649,7 @@ export default function TripGame({ data }) {
         // The meter-earned effects belong to the human tee ball, wherever the
         // match-play order put it.
         const humanTee = playbackStep.index === playbackShots.findIndex((item) => item.side !== "cpu");
-        const kickPower = humanTee ? result?.kick?.power ?? 0.9 : 0.62;
+        const kickPower = shot.kickPower ?? (humanTee ? result?.kick?.power ?? 0.9 : 0.62);
         contactSound({
           power: kickPower,
           putt: shot.kind === "putt",
@@ -2728,6 +2872,8 @@ export default function TripGame({ data }) {
     setHype(0);
     setStreak(0);
     setSwingStreak(0);
+    liveRef.current = null;
+    setLiveInfo(null);
     setInventory({ fireball: 1 });
     setEventOffer(null);
     setEventHandled({});
@@ -2815,19 +2961,22 @@ export default function TripGame({ data }) {
     setEventOffer(null);
   }
 
-  function startKickMeter() {
+  function startKickMeter(options = {}) {
     setHoleIntro(false);
     resolvingRef.current = false;
     meterLiveRef.current = { power: 0, accuracy: -1, powerDir: 1, accDir: 1 };
     meterLockRef.current = null;
     meterTapAtRef.current = 0;
     // Contextual meter: shorter clubs swing an easier (slower, wider) needle,
-    // better players get wider zones, higher handicaps get a faster meter, and
-    // a match-deciding hole drops into clutch time — slow-mo needle, heartbeat.
+    // better players get wider zones, higher handicaps get a faster meter, bad
+    // lies tighten everything, and a match-deciding hole drops into clutch
+    // time — slow-mo needle, heartbeat.
+    const clubId = options.club || decision.club;
+    const lieMod = LIE_METER_MODS[options.lie] || { zone: 1, speed: 1 };
     const skill = skillOf(selected?.hi);
-    const skillSpeed = 1 + (1 - skill) * SKILL_SPEED_PENALTY;
-    const baseZone = (CLUB_ZONE_SCALE[decision.club] ?? 1) * (1 + skill * SKILL_ZONE_BONUS);
-    const clubSpeed = CLUB_METER_SPEED[decision.club] ?? 1;
+    const skillSpeed = (1 + (1 - skill) * SKILL_SPEED_PENALTY) * lieMod.speed;
+    const baseZone = (CLUB_ZONE_SCALE[clubId] ?? 1) * (1 + skill * SKILL_ZONE_BONUS) * lieMod.zone;
+    const clubSpeed = CLUB_METER_SPEED[clubId] ?? 1;
     const clutch = dormie || hole?.number === 18;
     meterModsRef.current = {
       speed: BASE_ACC_SPEED * clubSpeed * skillSpeed * (clutch ? CLUTCH_SPEED : 1),
@@ -2838,8 +2987,9 @@ export default function TripGame({ data }) {
       zoneScale: baseZone,
       redBet: false,
       clutch,
+      club: clubId,
     };
-    setMeterMods({ zoneScale: baseZone, redBet: false, clutch });
+    setMeterMods({ zoneScale: baseZone, redBet: false, clutch, club: clubId });
     setMeterTick({ power: 0, accuracy: -1 });
     setSwingFx(null);
     setMeterPhase("power");
@@ -2853,7 +3003,8 @@ export default function TripGame({ data }) {
   // on — zones shrink and the needle speeds up, visibly, before the second tap.
   function armAccuracyPhase(lockedPower) {
     const live = meterModsRef.current;
-    const redBet = lockedPower > POWER_SWEET_MAX;
+    // A charged putt is a pace problem, not a fire bet.
+    const redBet = live.club !== "putter" && lockedPower > POWER_SWEET_MAX;
     live.redBet = redBet;
     live.zoneScale = (live.baseZone ?? 1) * (redBet ? RED_BET_ZONE_SCALE : 1);
     live.speed =
@@ -2862,7 +3013,7 @@ export default function TripGame({ data }) {
       (live.skillSpeed ?? 1) *
       (live.clutch ? CLUTCH_SPEED : 1) *
       (redBet ? RED_BET_SPEED : 1);
-    setMeterMods({ zoneScale: live.zoneScale, redBet, clutch: live.clutch });
+    setMeterMods({ zoneScale: live.zoneScale, redBet, clutch: live.clutch, club: live.club });
     if (redBet) riskArmedSound();
   }
 
@@ -2906,13 +3057,255 @@ export default function TripGame({ data }) {
     }
     window.setTimeout(() => {
       setMeterPhase(null);
-      resolveHole({ power, accuracy });
+      commitSwing({ power, accuracy, judgment });
     }, judgment.hold);
+  }
+
+  function commitSwing(meter) {
+    if (swingMode === "full") {
+      if (liveRef.current) applyLiveSwing(meter);
+      else beginLiveHole(meter);
+      return;
+    }
+    resolveHole(meter);
+  }
+
+  // ---- Shot-by-shot mode: you swing the meter for every stroke ----
+
+  function beginLiveHole(meter) {
+    if (!selected || !hole || !course || !projection || result) return;
+    const swung = { ...decision, power: meter.power, accuracy: meter.accuracy };
+    const humanOdds = buildHoleOdds({
+      profile: selected,
+      course,
+      hole,
+      decision: swung,
+      state: playerState[selected.key],
+    });
+    const { lineLength } = computeShotTarget(projection, hole, decision);
+    liveRef.current = {
+      pos: projection.tee,
+      lie: "Tee",
+      strokes: 0,
+      feet: null,
+      puttCount: 0,
+      sceneCarry: null,
+      holed: false,
+      club: decision.club,
+      kick: { power: meter.power, accuracy: meter.accuracy },
+      humanOdds,
+      swungDecision: swung,
+      yardsScale: hole.yards && lineLength ? lineLength / hole.yards : 1,
+    };
+    setPickLocked(true);
+    applyLiveSwing(meter);
+  }
+
+  function applyLiveSwing(meter) {
+    const judgment = meter.judgment || judgeSwing(meter.power, meter.accuracy, meterModsRef.current);
+    advanceLiveState(meter, judgment, true);
+    setLiveInfo(liveStatusOf());
+  }
+
+  function advanceLiveState(meter, judgment, animate) {
+    const live = liveRef.current;
+    if (!live || !projection) return;
+    const yardsScale = live.yardsScale;
+    const from = live.pos;
+    let shot = null;
+    if (live.feet != null) {
+      const feet = live.feet;
+      const { made, leaveFeet } = resolveLivePuttStroke({ feet, meter, judgment, puttCount: live.puttCount });
+      live.strokes += 1;
+      live.puttCount += 1;
+      const salt = hole.number * 29 + live.strokes * 7;
+      const breakDir = (seededUnit(salt) - 0.5) * 1.8;
+      const slope = (seededUnit(salt + 1) - 0.5) * 1.6;
+      const start = live.sceneCarry || [
+        85 - breakDir * clamp(feet * 0.9, 4, 22),
+        36 + clamp(26 + feet * 1.3, 34, 78),
+      ];
+      const end = made ? [85, 36] : [85 - breakDir * 2.5, 36 + clamp(leaveFeet * 2.5, 3.5, 44)];
+      live.sceneCarry = made ? null : end;
+      if (made) {
+        live.holed = true;
+        live.feet = null;
+      } else {
+        live.feet = Math.max(1, Math.round(leaveFeet));
+      }
+      shot = {
+        ...makeShot({ from, to: made ? projection.pin : from, kind: "putt", final: made, yardsScale }),
+        putt: { breakDir, slope, start, end, feet },
+        side: "human",
+        kickPower: meter.power,
+      };
+    } else {
+      const res = resolveLiveStroke({
+        projection,
+        hole,
+        from,
+        lie: live.lie,
+        meter,
+        judgment,
+        clubId: live.club,
+        carryBoost: decision.carryBoost,
+        yardsScale,
+      });
+      live.strokes += 1 + (res.penalty || 0);
+      live.pos = res.nextPos || res.to;
+      live.lie = res.nextLie || live.lie;
+      if (res.holed) live.holed = true;
+      if (res.feet != null) {
+        live.feet = res.feet;
+        live.puttCount = 0;
+        live.sceneCarry = null;
+      }
+      shot = {
+        ...makeShot({
+          from,
+          to: res.to,
+          kind: res.kind,
+          final: Boolean(res.holed),
+          bend: clamp(meter.accuracy * 20, -24, 24),
+          yardsScale,
+          caption: res.caption,
+        }),
+        side: "human",
+        kickPower: meter.power,
+      };
+    }
+    if (animate && shot) {
+      setPlaybackShots([shot]);
+      setPlaybackStep({ index: 0, phase: "swing", frame: 0 });
+      setResolutionPhase("liveshot");
+    }
+  }
+
+  function liveStatusOf() {
+    const live = liveRef.current;
+    if (!live || !projection) return null;
+    if (live.holed) return { label: `HOLED IN ${live.strokes}` };
+    const scale = live.yardsScale || 1;
+    const remaining =
+      live.feet != null
+        ? `${live.feet} FT LEFT`
+        : `${Math.max(1, Math.round(Math.hypot(projection.pin[0] - live.pos[0], projection.pin[1] - live.pos[1]) / scale))}Y LEFT`;
+    return { label: `STROKE ${live.strokes} · ${live.feet != null ? "ON THE GREEN" : live.lie.toUpperCase()} · ${remaining}` };
+  }
+
+  function handleLiveShotDone() {
+    setPlaybackShots(null);
+    setResolutionPhase("idle");
+    const live = liveRef.current;
+    if (!live) return;
+    if (live.holed || live.strokes >= hole.par + 4) {
+      completeLiveHole();
+      return;
+    }
+    if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
+    resolutionTimerRef.current = window.setTimeout(() => startNextLiveSwing(), 700);
+  }
+
+  function startNextLiveSwing() {
+    const live = liveRef.current;
+    if (!live || result || live.holed) return;
+    const scale = live.yardsScale || 1;
+    const clubId =
+      live.feet != null
+        ? "putter"
+        : liveClubFor(Math.hypot(projection.pin[0] - live.pos[0], projection.pin[1] - live.pos[1]) / scale, live.lie);
+    live.club = clubId;
+    startKickMeter({ club: clubId, lie: live.feet != null ? "Green" : live.lie });
+  }
+
+  function completeLiveHole() {
+    const live = liveRef.current;
+    if (!live || !selected || !hole || !course) return;
+    liveRef.current = null;
+    setLiveInfo(null);
+    const humanGross = clamp(live.holed ? live.strokes : hole.par + 4, 1, hole.par + 4);
+    const cpuPick =
+      cpuOpponent ||
+      chooseCpuPlayer({
+        players: cpuRoster,
+        usage: cpuUsage,
+        maxUses: cpuMaxUses,
+        course,
+        hole,
+        stateByPlayer: playerState,
+        random: randomRef.current,
+      });
+    if (!cpuPick) return;
+    const cpuOdds = buildHoleOdds({
+      profile: cpuPick.profile,
+      course,
+      hole,
+      decision: cpuPick.decision || defaultDecision(cpuPick.profile, hole),
+      state: playerState[cpuPick.profile.key],
+    });
+    const resolved = resolveMatchHole({
+      human: selected,
+      cpu: cpuPick.profile,
+      humanOdds: live.humanOdds,
+      cpuOdds,
+      course,
+      hole,
+      random: randomRef.current,
+      humanGrossOverride: humanGross,
+    });
+    const cpuShots = projection
+      ? buildShotSequence({
+          projection,
+          hole,
+          decision: cpuPick.decision || defaultDecision(cpuPick.profile, hole),
+          gross: resolved.cpuGross,
+          landingLabel: resolved.cpuLanding,
+          side: "cpu",
+          seedSalt: 5,
+        })
+      : [];
+    stageHoleResult({
+      resolved,
+      cpuPick,
+      humanOdds: live.humanOdds,
+      cpuOdds,
+      visualDecision: live.swungDecision,
+      kick: live.kick,
+      shots: cpuShots,
+    });
+  }
+
+  function skipLiveHole() {
+    const live = liveRef.current;
+    if (!live || result) return;
+    if (resolutionTimerRef.current) {
+      window.clearTimeout(resolutionTimerRef.current);
+      resolutionTimerRef.current = null;
+    }
+    setMeterPhase(null);
+    stopPowerSweep();
+    stopHeartbeat();
+    setSwingFx(null);
+    resolvingRef.current = false;
+    setPlaybackShots(null);
+    // Simulate the rest of the hole with steady, decent swings.
+    let guard = 0;
+    while (!live.holed && live.strokes < hole.par + 4 && guard < 14) {
+      guard += 1;
+      const accuracy = (seededUnit(hole.number * 91 + live.strokes * 13) - 0.5) * 0.24;
+      const meter = { power: 0.88, accuracy };
+      advanceLiveState(meter, judgeSwing(meter.power, accuracy, { zoneScale: meterModsRef.current.baseZone || 1 }), false);
+    }
+    completeLiveHole();
   }
 
   function playHole() {
     if (meterPhase) {
       tapMeter();
+      return;
+    }
+    if (liveRef.current && !result) {
+      startNextLiveSwing();
       return;
     }
     if (!selected || !odds || !hole || !course || result || resolutionPhase !== "idle") return;
@@ -2980,14 +3373,56 @@ export default function TripGame({ data }) {
         ? (wanted) => placeTeeLanding(projection, hole, visualDecision, wanted).type
         : undefined,
     });
+    const humanShots = projection
+      ? buildShotSequence({
+          projection,
+          hole,
+          decision: visualDecision,
+          gross: resolved.humanGross,
+          landingLabel: resolved.humanLanding,
+          side: "human",
+        })
+      : [];
+    const cpuShots = projection
+      ? buildShotSequence({
+          projection,
+          hole,
+          decision: cpuPick.decision || defaultDecision(cpuPick.profile, hole),
+          gross: resolved.cpuGross,
+          landingLabel: resolved.cpuLanding,
+          side: "cpu",
+          seedSalt: 5,
+        })
+      : [];
+    // Match-play order: last hole's winner has honors (retained through ties),
+    // then whoever is away plays until they're inside the opponent.
+    const lastWinner = [...history].reverse().find((row) => row.winner !== "tie")?.winner;
+    const shots =
+      lastWinner === "cpu"
+        ? mergeMatchPlayShots(cpuShots, humanShots, projection?.pin)
+        : mergeMatchPlayShots(humanShots, cpuShots, projection?.pin);
+    stageHoleResult({
+      resolved,
+      cpuPick,
+      humanOdds: currentHumanOdds,
+      cpuOdds,
+      visualDecision,
+      kick: { power: meter.power, accuracy: meter.accuracy },
+      shots,
+    });
+  }
+
+  // Shared tail of a resolved hole: hype/streak accounting, pending commit,
+  // and kicking off the playback. Used by both swing modes.
+  function stageHoleResult({ resolved, cpuPick, humanOdds, cpuOdds, visualDecision, kick, shots }) {
     const completeResult = {
       ...resolved,
       human: selected,
       cpu: cpuPick.profile,
-      humanOdds: currentHumanOdds,
+      humanOdds,
       cpuOdds,
       decisionRead: captainRead,
-      kick: { power: meter.power, accuracy: meter.accuracy },
+      kick,
     };
     const nextStreak = resolved.winner === "human" ? streak + 1 : resolved.winner === "tie" ? streak : 0;
     const qualityBonus = Math.round(((captainRead?.quality || 50) / 100) * 12);
@@ -3018,34 +3453,6 @@ export default function TripGame({ data }) {
       powerUpEarned,
       nextCloseout,
     };
-    const humanShots = projection
-      ? buildShotSequence({
-          projection,
-          hole,
-          decision: visualDecision,
-          gross: resolved.humanGross,
-          landingLabel: resolved.humanLanding,
-          side: "human",
-        })
-      : [];
-    const cpuShots = projection
-      ? buildShotSequence({
-          projection,
-          hole,
-          decision: cpuPick.decision || defaultDecision(cpuPick.profile, hole),
-          gross: resolved.cpuGross,
-          landingLabel: resolved.cpuLanding,
-          side: "cpu",
-          seedSalt: 5,
-        })
-      : [];
-    // Match-play order: last hole's winner has honors (retained through ties),
-    // then whoever is away plays until they're inside the opponent.
-    const lastWinner = [...history].reverse().find((row) => row.winner !== "tie")?.winner;
-    const shots =
-      lastWinner === "cpu"
-        ? mergeMatchPlayShots(cpuShots, humanShots, projection?.pin)
-        : mergeMatchPlayShots(humanShots, cpuShots, projection?.pin);
     setPlaybackShots(shots);
     setPlaybackStep({ index: 0, phase: "swing", frame: 0 });
     setResult(completeResult);
@@ -3123,10 +3530,12 @@ export default function TripGame({ data }) {
     setMeterPhase(null);
     setSwingFx(null);
     setShakeFx(null);
-    setMeterMods({ zoneScale: 1, redBet: false, clutch: false });
+    setMeterMods({ zoneScale: 1, redBet: false, clutch: false, club: null });
     stopHeartbeat();
     resolvingRef.current = false;
     meterLockRef.current = null;
+    liveRef.current = null;
+    setLiveInfo(null);
   }
 
   if (!model.courses.length && archiveState === "loading") {
@@ -3158,6 +3567,8 @@ export default function TripGame({ data }) {
             setCourseId={setCourseId}
             team={captainTeam}
             setTeam={setCaptainTeam}
+            swingMode={swingMode}
+            setSwingMode={setSwingMode}
             archiveState={archiveState}
             onStart={startRound}
           />
@@ -3225,16 +3636,21 @@ export default function TripGame({ data }) {
                 decision={decision}
                 result={resolutionPhase === "result" ? result : null}
                 playback={
-                  resolutionPhase === "playback" && playbackShots?.length
+                  (resolutionPhase === "playback" || resolutionPhase === "liveshot") && playbackShots?.length
                     ? { shots: playbackShots, index: playbackStep.index, phase: playbackStep.phase, frame: playbackStep.frame }
                     : null
                 }
-                intro={holeIntro && resolutionPhase === "idle" && !result && !meterPhase}
+                liveStatus={liveInfo && !result ? liveInfo.label : null}
+                intro={holeIntro && resolutionPhase === "idle" && !result && !meterPhase && !liveInfo}
                 onIntroDismiss={() => setHoleIntro(false)}
-                odds={resolutionPhase === "idle" && !result && !meterPhase ? odds : null}
-                canAct={Boolean(selected) && resolutionPhase === "idle" && !result && !meterPhase}
-                intelLeft={resolutionPhase === "idle" && !result && !meterPhase ? <ScoreOdds odds={odds} /> : null}
-                intelRight={resolutionPhase === "idle" && !result && !meterPhase ? <CaptainRead read={captainRead} /> : null}
+                odds={resolutionPhase === "idle" && !result && !meterPhase && !liveInfo ? odds : null}
+                canAct={Boolean(selected) && resolutionPhase === "idle" && !result && !meterPhase && !liveInfo}
+                intelLeft={
+                  resolutionPhase === "idle" && !result && !meterPhase && !liveInfo ? <ScoreOdds odds={odds} /> : null
+                }
+                intelRight={
+                  resolutionPhase === "idle" && !result && !meterPhase && !liveInfo ? <CaptainRead read={captainRead} /> : null
+                }
                 kickMeter={
                   meterPhase ? (
                     <KickMeter
@@ -3269,7 +3685,7 @@ export default function TripGame({ data }) {
                   </button>
                 }
                 popCall={
-                  livePops && resolutionPhase === "idle" && !result && !meterPhase ? (
+                  livePops && resolutionPhase === "idle" && !result && !meterPhase && !liveInfo ? (
                     <div className={`trip-game-pop-banner is-${livePops.human ? "pop" : livePops.cpu ? "give" : "even"}`}>
                       {livePops.human > 0 ? (
                         <>
@@ -3316,6 +3732,11 @@ export default function TripGame({ data }) {
                   >
                     🔥 {inventory.fireball}
                   </button>
+                  {liveInfo && (
+                    <button type="button" className="trip-game-skip-chip" onClick={skipLiveHole}>
+                      SKIP ▶▶
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={`trip-game-primary-button ${meterPhase ? "is-kick" : ""} ${livePops?.human ? "has-pop" : ""}`}
@@ -3323,16 +3744,27 @@ export default function TripGame({ data }) {
                     onClick={meterPhase ? tapMeter : playHole}
                   >
                     {meterPhase === "power"
-                      ? "TAP POWER"
+                      ? meterMods.club === "putter"
+                        ? "TAP PACE"
+                        : "TAP POWER"
                       : meterPhase === "accuracy"
-                        ? "TAP ACCURACY"
+                        ? meterMods.club === "putter"
+                          ? "TAP LINE"
+                          : "TAP ACCURACY"
                         : meterPhase === "locked"
                           ? swingFx?.label || "..."
-                          : selected
-                          ? `PLAY ${lastName(selected.name).toUpperCase()}${livePops?.human ? " ●" : livePops?.cpu ? " GIVE" : ""} ▶`
-                          : "PLAY ▶"}
+                          : liveInfo
+                            ? "SWING ▶"
+                            : selected
+                              ? `PLAY ${lastName(selected.name).toUpperCase()}${livePops?.human ? " ●" : livePops?.cpu ? " GIVE" : ""} ▶`
+                              : "PLAY ▶"}
                   </button>
                 </div>
+              )}
+              {resolutionPhase === "liveshot" && liveInfo && (
+                <button type="button" className="trip-game-skip-chip is-floating" onClick={skipLiveHole}>
+                  SKIP HOLE ▶▶
+                </button>
               )}
               {eventNote && resolutionPhase === "idle" && !result && <div className="trip-game-event-note">{eventNote}</div>}
               {resolutionPhase === "playback" && result && !(playbackStep.index === 0 && playbackStep.phase === "swing") && (

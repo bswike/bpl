@@ -748,6 +748,40 @@
   text-align: center;
 }
 
+/* Shot-by-shot mode: stroke status strip + skip controls */
+
+.trip-game-live-status {
+  z-index: 2;
+  padding: 3px 8px;
+  border-bottom: 2px solid #060f0a;
+  background: #142219;
+  color: #f2c14e;
+  font-family: var(--font-display);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.trip-game-skip-chip {
+  padding: 6px 8px;
+  border: 2px solid #060f0a;
+  background: #1a2f22;
+  box-shadow: 2px 2px 0 #060f0a;
+  color: #b4c69a;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.trip-game-skip-chip.is-floating {
+  position: absolute;
+  z-index: 7;
+  right: 10px;
+  bottom: 10px;
+  pointer-events: auto;
+}
+
 /* Dedicated putting scene: green close-up over the map during putts */
 
 .trip-game-putt-scene {

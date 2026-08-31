@@ -562,7 +562,9 @@ export function resolveMatchHole({
   hole,
   random = Math.random,
   remapHumanLanding,
+  humanGrossOverride = null,
 }) {
+  const playedGross = Number.isFinite(humanGrossOverride) ? Math.max(1, Math.round(humanGrossOverride)) : null;
   let humanLandingIndex = sampleIndex(
     [humanOdds.landing.fairway, humanOdds.landing.rough, humanOdds.landing.bunker, humanOdds.landing.penalty],
     random,
@@ -576,9 +578,12 @@ export function resolveMatchHole({
     [cpuOdds.landing.fairway, cpuOdds.landing.rough, cpuOdds.landing.bunker, cpuOdds.landing.penalty],
     random,
   );
-  const humanBucket = sampleIndex(conditionOnLanding(humanOdds.probs, humanOdds.landing, humanLandingIndex), random);
+  // When the hole was played shot by shot, the human gross is real, not sampled.
+  const humanBucket = playedGross
+    ? clamp(playedGross - hole.par + 1, 0, SCORE_VALUES.length - 1)
+    : sampleIndex(conditionOnLanding(humanOdds.probs, humanOdds.landing, humanLandingIndex), random);
   const cpuBucket = sampleIndex(conditionOnLanding(cpuOdds.probs, cpuOdds.landing, cpuLandingIndex), random);
-  const humanGross = Math.max(1, hole.par + SCORE_VALUES[humanBucket]);
+  const humanGross = playedGross ?? Math.max(1, hole.par + SCORE_VALUES[humanBucket]);
   const cpuGross = Math.max(1, hole.par + SCORE_VALUES[cpuBucket]);
   const humanHcp = courseHandicap(human.hi, course);
   const cpuHcp = courseHandicap(cpu.hi, course);
