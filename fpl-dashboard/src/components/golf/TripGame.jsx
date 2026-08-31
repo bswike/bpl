@@ -1345,62 +1345,137 @@ function celebrationFor(result) {
   return { label: "CPU STRIKES!", icon: "▼", tone: "loss" };
 }
 
-function ResultPanel({ result, humanTeam, cpuTeam, onNext, finalHole, closeout }) {
-  const humanWon = result.winner === "human";
-  const cpuWon = result.winner === "cpu";
-  const celebration = celebrationFor(result);
+function courseCardHoles(course) {
+  const holes = course?.holes || [];
+  return Array.from({ length: 18 }, (_, index) => {
+    const hole = holes.find((item) => item.number === index + 1) || holes[index];
+    return { number: index + 1, par: Number(hole?.par) || 4 };
+  });
+}
+
+function scoreMark(gross, par) {
+  if (gross == null || !Number.isFinite(gross)) return "empty";
+  const rel = gross - par;
+  if (rel <= -2) return "eagle";
+  if (rel === -1) return "birdie";
+  if (rel === 0) return "par";
+  if (rel === 1) return "bogey";
+  return "blow";
+}
+
+function ScorecardNine({ holes, historyByHole, liveHole, sideKey, sideGross }) {
   return (
-    <div className="trip-game-result">
-      <div className={`trip-game-celebration is-${celebration.tone}`}>
-        <div className="trip-game-celebration-particles" aria-hidden="true">
-          {Array.from({ length: 14 }, (_, index) => (
-            <i key={index} style={{ "--particle-index": index }} />
-          ))}
+    <div className="trip-game-scorecard-nine" role="table">
+      <div className="trip-game-scorecard-row is-hole">
+        <span>HOLE</span>
+        {holes.map((hole) => (
+          <b key={hole.number} className={hole.number === liveHole ? "is-live" : ""}>
+            {hole.number}
+          </b>
+        ))}
+      </div>
+      <div className="trip-game-scorecard-row is-par">
+        <span>PAR</span>
+        {holes.map((hole) => (
+          <b key={hole.number}>{hole.par}</b>
+        ))}
+      </div>
+      {["human", "cpu"].map((side) => (
+        <div key={side} className={`trip-game-scorecard-row is-score is-${side}`}>
+          <span>{side === "human" ? sideKey.human : sideKey.cpu}</span>
+          {holes.map((hole) => {
+            const row = historyByHole[hole.number];
+            const gross = row ? sideGross(row, side) : null;
+            const mark = scoreMark(gross, hole.par);
+            const won = row && ((side === "human" && row.winner === "human") || (side === "cpu" && row.winner === "cpu"));
+            return (
+              <b
+                key={hole.number}
+                className={`is-${mark}${won ? " is-won" : ""}${hole.number === liveHole ? " is-live" : ""}`}
+              >
+                {gross == null ? "—" : gross}
+              </b>
+            );
+          })}
         </div>
-        <span>{celebration.icon}</span>
-        <strong>{celebration.label}</strong>
-        <em>+{result.hypeGain} HYPE</em>
-        {result.streak >= 2 && <b>HEAT ×{result.streak}</b>}
-      </div>
-      <div className={`trip-game-result-call trip-game-result-call--${result.winner}`}>
-        {humanWon ? `${humanTeam.toUpperCase()} WINS THE HOLE` : cpuWon ? `${cpuTeam.toUpperCase()} WINS THE HOLE` : "HOLE HALVED"}
-      </div>
-      <div className="trip-game-result-matchup">
-        <div className={humanWon ? "is-winner" : ""}>
-          <span>{result.human.name}</span>
-          <b>{result.humanGross}</b>
-          <small>
-            NET {result.humanNet} · {result.humanLanding.toUpperCase()}
-          </small>
-        </div>
-        <span className="trip-game-result-vs">VS</span>
-        <div className={cpuWon ? "is-winner" : ""}>
-          <span>{result.cpu.name}</span>
-          <b>{result.cpuGross}</b>
-          <small>
-            NET {result.cpuNet} · {result.cpuLanding.toUpperCase()}
-          </small>
-        </div>
-      </div>
-      <div className="trip-game-result-log">
-        CPU CAPTAIN SENT {lastName(result.cpu.name).toUpperCase()} · {result.cpuBucket.label.toUpperCase()}
-      </div>
-      {result.decisionRead && (
-        <div className={`trip-game-result-impact is-${result.decisionRead.tone}`}>
-          <b>{result.decisionRead.label}</b>
+      ))}
+    </div>
+  );
+}
+
+function ScorecardModal({
+  course,
+  history,
+  match,
+  result,
+  holeNumber,
+  humanTeam,
+  cpuTeam,
+  onContinue,
+  finalHole,
+  closeout,
+}) {
+  const holes = courseCardHoles(course);
+  const historyByHole = Object.fromEntries(history.map((row) => [row.hole, row]));
+  const celebration = celebrationFor(result);
+  const diff = match.human - match.cpu;
+  const matchCall = diff === 0 ? "ALL SQUARE" : `${Math.abs(diff)} UP`;
+  const leading = diff > 0 ? humanTeam : diff < 0 ? cpuTeam : null;
+  const sideKey = {
+    human: humanTeam.toLowerCase() === "south" ? "STH" : "NTH",
+    cpu: cpuTeam.toLowerCase() === "south" ? "STH" : "NTH",
+  };
+  return (
+    <div className="trip-game-scorecard-backdrop" role="presentation">
+      <div className="trip-game-scorecard" role="dialog" aria-modal="true" aria-labelledby="scorecard-title">
+        <div className="trip-game-scorecard-head">
+          <small>{course?.label || "CAPTAIN'S CUP"}</small>
+          <b className={leading ? `is-${leading.toLowerCase()}` : "is-square"}>{leading ? `${leading.toUpperCase()} ${matchCall}` : matchCall}</b>
           <span>
-            {result.decisionRead.expectedSaved >= 0 ? "SAVED" : "COST"}{" "}
-            {Math.abs(result.decisionRead.expectedSaved).toFixed(2)} MODELED STROKES VS STOCK
+            {humanTeam.toUpperCase()} {match.human} · {cpuTeam.toUpperCase()} {match.cpu}
+            {match.ties ? ` · ${match.ties} HALVED` : ""}
           </span>
         </div>
-      )}
-      {result.powerUpEarned && <div className="trip-game-power-earned">⚡ HYPE MAXED · +1 FIREBALL SHOT</div>}
-      {closeout?.decided && (
-        <div className="trip-game-closeout-note">MATCH DECIDED · {closeout.label}</div>
-      )}
-      <button type="button" className="trip-game-primary-button" onClick={onNext}>
-        {finalHole ? "FINAL RESULTS" : "NEXT HOLE ▶"}
-      </button>
+        <h3 id="scorecard-title">SCORECARD</h3>
+        <div className={`trip-game-scorecard-call is-${celebration.tone}`}>
+          <strong>{celebration.label}</strong>
+          <span>
+            {lastName(result.human.name).toUpperCase()} {result.humanGross} · {lastName(result.cpu.name).toUpperCase()}{" "}
+            {result.cpuGross}
+          </span>
+        </div>
+        <ScorecardNine
+          holes={holes.slice(0, 9)}
+          historyByHole={historyByHole}
+          liveHole={holeNumber}
+          sideKey={sideKey}
+          sideGross={(row, side) => (side === "human" ? row.humanGross : row.cpuGross)}
+        />
+        <ScorecardNine
+          holes={holes.slice(9)}
+          historyByHole={historyByHole}
+          liveHole={holeNumber}
+          sideKey={sideKey}
+          sideGross={(row, side) => (side === "human" ? row.humanGross : row.cpuGross)}
+        />
+        <div className="trip-game-scorecard-board">
+          <div className={`is-${humanTeam.toLowerCase()} ${diff > 0 ? "is-leading" : ""}`}>
+            <small>{humanTeam.toUpperCase()}</small>
+            <b>{match.human}</b>
+            <span>HOLES</span>
+          </div>
+          <em>VS</em>
+          <div className={`is-${cpuTeam.toLowerCase()} ${diff < 0 ? "is-leading" : ""}`}>
+            <small>{cpuTeam.toUpperCase()}</small>
+            <b>{match.cpu}</b>
+            <span>HOLES</span>
+          </div>
+        </div>
+        {closeout?.decided && <div className="trip-game-scorecard-closeout">MATCH DECIDED · {closeout.label}</div>}
+        <button type="button" className="trip-game-primary-button" onClick={onContinue}>
+          {finalHole ? "FINAL RESULTS" : "CONTINUE"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1657,6 +1732,12 @@ export default function TripGame({ data }) {
         return;
       }
       if (meterPhase) return;
+      if (resolutionPhase === "result" && (event.key === " " || event.key === "Enter")) {
+        if (event.repeat) return;
+        event.preventDefault();
+        nextHole();
+        return;
+      }
       if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
       event.preventDefault();
       stepAim(event.key === "ArrowLeft" ? -1 : 1);
@@ -2356,16 +2437,18 @@ export default function TripGame({ data }) {
                 </div>
               )}
               {resolutionPhase === "result" && result && (
-                <div className="trip-game-stage-overlay">
-                  <ResultPanel
-                    result={result}
-                    humanTeam={captainTeam}
-                    cpuTeam={cpuTeam}
-                    onNext={nextHole}
-                    finalHole={holeIndex === 17 || Boolean(closeout?.decided)}
-                    closeout={closeout}
-                  />
-                </div>
+                <ScorecardModal
+                  course={course}
+                  history={history}
+                  match={match}
+                  result={result}
+                  holeNumber={hole.number}
+                  humanTeam={captainTeam}
+                  cpuTeam={cpuTeam}
+                  onContinue={nextHole}
+                  finalHole={holeIndex === 17 || Boolean(closeout?.decided)}
+                  closeout={closeout}
+                />
               )}
             </div>
             <div className="trip-game-bottom-status">
