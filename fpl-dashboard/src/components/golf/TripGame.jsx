@@ -21,7 +21,7 @@ import "./TripGame.css";
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
 const FIREBALL_HOLES = new Set([4, 8, 12, 16]);
 const CART_GIRL_HOLES = new Set([6, 14]);
-const SHOT_REVEAL_MS = 1200;
+const PLAYBACK_SAFETY_MS = 20000;
 const FEATURE_ORDER = { water: 0, fairway: 1, bunker: 2, green: 3, tee: 4 };
 const DEFAULT_PLAYER_STATE = Object.freeze({ buzz: 0, morale: 50 });
 
@@ -176,6 +176,164 @@ function polygonArea(points) {
     area += current[0] * next[1] - next[0] * current[1];
   }
   return Math.abs(area) / 2;
+}
+
+function interpolate(a, b, t) {
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+}
+
+function curvedPath(from, to, bend) {
+  const mid = interpolate(from, to, 0.5);
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const length = Math.hypot(dx, dy) || 1;
+  const perpendicular = [-dy / length, dx / length];
+  const control = [mid[0] + perpendicular[0] * bend, mid[1] + perpendicular[1] * bend];
+  return `M${from[0].toFixed(1)},${from[1].toFixed(1)} Q${control[0].toFixed(1)},${control[1].toFixed(1)} ${to[0].toFixed(
+    1,
+  )},${to[1].toFixed(1)}`;
+}
+
+function computeShotTarget(projection, hole, decision) {
+  const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
+  const lineLength = polylineLength(projection.line);
+  const targetYards = hole.yards ? Math.min(club.carry, Math.round(hole.yards * 0.96)) : club.carry;
+  const targetDistance = hole.yards ? lineLength * (targetYards / hole.yards) : lineLength * (hole.par <= 3 ? 0.94 : 0.58);
+  const centerTarget = pointAlongPolyline(projection.line, targetDistance);
+  const perpendicular = [-centerTarget.tangent[1], centerTarget.tangent[0]];
+  const lateralAim = aimOffsetOf(decision.aim) * clamp(projection.width * 0.12, 10, 22);
+  return {
+    club,
+    lineLength,
+    targetYards,
+    targetDistance,
+    perpendicular,
+    target: [centerTarget.point[0] + perpendicular[0] * lateralAim, centerTarget.point[1] + perpendicular[1] * lateralAim],
+  };
+}
+
+function computeLandingPoint(projection, hole, target, perpendicular, landingType) {
+  const dangerDirection = projection.dangerSide === "left" ? -1 : 1;
+  const fairwayJitter = (hole.number % 3) - 1;
+  if (landingType === "Penalty area") {
+    return (
+      nearestFeatureCentroid(projection.features, "water", target) || [
+        target[0] + perpendicular[0] * 30 * dangerDirection,
+        target[1] + perpendicular[1] * 30 * dangerDirection,
+      ]
+    );
+  }
+  if (landingType === "Bunker") {
+    return (
+      nearestFeatureCentroid(projection.features, "bunker", target) || [
+        target[0] + perpendicular[0] * 18 * dangerDirection,
+        target[1] + perpendicular[1] * 18 * dangerDirection,
+      ]
+    );
+  }
+  if (landingType === "Rough") {
+    const direction = fairwayJitter || dangerDirection;
+    return [target[0] + perpendicular[0] * 13 * direction, target[1] + perpendicular[1] * 13 * direction];
+  }
+  return [target[0] + perpendicular[0] * 3 * fairwayJitter, target[1] - 2];
+}
+
+const SHOT_CAPTIONS = {
+  drive: "CRUSHED OFF THE TEE!",
+  tee: "TEE SHOT AWAY!",
+  splash: "OH NO... SPLASH!",
+  sand: "OUT OF THE SAND!",
+  punch: "PUNCHES FROM THE ROUGH!",
+  approach: "APPROACH SHOT...",
+  putt: "ROLLING...",
+};
+
+function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0 }) {
+  const distance = Math.hypot(to[0] - from[0], to[1] - from[1]);
+  const air = kind !== "putt";
+  return {
+    from,
+    to,
+    kind,
+    final,
+    air,
+    yards: yardsScale ? Math.max(1, Math.round(distance / yardsScale)) : null,
+    caption: final ? "FOR THE HOLE..." : SHOT_CAPTIONS[kind] || "SWINGS...",
+    path: curvedPath(from, to, air ? bend : 0),
+    groundPath: curvedPath(from, to, air ? bend * 0.5 : 0),
+    duration: clamp(Math.round(distance * (air ? 7 : 14)), 380, 1000),
+  };
+}
+
+/**
+ * Turn a sampled hole outcome into a cartoon shot-by-shot sequence:
+ * tee ball -> (drop) -> approaches -> putts, ending in the cup.
+ */
+function buildShotSequence({ projection, hole, decision, result }) {
+  const { target, perpendicular, lineLength } = computeShotTarget(projection, hole, decision);
+  const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
+  const yardsScale = hole.yards ? lineLength / hole.yards : 0;
+  const pin = projection.pin;
+  const landingType = result.humanLanding;
+  const landing = computeLandingPoint(projection, hole, target, perpendicular, landingType);
+  const bend = shape.bias * clamp(projection.width * 0.3, 16, 42);
+  const seed = hole.number * 37 + result.humanGross * 11;
+  const jitter = (index, scale) => (seededUnit(seed + index) - 0.5) * scale;
+
+  const shots = [];
+  let current = projection.tee;
+  let remaining = result.humanGross;
+
+  if (landingType === "Penalty area") {
+    shots.push(makeShot({ from: current, to: landing, kind: "splash", bend, yardsScale }));
+    remaining -= 2; // stroke plus penalty
+    current = interpolate(landing, projection.tee, 0.24);
+  } else {
+    shots.push(makeShot({ from: current, to: landing, kind: hole.par <= 3 ? "tee" : "drive", bend, yardsScale }));
+    remaining -= 1;
+    current = landing;
+  }
+  remaining = Math.max(1, remaining);
+
+  let putts;
+  if (hole.par === 3 && (landingType === "Fairway" || landingType === "Rough") && remaining <= 2) {
+    putts = remaining; // par-3 tee ball is greenside; just putt out
+  } else {
+    putts = remaining >= 3 ? 2 : remaining === 2 ? (hole.par === 3 ? 2 : 1) : 1;
+  }
+  putts = clamp(putts, 1, 2);
+  let approaches = remaining - putts;
+  if (approaches < 0) {
+    approaches = 0;
+    putts = remaining;
+  }
+
+  const greenEntry = [pin[0] + jitter(1, 10), pin[1] + 5 + jitter(2, 4)];
+  for (let index = 0; index < approaches; index += 1) {
+    const last = index === approaches - 1;
+    const destination = last
+      ? greenEntry
+      : [
+          interpolate(current, greenEntry, (index + 1) / approaches)[0] + jitter(index + 3, 14),
+          interpolate(current, greenEntry, (index + 1) / approaches)[1] + jitter(index + 7, 8),
+        ];
+    const kind =
+      index === 0 && landingType === "Bunker"
+        ? "sand"
+        : index === 0 && landingType === "Rough"
+          ? "punch"
+          : "approach";
+    shots.push(makeShot({ from: current, to: destination, kind, bend: jitter(index + 11, 12), yardsScale }));
+    current = destination;
+  }
+
+  if (putts === 2) {
+    const lagSpot = [pin[0] + jitter(13, 3), pin[1] + 1.6 + jitter(14, 1.5)];
+    shots.push(makeShot({ from: current, to: lagSpot, kind: "putt", yardsScale }));
+    current = lagSpot;
+  }
+  shots.push(makeShot({ from: current, to: pin, kind: "putt", final: true, yardsScale }));
+  return shots;
 }
 
 function fallbackProjection(hole) {
@@ -388,7 +546,9 @@ function HoleMap({
   hole,
   decision,
   result,
-  resolving,
+  playback,
+  intro,
+  onIntroDismiss,
   odds,
   canAct,
   stockShape,
@@ -421,59 +581,35 @@ function HoleMap({
   useEffect(() => () => stopAimHold(), []);
 
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
-  const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
-  const lineLength = polylineLength(projection.line);
-  const targetYards = hole.yards ? Math.min(club.carry, Math.round(hole.yards * 0.96)) : club.carry;
-  const targetDistance = hole.yards ? lineLength * (targetYards / hole.yards) : lineLength * (hole.par <= 3 ? 0.94 : 0.58);
-  const centerTarget = pointAlongPolyline(projection.line, targetDistance);
-  const perpendicular = [-centerTarget.tangent[1], centerTarget.tangent[0]];
-  const lateralAim = aimOffset * clamp(projection.width * 0.12, 10, 22);
-  const target = [
-    centerTarget.point[0] + perpendicular[0] * lateralAim,
-    centerTarget.point[1] + perpendicular[1] * lateralAim,
-  ];
-  const middle = [
-    (projection.tee[0] + target[0]) / 2,
-    (projection.tee[1] + target[1]) / 2,
-  ];
+  const { club, targetYards, targetDistance, perpendicular, target } = computeShotTarget(projection, hole, decision);
   const bend = shape.bias * clamp(projection.width * 0.32, 20, 48);
-  const control = [middle[0] + perpendicular[0] * bend, middle[1] + perpendicular[1] * bend];
-  const shotPath = `M${projection.tee[0].toFixed(1)},${projection.tee[1].toFixed(1)} Q${control[0].toFixed(
-    1,
-  )},${control[1].toFixed(1)} ${target[0].toFixed(1)},${target[1].toFixed(1)}`;
-  const dangerDirection = projection.dangerSide === "left" ? -1 : 1;
-  const fairwayJitter = (hole.number % 3) - 1;
-  let landing = null;
-  if (result) {
-    if (result.humanLanding === "Penalty area") {
-      landing = nearestFeatureCentroid(projection.features, "water", target) || [
-        target[0] + perpendicular[0] * 30 * dangerDirection,
-        target[1] + perpendicular[1] * 30 * dangerDirection,
-      ];
-    } else if (result.humanLanding === "Bunker") {
-      landing = nearestFeatureCentroid(projection.features, "bunker", target) || [
-        target[0] + perpendicular[0] * 18 * dangerDirection,
-        target[1] + perpendicular[1] * 18 * dangerDirection,
-      ];
-    } else if (result.humanLanding === "Rough") {
-      const direction = fairwayJitter || dangerDirection;
-      landing = [target[0] + perpendicular[0] * 13 * direction, target[1] + perpendicular[1] * 13 * direction];
-    } else {
-      landing = [target[0] + perpendicular[0] * 3 * fairwayJitter, target[1] - 2];
-    }
-  }
+  const shotPath = curvedPath(projection.tee, target, bend);
+  const landing = result ? computeLandingPoint(projection, hole, target, perpendicular, result.humanLanding) : null;
+  const planning = !playback && !result;
+  const activeShot = playback ? playback.shots[Math.min(playback.index, playback.shots.length - 1)] : null;
+  const shotFlipped = activeShot ? activeShot.to[0] < activeShot.from[0] : false;
   const remainingYards = hole.yards ? Math.max(0, Math.round(hole.yards - targetYards)) : null;
   const trees = buildTreeSprites(projection, hole.number);
   const mapId = `trip-hole-${hole.number}`;
 
   return (
-    <div className={`trip-game-map-wrap ${resolving ? "is-resolving" : ""}`}>
+    <div className={`trip-game-map-wrap ${playback ? "is-resolving" : ""}`}>
       <div className="trip-game-map-hud">
+        <span className={`trip-game-par-pill is-par-${hole.par}`}>PAR {hole.par}</span>
         <span>{projection.hazardLabel}</span>
         <span>
-          {club.short} {targetYards}Y · {remainingYards != null ? `${remainingYards}Y LEFT` : "TEE PLAN"}
+          {playback ? "NOW PLAYING" : `${club.short} ${targetYards}Y · ${remainingYards != null ? `${remainingYards}Y LEFT` : "TEE PLAN"}`}
         </span>
       </div>
+      {playback && activeShot && (
+        <div className="trip-game-playcap" aria-live="polite">
+          <small>
+            SHOT {Math.min(playback.index + 1, playback.shots.length)}/{playback.shots.length}
+            {activeShot.yards ? ` · ${activeShot.yards}Y` : ""}
+          </small>
+          <b>{activeShot.caption}</b>
+        </div>
+      )}
       {odds && (
         <div className="trip-game-map-landing" aria-label="Landing odds for this exact aim">
           <span>
@@ -523,12 +659,14 @@ function HoleMap({
         </defs>
         <rect width={projection.width} height={projection.height} className="trip-game-map-rough" />
         <rect width={projection.width} height={projection.height} fill={`url(#${mapId}-rough)`} />
-        <circle
-          cx={projection.tee[0]}
-          cy={projection.tee[1]}
-          r={Math.max(0, targetDistance)}
-          className="trip-game-carry-arc"
-        />
+        {planning && (
+          <circle
+            cx={projection.tee[0]}
+            cy={projection.tee[1]}
+            r={Math.max(0, targetDistance)}
+            className="trip-game-carry-arc"
+          />
+        )}
         <g className="trip-game-tree-layer" aria-hidden="true">
           {trees.map((tree, index) => (
             <g
@@ -570,37 +708,116 @@ function HoleMap({
           </g>
         ))}
         <path d={pathFromPoints(projection.line, false)} className="trip-game-centerline" />
-        <path d={shotPath} className="trip-game-shot-line" />
-        {resolving && (
-          <circle r="3.8" className="trip-game-flight-ball" filter={`url(#game-pixel-shadow-${hole.number})`}>
-            <animateMotion dur={`${SHOT_REVEAL_MS}ms`} path={shotPath} fill="freeze" />
-          </circle>
+        {planning && (
+          <>
+            <path d={shotPath} className="trip-game-shot-line" />
+            <g className="trip-game-target" transform={`translate(${target[0]} ${target[1]})`}>
+              <circle r="5.5" />
+              <path d="M-8 0 H8 M0 -8 V8" />
+            </g>
+            <text
+              x={clamp(target[0] + 7, 8, projection.width - 44)}
+              y={clamp(target[1] - 7, 10, projection.height - 8)}
+              className="trip-game-carry-label"
+            >
+              {targetYards}Y
+            </text>
+          </>
         )}
-        <g className="trip-game-target" transform={`translate(${target[0]} ${target[1]})`}>
-          <circle r="5.5" />
-          <path d="M-8 0 H8 M0 -8 V8" />
-        </g>
-        <text
-          x={clamp(target[0] + 7, 8, projection.width - 44)}
-          y={clamp(target[1] - 7, 10, projection.height - 8)}
-          className="trip-game-carry-label"
-        >
-          {targetYards}Y
-        </text>
-        <g className="trip-game-golfer" transform={`translate(${projection.tee[0] - 5} ${projection.tee[1] - 13})`}>
-          <rect className="trip-game-golfer-club" x="10" y="2" width="1.4" height="12" transform="rotate(20 10.7 2)" />
-          <rect className="trip-game-golfer-cap" x="2.4" y="-1.6" width="6.2" height="2.2" />
-          <rect className="trip-game-golfer-skin" x="3" y="0.6" width="5" height="4.4" />
-          <rect className="trip-game-golfer-shirt" x="2" y="5" width="7" height="7" />
-          <rect className="trip-game-golfer-legs" x="0" y="12" width="4" height="7" />
-          <rect className="trip-game-golfer-legs" x="7" y="12" width="4" height="7" />
-        </g>
+        {!playback && (
+          <g className="trip-game-golfer" transform={`translate(${projection.tee[0] - 5} ${projection.tee[1] - 13})`}>
+            <rect className="trip-game-golfer-club" x="10" y="2" width="1.4" height="12" transform="rotate(20 10.7 2)" />
+            <rect className="trip-game-golfer-cap" x="2.4" y="-1.6" width="6.2" height="2.2" />
+            <rect className="trip-game-golfer-skin" x="3" y="0.6" width="5" height="4.4" />
+            <rect className="trip-game-golfer-shirt" x="2" y="5" width="7" height="7" />
+            <rect className="trip-game-golfer-legs" x="0" y="12" width="4" height="7" />
+            <rect className="trip-game-golfer-legs" x="7" y="12" width="4" height="7" />
+          </g>
+        )}
         <g className="trip-game-flag" transform={`translate(${projection.pin[0]} ${projection.pin[1]})`}>
           <rect className="trip-game-flag-base" x="-3" y="0" width="6" height="2" />
           <rect className="trip-game-flag-pole" x="-1" y="-14" width="2" height="15" />
           <path className="trip-game-flag-cloth" d="M1,-14 L11,-10 L1,-6 Z" />
         </g>
-        {result && !resolving && (
+        {playback && activeShot && (
+          <g className="trip-game-theater">
+            {playback.shots.slice(0, playback.index).map((shot, index) => (
+              <circle key={index} cx={shot.to[0]} cy={shot.to[1]} r="1.5" className="trip-game-crumb" />
+            ))}
+            <g transform={`translate(${activeShot.from[0]} ${activeShot.from[1]})`}>
+              <g
+                className={`trip-game-swinger ${playback.phase === "swing" ? "is-swinging" : "is-through"} ${
+                  activeShot.kind === "putt" ? "is-putting" : ""
+                }`}
+                transform={`scale(${shotFlipped ? -1.3 : 1.3} 1.3)`}
+              >
+                <ellipse className="trip-game-swinger-shadow" cx="0" cy="1.4" rx="5.4" ry="1.7" />
+                <g transform="translate(-4.8 -15)">
+                  <rect className="trip-game-golfer-legs" x="1" y="10" width="3" height="5.5" />
+                  <rect className="trip-game-golfer-legs" x="5.8" y="10" width="3" height="5.5" />
+                  <rect className="trip-game-golfer-shirt" x="0.4" y="4.6" width="9" height="5.8" />
+                  <rect className="trip-game-golfer-skin" x="2.4" y="0.2" width="5" height="4.6" />
+                  <rect className="trip-game-golfer-cap" x="1.8" y="-1.8" width="6.2" height="2.4" />
+                  <g className="trip-game-swing-arm">
+                    <rect className="trip-game-golfer-club" x="8.2" y="4.8" width="1.4" height="10.5" />
+                    <rect className="trip-game-club-head" x="7.4" y="14.4" width="3.2" height="2" />
+                  </g>
+                </g>
+              </g>
+              {playback.phase === "flight" && (
+                <g className="trip-game-impact" transform={`translate(${shotFlipped ? -6 : 6} -4)`}>
+                  <path d="M0,-5 L1.6,-1.6 L5,0 L1.6,1.6 L0,5 L-1.6,1.6 L-5,0 L-1.6,-1.6 Z" />
+                </g>
+              )}
+            </g>
+            {playback.phase === "flight" && (
+              <>
+                <circle r="1.7" className="trip-game-theater-shadow">
+                  <animateMotion
+                    key={`shadow-${playback.index}`}
+                    dur={`${activeShot.duration}ms`}
+                    path={activeShot.groundPath}
+                    fill="freeze"
+                  />
+                </circle>
+                <circle r="2.3" className="trip-game-theater-ball">
+                  <animateMotion
+                    key={`ball-${playback.index}`}
+                    dur={`${activeShot.duration}ms`}
+                    path={activeShot.path}
+                    fill="freeze"
+                  />
+                  {activeShot.air && (
+                    <animate
+                      key={`rise-${playback.index}`}
+                      attributeName="r"
+                      values="2.1;5.2;2.2"
+                      keyTimes="0;0.45;1"
+                      dur={`${activeShot.duration}ms`}
+                      fill="freeze"
+                    />
+                  )}
+                </circle>
+              </>
+            )}
+            {playback.phase === "settle" && activeShot.kind === "splash" && (
+              <g className="trip-game-splash" transform={`translate(${activeShot.to[0]} ${activeShot.to[1]})`}>
+                <circle r="3" />
+                <circle r="6" />
+                <circle r="9" />
+              </g>
+            )}
+            {playback.phase === "settle" && activeShot.kind !== "splash" && !activeShot.final && (
+              <circle cx={activeShot.to[0]} cy={activeShot.to[1]} r="2.3" className="trip-game-theater-ball is-settled" />
+            )}
+            {playback.phase === "settle" && activeShot.final && (
+              <g className="trip-game-holeout" transform={`translate(${activeShot.to[0]} ${activeShot.to[1] - 4})`}>
+                <path d="M0,-8 L2.3,-2.4 L8,-2.4 L3.4,1.2 L5.4,7 L0,3.4 L-5.4,7 L-3.4,1.2 L-8,-2.4 L-2.3,-2.4 Z" />
+              </g>
+            )}
+          </g>
+        )}
+        {result && (
           <g
             className="trip-game-ball-marker"
             transform={`translate(${clamp(landing[0], 5, projection.width - 5)} ${clamp(landing[1], 5, projection.height - 5)})`}
@@ -611,6 +828,15 @@ function HoleMap({
           </g>
         )}
       </svg>
+      {intro && (
+        <button type="button" className="trip-game-hole-intro" onClick={onIntroDismiss} aria-label="Dismiss hole intro">
+          <small>HOLE {hole.number}</small>
+          <b className={`is-par-${hole.par}`}>PAR {hole.par}</b>
+          <span>
+            {hole.yards ? `${hole.yards} YDS · ` : ""}SI {hole.si}
+          </span>
+        </button>
+      )}
       {canAct && (
         <div className="trip-game-pad">
           <div className="trip-game-pad-aim">
@@ -789,29 +1015,23 @@ function PlayerPicker({ players, selectedKey, usage, maxUses, disabled, onPick }
   );
 }
 
-function ShotRoll({ result, decision }) {
-  const club = CLUBS.find((item) => item.id === decision.club);
+function PlaybackPanel({ result, shots, shotIndex, onSkip }) {
+  const shot = shots[Math.min(shotIndex, shots.length - 1)];
   return (
-    <div className="trip-game-shot-roll" role="status" aria-live="polite">
-      <div className="trip-game-roll-burst" aria-hidden="true">
-        {Array.from({ length: 12 }, (_, index) => (
-          <i key={index} style={{ "--burst-index": index }} />
+    <div className="trip-game-playback" role="status" aria-live="polite">
+      <small>NOW ON THE TEE</small>
+      <b>{lastName(result.human.name).toUpperCase()}</b>
+      <div className="trip-game-playback-pips" aria-hidden="true">
+        {shots.map((item, index) => (
+          <span key={index} className={index < shotIndex ? "is-done" : index === shotIndex ? "is-live" : ""}>
+            {index + 1}
+          </span>
         ))}
       </div>
-      <small>TRIP DATA ROLL</small>
-      <b>{lastName(result.human.name).toUpperCase()} SENDS IT!</b>
-      <div className="trip-game-roll-reels" aria-hidden="true">
-        <span>BRD</span>
-        <span>PAR</span>
-        <span>BOG</span>
-      </div>
-      <p>
-        {club?.short || club?.label} · {decision.shape.toUpperCase()} · AIM {aimText(decision.aim)}
-      </p>
-      <div className="trip-game-roll-loader">
-        <i />
-      </div>
-      <em>CPU PICK LOCKED...</em>
+      <p>{shot?.caption || "..."}</p>
+      <button type="button" onClick={onSkip}>
+        SKIP ▶▶
+      </button>
     </div>
   );
 }
@@ -1077,6 +1297,9 @@ export default function TripGame({ data }) {
   const [result, setResult] = useState(null);
   const [closeout, setCloseout] = useState(null);
   const [resolutionPhase, setResolutionPhase] = useState("idle");
+  const [playbackShots, setPlaybackShots] = useState(null);
+  const [playbackStep, setPlaybackStep] = useState({ index: 0, phase: "swing" });
+  const [holeIntro, setHoleIntro] = useState(false);
   const [hype, setHype] = useState(0);
   const [streak, setStreak] = useState(0);
   const [geometryBySlug, setGeometryBySlug] = useState({});
@@ -1087,6 +1310,7 @@ export default function TripGame({ data }) {
   const [eventNote, setEventNote] = useState(null);
   const randomRef = useRef(makeSeededRandom(Date.now()));
   const resolutionTimerRef = useRef(null);
+  const pendingCommitRef = useRef(null);
 
   useEffect(() => {
     let live = true;
@@ -1126,6 +1350,43 @@ export default function TripGame({ data }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
+
+  // Advance the cartoon shot playback: swing -> flight -> settle -> next shot.
+  useEffect(() => {
+    if (resolutionPhase !== "playback" || !playbackShots) return undefined;
+    const shot = playbackShots[playbackStep.index];
+    if (!shot) {
+      finishPlayback();
+      return undefined;
+    }
+    const duration =
+      playbackStep.phase === "swing"
+        ? shot.kind === "putt"
+          ? 320
+          : 420
+        : playbackStep.phase === "flight"
+          ? shot.duration
+          : shot.kind === "splash"
+            ? 700
+            : shot.final
+              ? 640
+              : 300;
+    const timer = window.setTimeout(() => {
+      setPlaybackStep((current) => {
+        if (current.phase === "swing") return { ...current, phase: "flight" };
+        if (current.phase === "flight") return { ...current, phase: "settle" };
+        return { index: current.index + 1, phase: "swing" };
+      });
+    }, duration);
+    return () => window.clearTimeout(timer);
+  });
+
+  // Hole intro card auto-dismisses after a beat.
+  useEffect(() => {
+    if (!holeIntro) return undefined;
+    const timer = window.setTimeout(() => setHoleIntro(false), 2100);
+    return () => window.clearTimeout(timer);
+  }, [holeIntro]);
 
   const historicalData = useMemo(
     () => archive.filter((dataset) => dataset.trip?.id !== data.trip?.id),
@@ -1277,6 +1538,9 @@ export default function TripGame({ data }) {
     setResult(null);
     setCloseout(null);
     setResolutionPhase("idle");
+    setPlaybackShots(null);
+    setHoleIntro(true);
+    pendingCommitRef.current = null;
     setHype(0);
     setStreak(0);
     setInventory({ fireball: 1 });
@@ -1420,41 +1684,69 @@ export default function TripGame({ data }) {
       cpuWins: match.cpu + (resolved.winner === "cpu" ? 1 : 0),
       holesPlayed: holeIndex + 1,
     });
+    pendingCommitRef.current = {
+      resolved,
+      cpuPick,
+      selectedKey: selected.key,
+      selectedName: selected.name,
+      holeNumber: hole.number,
+      usedFireball: Boolean(decision.fireball),
+      nextStreak,
+      nextHype,
+      powerUpEarned,
+      nextCloseout,
+    };
+    const shots = projection
+      ? buildShotSequence({ projection, hole, decision, result: resolved })
+      : [];
+    setPlaybackShots(shots);
+    setPlaybackStep({ index: 0, phase: "swing" });
     setResult(completeResult);
-    setResolutionPhase("rolling");
+    setResolutionPhase("playback");
+    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
     if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
-    resolutionTimerRef.current = window.setTimeout(() => {
-      setResolutionPhase("result");
-      setUsage((current) => ({ ...current, [selected.key]: (current[selected.key] || 0) + 1 }));
-      setCpuUsage((current) => ({ ...current, [cpuPick.profile.key]: (current[cpuPick.profile.key] || 0) + 1 }));
-      setMatch((current) => ({
-        human: current.human + (resolved.winner === "human" ? 1 : 0),
-        cpu: current.cpu + (resolved.winner === "cpu" ? 1 : 0),
-        ties: current.ties + (resolved.winner === "tie" ? 1 : 0),
-      }));
-      setHistory((current) => [
-        ...current,
-        {
-          hole: hole.number,
-          winner: resolved.winner,
-          human: selected.name,
-          cpu: cpuPick.profile.name,
-          humanGross: resolved.humanGross,
-          cpuGross: resolved.cpuGross,
-        },
-      ]);
-      setHype(nextHype);
-      setStreak(nextStreak);
-      if (nextCloseout.decided) setCloseout(nextCloseout);
-      setInventory((current) => ({
-        ...current,
-        fireball: Math.max(0, current.fireball - (decision.fireball ? 1 : 0)) + (powerUpEarned ? 1 : 0),
-      }));
-      if (typeof navigator !== "undefined" && navigator.vibrate) {
-        navigator.vibrate(resolved.winner === "human" ? [35, 30, 65] : 25);
-      }
+    resolutionTimerRef.current = window.setTimeout(() => finishPlayback(), PLAYBACK_SAFETY_MS);
+  }
+
+  function finishPlayback() {
+    const pending = pendingCommitRef.current;
+    if (!pending) return;
+    pendingCommitRef.current = null;
+    if (resolutionTimerRef.current) {
+      window.clearTimeout(resolutionTimerRef.current);
       resolutionTimerRef.current = null;
-    }, SHOT_REVEAL_MS);
+    }
+    const { resolved, cpuPick, nextStreak, nextHype, powerUpEarned, nextCloseout } = pending;
+    setResolutionPhase("result");
+    setPlaybackShots(null);
+    setUsage((current) => ({ ...current, [pending.selectedKey]: (current[pending.selectedKey] || 0) + 1 }));
+    setCpuUsage((current) => ({ ...current, [cpuPick.profile.key]: (current[cpuPick.profile.key] || 0) + 1 }));
+    setMatch((current) => ({
+      human: current.human + (resolved.winner === "human" ? 1 : 0),
+      cpu: current.cpu + (resolved.winner === "cpu" ? 1 : 0),
+      ties: current.ties + (resolved.winner === "tie" ? 1 : 0),
+    }));
+    setHistory((current) => [
+      ...current,
+      {
+        hole: pending.holeNumber,
+        winner: resolved.winner,
+        human: pending.selectedName,
+        cpu: cpuPick.profile.name,
+        humanGross: resolved.humanGross,
+        cpuGross: resolved.cpuGross,
+      },
+    ]);
+    setHype(nextHype);
+    setStreak(nextStreak);
+    if (nextCloseout.decided) setCloseout(nextCloseout);
+    setInventory((current) => ({
+      ...current,
+      fireball: Math.max(0, current.fireball - (pending.usedFireball ? 1 : 0)) + (powerUpEarned ? 1 : 0),
+    }));
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(resolved.winner === "human" ? [35, 30, 65] : 25);
+    }
   }
 
   function nextHole() {
@@ -1468,6 +1760,9 @@ export default function TripGame({ data }) {
     setMenu(null);
     setResult(null);
     setResolutionPhase("idle");
+    setPlaybackShots(null);
+    setHoleIntro(true);
+    pendingCommitRef.current = null;
     setEventOffer(null);
     setPickLocked(false);
     setEventNote(null);
@@ -1527,9 +1822,7 @@ export default function TripGame({ data }) {
               <div className="trip-game-hole-box">
                 <small>HOLE</small>
                 <b>{String(hole.number).padStart(2, "0")}</b>
-                <span>
-                  PAR {hole.par} · SI {hole.si}
-                </span>
+                <span className={`trip-game-par-pill is-par-${hole.par}`}>PAR {hole.par}</span>
               </div>
               <div className={`trip-game-score-team is-${cpuTeam.toLowerCase()}`}>
                 <span>CPU · {cpuTeam.toUpperCase()}</span>
@@ -1551,7 +1844,13 @@ export default function TripGame({ data }) {
                 hole={hole}
                 decision={decision}
                 result={resolutionPhase === "result" ? result : null}
-                resolving={resolutionPhase === "rolling"}
+                playback={
+                  resolutionPhase === "playback" && playbackShots?.length
+                    ? { shots: playbackShots, index: playbackStep.index, phase: playbackStep.phase }
+                    : null
+                }
+                intro={holeIntro && resolutionPhase === "idle" && !result}
+                onIntroDismiss={() => setHoleIntro(false)}
                 odds={resolutionPhase === "idle" && !result ? odds : null}
                 canAct={Boolean(selected) && resolutionPhase === "idle" && !result}
                 stockShape={selected?.stockShape}
@@ -1563,8 +1862,13 @@ export default function TripGame({ data }) {
               />
               <div className="trip-game-command-panel">
                 <PlayerCard player={selected} playerState={selectedState} course={course} />
-                {resolutionPhase === "rolling" && result ? (
-                  <ShotRoll result={result} decision={decision} />
+                {resolutionPhase === "playback" && result ? (
+                  <PlaybackPanel
+                    result={result}
+                    shots={playbackShots || []}
+                    shotIndex={playbackStep.index}
+                    onSkip={finishPlayback}
+                  />
                 ) : resolutionPhase === "result" && result ? (
                   <ResultPanel
                     result={result}

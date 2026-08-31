@@ -476,6 +476,12 @@
   font-size: 11px;
 }
 
+.trip-game-hole-box .trip-game-par-pill {
+  margin-top: 3px;
+  color: #fff8dc;
+  font-size: 9px;
+}
+
 .trip-game-match-state {
   padding: 5px 8px;
   border-bottom: 2px solid #060f0a;
@@ -576,6 +582,123 @@
   border-top: 2px solid #060f0a;
   color: #88a17a;
   font-size: 11px;
+}
+
+/* big bubbly par badge */
+
+.trip-game-par-pill {
+  display: inline-grid;
+  place-items: center;
+  padding: 3px 9px 2px;
+  border: 2px solid #060f0a;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: #fff8dc;
+  background: #3f7bb8;
+  box-shadow:
+    2px 2px 0 #060f0a,
+    inset 0 -2px 0 rgba(6, 15, 10, 0.35);
+}
+
+.trip-game-par-pill.is-par-4 {
+  background: #4c9247;
+}
+
+.trip-game-par-pill.is-par-5 {
+  background: #cf5a2e;
+}
+
+/* per-shot caption during playback */
+
+.trip-game-playcap {
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  border-bottom: 2px solid #060f0a;
+  background: #0b1a11;
+  text-align: center;
+}
+
+.trip-game-playcap small {
+  color: #7a9078;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+.trip-game-playcap b {
+  color: #ffe9a8;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-shadow: 2px 2px 0 #060f0a;
+}
+
+/* hole intro splash card */
+
+.trip-game-hole-intro {
+  position: absolute;
+  z-index: 6;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 190px;
+  padding: 16px 24px 18px;
+  border: 4px solid #060f0a;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.22), transparent 42%),
+    #1c3a26;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    6px 6px 0 rgba(6, 15, 10, 0.55),
+    inset 0 0 0 3px #3d6046;
+  animation: trip-game-hole-intro-in 420ms steps(6, end) both;
+}
+
+.trip-game-hole-intro small {
+  color: #b8cf9c;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+
+.trip-game-hole-intro b {
+  padding: 8px 16px;
+  border: 3px solid #060f0a;
+  border-radius: 14px;
+  color: #fff8dc;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  background: #3f7bb8;
+  text-shadow: 3px 3px 0 rgba(6, 15, 10, 0.6);
+  box-shadow:
+    3px 3px 0 #060f0a,
+    inset 0 -4px 0 rgba(6, 15, 10, 0.3);
+}
+
+.trip-game-hole-intro b.is-par-4 {
+  background: #4c9247;
+}
+
+.trip-game-hole-intro b.is-par-5 {
+  background: #cf5a2e;
+}
+
+.trip-game-hole-intro span {
+  color: #e8dfae;
+  font-size: 12px;
+  letter-spacing: 0.12em;
 }
 
 .trip-game-map-foot span:nth-child(2) {
@@ -1003,16 +1126,96 @@
   filter: drop-shadow(1px 1px 0 #07180f);
 }
 
-.trip-game-flight-ball {
-  fill: #fffbd6;
-  stroke: #efb54b;
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
-  animation: trip-game-flight-glow 240ms steps(2, end) infinite;
-}
-
 .trip-game-map-wrap.is-resolving {
   animation: trip-game-camera-kick 180ms steps(2, end) 1;
+}
+
+/* cartoon shot theater */
+
+.trip-game-theater-ball {
+  fill: #fffbe0;
+  stroke: #0a1c11;
+  stroke-width: 1.1;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-theater-ball.is-settled {
+  animation: trip-game-ball-bounce 260ms steps(3, end) 1;
+}
+
+.trip-game-theater-shadow {
+  fill: rgba(7, 24, 15, 0.4);
+}
+
+.trip-game-crumb {
+  fill: rgba(255, 251, 224, 0.75);
+  stroke: rgba(7, 24, 15, 0.5);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-swinger .trip-game-swing-arm {
+  transform-box: fill-box;
+  transform-origin: top center;
+  transform: rotate(0deg);
+}
+
+.trip-game-swinger.is-swinging .trip-game-swing-arm {
+  animation: trip-game-swing 420ms steps(5, end) forwards;
+}
+
+.trip-game-swinger.is-swinging.is-putting .trip-game-swing-arm {
+  animation: trip-game-putt-stroke 320ms steps(3, end) forwards;
+}
+
+.trip-game-swinger.is-through .trip-game-swing-arm {
+  transform: rotate(62deg);
+}
+
+.trip-game-swinger.is-through.is-putting .trip-game-swing-arm {
+  transform: rotate(16deg);
+}
+
+.trip-game-swinger-shadow {
+  fill: rgba(7, 24, 15, 0.3);
+}
+
+.trip-game-club-head {
+  fill: #8f97a1;
+}
+
+.trip-game-impact path {
+  fill: #ffe14d;
+  stroke: #0a1c11;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+  animation: trip-game-impact-pop 260ms steps(3, end) forwards;
+}
+
+.trip-game-splash circle {
+  fill: none;
+  stroke: #bfe6ff;
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  animation: trip-game-splash-ring 640ms steps(4, end) forwards;
+}
+
+.trip-game-splash circle:nth-child(2) {
+  animation-delay: 110ms;
+}
+
+.trip-game-splash circle:nth-child(3) {
+  animation-delay: 220ms;
+}
+
+.trip-game-holeout path {
+  fill: #ffd028;
+  stroke: #0a1c11;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trip-game-holeout-pop 620ms steps(5, end) forwards;
 }
 
 .trip-game-target {
@@ -1045,7 +1248,8 @@
 
 /* sprites */
 
-.trip-game-golfer rect {
+.trip-game-golfer rect,
+.trip-game-swinger rect {
   stroke: #07180f;
   stroke-width: 0.9;
   vector-effect: non-scaling-stroke;
@@ -1625,122 +1829,89 @@
   padding: 3px 0 0;
 }
 
-.trip-game-shot-roll {
-  position: relative;
+.trip-game-playback {
   display: grid;
-  overflow: hidden;
-  min-height: 290px;
   flex: 1;
   align-content: center;
   justify-items: center;
-  padding: 16px;
+  min-height: 180px;
+  padding: 14px;
   border: 3px solid #060f0a;
   background:
-    radial-gradient(circle at center, rgba(227, 185, 76, 0.17), transparent 54%),
+    radial-gradient(circle at center, rgba(227, 185, 76, 0.14), transparent 56%),
     #16291d;
   text-align: center;
   box-shadow: inset 0 0 0 3px #385642;
 }
 
-.trip-game-shot-roll > small,
-.trip-game-shot-roll > b,
-.trip-game-shot-roll > p,
-.trip-game-shot-roll > em,
-.trip-game-roll-reels,
-.trip-game-roll-loader {
-  position: relative;
-  z-index: 2;
-}
-
-.trip-game-shot-roll > small {
+.trip-game-playback > small {
   color: #a4b78b;
-  font-size: 12px;
-  letter-spacing: 0.28em;
+  font-size: 11px;
+  letter-spacing: 0.26em;
 }
 
-.trip-game-shot-roll > b {
-  margin-top: 9px;
+.trip-game-playback > b {
+  margin-top: 7px;
   color: #f6ecbc;
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 400;
-  line-height: 1.4;
   text-shadow: 3px 3px 0 #060f0a;
 }
 
-.trip-game-shot-roll > p {
-  margin: 8px 0;
-  color: #eda75f;
-  font-size: 13px;
-  letter-spacing: 0.08em;
+.trip-game-playback-pips {
+  display: flex;
+  gap: 5px;
+  margin-top: 11px;
 }
 
-.trip-game-shot-roll > em {
-  margin-top: 9px;
-  color: #7a9078;
-  font-size: 11px;
-  font-style: normal;
-  letter-spacing: 0.12em;
-}
-
-.trip-game-roll-reels {
+.trip-game-playback-pips span {
   display: grid;
-  width: min(220px, 90%);
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  margin-top: 15px;
-}
-
-.trip-game-roll-reels span {
-  display: grid;
-  min-height: 42px;
+  width: 22px;
+  height: 22px;
   place-items: center;
-  border: 3px solid #060f0a;
-  background: var(--px-screen);
-  color: #1a3826;
-  font-size: 16px;
-  box-shadow: 3px 3px 0 #060f0a;
+  border: 2px solid #060f0a;
+  background: #0a150f;
+  color: #56705c;
+  font-size: 11px;
+  box-shadow: 2px 2px 0 #060f0a;
+}
+
+.trip-game-playback-pips span.is-done {
+  background: #547645;
+  color: #f2f7d8;
+}
+
+.trip-game-playback-pips span.is-live {
+  background: var(--px-orange);
+  color: #1c0e05;
   animation: trip-game-reel-flash 300ms steps(2, end) infinite;
 }
 
-.trip-game-roll-reels span:nth-child(2) {
-  animation-delay: 80ms;
+.trip-game-playback > p {
+  margin: 10px 0 0;
+  color: #eda75f;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
 }
 
-.trip-game-roll-reels span:nth-child(3) {
-  animation-delay: 160ms;
+.trip-game-playback > button {
+  margin-top: 12px;
+  padding: 7px 14px;
+  border: 3px solid #060f0a;
+  background: #0f1d14;
+  color: #a4b78b;
+  font-family: var(--font-display);
+  font-size: 9px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #060f0a;
 }
 
-.trip-game-roll-loader {
-  overflow: hidden;
-  width: min(220px, 90%);
-  height: 8px;
-  border: 2px solid #060f0a;
-  background: #0a150f;
-}
-
-.trip-game-roll-loader i {
-  display: block;
-  width: 36%;
-  height: 100%;
-  background: linear-gradient(90deg, #e56630, #f4d266);
-  animation: trip-game-roll-loader 650ms steps(5, end) infinite;
-}
-
-.trip-game-roll-burst {
-  position: absolute;
-  z-index: 1;
-  top: 50%;
-  left: 50%;
-}
-
-.trip-game-roll-burst i {
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  background: #dcc95f;
-  animation: trip-game-burst 850ms steps(4, end) infinite;
-  animation-delay: calc(var(--burst-index) * -70ms);
+.trip-game-playback > button:active {
+  translate: 2px 2px;
+  box-shadow: 1px 1px 0 #060f0a;
 }
 
 /* ---------- Result + celebration ---------- */
@@ -2210,13 +2381,6 @@
   }
 }
 
-@keyframes trip-game-flight-glow {
-  50% {
-    fill: #f2ae44;
-    stroke-width: 3;
-  }
-}
-
 @keyframes trip-game-camera-kick {
   50% {
     transform: translate(1px, -1px);
@@ -2237,29 +2401,111 @@
   }
 }
 
-@keyframes trip-game-roll-loader {
-  from {
-    transform: translateX(-100%);
+@keyframes trip-game-swing {
+  0% {
+    transform: rotate(0deg);
   }
 
-  to {
-    transform: translateX(280%);
+  45% {
+    transform: rotate(-152deg);
+  }
+
+  80% {
+    transform: rotate(48deg);
+  }
+
+  100% {
+    transform: rotate(62deg);
   }
 }
 
-@keyframes trip-game-burst {
-  from {
-    opacity: 0;
-    transform: rotate(calc(var(--burst-index) * 30deg)) translateY(0);
+@keyframes trip-game-putt-stroke {
+  0% {
+    transform: rotate(0deg);
   }
 
-  30% {
-    opacity: 0.8;
+  50% {
+    transform: rotate(-28deg);
   }
 
-  to {
+  100% {
+    transform: rotate(16deg);
+  }
+}
+
+@keyframes trip-game-ball-bounce {
+  0% {
+    transform: translateY(-3px);
+  }
+
+  60% {
+    transform: translateY(-1px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes trip-game-impact-pop {
+  0% {
+    opacity: 1;
+    transform: scale(0.5);
+  }
+
+  55% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+
+  100% {
     opacity: 0;
-    transform: rotate(calc(var(--burst-index) * 30deg)) translateY(-105px);
+    transform: scale(0.8);
+  }
+}
+
+@keyframes trip-game-splash-ring {
+  0% {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes trip-game-holeout-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-20deg);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scale(1.5) rotate(10deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes trip-game-hole-intro-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+
+  70% {
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
@@ -2403,6 +2649,36 @@
 
   .trip-game-map-landing b {
     font-size: 12px;
+  }
+
+  .trip-game-par-pill {
+    padding: 2px 7px 1px;
+    font-size: 8px;
+  }
+
+  .trip-game-playcap {
+    padding: 3px 6px;
+  }
+
+  .trip-game-playcap small {
+    font-size: 8px;
+  }
+
+  .trip-game-playcap b {
+    font-size: 8px;
+  }
+
+  .trip-game-hole-intro {
+    min-width: 160px;
+    padding: 12px 18px 14px;
+  }
+
+  .trip-game-hole-intro b {
+    font-size: 17px;
+  }
+
+  .trip-game-hole-intro span {
+    font-size: 10px;
   }
 
   .trip-game-pad {
@@ -2618,26 +2894,23 @@
     display: none;
   }
 
-  .trip-game-shot-roll {
-    min-height: 205px;
+  .trip-game-playback {
+    min-height: 140px;
     padding: 10px;
   }
 
-  .trip-game-shot-roll > small {
-    font-size: 10px;
-  }
-
-  .trip-game-shot-roll > b {
-    font-size: 10px;
-  }
-
-  .trip-game-shot-roll > p {
+  .trip-game-playback > b {
     font-size: 11px;
   }
 
-  .trip-game-roll-reels span {
-    min-height: 34px;
-    font-size: 13px;
+  .trip-game-playback > p {
+    font-size: 10px;
+  }
+
+  .trip-game-playback-pips span {
+    width: 19px;
+    height: 19px;
+    font-size: 10px;
   }
 
   .trip-game-result {
@@ -3125,7 +3398,7 @@
     gap: 3px;
   }
 
-  .trip-game--play .trip-game-shot-roll {
+  .trip-game--play .trip-game-playback {
     min-height: 0;
     padding: 8px;
   }
@@ -3197,15 +3470,16 @@
   .trip-game-title-flag,
   .trip-game-status-light,
   .trip-game-hype em,
-  .trip-game-flight-ball,
   .trip-game-flag-cloth,
   .trip-game-ball-halo,
   .trip-game-map-wrap,
   .trip-game-captain-read,
   .trip-game-condition span.is-hot,
-  .trip-game-roll-reels span,
-  .trip-game-roll-loader i,
-  .trip-game-roll-burst i,
+  .trip-game-playback-pips span,
+  .trip-game-swinger .trip-game-swing-arm,
+  .trip-game-impact path,
+  .trip-game-holeout path,
+  .trip-game-hole-intro,
   .trip-game-gb-menu,
   .trip-game-celebration,
   .trip-game-celebration-particles i,
