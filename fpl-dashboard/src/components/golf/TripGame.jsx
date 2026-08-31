@@ -651,7 +651,7 @@ function buildShotSequence({ projection, hole, decision, gross, landingLabel, si
   if (landingType === "Penalty area") {
     shots.push(makeShot({ from: current, to: landing, kind: placed.ob ? "ob" : "splash", bend, yardsScale }));
     remaining -= 2; // stroke plus penalty
-    current = interpolate(landing, projection.tee, 0.24);
+    current = dryDropPoint(projection, landing, projection.tee);
   } else {
     shots.push(
       makeShot({
@@ -694,12 +694,18 @@ function buildShotSequence({ projection, hole, decision, gross, landingLabel, si
       break;
     }
     const last = index === approaches - 1;
-    const destination = last
-      ? greenEntry
-      : [
-          interpolate(current, greenEntry, (index + 1) / approaches)[0] + jitter(index + 3, 14),
-          interpolate(current, greenEntry, (index + 1) / approaches)[1] + jitter(index + 7, 8),
-        ];
+    // Never let a decorative landing rest in water or off the map — the
+    // sampled score didn't include a penalty there.
+    const destination = dryVisualPoint(
+      projection,
+      current,
+      last
+        ? greenEntry
+        : [
+            interpolate(current, greenEntry, (index + 1) / approaches)[0] + jitter(index + 3, 14),
+            interpolate(current, greenEntry, (index + 1) / approaches)[1] + jitter(index + 7, 8),
+          ],
+    );
     const kind =
       index === 0 && landingType === "Bunker"
         ? "sand"
@@ -802,11 +808,20 @@ function resolveLiveStroke({ projection, hole, from, lie, meter, judgment, clubI
     from[1] + dir[1] * carryYards * scale + perp[1] * (lateralYards * scale + aimUnits),
   ];
   const kind = lie === "Tee" ? (hole.par <= 3 ? "tee" : "drive") : lie === "Bunker" ? "sand" : lie === "Rough" ? "punch" : "approach";
+  // The drawn flight curves with the swing — check water along the same curve.
+  const bend = clamp(meter.accuracy * 20, -24, 24);
 
-  const waterHit = firstWaterOnPath(projection.features, from, to, 0);
-  if (waterHit) {
-    return { kind: "splash", to: waterHit, nextPos: interpolate(waterHit, from, 0.22), nextLie: "Rough", penalty: 1 };
-  }
+  const splash = (wet) => ({
+    kind: "splash",
+    to: wet,
+    nextPos: dryDropPoint(projection, wet, from),
+    nextLie: "Rough",
+    penalty: 1,
+    bend,
+  });
+
+  const waterHit = firstWaterOnPath(projection.features, from, to, bend);
+  if (waterHit) return splash(waterHit);
   let caption = null;
   const tree = treeCollision(projection, hole.number, to);
   if (tree) {
@@ -823,19 +838,46 @@ function resolveLiveStroke({ projection, hole, from, lie, meter, judgment, clubI
       nextPos: from,
       nextLie: lie,
       penalty: 1,
+      bend,
     };
   }
+  // Wherever the ball graphic rests decides: water is water, before any
+  // green proximity — a pond beside the pin is still a pond.
+  if (classifyTerrain(projection.features, to) === "Penalty area") return splash(to);
   const pinDist = Math.hypot(to[0] - pin[0], to[1] - pin[1]);
   // A flushed wedge can drop right in the bucket.
   if (judgment.tier === "pure" && clubId === "wedge" && pinDist <= 2.4) {
-    return { kind, to: pin, nextPos: pin, holed: true, caption: "JARRED IT!" };
+    return { kind, to: pin, nextPos: pin, holed: true, caption: "JARRED IT!", bend };
   }
   if (pointNearGreen(to, projection)) {
     const feet = clamp(Math.round((pinDist / scale) * 3), 2, 60);
-    return { kind, to, nextPos: to, nextLie: "Green", feet, caption };
+    return { kind, to, nextPos: to, nextLie: "Green", feet, caption, bend };
   }
   const terrain = classifyTerrain(projection.features, to);
-  return { kind, to, nextPos: to, nextLie: terrain === "Fairway" ? "Fairway" : terrain, caption };
+  return { kind, to, nextPos: to, nextLie: terrain === "Fairway" ? "Fairway" : terrain, caption, bend };
+}
+
+/** Walk back from a wet spot toward the shot's origin until the drop is dry. */
+function dryDropPoint(projection, wet, from) {
+  for (let t = 0.22; t <= 0.95; t += 0.12) {
+    const candidate = interpolate(wet, from, t);
+    if (classifyTerrain(projection.features, candidate) !== "Penalty area" && !outOfBounds(projection, candidate)) {
+      return candidate;
+    }
+  }
+  return from;
+}
+
+/** Keep decorative sequence landings honest: never rest a ball in water/OB. */
+function dryVisualPoint(projection, from, point) {
+  if (classifyTerrain(projection.features, point) !== "Penalty area" && !outOfBounds(projection, point)) return point;
+  for (let t = 0.85; t >= 0.1; t -= 0.12) {
+    const candidate = interpolate(from, point, t);
+    if (classifyTerrain(projection.features, candidate) !== "Penalty area" && !outOfBounds(projection, candidate)) {
+      return candidate;
+    }
+  }
+  return from;
 }
 
 /** Make-or-miss for a played putt: line from accuracy, pace from power. */
@@ -3491,7 +3533,7 @@ export default function TripGame({ data }) {
           to: res.to,
           kind: res.kind,
           final: Boolean(res.holed),
-          bend: clamp(meter.accuracy * 20, -24, 24),
+          bend: res.bend ?? 0,
           yardsScale,
           caption: res.caption,
         }),
