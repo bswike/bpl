@@ -1135,8 +1135,14 @@
 .trip-game-theater-ball {
   fill: #fffbe0;
   stroke: #0a1c11;
-  stroke-width: 1.1;
+  stroke-width: 1.35;
   vector-effect: non-scaling-stroke;
+  filter: drop-shadow(1px 1px 0 #07180f);
+}
+
+.trip-game-theater-ball-shine {
+  fill: #ffffff;
+  stroke: none;
 }
 
 .trip-game-theater-ball.is-settled {
@@ -1144,7 +1150,42 @@
 }
 
 .trip-game-theater-shadow {
-  fill: rgba(7, 24, 15, 0.4);
+  fill: rgba(7, 24, 15, 0.45);
+}
+
+.trip-game-air-arc {
+  fill: none;
+  stroke: rgba(255, 251, 224, 0.28);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-air-trail-line {
+  fill: none;
+  stroke: rgba(255, 251, 224, 0.7);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-air-trail {
+  fill: #fffbe0;
+  stroke: rgba(10, 28, 17, 0.55);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-drop-line {
+  stroke: rgba(255, 251, 224, 0.35);
+  stroke-width: 1;
+  stroke-dasharray: 1.5 2.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-motion-ticks rect {
+  fill: #fff4bd;
+  stroke: none;
 }
 
 .trip-game-crumb {

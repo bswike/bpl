@@ -21,7 +21,8 @@ import "./TripGame.css";
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
 const FIREBALL_HOLES = new Set([4, 8, 12, 16]);
 const CART_GIRL_HOLES = new Set([6, 14]);
-const PLAYBACK_SAFETY_MS = 20000;
+const PLAYBACK_SAFETY_MS = 28000;
+const FLIGHT_FRAME_MS = 78;
 const FEATURE_ORDER = { water: 0, fairway: 1, bunker: 2, green: 3, tee: 4 };
 const DEFAULT_PLAYER_STATE = Object.freeze({ buzz: 0, morale: 50 });
 
@@ -248,20 +249,74 @@ const SHOT_CAPTIONS = {
   putt: "ROLLING...",
 };
 
+function quadPoint(from, control, to, t) {
+  const inverse = 1 - t;
+  return [
+    inverse * inverse * from[0] + 2 * inverse * t * control[0] + t * t * to[0],
+    inverse * inverse * from[1] + 2 * inverse * t * control[1] + t * t * to[1],
+  ];
+}
+
+function framesToPath(frames, lifted = true) {
+  if (!frames.length) return "";
+  return frames
+    .map((frame, index) => {
+      const x = lifted ? frame.x : frame.gx;
+      const y = lifted ? frame.y : frame.gy;
+      return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+}
+
+function buildFlightFrames({ from, to, control, apex, air }) {
+  const distance = Math.hypot(to[0] - from[0], to[1] - from[1]);
+  const count = air ? clamp(Math.round(distance / 10), 10, 18) : clamp(Math.round(distance / 4.5), 6, 10);
+  const frames = [];
+  for (let index = 0; index <= count; index += 1) {
+    const t = index / count;
+    const ground = quadPoint(from, control, to, t);
+    const lift = air ? 4 * t * (1 - t) * apex : 0;
+    frames.push({
+      gx: ground[0],
+      gy: ground[1],
+      x: ground[0],
+      y: ground[1] - lift,
+      lift,
+      size: air ? 3.2 + lift * 0.16 : 2.4,
+      shadow: Math.max(1.1, 3.1 - lift * 0.045),
+    });
+  }
+  return frames;
+}
+
 function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0 }) {
   const distance = Math.hypot(to[0] - from[0], to[1] - from[1]);
   const air = kind !== "putt";
+  const dx = to[0] - from[0];
+  const dy = to[1] - from[1];
+  const length = Math.hypot(dx, dy) || 1;
+  const lateral = air ? bend : 0;
+  const control = [
+    (from[0] + to[0]) / 2 + (-dy / length) * lateral,
+    (from[1] + to[1]) / 2 + (dx / length) * lateral,
+  ];
+  const lowFlight = kind === "sand" || kind === "punch";
+  const apex = air ? clamp(distance * (lowFlight ? 0.34 : 0.62), 18, 78) : 0;
+  const frames = buildFlightFrames({ from, to, control, apex, air });
   return {
     from,
     to,
+    control,
     kind,
     final,
     air,
+    apex,
+    frames,
+    airPath: framesToPath(frames, true),
+    groundPath: framesToPath(frames, false),
     yards: yardsScale ? Math.max(1, Math.round(distance / yardsScale)) : null,
     caption: final ? "FOR THE HOLE..." : SHOT_CAPTIONS[kind] || "SWINGS...",
-    path: curvedPath(from, to, air ? bend : 0),
-    groundPath: curvedPath(from, to, air ? bend * 0.5 : 0),
-    duration: clamp(Math.round(distance * (air ? 7 : 14)), 380, 1000),
+    duration: frames.length * FLIGHT_FRAME_MS,
   };
 }
 
@@ -588,6 +643,10 @@ function HoleMap({
   const planning = !playback && !result;
   const activeShot = playback ? playback.shots[Math.min(playback.index, playback.shots.length - 1)] : null;
   const shotFlipped = activeShot ? activeShot.to[0] < activeShot.from[0] : false;
+  const flightFrames = activeShot?.frames || [];
+  const flightFrameIndex = playback ? clamp(playback.frame || 0, 0, Math.max(0, flightFrames.length - 1)) : 0;
+  const flightFrame = flightFrames[flightFrameIndex] || null;
+  const flownFrames = playback?.phase === "flight" ? flightFrames.slice(0, flightFrameIndex + 1) : [];
   const remainingYards = hole.yards ? Math.max(0, Math.round(hole.yards - targetYards)) : null;
   const trees = buildTreeSprites(projection, hole.number);
   const mapId = `trip-hole-${hole.number}`;
@@ -770,34 +829,62 @@ function HoleMap({
                 </g>
               )}
             </g>
-            {playback.phase === "flight" && (
+            {playback.phase === "swing" && (
+              <g className="trip-game-theater-ball-wrap" transform={`translate(${activeShot.from[0]} ${activeShot.from[1]})`}>
+                <ellipse className="trip-game-theater-shadow" cx="0" cy="1.2" rx="3" ry="1.4" />
+                <circle r="2.6" className="trip-game-theater-ball" />
+                <circle className="trip-game-theater-ball-shine" cx="-0.7" cy="-0.8" r="0.8" />
+              </g>
+            )}
+            {playback.phase === "flight" && flightFrame && (
               <>
-                <circle r="1.7" className="trip-game-theater-shadow">
-                  <animateMotion
-                    key={`shadow-${playback.index}`}
-                    dur={`${activeShot.duration}ms`}
-                    path={activeShot.groundPath}
-                    fill="freeze"
+                {activeShot.air && activeShot.airPath && (
+                  <path d={activeShot.airPath} className="trip-game-air-arc" />
+                )}
+                {flownFrames.length > 1 && (
+                  <path d={framesToPath(flownFrames, activeShot.air)} className="trip-game-air-trail-line" />
+                )}
+                {flownFrames.slice(0, -1).map((frame, index) => (
+                  <circle
+                    key={`trail-${index}`}
+                    cx={frame.x}
+                    cy={frame.y}
+                    r={activeShot.air ? 1.35 : 1.05}
+                    className="trip-game-air-trail"
                   />
-                </circle>
-                <circle r="2.3" className="trip-game-theater-ball">
-                  <animateMotion
-                    key={`ball-${playback.index}`}
-                    dur={`${activeShot.duration}ms`}
-                    path={activeShot.path}
-                    fill="freeze"
+                ))}
+                <ellipse
+                  className="trip-game-theater-shadow"
+                  cx={flightFrame.gx}
+                  cy={flightFrame.gy}
+                  rx={flightFrame.shadow}
+                  ry={flightFrame.shadow * 0.52}
+                />
+                {activeShot.air && flightFrame.lift > 6 && (
+                  <line
+                    className="trip-game-drop-line"
+                    x1={flightFrame.x}
+                    y1={flightFrame.y + flightFrame.size + 1}
+                    x2={flightFrame.gx}
+                    y2={flightFrame.gy}
                   />
-                  {activeShot.air && (
-                    <animate
-                      key={`rise-${playback.index}`}
-                      attributeName="r"
-                      values="2.1;5.2;2.2"
-                      keyTimes="0;0.45;1"
-                      dur={`${activeShot.duration}ms`}
-                      fill="freeze"
-                    />
+                )}
+                <g className="trip-game-theater-ball-wrap" transform={`translate(${flightFrame.x} ${flightFrame.y})`}>
+                  {activeShot.air && flightFrame.lift > 8 && (
+                    <g className="trip-game-motion-ticks" transform={`rotate(${shotFlipped ? 30 : -30})`}>
+                      <rect x={-flightFrame.size - 7} y="-0.6" width="4.2" height="1.2" />
+                      <rect x={-flightFrame.size - 11} y="-3.1" width="3.4" height="1.1" />
+                      <rect x={-flightFrame.size - 11} y="1.8" width="3.4" height="1.1" />
+                    </g>
                   )}
-                </circle>
+                  <circle r={flightFrame.size} className="trip-game-theater-ball" />
+                  <circle
+                    className="trip-game-theater-ball-shine"
+                    cx={-flightFrame.size * 0.28}
+                    cy={-flightFrame.size * 0.32}
+                    r={Math.max(0.7, flightFrame.size * 0.32)}
+                  />
+                </g>
               </>
             )}
             {playback.phase === "settle" && activeShot.kind === "splash" && (
@@ -1298,7 +1385,7 @@ export default function TripGame({ data }) {
   const [closeout, setCloseout] = useState(null);
   const [resolutionPhase, setResolutionPhase] = useState("idle");
   const [playbackShots, setPlaybackShots] = useState(null);
-  const [playbackStep, setPlaybackStep] = useState({ index: 0, phase: "swing" });
+  const [playbackStep, setPlaybackStep] = useState({ index: 0, phase: "swing", frame: 0 });
   const [holeIntro, setHoleIntro] = useState(false);
   const [hype, setHype] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -1351,7 +1438,7 @@ export default function TripGame({ data }) {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  // Advance the cartoon shot playback: swing -> flight -> settle -> next shot.
+  // Advance the cartoon shot playback: swing -> frame-by-frame flight -> settle.
   useEffect(() => {
     if (resolutionPhase !== "playback" || !playbackShots) return undefined;
     const shot = playbackShots[playbackStep.index];
@@ -1359,13 +1446,14 @@ export default function TripGame({ data }) {
       finishPlayback();
       return undefined;
     }
+    const lastFrame = Math.max(0, (shot.frames?.length || 1) - 1);
     const duration =
       playbackStep.phase === "swing"
         ? shot.kind === "putt"
           ? 320
           : 420
         : playbackStep.phase === "flight"
-          ? shot.duration
+          ? FLIGHT_FRAME_MS
           : shot.kind === "splash"
             ? 700
             : shot.final
@@ -1373,9 +1461,12 @@ export default function TripGame({ data }) {
               : 300;
     const timer = window.setTimeout(() => {
       setPlaybackStep((current) => {
-        if (current.phase === "swing") return { ...current, phase: "flight" };
-        if (current.phase === "flight") return { ...current, phase: "settle" };
-        return { index: current.index + 1, phase: "swing" };
+        if (current.phase === "swing") return { ...current, phase: "flight", frame: 0 };
+        if (current.phase === "flight") {
+          if ((current.frame || 0) < lastFrame) return { ...current, frame: (current.frame || 0) + 1 };
+          return { ...current, phase: "settle" };
+        }
+        return { index: current.index + 1, phase: "swing", frame: 0 };
       });
     }, duration);
     return () => window.clearTimeout(timer);
@@ -1700,7 +1791,7 @@ export default function TripGame({ data }) {
       ? buildShotSequence({ projection, hole, decision, result: resolved })
       : [];
     setPlaybackShots(shots);
-    setPlaybackStep({ index: 0, phase: "swing" });
+    setPlaybackStep({ index: 0, phase: "swing", frame: 0 });
     setResult(completeResult);
     setResolutionPhase("playback");
     if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(10);
@@ -1846,7 +1937,7 @@ export default function TripGame({ data }) {
                 result={resolutionPhase === "result" ? result : null}
                 playback={
                   resolutionPhase === "playback" && playbackShots?.length
-                    ? { shots: playbackShots, index: playbackStep.index, phase: playbackStep.phase }
+                    ? { shots: playbackShots, index: playbackStep.index, phase: playbackStep.phase, frame: playbackStep.frame }
                     : null
                 }
                 intro={holeIntro && resolutionPhase === "idle" && !result}
