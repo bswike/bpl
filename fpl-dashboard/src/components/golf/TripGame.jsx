@@ -690,12 +690,18 @@ function buildShotSequence({ projection, hole, decision, gross, landingLabel, si
     current = destination;
   }
 
+  // Each putt gets a deterministic read: lateral break and up/down slope,
+  // rendered by the dedicated putting scene.
+  const puttTrait = (salt) => ({
+    breakDir: (seededUnit(seed + salt) - 0.5) * 1.8,
+    slope: (seededUnit(seed + salt + 1) - 0.5) * 1.6,
+  });
   for (let lag = 0; lag < Math.min(3, putts) - 1; lag += 1) {
     const lagSpot = [pin[0] + jitter(13 + lag, 3), pin[1] + 1.6 + jitter(14 + lag, 1.5)];
-    shots.push(makeShot({ from: current, to: lagSpot, kind: "putt", yardsScale }));
+    shots.push({ ...makeShot({ from: current, to: lagSpot, kind: "putt", yardsScale }), putt: puttTrait(40 + lag * 2) });
     current = lagSpot;
   }
-  shots.push(makeShot({ from: current, to: pin, kind: "putt", final: true, yardsScale }));
+  shots.push({ ...makeShot({ from: current, to: pin, kind: "putt", final: true, yardsScale }), putt: puttTrait(48) });
   return shots.map((shot) => ({ ...shot, side }));
 }
 
@@ -950,6 +956,115 @@ function GolferSprite({ at, toward, hat = "red", pose = "idle", putting = false,
         </g>
       </g>
     </g>
+  );
+}
+
+/**
+ * Dedicated arcade putting view: a green close-up with a visible cup, a ball
+ * you can actually watch roll and drop, plus Mario-Golf-style break arrows
+ * that drift downslope and an uphill/downhill + break readout.
+ */
+function PuttingScene({ shot, phase, frame, side }) {
+  const info = shot.putt || { breakDir: 0, slope: 0 };
+  const breakDir = clamp(info.breakDir || 0, -1, 1);
+  const slope = clamp(info.slope || 0, -1, 1);
+  const feet = clamp(Math.round((shot.yards || 1) * 3), 2, 48);
+  const cup = [85, 36];
+  const startDist = clamp(26 + feet * 1.3, 34, 78);
+  const start = [85 - breakDir * clamp(feet * 0.9, 4, 22), cup[1] + startDist];
+  const control = [start[0] + breakDir * clamp(feet * 1.5, 6, 26), (start[1] + cup[1]) / 2 + 4];
+  const end = shot.final ? cup : [cup[0] - breakDir * 2.5, cup[1] + 7];
+  const lastFrame = Math.max(1, (shot.frames?.length || 8) - 1);
+  const t = phase === "swing" ? 0 : phase === "flight" ? clamp((frame || 0) / lastFrame, 0, 1) : 1;
+  const eased = 1 - Math.pow(1 - t, 1.75);
+  const ball = quadPoint(start, control, end, eased);
+  const dropped = shot.final && phase === "settle";
+  const breakLabel = breakDir > 0.12 ? "L → R" : breakDir < -0.12 ? "R → L" : "STRAIGHT";
+  const slopeLabel = slope > 0.12 ? "UPHILL" : slope < -0.12 ? "DOWNHILL" : "FLAT";
+  const flowing = Math.hypot(breakDir, slope) > 0.12;
+  const angle = (Math.atan2(slope, breakDir || 0.0001) * 180) / Math.PI;
+  const arrows = [];
+  for (let row = 0; row < 3; row += 1) {
+    for (let col = 0; col < 4; col += 1) {
+      arrows.push([36 + col * 33 + (row % 2) * 14, 40 + row * 25]);
+    }
+  }
+  return (
+    <div className="trip-game-putt-scene" aria-hidden="true">
+      <svg viewBox="0 0 170 128" className="trip-game-putt-svg" role="img" aria-label="Putting green close-up">
+        <defs>
+          <clipPath id="trip-putt-green">
+            <ellipse cx="85" cy="64" rx="78" ry="52" />
+          </clipPath>
+        </defs>
+        <ellipse cx="85" cy="66" rx="82" ry="55" className="trip-game-putt-fringe" />
+        <ellipse cx="85" cy="64" rx="78" ry="52" className="trip-game-putt-green" />
+        <g clipPath="url(#trip-putt-green)" className="trip-game-putt-stripes">
+          {Array.from({ length: 5 }, (_, index) => (
+            <rect key={index} x="0" y={12 + index * 22} width="170" height="11" />
+          ))}
+        </g>
+        <path d="M18,84 Q85,72 152,86" className="trip-game-putt-contour" />
+        <path d="M28,48 Q85,58 142,46" className="trip-game-putt-contour" />
+        {flowing && (
+          <g
+            className="trip-game-putt-arrows"
+            style={{ "--flow-x": `${breakDir * 7}px`, "--flow-y": `${slope * 7}px` }}
+          >
+            {arrows.map(([x, y], index) => (
+              <path
+                key={index}
+                d="M-3.4,-3 L3.4,0 L-3.4,3 Z"
+                transform={`translate(${x} ${y}) rotate(${angle.toFixed(1)})`}
+                style={{ animationDelay: `${(index % 4) * 0.22}s` }}
+              />
+            ))}
+          </g>
+        )}
+        <path
+          d={`M${start[0].toFixed(1)},${start[1].toFixed(1)} Q${control[0].toFixed(1)},${control[1].toFixed(1)} ${end[0].toFixed(1)},${end[1].toFixed(1)}`}
+          className={`trip-game-putt-line${phase === "swing" ? " is-preview" : ""}`}
+        />
+        <g transform={`translate(${cup[0]} ${cup[1]})`} className="trip-game-putt-cup">
+          <ellipse rx="4.6" ry="2.7" className="trip-game-putt-cup-rim" />
+          <ellipse rx="3.4" ry="1.9" className="trip-game-putt-cup-hole" />
+          <rect x="-0.7" y="-24" width="1.4" height="22" className="trip-game-putt-pin" />
+          <path d="M0.7,-24 L9,-20.5 L0.7,-17 Z" className="trip-game-putt-pin-flag" />
+        </g>
+        <GolferSprite
+          at={[start[0] + 7, start[1] + 1]}
+          toward={cup}
+          hat={side === "cpu" ? "blue" : "red"}
+          pose={phase === "swing" ? "swing" : "through"}
+          putting
+          scale={0.9}
+        />
+        {!dropped && (
+          <g transform={`translate(${ball[0].toFixed(1)} ${ball[1].toFixed(1)})`}>
+            <ellipse cx="0" cy="1.4" rx="2.4" ry="1" className="trip-game-putt-ball-shadow" />
+            <circle r="2.2" className="trip-game-putt-ball" />
+            <circle cx="-0.6" cy="-0.6" r="0.7" className="trip-game-putt-ball-shine" />
+          </g>
+        )}
+        {dropped && (
+          <g transform={`translate(${cup[0]} ${cup[1]})`} className="trip-game-putt-drop">
+            <circle r="5" className="trip-game-putt-drop-ring" />
+            <path
+              d="M0,-8 L2.3,-2.4 L8,-2.4 L3.4,1.2 L5.4,7 L0,3.4 L-5.4,7 L-3.4,1.2 L-8,-2.4 L-2.3,-2.4 Z"
+              className="trip-game-putt-drop-star"
+            />
+          </g>
+        )}
+      </svg>
+      <div className={`trip-game-putt-hud${side === "cpu" ? " is-cpu" : ""}`}>
+        <span>{side === "cpu" ? "THEM" : "YOU"}</span>
+        <b>{feet} FT</b>
+        <em>
+          {breakLabel} · {slopeLabel}
+        </em>
+      </div>
+      {dropped && <div className="trip-game-putt-in">IN!</div>}
+    </div>
   );
 }
 
@@ -1369,6 +1484,9 @@ function HoleMap({
           </g>
         )}
       </svg>
+      {playback && activeShot?.kind === "putt" && (
+        <PuttingScene shot={activeShot} phase={playback.phase} frame={playback.frame} side={activeShot.side} />
+      )}
       {intro && (
         <button type="button" className="trip-game-hole-intro" onClick={onIntroDismiss} aria-label="Dismiss hole intro">
           <small>HOLE {hole.number}</small>
