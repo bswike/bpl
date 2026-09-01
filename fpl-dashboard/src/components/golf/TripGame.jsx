@@ -1215,10 +1215,41 @@ function sidePoint(from, toward, offset) {
  * tiers) a twinkling glint. Nested groups keep deformation (squash/stretch)
  * separate from the spin layer, per the classic squash-and-stretch rig.
  */
+// Optional photo skins for the ball: drop square-cropped renders into
+// public/ball-pure.png and public/ball-white.png. Probed once — the photo
+// layer only renders when the file really exists, because a broken SVG
+// <image> paints a broken-image glyph, not nothing.
+const BALL_IMAGES = { pure: false, white: false, checked: false };
+const ballImageListeners = new Set();
+
+function checkBallImages() {
+  if (BALL_IMAGES.checked || typeof window === "undefined") return;
+  BALL_IMAGES.checked = true;
+  [
+    ["pure", "/ball-pure.png"],
+    ["white", "/ball-white.png"],
+  ].forEach(([key, src]) => {
+    const probe = new window.Image();
+    probe.onload = () => {
+      BALL_IMAGES[key] = true;
+      ballImageListeners.forEach((listener) => listener());
+    };
+    probe.src = src;
+  });
+}
+
 function BallSprite({ r = 2.6, spin = "none", tier = null, launch = false, angle = 0 }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const [, bumpImages] = useState(0);
+  useEffect(() => {
+    checkBallImages();
+    const listener = () => bumpImages((n) => n + 1);
+    ballImageListeners.add(listener);
+    return () => ballImageListeners.delete(listener);
+  }, []);
   const dimple = Math.max(0.28, r * 0.15);
   const pure = tier === "pure" || tier === "fire";
+  const photoReady = pure ? BALL_IMAGES.pure : BALL_IMAGES.white;
   return (
     <g
       className={`trip-game-ball-deform${launch ? " is-launching" : ""}`}
@@ -1269,16 +1300,16 @@ function BallSprite({ r = 2.6, spin = "none", tier = null, launch = false, angle
               />
             </g>
           )}
-          {/* Drop the reference renders into public/ball-pure.png and
-              public/ball-white.png (square-cropped) and they take over. */}
-          <image
-            href={pure ? "/ball-pure.png" : "/ball-white.png"}
-            x={-r * 1.12}
-            y={-r * 1.12}
-            width={r * 2.24}
-            height={r * 2.24}
-            preserveAspectRatio="xMidYMid slice"
-          />
+          {photoReady && (
+            <image
+              href={pure ? "/ball-pure.png" : "/ball-white.png"}
+              x={-r * 1.12}
+              y={-r * 1.12}
+              width={r * 2.24}
+              height={r * 2.24}
+              preserveAspectRatio="xMidYMid slice"
+            />
+          )}
         </g>
       </g>
       <circle className="trip-game-ball-shine" cx={-r * 0.32} cy={-r * 0.34} r={Math.max(0.5, r * 0.26)} />
