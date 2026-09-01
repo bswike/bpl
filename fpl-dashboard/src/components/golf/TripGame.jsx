@@ -456,17 +456,15 @@ function shapeDrift(projection, shape) {
   return (shape?.bias || 0) * clamp(projection.width * 0.24, 18, 44);
 }
 
-function flightControl(from, to, bend) {
-  const dx = to[0] - from[0];
-  const dy = to[1] - from[1];
-  const length = Math.hypot(dx, dy) || 1;
-  return [(from[0] + to[0]) / 2 + (-dy / length) * bend, (from[1] + to[1]) / 2 + (dx / length) * bend];
-}
-
-function firstWaterOnPath(features, from, to, bend) {
-  const control = flightControl(from, to, bend);
-  for (let index = 12; index <= 20; index += 1) {
-    const point = quadPoint(from, control, to, index / 20);
+/**
+ * Water check for balls rolling ALONG the ground (tops, duffs): the first wet
+ * point on the straight ground path stops them. Airborne shots fly over
+ * water and only splash where they actually land — that check is the
+ * landing-point terrain classification, not this.
+ */
+function firstWaterAlongGround(features, from, to) {
+  for (let index = 1; index <= 20; index += 1) {
+    const point = [from[0] + ((to[0] - from[0]) * index) / 20, from[1] + ((to[1] - from[1]) * index) / 20];
     if (classifyTerrain(features, point) === "Penalty area") return point;
   }
   return null;
@@ -500,7 +498,6 @@ function placeTeeLanding(projection, hole, decision, wantedType) {
   const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
   const drift = shapeDrift(projection, shape);
   const aimed = [target[0] + perpendicular[0] * drift, target[1] + perpendicular[1] * drift];
-  const bend = shapeBend(projection, shape);
   let point = aimed;
   let type = wantedType;
 
@@ -519,9 +516,6 @@ function placeTeeLanding(projection, hole, decision, wantedType) {
     if (fairway) point = fairway.point;
   }
   if (type === "Rough") point = placeInRough(projection, aimed, perpendicular);
-
-  const waterHit = firstWaterOnPath(projection.features, projection.tee, point, bend);
-  if (waterHit) return { point: waterHit, type: "Penalty area" };
 
   // The trees are real now: a ball landing in a canopy kicks out toward the tee.
   let treeHit = false;
@@ -597,9 +591,9 @@ function buildFlightFrames({ from, to, control, apex, air }) {
   return frames;
 }
 
-function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0, caption = null }) {
+function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0, caption = null, ground = false }) {
   const distance = Math.hypot(to[0] - from[0], to[1] - from[1]);
-  const air = kind !== "putt";
+  const air = kind !== "putt" && !ground;
   const dx = to[0] - from[0];
   const dy = to[1] - from[1];
   const length = Math.hypot(dx, dy) || 1;
@@ -824,6 +818,7 @@ function resolveLiveStroke({
   let carryYards;
   let lateralYards;
   let caption = null;
+  let groundBall = false;
   if (!wild) {
     // The meter places the ball inside the oval: dead-center taps land dead
     // center; edge-of-good taps ride the oval's edge.
@@ -839,10 +834,12 @@ function resolveLiveStroke({
       carryYards = centerCarry * 0.28;
       lateralYards = side * pattern.lateral * 0.4;
       caption = "TOPPED IT!";
+      groundBall = true;
     } else if (roll < 0.4) {
       carryYards = Math.max(6, centerCarry * 0.12);
       lateralYards = side * pattern.lateral * 0.2;
       caption = "CHUNKED IT!";
+      groundBall = true;
     } else {
       carryYards = centerCarry * 0.8;
       lateralYards = side * pattern.lateral * 2.8 * (drunk ? 1.3 : 1);
@@ -854,10 +851,11 @@ function resolveLiveStroke({
     from[1] + dir[1] * carryYards * scale + perp[1] * (lateralYards * scale + aimUnits),
   ];
   const kind = lie === "Tee" ? (hole.par <= 3 ? "tee" : "drive") : lie === "Bunker" ? "sand" : lie === "Rough" ? "punch" : "approach";
-  // The drawn flight curves with the swing — a wild one visibly banana-slices.
-  const bend = clamp(meter.accuracy * 20 * (wild ? 2.4 : 1), -55, 55);
+  // Ground balls stay on the dirt; airborne wild ones visibly banana-slice.
+  const bend = groundBall ? 0 : clamp(meter.accuracy * 20 * (wild ? 2.4 : 1), -55, 55);
   const shankCaption = caption;
 
+  const finish = (extra) => ({ kind, to, nextPos: to, caption, bend, ground: groundBall, ...extra });
   const splash = (wet) => ({
     kind: "splash",
     to: wet,
@@ -865,11 +863,15 @@ function resolveLiveStroke({
     nextLie: "Rough",
     penalty: 1,
     bend,
+    ground: groundBall,
+    caption: shankCaption ? `${shankCaption} SPLASH!` : null,
   });
 
-  const waterHit = firstWaterOnPath(projection.features, from, to, bend);
+  // Only ground-scuttling mishits can find water mid-path; a flighted ball
+  // splashes only where it lands (checked below).
+  const waterHit = groundBall ? firstWaterAlongGround(projection.features, from, to) : null;
   if (waterHit) return splash(waterHit);
-  const tree = treeCollision(projection, hole.number, to);
+  const tree = !groundBall ? treeCollision(projection, hole.number, to) : null;
   if (tree) {
     caption = caption || "CLIPS A TREE!";
     const toTee = [from[0] - to[0], from[1] - to[1]];
@@ -885,6 +887,7 @@ function resolveLiveStroke({
       nextLie: lie,
       penalty: 1,
       bend,
+      ground: groundBall,
       caption: wild ? `${shankCaption || "WILD ONE"}... OB!` : null,
     };
   }
@@ -894,14 +897,14 @@ function resolveLiveStroke({
   const pinDist = Math.hypot(to[0] - pin[0], to[1] - pin[1]);
   // A flushed wedge can drop right in the bucket.
   if (judgment.tier === "pure" && clubId === "wedge" && pinDist <= 2.4) {
-    return { kind, to: pin, nextPos: pin, holed: true, caption: "JARRED IT!", bend };
+    return finish({ to: pin, nextPos: pin, holed: true, caption: "JARRED IT!" });
   }
   if (pointNearGreen(to, projection)) {
     const feet = clamp(Math.round((pinDist / scale) * 3), 2, 60);
-    return { kind, to, nextPos: to, nextLie: "Green", feet, caption, bend };
+    return finish({ nextLie: "Green", feet });
   }
   const terrain = classifyTerrain(projection.features, to);
-  return { kind, to, nextPos: to, nextLie: terrain === "Fairway" ? "Fairway" : terrain, caption, bend };
+  return finish({ nextLie: terrain === "Fairway" ? "Fairway" : terrain });
 }
 
 /** Walk back from a wet spot toward the shot's origin until the drop is dry. */
@@ -1476,11 +1479,7 @@ function HoleMap({
 
   const shotDecision = result?.shotDecision || decision;
   const shape = SHAPES.find((item) => item.id === shotDecision.shape) || SHAPES[1];
-  const { club, lineLength, targetYards, targetDistance, perpendicular, target } = computeShotTarget(
-    projection,
-    hole,
-    shotDecision,
-  );
+  const { club, lineLength, targetYards, perpendicular, target } = computeShotTarget(projection, hole, shotDecision);
   const drift = shapeDrift(projection, shape);
   const previewTarget = [target[0] + perpendicular[0] * drift, target[1] + perpendicular[1] * drift];
   const bend = shapeBend(projection, shape);
@@ -1638,14 +1637,6 @@ function HoleMap({
         </defs>
         <rect width={projection.width} height={projection.height} className="trip-game-map-rough" />
         <rect width={projection.width} height={projection.height} fill={`url(#${mapId}-rough)`} />
-        {planning && (
-          <circle
-            cx={projection.tee[0]}
-            cy={projection.tee[1]}
-            r={Math.max(0, targetDistance)}
-            className="trip-game-carry-arc"
-          />
-        )}
         <g className="trip-game-tree-layer" aria-hidden="true">
           {trees.map((tree, index) => (
             <g
@@ -1751,7 +1742,6 @@ function HoleMap({
                 const point = [livePos[0] + (dx / norm) * carryUnits, livePos[1] + (dy / norm) * carryUnits];
                 return (
                   <>
-                    <circle cx={livePos[0]} cy={livePos[1]} r={Math.max(4, carryUnits)} className="trip-game-carry-arc" />
                     <DispersionOval origin={livePos} center={point} pattern={livePreview.pattern} scale={scale} />
                     <g className="trip-game-target" transform={`translate(${point[0]} ${point[1]})`}>
                       <circle r="5.5" />
@@ -2086,9 +2076,11 @@ const SKILL_SPEED_PENALTY = 1.3;
 // The shot-by-shot bag: each club is a real distance choice. Full-swing carry
 // at sweet power is roughly carry * 1.06 (times the player's carry boost).
 const LIVE_CLUBS = [
-  { id: "wood", short: "3W", carry: 222, speed: 0.92, zone: 1.12, lateral: 27 },
+  // ids must not collide with the tee-shot CLUBS ids ("wood"/"iron") — the
+  // tee ball resolves carry from the engine bag, approaches from this one.
+  { id: "wood3", short: "3W", carry: 222, speed: 0.92, zone: 1.12, lateral: 27 },
   { id: "iron4", short: "4I", carry: 195, speed: 0.88, zone: 1.2, lateral: 22 },
-  { id: "iron", short: "7I", carry: 160, speed: 0.84, zone: 1.3, lateral: 18 },
+  { id: "iron7", short: "7I", carry: 160, speed: 0.84, zone: 1.3, lateral: 18 },
   { id: "iron9", short: "9I", carry: 130, speed: 0.82, zone: 1.36, lateral: 14 },
   { id: "wedge", short: "PW", carry: 105, speed: 0.8, zone: 1.42, lateral: 10 },
   { id: "sandwedge", short: "SW", carry: 75, speed: 0.78, zone: 1.48, lateral: 8 },
@@ -2121,11 +2113,12 @@ function buzzTierOf(buzz) {
 function shotPatternFor(hi, carryYards) {
   const hcp = clamp(Number(hi) || 12, 0, 28);
   const driverLike = carryYards >= 180;
-  // Driver lateral spread is nearly flat across handicaps (Arccos/Stagner:
-  // sigma ~19 + 0.25*hcp yds); approaches follow proximity data: radius ~
-  // distance * (5.5% + 0.35% per handicap point) — Shot Scope/Golfity tables.
+  // Real driver spread is nearly flat across handicaps (Arccos/Stagner), but
+  // this is an arcade game: we exaggerate the gap so a scratch driver oval is
+  // a lane and a 20-capper's is a barn door. Approaches follow proximity
+  // data: radius ~ distance * (5.5% + 0.35% per handicap point).
   const lateral = driverLike
-    ? (19 + 0.25 * hcp) * 1.25 * clamp(carryYards / 250, 0.8, 1.15)
+    ? (12 + 0.95 * hcp) * 1.25 * clamp(carryYards / 250, 0.8, 1.15)
     : carryYards * (0.055 + 0.0035 * hcp);
   // Drivers spread wider than deep (~1.5:1); irons/wedges run deeper than
   // wide and miss SHORT far more than long (54-75% short misses).
@@ -2400,15 +2393,19 @@ function DispersionOval({ origin, center, pattern, scale }) {
   const depthU = ((pattern.short + pattern.long) / 2) * scale;
   const offset = ((pattern.long - pattern.short) / 2) * scale;
   if (lateralU < 1.5 || depthU < 1.5) return null;
+  const starScale = clamp(Math.min(depthU, lateralU) * 0.13, 0.6, 1.7);
   return (
     <g transform={`translate(${center[0].toFixed(1)} ${center[1].toFixed(1)}) rotate(${angle.toFixed(1)})`}>
       <ellipse cx={offset.toFixed(1)} rx={depthU.toFixed(1)} ry={lateralU.toFixed(1)} className="trip-game-oval-outer" />
-      <ellipse
-        cx={(offset * 0.4).toFixed(1)}
-        rx={(depthU * 0.42).toFixed(1)}
-        ry={(lateralU * 0.42).toFixed(1)}
-        className="trip-game-oval-pure"
-      />
+      <g className="trip-game-oval-pure-wrap" transform={`translate(${(offset * 0.4).toFixed(1)} 0)`}>
+        <ellipse rx={(depthU * 0.42).toFixed(1)} ry={(lateralU * 0.42).toFixed(1)} className="trip-game-oval-pure" />
+        <g transform={`scale(${starScale.toFixed(2)})`}>
+          <path
+            d="M0,-3 L0.9,-0.9 L3,-0.9 L1.3,0.5 L2,2.8 L0,1.4 L-2,2.8 L-1.3,0.5 L-3,-0.9 L-0.9,-0.9 Z"
+            className="trip-game-oval-star"
+          />
+        </g>
+      </g>
     </g>
   );
 }
@@ -3988,6 +3985,7 @@ export default function TripGame({ data }) {
           bend: res.bend ?? 0,
           yardsScale,
           caption: res.caption,
+          ground: res.ground,
         }),
         side: "human",
         kickPower: meter.power,
