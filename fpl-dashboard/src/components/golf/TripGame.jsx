@@ -229,6 +229,69 @@ function fullCamera(projection) {
   return { x: 0, y: 0, w: projection.width, h: projection.height };
 }
 
+/**
+ * Tight bounds around the actual hole (line, tee, pin, turf features) — the
+ * overview camera frames THIS instead of the whole canvas, so the course
+ * fills the screen instead of floating in blank rough.
+ */
+const corridorCache = new WeakMap();
+
+function holeCorridorCamera(projection) {
+  const cached = corridorCache.get(projection);
+  if (cached) return cached;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  const push = (point) => {
+    minX = Math.min(minX, point[0]);
+    maxX = Math.max(maxX, point[0]);
+    minY = Math.min(minY, point[1]);
+    maxY = Math.max(maxY, point[1]);
+  };
+  (projection.line || []).forEach(push);
+  if (projection.tee) push(projection.tee);
+  if (projection.pin) push(projection.pin);
+  for (const feature of projection.features || []) {
+    if (feature.points && feature.points.length >= 3) feature.points.forEach(push);
+  }
+  if (!Number.isFinite(minX)) return fullCamera(projection);
+  const padX = Math.max(9, (maxX - minX) * 0.07);
+  const padY = Math.max(7, (maxY - minY) * 0.045);
+  const camera = clampCamera(
+    { x: minX - padX, y: minY - padY, w: maxX - minX + padX * 2, h: maxY - minY + padY * 2 },
+    projection.width,
+    projection.height,
+  );
+  corridorCache.set(projection, camera);
+  return camera;
+}
+
+/**
+ * Grow a camera rect to match the on-screen container's aspect ratio, so the
+ * view fills the frame edge-to-edge with no letterboxing.
+ */
+function aspectFitCamera(camera, aspect, worldW, worldH) {
+  if (!aspect || !Number.isFinite(aspect)) return camera;
+  let { x, y, w, h } = camera;
+  const camAspect = w / h;
+  if (camAspect < aspect) {
+    const nextW = h * aspect;
+    x -= (nextW - w) / 2;
+    w = nextW;
+  } else if (camAspect > aspect) {
+    const nextH = w / aspect;
+    y -= (nextH - h) / 2;
+    h = nextH;
+  }
+  // Keep the window inside the world when it fits; center it when it can't.
+  if (w <= worldW) x = clamp(x, 0, worldW - w);
+  else x = (worldW - w) / 2;
+  if (h <= worldH) y = clamp(y, 0, worldH - h);
+  else y = (worldH - h) / 2;
+  return { x, y, w, h };
+}
+
 function cameraWindow(cx, cy, height, worldW, worldH, aspect = 0.82) {
   const h = clamp(height, 80, worldH);
   let w = h * aspect;
@@ -310,8 +373,8 @@ function blendCamera(from, to, t) {
   };
 }
 
-function computeMapCamera({ projection, playback, landing, activeShot, flightFrame, liveFocus }) {
-  const overview = fullCamera(projection);
+function computeMapCamera({ projection, playback, landing, activeShot, flightFrame, liveFocus, aspect }) {
+  const overview = aspectFitCamera(holeCorridorCamera(projection), aspect, projection.width, projection.height);
   const pin = projection.pin;
   const greenCam = greenCamera(projection);
 
@@ -332,7 +395,28 @@ function computeMapCamera({ projection, playback, landing, activeShot, flightFra
         0.55,
       );
     }
-    return overview;
+    // The played part of the hole no longer matters: frame only the rest —
+    // from the ball to the pin (with a little green past it).
+    const rest = {
+      x: Math.min(liveFocus[0], pin[0]) - 24,
+      y: Math.min(liveFocus[1], pin[1]) - 18,
+      w: Math.abs(liveFocus[0] - pin[0]) + 48,
+      h: Math.abs(liveFocus[1] - pin[1]) + 34,
+    };
+    if (rest.h < 76) {
+      rest.y -= (76 - rest.h) / 2;
+      rest.h = 76;
+    }
+    if (rest.w < 60) {
+      rest.x -= (60 - rest.w) / 2;
+      rest.w = 60;
+    }
+    return aspectFitCamera(
+      clampCamera(rest, projection.width, projection.height),
+      aspect,
+      projection.width,
+      projection.height,
+    );
   }
 
   if (playback && activeShot) {
@@ -1544,6 +1628,20 @@ function HoleMap({
   const aimOffset = aimOffsetOf(decision.aim);
   const aimHoldRef = useRef(null);
   const cameraRef = useRef(null);
+  const wrapRef = useRef(null);
+  const [viewAspect, setViewAspect] = useState(null);
+
+  // Measure the on-screen frame so cameras can fill it edge-to-edge.
+  useEffect(() => {
+    const node = wrapRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver((entries) => {
+      const box = entries[0]?.contentRect;
+      if (box && box.height > 0) setViewAspect(box.width / box.height);
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   function stopAimHold() {
     if (!aimHoldRef.current) return;
@@ -1627,18 +1725,17 @@ function HoleMap({
     activeShot,
     flightFrame,
     liveFocus: livePos || null,
+    aspect: viewAspect,
   });
   const firstFlightFrame = playback?.phase === "flight" && (playback.frame || 0) === 0;
   const ballAir = flightFrame ? [flightFrame.x, flightFrame.y] : null;
   const ballEscaping = Boolean(
     playback?.phase === "flight" && ballAir && cameraRef.current && !cameraContains(cameraRef.current, ballAir, 18),
   );
-  // Between live swings there are no continuous re-renders to carry a slow
-  // lerp, so snap straight to the club-selection framing.
+  // Static views (planning, club select) have no continuous re-renders to
+  // carry a slow lerp — snap straight to their framing.
   const cameraEase = !playback
-    ? livePos
-      ? 1
-      : 0.4
+    ? 1
     : firstFlightFrame || ballEscaping
       ? 1
       : playback.phase === "flight"
@@ -1652,6 +1749,7 @@ function HoleMap({
 
   return (
     <div
+      ref={wrapRef}
       className={`trip-game-map-wrap ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}${party > 0 ? ` is-party-${party}` : ""}${partySurge ? " is-party-surge" : ""}`}
       style={shake ? { "--shake-amp": `${shake.amp}px` } : undefined}
     >
