@@ -2035,6 +2035,53 @@
   box-shadow: 4px 4px 0 #060f0a, 0 0 14px rgba(255, 107, 74, 0.5);
 }
 
+/* Jitters: the gallery is watching — the whole meter trembles */
+
+.trip-game-kick-jitters {
+  margin: -2px 0 2px;
+  padding: 2px 3px;
+  border: 2px solid #060f0a;
+  background: #4a3a10;
+  color: #ffe9a8;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: trip-kick-pulse 0.5s ease-in-out infinite;
+}
+
+.trip-game-kick-courage {
+  margin: -2px 0 2px;
+  padding: 2px 3px;
+  border: 2px solid #060f0a;
+  background: linear-gradient(90deg, #f2c14e 0%, #ec7137 100%);
+  color: #060f0a;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+.trip-game-kick.is-jittery {
+  animation: trip-game-jitter-tremble 0.12s linear infinite;
+}
+
+@keyframes trip-game-jitter-tremble {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(0.7px, -0.4px);
+  }
+  50% {
+    transform: translate(-0.5px, 0.5px);
+  }
+  75% {
+    transform: translate(0.4px, 0.6px);
+  }
+}
+
 /* Clutch time: match on the line — heartbeat chip, drained color outside */
 
 .trip-game-kick-clutch {
@@ -6052,6 +6099,7 @@
   .trip-game-ball-deform,
   .trip-game-ball-glint,
   .trip-game-land-puff circle,
+  .trip-game-kick.is-jittery,
   .trip-game-power-earned {
     animation: none !important;
   }

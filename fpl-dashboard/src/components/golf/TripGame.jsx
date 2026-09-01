@@ -1679,6 +1679,26 @@ function HoleMap({
             <GolferSprite at={sidePoint(projection.tee, projection.pin, 8)} toward={projection.pin} hat="blue" scale={1.15} />
           </>
         )}
+        {!playback && (hole.number === 1 || hole.number === 18) && (
+          <g className="trip-game-gallery" aria-hidden="true">
+            {[-1, 0, 1].map((slot) => {
+              const anchor =
+                hole.number === 1
+                  ? sidePoint(projection.tee, projection.pin, -18)
+                  : sidePoint(projection.pin, projection.tee, 16);
+              const spread = hole.number === 1 ? 7 : 9;
+              return (
+                <GolferSprite
+                  key={slot}
+                  at={[anchor[0] + slot * spread, anchor[1] + Math.abs(slot) * 2.5]}
+                  toward={hole.number === 1 ? projection.tee : projection.pin}
+                  hat={slot === 0 ? "blue" : "red"}
+                  scale={0.85}
+                />
+              );
+            })}
+          </g>
+        )}
         {!playback && livePos && (
           <>
             <path
@@ -2056,6 +2076,27 @@ function buzzTierOf(buzz) {
   return { id: "sober", label: "SOBER", zone: 1, speed: 1, wobble: false, bonus: 1, pulse: 0 };
 }
 
+/**
+ * Nerves: the first tee with everyone watching, and the closing stretch of 18
+ * with the whole trip gathered. Jitters tighten and speed the meter — unless
+ * you've had enough to drink. Liquid courage is the balancing act.
+ */
+function jittersFor(holeNumber, context, buzz) {
+  let base = 0;
+  let label = null;
+  if (holeNumber === 1 && context === "tee") {
+    base = 1;
+    label = "FIRST TEE JITTERS";
+  } else if (holeNumber === 18 && (context === "approach" || context === "putt")) {
+    base = 1.2;
+    label = "THE TRIP IS WATCHING";
+  }
+  if (!base) return null;
+  const courage = Math.min(base, buzzTierOf(buzz).pulse * 0.6);
+  const intensity = Math.max(0, base - courage);
+  return { label, intensity, calmed: intensity < 0.15 };
+}
+
 /** Default club for the lie/distance; the player can cycle from here. */
 function defaultLiveClub(remainingYards, lie) {
   if (lie === "Bunker") return remainingYards > 90 ? "wedge" : "sandwedge";
@@ -2141,9 +2182,15 @@ function KickMeter({ phase, power, accuracy, onTap, judgment, streak, mods }) {
     <>
       {!locked && <button type="button" className="trip-game-kick-catch" onClick={onTap} aria-label="Tap kick meter" />}
       <div
-        className={`trip-game-kick is-${phase}${judgment ? ` is-judged is-${judgment.tier}` : ""}${streakClass}${redBet ? " is-red-bet" : ""}`}
+        className={`trip-game-kick is-${phase}${judgment ? ` is-judged is-${judgment.tier}` : ""}${streakClass}${redBet ? " is-red-bet" : ""}${mods?.jitters && !mods.jitters.calmed && !locked ? " is-jittery" : ""}`}
         aria-hidden="true"
       >
+        {mods?.jitters &&
+          (mods.jitters.calmed ? (
+            <div className="trip-game-kick-courage">🍺 LIQUID COURAGE</div>
+          ) : (
+            <div className="trip-game-kick-jitters">😰 {mods.jitters.label}</div>
+          ))}
         {clutch && <div className="trip-game-kick-clutch">♥ CLUTCH TIME</div>}
         {redBet && <div className="trip-game-kick-bet">🔥 RISK ON</div>}
         {streak >= 2 && (
@@ -3445,14 +3492,20 @@ export default function TripGame({ data }) {
     const skill = skillOf(selected?.hi);
     const stimpNeedle = options.needle || 1;
     const buzz = buzzTierOf(selectedState?.buzz);
-    const skillSpeed = (1 + (1 - skill) * SKILL_SPEED_PENALTY) * lieMod.speed * stimpNeedle * buzz.speed;
+    // Nerves on the big stages — offset by liquid courage.
+    const jitters = jittersFor(hole?.number, options.context || "tee", selectedState?.buzz || 0);
+    const jitterZone = jitters ? 1 - 0.2 * jitters.intensity : 1;
+    const jitterSpeed = jitters ? 1 + 0.25 * jitters.intensity : 1;
+    const skillSpeed = (1 + (1 - skill) * SKILL_SPEED_PENALTY) * lieMod.speed * stimpNeedle * buzz.speed * jitterSpeed;
     const baseZone =
       (liveClub?.zone ?? CLUB_ZONE_SCALE[clubId] ?? 1) *
       (SKILL_ZONE_MIN + skill * SKILL_ZONE_RANGE) *
       lieMod.zone *
-      buzz.zone;
+      buzz.zone *
+      jitterZone;
     const clubSpeed = liveClub?.speed ?? CLUB_METER_SPEED[clubId] ?? 1;
     const clutch = dormie || hole?.number === 18;
+    if (jitters && !jitters.calmed) crowdSwell(0.35);
     meterModsRef.current = {
       speed: BASE_ACC_SPEED * clubSpeed * skillSpeed * (clutch ? CLUTCH_SPEED : 1),
       powerSpeed: BASE_POWER_SPEED * skillSpeed * (clutch ? 0.85 : 1),
@@ -3466,8 +3519,16 @@ export default function TripGame({ data }) {
       paceBand: options.paceBand || null,
       buzzWobble: buzz.wobble,
       buzzBonus: buzz.bonus,
+      jitters,
     };
-    setMeterMods({ zoneScale: baseZone, redBet: false, clutch, club: clubId, paceBand: options.paceBand || null });
+    setMeterMods({
+      zoneScale: baseZone,
+      redBet: false,
+      clutch,
+      club: clubId,
+      paceBand: options.paceBand || null,
+      jitters,
+    });
     setMeterTick({ power: 0, accuracy: -1 });
     setSwingFx(null);
     setMeterPhase("power");
@@ -3889,6 +3950,7 @@ export default function TripGame({ data }) {
       lie: live.feet != null ? "Green" : live.lie,
       paceBand: live.feet != null ? live.puttRead?.paceBand : null,
       needle: live.feet != null ? live.puttRead?.needle : 1,
+      context: live.strokes === 0 ? "tee" : live.feet != null ? "putt" : "approach",
     });
   }
 
