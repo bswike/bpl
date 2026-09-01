@@ -3282,6 +3282,24 @@
   vector-effect: non-scaling-stroke;
 }
 
+/* Handicap dispersion oval: outer = most shots, inner gold = pure strikes */
+
+.trip-game-oval-outer {
+  fill: rgba(255, 251, 224, 0.09);
+  stroke: rgba(255, 251, 224, 0.65);
+  stroke-width: 1.1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-oval-pure {
+  fill: rgba(255, 217, 94, 0.12);
+  stroke: rgba(255, 217, 94, 0.85);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  vector-effect: non-scaling-stroke;
+}
+
 .trip-game-carry-label {
   fill: #fff4bd;
   stroke: #0a1c11;

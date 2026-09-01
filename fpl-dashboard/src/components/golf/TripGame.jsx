@@ -798,6 +798,9 @@ function resolveLiveStroke({
   yardsScale,
   aimUnits = 0,
   drunk = false,
+  hi = 12,
+  zoneScale = 1,
+  seedSalt = 0,
 }) {
   const pin = projection.pin;
   const scale = yardsScale > 0 ? yardsScale : 1;
@@ -814,12 +817,38 @@ function resolveLiveStroke({
   const power = clamp(Number(meter.power) || 0.9, 0, 1.15);
   const liveClub = liveClubOf(clubId);
   const baseCarry = liveClub ? liveClub.carry : (CLUBS.find((club) => club.id === clubId) || CLUBS[2]).carry;
-  // A wild miss isn't a gentle push — it's a banana ball: way more scatter
-  // (worse still with a drink in you), and slices lose carry.
+  // The golfer's real dispersion oval, centered on a sweet-spot strike.
+  const centerCarry = baseCarry * (0.7 + 0.87 * 0.4) * (carryBoost || 1) * lieMult;
+  const pattern = shotPatternFor(hi, centerCarry);
   const wild = judgment.tier === "wild";
-  const sliceFactor = wild ? 2.2 * (drunk ? 1.3 : 1) : 1;
-  const carryYards = baseCarry * (0.7 + power * 0.4) * (carryBoost || 1) * lieMult * (wild ? 0.85 : 1);
-  const lateralYards = meter.accuracy * (liveClub?.lateral ?? CLUB_LATERAL_YARDS[clubId] ?? 16) * sliceFactor;
+  let carryYards;
+  let lateralYards;
+  let caption = null;
+  if (!wild) {
+    // The meter places the ball inside the oval: dead-center taps land dead
+    // center; edge-of-good taps ride the oval's edge.
+    const lineNorm = clamp(meter.accuracy / (ACC_GOOD * (zoneScale || 1)), -1, 1);
+    const depthNorm = clamp((power - 0.87) / 0.09, -1.6, 1.6);
+    lateralYards = lineNorm * pattern.lateral;
+    carryYards = centerCarry + (depthNorm < 0 ? depthNorm * pattern.short : depthNorm * pattern.long);
+  } else {
+    // Shank table: a wild tap is a real mishit — top, duff, or the big miss.
+    const side = meter.accuracy >= 0 ? 1 : -1;
+    const roll = seededUnit(seedSalt);
+    if (roll < 0.2) {
+      carryYards = centerCarry * 0.28;
+      lateralYards = side * pattern.lateral * 0.4;
+      caption = "TOPPED IT!";
+    } else if (roll < 0.4) {
+      carryYards = Math.max(6, centerCarry * 0.12);
+      lateralYards = side * pattern.lateral * 0.2;
+      caption = "CHUNKED IT!";
+    } else {
+      carryYards = centerCarry * 0.8;
+      lateralYards = side * pattern.lateral * 2.8 * (drunk ? 1.3 : 1);
+      caption = side > 0 ? "BANANA SLICE!" : "SNAP HOOK!";
+    }
+  }
   let to = [
     from[0] + dir[0] * carryYards * scale + perp[0] * (lateralYards * scale + aimUnits),
     from[1] + dir[1] * carryYards * scale + perp[1] * (lateralYards * scale + aimUnits),
@@ -827,6 +856,7 @@ function resolveLiveStroke({
   const kind = lie === "Tee" ? (hole.par <= 3 ? "tee" : "drive") : lie === "Bunker" ? "sand" : lie === "Rough" ? "punch" : "approach";
   // The drawn flight curves with the swing — a wild one visibly banana-slices.
   const bend = clamp(meter.accuracy * 20 * (wild ? 2.4 : 1), -55, 55);
+  const shankCaption = caption;
 
   const splash = (wet) => ({
     kind: "splash",
@@ -839,10 +869,9 @@ function resolveLiveStroke({
 
   const waterHit = firstWaterOnPath(projection.features, from, to, bend);
   if (waterHit) return splash(waterHit);
-  let caption = null;
   const tree = treeCollision(projection, hole.number, to);
   if (tree) {
-    caption = "CLIPS A TREE!";
+    caption = caption || "CLIPS A TREE!";
     const toTee = [from[0] - to[0], from[1] - to[1]];
     const away = Math.hypot(toTee[0], toTee[1]) || 1;
     const kick = tree.size * 1.15 + 5;
@@ -856,7 +885,7 @@ function resolveLiveStroke({
       nextLie: lie,
       penalty: 1,
       bend,
-      caption: wild ? (meter.accuracy > 0 ? "SLICED WAY RIGHT... OB!" : "SNAP HOOKED... OB!") : null,
+      caption: wild ? `${shankCaption || "WILD ONE"}... OB!` : null,
     };
   }
   // Wherever the ball graphic rests decides: water is water, before any
@@ -1415,6 +1444,7 @@ function HoleMap({
   livePreview,
   clubReel,
   puttPreview,
+  playerHi = 12,
   onAimStep,
   onCycle,
 }) {
@@ -1660,6 +1690,12 @@ function HoleMap({
         {planning && (
           <>
             <path d={shotPath} className="trip-game-shot-line" />
+            <DispersionOval
+              origin={projection.tee}
+              center={previewTarget}
+              pattern={shotPatternFor(playerHi, targetYards)}
+              scale={hole.yards && lineLength ? lineLength / hole.yards : 1}
+            />
             <g className="trip-game-target" transform={`translate(${previewTarget[0]} ${previewTarget[1]})`}>
               <circle r="5.5" />
               <path d="M-8 0 H8 M0 -8 V8" />
@@ -1716,6 +1752,7 @@ function HoleMap({
                 return (
                   <>
                     <circle cx={livePos[0]} cy={livePos[1]} r={Math.max(4, carryUnits)} className="trip-game-carry-arc" />
+                    <DispersionOval origin={livePos} center={point} pattern={livePreview.pattern} scale={scale} />
                     <g className="trip-game-target" transform={`translate(${point[0]} ${point[1]})`}>
                       <circle r="5.5" />
                       <path d="M-8 0 H8 M0 -8 V8" />
@@ -2037,7 +2074,6 @@ const CLUB_METER_SPEED = { driver: 1, wood: 0.92, iron: 0.84, wedge: 0.8, putter
 const CLUB_ZONE_SCALE = { driver: 1, wood: 1.12, iron: 1.3, wedge: 1.42, putter: 1.5 };
 // A bad lie tightens the zones and jitters the needle.
 const LIE_METER_MODS = { Rough: { zone: 0.85, speed: 1.06 }, Bunker: { zone: 0.72, speed: 1.12 } };
-const CLUB_LATERAL_YARDS = { driver: 36, wood: 27, iron: 18, wedge: 10 };
 const BASE_ACC_SPEED = 2.6;
 const BASE_POWER_SPEED = 1.08;
 // Skill scaling (from handicap) — the gap is meant to be dramatic: a scratch
@@ -2074,6 +2110,30 @@ function buzzTierOf(buzz) {
   if (level >= 34) return { id: "tipsy", label: "TIPSY", zone: 0.82, speed: 1.18, wobble: true, bonus: 1.1, pulse: 2 };
   if (level >= 12) return { id: "buzzed", label: "BUZZED", zone: 0.92, speed: 1.08, wobble: false, bonus: 1.06, pulse: 1 };
   return { id: "sober", label: "SOBER", zone: 1, speed: 1, wobble: false, bonus: 1, pulse: 0 };
+}
+
+/**
+ * Handicap-based dispersion pattern for a full swing: the oval of where this
+ * golfer's shots actually finish, per real amateur dispersion data. Radii are
+ * "most shots inside" (~1.5 sigma) in yards. lateral = half-width, short/long
+ * = depth behind/past the target center.
+ */
+function shotPatternFor(hi, carryYards) {
+  const hcp = clamp(Number(hi) || 12, 0, 28);
+  const driverLike = carryYards >= 180;
+  // Driver lateral spread is nearly flat across handicaps (Arccos/Stagner:
+  // sigma ~19 + 0.25*hcp yds); approaches follow proximity data: radius ~
+  // distance * (5.5% + 0.35% per handicap point) — Shot Scope/Golfity tables.
+  const lateral = driverLike
+    ? (19 + 0.25 * hcp) * 1.25 * clamp(carryYards / 250, 0.8, 1.15)
+    : carryYards * (0.055 + 0.0035 * hcp);
+  // Drivers spread wider than deep (~1.5:1); irons/wedges run deeper than
+  // wide and miss SHORT far more than long (54-75% short misses).
+  const depth = driverLike ? lateral / 1.5 : lateral * (1.15 + hcp * 0.01);
+  const shortBias = 0.2 + hcp * 0.02;
+  const short = depth * (1 + shortBias);
+  const long = depth * (1 - shortBias * 0.55);
+  return { lateral, short, long };
 }
 
 /**
@@ -2324,6 +2384,32 @@ function HoleLadder({ history, humanTeam, cpuTeam, currentHole }) {
         return <i key={number} className={`is-${tone}`} />;
       })}
     </div>
+  );
+}
+
+/**
+ * The golfer's dispersion oval, drawn at the target: outer ring = where most
+ * of their shots finish, inner gold ring = the pure-strike zone. Rotated
+ * along the shot line; the oval sits slightly short of center because
+ * amateur misses skew short.
+ */
+function DispersionOval({ origin, center, pattern, scale }) {
+  if (!pattern || !origin || !center) return null;
+  const angle = (Math.atan2(center[1] - origin[1], center[0] - origin[0]) * 180) / Math.PI;
+  const lateralU = pattern.lateral * scale;
+  const depthU = ((pattern.short + pattern.long) / 2) * scale;
+  const offset = ((pattern.long - pattern.short) / 2) * scale;
+  if (lateralU < 1.5 || depthU < 1.5) return null;
+  return (
+    <g transform={`translate(${center[0].toFixed(1)} ${center[1].toFixed(1)}) rotate(${angle.toFixed(1)})`}>
+      <ellipse cx={offset.toFixed(1)} rx={depthU.toFixed(1)} ry={lateralU.toFixed(1)} className="trip-game-oval-outer" />
+      <ellipse
+        cx={(offset * 0.4).toFixed(1)}
+        rx={(depthU * 0.42).toFixed(1)}
+        ry={(lateralU * 0.42).toFixed(1)}
+        className="trip-game-oval-pure"
+      />
+    </g>
   );
 }
 
@@ -3308,10 +3394,14 @@ export default function TripGame({ data }) {
   const liveClubEntry = liveClubId ? liveClubOf(liveClubId) : null;
   const livePreview =
     liveClubEntry && liveRef.current?.awaitingHuman
-      ? {
-          short: liveClubEntry.short,
-          carryYards: Math.round(liveClubEntry.carry * 1.06 * (Number(decision.carryBoost) || 1)),
-        }
+      ? (() => {
+          const carryYards = Math.round(liveClubEntry.carry * 1.06 * (Number(decision.carryBoost) || 1));
+          return {
+            short: liveClubEntry.short,
+            carryYards,
+            pattern: shotPatternFor(selected?.hi ?? 12, carryYards),
+          };
+        })()
       : null;
 
   function initializePlayerState() {
@@ -3876,6 +3966,9 @@ export default function TripGame({ data }) {
         yardsScale,
         // The planning aim applies to the tee ball; approaches aim at the pin.
         aimUnits: live.strokes === 0 ? aimOffsetOf(decision.aim) * clamp(projection.width * 0.12, 10, 22) : 0,
+        hi: selected?.hi ?? 12,
+        zoneScale: meterModsRef.current.zoneScale || 1,
+        seedSalt: hole.number * 13 + live.strokes * 7 + 2,
       });
       live.strokes += 1 + (res.penalty || 0);
       live.pos = res.nextPos || res.to;
@@ -4387,6 +4480,7 @@ export default function TripGame({ data }) {
                 }
                 liveStatus={liveInfo && !result ? liveInfo.label : null}
                 livePos={liveInfo && !result && liveRef.current ? liveRef.current.pos : null}
+                playerHi={selected?.hi ?? 12}
                 livePreview={livePreview}
                 puttPreview={
                   liveInfo && !result && liveRef.current?.feet != null && liveRef.current?.puttRead ? (
