@@ -1231,6 +1231,71 @@
   letter-spacing: 0.06em;
 }
 
+/* Broadcast stakes banner while the opponent putts: FOR BIRDIE / PAR / BOGEY */
+
+.trip-game-putt-for {
+  position: absolute;
+  bottom: 16%;
+  left: 50%;
+  padding: 5px 14px 4px;
+  border: 3px solid #060f0a;
+  box-shadow: 4px 4px 0 #060f0a;
+  transform: translateX(-50%) skewX(-8deg);
+  animation: trip-game-for-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+  pointer-events: none;
+}
+
+.trip-game-putt-for span {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-shadow: 2px 2px 0 rgba(6, 15, 10, 0.55);
+  transform: skewX(8deg);
+}
+
+.trip-game-putt-for.is-eagle {
+  background: linear-gradient(90deg, #ffd95e 0%, #ff9e4a 100%);
+  color: #060f0a;
+  animation: trip-game-for-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1), trip-kick-pulse 0.5s ease-in-out 0.5s infinite;
+}
+
+.trip-game-putt-for.is-birdie {
+  background: linear-gradient(90deg, #ffd95e 0%, #f2c14e 100%);
+  color: #060f0a;
+  box-shadow: 4px 4px 0 #060f0a, 0 0 14px rgba(255, 217, 94, 0.55);
+}
+
+.trip-game-putt-for.is-par {
+  background: #e8f0c8;
+  color: #1a2f22;
+}
+
+.trip-game-putt-for.is-bogey {
+  background: #ec7137;
+  color: #fff2e2;
+}
+
+.trip-game-putt-for.is-double {
+  background: #8f2418;
+  color: #ffd0c0;
+}
+
+@keyframes trip-game-for-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) skewX(-8deg) scale(0.4) translateY(8px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-50%) skewX(-8deg) scale(1.12) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) skewX(-8deg) scale(1) translateY(0);
+  }
+}
+
 .trip-game-putt-in {
   position: absolute;
   top: 30%;
@@ -2156,6 +2221,13 @@
   background: linear-gradient(90deg, #ffd95e 0%, #ec7137 100%);
 }
 
+/* Preview meter: shown before the swing starts — sits above the control pad */
+
+.trip-game-kick.is-preview {
+  bottom: 62px;
+  opacity: 0.94;
+}
+
 /* Meter panel lights up in the tier color during the hit-stop freeze */
 
 .trip-game-kick.is-judged.is-pure {
@@ -2887,6 +2959,36 @@
   stroke-width: 1.35;
   vector-effect: non-scaling-stroke;
   filter: drop-shadow(1px 1px 0 #07180f);
+}
+
+.trip-game-ball-base {
+  filter: drop-shadow(1px 1px 0 #07180f);
+}
+
+.trip-game-ball-rim {
+  fill: none;
+  stroke: #0a1c11;
+  stroke-width: 1.35;
+  vector-effect: non-scaling-stroke;
+}
+
+/* PURE ball swoosh: the blue/green tour-ball stripes */
+
+.trip-game-ball-swoosh path {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.trip-game-ball-swoosh .is-edge {
+  stroke: rgba(255, 255, 255, 0.95);
+}
+
+.trip-game-ball-swoosh .is-blue {
+  stroke: #2e9fe6;
+}
+
+.trip-game-ball-swoosh .is-green {
+  stroke: #63cc2a;
 }
 
 .trip-game-ball-spin {

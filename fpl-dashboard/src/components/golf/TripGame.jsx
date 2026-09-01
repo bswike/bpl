@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   CLUBS,
   SCORE_BUCKETS,
@@ -735,17 +735,18 @@ function buildShotSequence({ projection, hole, decision, gross, landingLabel, si
     sceneCarry = final ? null : end;
     return { breakDir, slope, start, end, feet, stimp: stimpOf(hole) };
   };
-  for (let lag = 0; lag < Math.min(3, putts) - 1; lag += 1) {
+  const lagTotal = Math.min(3, putts) - 1;
+  for (let lag = 0; lag < lagTotal; lag += 1) {
     const lagSpot = [pin[0] + jitter(13 + lag, 3), pin[1] + 1.6 + jitter(14 + lag, 1.5)];
     shots.push({
       ...makeShot({ from: current, to: lagSpot, kind: "putt", yardsScale }),
-      putt: puttScene(40 + lag * 3, current, lagSpot, false),
+      putt: { ...puttScene(40 + lag * 3, current, lagSpot, false), for: forLabelOf(gross - (lagTotal - lag) - hole.par) },
     });
     current = lagSpot;
   }
   shots.push({
     ...makeShot({ from: current, to: pin, kind: "putt", final: true, yardsScale }),
-    putt: puttScene(48, current, pin, true),
+    putt: { ...puttScene(48, current, pin, true), for: forLabelOf(gross - hole.par) },
   });
   return shots.map((shot) => ({ ...shot, side }));
 }
@@ -1215,21 +1216,74 @@ function sidePoint(from, toward, offset) {
  * separate from the spin layer, per the classic squash-and-stretch rig.
  */
 function BallSprite({ r = 2.6, spin = "none", tier = null, launch = false, angle = 0 }) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const dimple = Math.max(0.28, r * 0.15);
+  const pure = tier === "pure" || tier === "fire";
   return (
     <g
       className={`trip-game-ball-deform${launch ? " is-launching" : ""}`}
       transform={angle ? `rotate(${angle})` : undefined}
     >
-      <circle r={r} className="trip-game-ball-core" />
-      <g className={`trip-game-ball-spin${spin === "fast" ? " is-fast" : spin === "roll" ? " is-roll" : ""}`}>
-        <circle cx={-r * 0.38} cy={-r * 0.12} r={dimple} />
-        <circle cx={r * 0.12} cy={-r * 0.42} r={dimple * 0.9} />
-        <circle cx={r * 0.36} cy={r * 0.22} r={dimple} />
-        <circle cx={-r * 0.12} cy={r * 0.44} r={dimple * 0.9} />
+      <defs>
+        <radialGradient id={`ballg${uid}`} cx="36%" cy="30%" r="78%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="52%" stopColor="#f6f8ee" />
+          <stop offset="84%" stopColor="#d3dac9" />
+          <stop offset="100%" stopColor="#a9b3a0" />
+        </radialGradient>
+        <clipPath id={`ballc${uid}`}>
+          <circle r={r} />
+        </clipPath>
+      </defs>
+      <circle r={r} fill={`url(#ballg${uid})`} className="trip-game-ball-base" />
+      <g clipPath={`url(#ballc${uid})`}>
+        <g className={`trip-game-ball-spin${spin === "fast" ? " is-fast" : spin === "roll" ? " is-roll" : ""}`}>
+          <circle cx={-r * 0.38} cy={-r * 0.12} r={dimple} />
+          <circle cx={r * 0.12} cy={-r * 0.42} r={dimple * 0.9} />
+          <circle cx={r * 0.36} cy={r * 0.22} r={dimple} />
+          <circle cx={-r * 0.12} cy={r * 0.44} r={dimple * 0.9} />
+          <circle cx={r * 0.42} cy={-r * 0.28} r={dimple * 0.75} />
+          <circle cx={-r * 0.44} cy={r * 0.3} r={dimple * 0.75} />
+          <circle cx={0} cy={r * 0.05} r={dimple * 0.85} />
+          {pure && (
+            <g className="trip-game-ball-swoosh">
+              <path
+                d={`M ${-r},${-r * 0.1} A ${r * 1.02} ${r * 1.02} 0 0 1 ${r * 0.96},${-r * 0.44}`}
+                className="is-edge"
+                strokeWidth={r * 0.46}
+              />
+              <path
+                d={`M ${-r},${-r * 0.1} A ${r * 1.02} ${r * 1.02} 0 0 1 ${r * 0.96},${-r * 0.44}`}
+                className="is-blue"
+                strokeWidth={r * 0.32}
+              />
+              <path
+                d={`M ${-r * 0.92},${r * 0.52} A ${r * 1.08} ${r * 1.08} 0 0 0 ${r},${r * 0.12}`}
+                className="is-edge"
+                strokeWidth={r * 0.42}
+              />
+              <path
+                d={`M ${-r * 0.92},${r * 0.52} A ${r * 1.08} ${r * 1.08} 0 0 0 ${r},${r * 0.12}`}
+                className="is-green"
+                strokeWidth={r * 0.3}
+              />
+            </g>
+          )}
+          {/* Drop the reference renders into public/ball-pure.png and
+              public/ball-white.png (square-cropped) and they take over. */}
+          <image
+            href={pure ? "/ball-pure.png" : "/ball-white.png"}
+            x={-r * 1.12}
+            y={-r * 1.12}
+            width={r * 2.24}
+            height={r * 2.24}
+            preserveAspectRatio="xMidYMid slice"
+          />
+        </g>
       </g>
       <circle className="trip-game-ball-shine" cx={-r * 0.32} cy={-r * 0.34} r={Math.max(0.5, r * 0.26)} />
-      {(tier === "pure" || tier === "fire") && (
+      <circle r={r} className="trip-game-ball-rim" />
+      {pure && (
         <path
           className={`trip-game-ball-glint${tier === "fire" ? " is-fire" : ""}`}
           d={`M0,${-r - 1.6} L0.6,${-r + 0.2} L${r + 1.6},${-r + 0.8} L0.6,${-r + 1.4} Z`}
@@ -1415,6 +1469,11 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
         </em>
         {stimp && <i className={`trip-game-putt-stimp is-${stimp.toLowerCase()}`}>{stimp} GREEN</i>}
       </div>
+      {!preview && !dropped && side === "cpu" && info?.for && (
+        <div className={`trip-game-putt-for is-${info.for.tone}`}>
+          <span>{info.for.text}</span>
+        </div>
+      )}
       {shot?.lip && phase === "settle" && <div className="trip-game-putt-in is-lip">LIP OUT!</div>}
       {dropped && <div className="trip-game-putt-in">IN!</div>}
     </div>
@@ -2210,7 +2269,8 @@ function zoneStyle(threshold, zoneScale) {
 
 function KickMeter({ phase, power, accuracy, onTap, judgment, streak, mods }) {
   const powerPct = clamp(power / POWER_METER_MAX, 0, 1);
-  const powerLocked = phase !== "power";
+  const preview = phase === "preview";
+  const powerLocked = phase !== "power" && !preview;
   const accLive = phase === "accuracy";
   const locked = phase === "locked";
   const zoneScale = mods?.zoneScale || 1;
@@ -2233,7 +2293,9 @@ function KickMeter({ phase, power, accuracy, onTap, judgment, streak, mods }) {
   const streakClass = streak >= 4 ? " is-streak-fire" : streak >= 2 ? " is-streak-hot" : "";
   return (
     <>
-      {!locked && <button type="button" className="trip-game-kick-catch" onClick={onTap} aria-label="Tap kick meter" />}
+      {!locked && !preview && (
+        <button type="button" className="trip-game-kick-catch" onClick={onTap} aria-label="Tap kick meter" />
+      )}
       <div
         className={`trip-game-kick is-${phase}${judgment ? ` is-judged is-${judgment.tier}` : ""}${streakClass}${redBet ? " is-red-bet" : ""}${mods?.jitters && !mods.jitters.calmed && !locked ? " is-jittery" : ""}`}
         aria-hidden="true"
@@ -2290,15 +2352,17 @@ function KickMeter({ phase, power, accuracy, onTap, judgment, streak, mods }) {
         <strong>
           {locked
             ? judgment?.label || "..."
-            : phase === "power"
-              ? mods?.club === "putter"
-                ? "TAP PACE"
-                : "TAP POWER"
-              : mods?.club === "putter"
-                ? "TAP LINE"
-                : redBet
-                  ? "TAP ACCURACY · RISK ON"
-                  : "TAP ACCURACY"}
+            : preview
+              ? "GET READY..."
+              : phase === "power"
+                ? mods?.club === "putter"
+                  ? "TAP PACE"
+                  : "TAP POWER"
+                : mods?.club === "putter"
+                  ? "TAP LINE"
+                  : redBet
+                    ? "TAP ACCURACY · RISK ON"
+                    : "TAP ACCURACY"}
         </strong>
       </div>
     </>
@@ -2378,6 +2442,15 @@ function HoleLadder({ history, humanTeam, cpuTeam, currentHole }) {
       })}
     </div>
   );
+}
+
+/** Broadcast-style stakes label for a putt: what dropping it would score. */
+function forLabelOf(rel) {
+  if (rel <= -2) return { text: "FOR EAGLE", tone: "eagle" };
+  if (rel === -1) return { text: "FOR BIRDIE", tone: "birdie" };
+  if (rel === 0) return { text: "FOR PAR", tone: "par" };
+  if (rel === 1) return { text: "FOR BOGEY", tone: "bogey" };
+  return { text: "FOR DOUBLE+", tone: "double" };
 }
 
 /**
@@ -3100,44 +3173,34 @@ export default function TripGame({ data }) {
         const band = meterModsRef.current.paceBand;
         const putterMode = Boolean(band);
         const before = live.power;
-        live.power += dt * (meterModsRef.current.powerSpeed || BASE_POWER_SPEED) * (putterMode ? live.powerDir : 1);
+        live.power += dt * (meterModsRef.current.powerSpeed || BASE_POWER_SPEED) * live.powerDir;
         updatePowerSweep(live.power / POWER_METER_MAX);
         const bandMin = band ? band.min : POWER_SWEET_MIN;
         const bandMax = band ? band.max : POWER_SWEET_MAX;
         if ((before < bandMin && live.power >= bandMin) || (before > bandMin && live.power <= bandMin)) zoneTick("good");
         if ((before < bandMax && live.power >= bandMax) || (before > bandMax && live.power <= bandMax)) zoneTick("warn");
-        if (putterMode) {
-          // The pace bar ping-pongs: up to 3 full passes before it settles.
-          if (live.power >= POWER_METER_MAX) {
-            live.power = POWER_METER_MAX;
-            live.powerDir = -1;
-            live.powerBounces = (live.powerBounces || 0) + 1;
-          } else if (live.power <= 0) {
-            live.power = 0;
-            live.powerDir = 1;
-            live.powerBounces = (live.powerBounces || 0) + 1;
-          }
-          if ((live.powerBounces || 0) >= 6) {
-            const settled = live.power;
-            live.accuracy = -1;
-            live.accDir = 1;
-            meterLockRef.current = { power: settled };
-            stopPowerSweep();
-            lockPowerSound(settled > bandMax);
-            armAccuracyPhase(settled);
-            setMeterTick({ power: settled, accuracy: -1 });
-            setMeterPhase("accuracy");
-            return;
-          }
-        } else if (live.power >= POWER_METER_MAX) {
+        // Every bar ping-pongs now. Putts settle wherever the bar sits after
+        // 3 passes; a full swing left alone slams to MAX SEND after ~3.5.
+        let commitPower = null;
+        if (live.power >= POWER_METER_MAX) {
           live.power = POWER_METER_MAX;
+          live.powerDir = -1;
+          live.powerBounces = (live.powerBounces || 0) + 1;
+          if (!putterMode && live.powerBounces >= 7) commitPower = POWER_METER_MAX;
+        } else if (live.power <= 0 && live.powerDir < 0) {
+          live.power = 0;
+          live.powerDir = 1;
+          live.powerBounces = (live.powerBounces || 0) + 1;
+        }
+        if (putterMode && commitPower == null && (live.powerBounces || 0) >= 6) commitPower = live.power;
+        if (commitPower != null) {
           live.accuracy = -1;
           live.accDir = 1;
-          meterLockRef.current = { power: POWER_METER_MAX };
+          meterLockRef.current = { power: commitPower };
           stopPowerSweep();
-          lockPowerSound(true);
-          armAccuracyPhase(POWER_METER_MAX);
-          setMeterTick({ power: POWER_METER_MAX, accuracy: -1 });
+          lockPowerSound(commitPower > bandMax);
+          armAccuracyPhase(commitPower);
+          setMeterTick({ power: commitPower, accuracy: -1 });
           setMeterPhase("accuracy");
           return;
         }
@@ -3389,6 +3452,26 @@ export default function TripGame({ data }) {
   const leadingTeam = scoreDifference > 0 ? captainTeam : scoreDifference < 0 ? cpuTeam : null;
   const matchCall = leadingTeam ? `${leadingTeam.toUpperCase()} ${Math.abs(scoreDifference)} UP` : "AS";
   const liveClubEntry = liveClubId ? liveClubOf(liveClubId) : null;
+  // Show the upcoming swing's meter (zones, pace band, jitters) BEFORE the
+  // player commits — so they can read it, then pull the trigger.
+  const previewMeterMods = (() => {
+    if (meterPhase || result || resolutionPhase !== "idle" || !selected || screen !== "play") return null;
+    const live = liveRef.current;
+    if (live?.awaitingHuman) {
+      if (live.feet != null && live.puttRead) {
+        return computeMeterMods({
+          club: "putter",
+          lie: "Green",
+          paceBand: live.puttRead.paceBand,
+          needle: live.puttRead.needle,
+          context: "putt",
+        });
+      }
+      return computeMeterMods({ club: liveClubId || live.club, lie: live.lie, context: "approach" });
+    }
+    if (!live && !liveInfo) return computeMeterMods({ club: decision.club, context: "tee" });
+    return null;
+  })();
   const livePreview =
     liveClubEntry && liveRef.current?.awaitingHuman
       ? (() => {
@@ -3563,16 +3646,12 @@ export default function TripGame({ data }) {
     setEventOffer(null);
   }
 
-  function startKickMeter(options = {}) {
-    setHoleIntro(false);
-    resolvingRef.current = false;
-    meterLiveRef.current = { power: 0, accuracy: -1, powerDir: 1, accDir: 1, powerBounces: 0 };
-    meterLockRef.current = null;
-    meterTapAtRef.current = 0;
-    // Contextual meter: shorter clubs swing an easier (slower, wider) needle,
-    // better players get wider zones, higher handicaps get a faster meter, bad
-    // lies tighten everything, and a match-deciding hole drops into clutch
-    // time — slow-mo needle, heartbeat.
+  // Contextual meter mods: shorter clubs swing an easier (slower, wider)
+  // needle, better players get wider zones, higher handicaps a faster meter,
+  // bad lies tighten everything, drinks and nerves push both ways, and a
+  // match-deciding hole drops into clutch time. Pure computation — also used
+  // to render the preview meter before the swing starts.
+  function computeMeterMods(options = {}) {
     const clubId = options.club || decision.club;
     const liveClub = liveClubOf(clubId);
     const lieMod = LIE_METER_MODS[options.lie] || { zone: 1, speed: 1 };
@@ -3592,8 +3671,7 @@ export default function TripGame({ data }) {
       jitterZone;
     const clubSpeed = liveClub?.speed ?? CLUB_METER_SPEED[clubId] ?? 1;
     const clutch = dormie || hole?.number === 18;
-    if (jitters && !jitters.calmed) crowdSwell(0.35);
-    meterModsRef.current = {
+    return {
       speed: BASE_ACC_SPEED * clubSpeed * skillSpeed * (clutch ? CLUTCH_SPEED : 1),
       powerSpeed: BASE_POWER_SPEED * skillSpeed * (clutch ? 0.85 : 1),
       clubSpeed,
@@ -3608,12 +3686,24 @@ export default function TripGame({ data }) {
       buzzBonus: buzz.bonus,
       jitters,
     };
+  }
+
+  function startKickMeter(options = {}) {
+    setHoleIntro(false);
+    resolvingRef.current = false;
+    meterLiveRef.current = { power: 0, accuracy: -1, powerDir: 1, accDir: 1, powerBounces: 0 };
+    meterLockRef.current = null;
+    meterTapAtRef.current = 0;
+    const mods = computeMeterMods(options);
+    const { baseZone, clutch, club: clubId, paceBand, jitters } = mods;
+    if (jitters && !jitters.calmed) crowdSwell(0.35);
+    meterModsRef.current = mods;
     setMeterMods({
       zoneScale: baseZone,
       redBet: false,
       clutch,
       club: clubId,
-      paceBand: options.paceBand || null,
+      paceBand,
       jitters,
     });
     setMeterTick({ power: 0, accuracy: -1 });
@@ -3941,7 +4031,7 @@ export default function TripGame({ data }) {
           yardsScale,
           caption: result.lip ? "LIPS OUT!" : null,
         }),
-        putt: { ...read, start: read.start, end, aimTicks },
+        putt: { ...read, start: read.start, end, aimTicks, for: forLabelOf(live.strokes - hole.par) },
         lip: result.lip,
         side: "human",
         kickPower: meter.power,
@@ -4550,6 +4640,8 @@ export default function TripGame({ data }) {
                       streak={swingStreak}
                       mods={meterMods}
                     />
+                  ) : previewMeterMods ? (
+                    <KickMeter phase="preview" power={0} accuracy={0} streak={swingStreak} mods={previewMeterMods} />
                   ) : null
                 }
                 swingFx={swingFx}
