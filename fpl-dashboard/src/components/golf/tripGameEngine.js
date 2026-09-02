@@ -516,17 +516,24 @@ export function buildHoleOdds({ profile, course, hole, decision, state }) {
     club.upside;
   probs = shiftDistribution(probs, shift);
   if (decision.fireball) probs = applyFireballVariance(probs);
+  // What the player sees must be what the sampler draws: the score
+  // distribution mixed over where the tee ball can finish. The pre-landing
+  // vector is kept for the sampler, which conditions it on the actual landing.
+  const landingObj = { fairway: landing[0], rough: landing[1], bunker: landing[2], penalty: landing[3] };
+  const mixture = normalize(
+    SCORE_VALUES.map((_, bucket) =>
+      landing.reduce((total, weight, index) => total + weight * conditionOnLanding(probs, landingObj, index)[bucket], 0),
+    ),
+  );
+  const preLandingProbs = probs;
+  probs = mixture;
   const expectedRelative = sum(probs.map((prob, index) => prob * SCORE_VALUES[index]));
   const actualBucket =
     actualRelative == null ? null : actualRelative <= -1 ? 0 : actualRelative === 0 ? 1 : actualRelative === 1 ? 2 : actualRelative === 2 ? 3 : 4;
   return {
     probs,
-    landing: {
-      fairway: landing[0],
-      rough: landing[1],
-      bunker: landing[2],
-      penalty: landing[3],
-    },
+    preLandingProbs,
+    landing: landingObj,
     expectedRelative,
     expectedGross: hole.par + expectedRelative,
     actualGross,
@@ -583,6 +590,7 @@ export function resolveMatchHole({
   humanGrossOverride = null,
   cpuGrossOverride = null,
   humanLandingOverride = null,
+  cpuLandingOverride = null,
 }) {
   const playedGross = Number.isFinite(humanGrossOverride) ? Math.max(1, Math.round(humanGrossOverride)) : null;
   const fixedCpuGross = Number.isFinite(cpuGrossOverride) ? Math.max(1, Math.round(cpuGrossOverride)) : null;
@@ -601,19 +609,35 @@ export function resolveMatchHole({
     const next = LANDING_LABELS.indexOf(mapped);
     if (next >= 0) humanLandingIndex = next;
   }
-  const cpuLandingIndex = sampleIndex(
-    [cpuOdds.landing.fairway, cpuOdds.landing.rough, cpuOdds.landing.bunker, cpuOdds.landing.penalty],
-    random,
-  );
-  // When the hole was played shot by shot, the human gross is real, not sampled.
-  const humanBucket = playedGross
-    ? clamp(playedGross - hole.par + 1, 0, SCORE_VALUES.length - 1)
-    : sampleIndex(conditionOnLanding(humanOdds.probs, humanOdds.landing, humanLandingIndex), random);
-  const cpuBucket = fixedCpuGross
-    ? clamp(fixedCpuGross - hole.par + 1, 0, SCORE_VALUES.length - 1)
-    : sampleIndex(conditionOnLanding(cpuOdds.probs, cpuOdds.landing, cpuLandingIndex), random);
+  const forcedCpuLanding = LANDING_LABELS.indexOf(cpuLandingOverride);
+  const cpuLandingIndex =
+    forcedCpuLanding >= 0
+      ? forcedCpuLanding
+      : sampleIndex(
+          [cpuOdds.landing.fairway, cpuOdds.landing.rough, cpuOdds.landing.bunker, cpuOdds.landing.penalty],
+          random,
+        );
+  // When the hole was played shot by shot, the gross is real, not sampled.
+  const humanBucket = sampleBucket(humanOdds, humanLandingIndex, playedGross, hole, random);
+  const cpuBucket = sampleBucket(cpuOdds, cpuLandingIndex, fixedCpuGross, hole, random);
   const humanGross = playedGross ?? Math.max(1, hole.par + SCORE_VALUES[humanBucket]);
   const cpuGross = fixedCpuGross ?? Math.max(1, hole.par + SCORE_VALUES[cpuBucket]);
+  return {
+    ...scoreHole({ human, cpu, course, hole, humanGross, cpuGross }),
+    humanLanding: LANDING_LABELS[humanLandingIndex],
+    cpuLanding: LANDING_LABELS[cpuLandingIndex],
+    humanBucket: SCORE_BUCKETS[humanBucket],
+    cpuBucket: SCORE_BUCKETS[cpuBucket],
+  };
+}
+
+function sampleBucket(odds, landingIndex, grossOverride, hole, random) {
+  if (grossOverride) return clamp(grossOverride - hole.par + 1, 0, SCORE_VALUES.length - 1);
+  return sampleIndex(conditionOnLanding(odds.preLandingProbs || odds.probs, odds.landing, landingIndex), random);
+}
+
+/** Net match-play scoring for a hole once both gross scores are known. */
+export function scoreHole({ human, cpu, course, hole, humanGross, cpuGross }) {
   const humanHcp = courseHandicap(human.hi, course);
   const cpuHcp = courseHandicap(cpu.hi, course);
   const humanStroke = strokeOnHole(Math.max(0, humanHcp - cpuHcp), hole.si);
@@ -621,19 +645,24 @@ export function resolveMatchHole({
   const humanNet = humanGross - humanStroke;
   const cpuNet = cpuGross - cpuStroke;
   const winner = humanNet < cpuNet ? "human" : humanNet > cpuNet ? "cpu" : "tie";
-  return {
-    winner,
-    humanGross,
-    cpuGross,
-    humanNet,
-    cpuNet,
-    humanStroke,
-    cpuStroke,
-    humanLanding: LANDING_LABELS[humanLandingIndex],
-    cpuLanding: LANDING_LABELS[cpuLandingIndex],
-    humanBucket: SCORE_BUCKETS[humanBucket],
-    cpuBucket: SCORE_BUCKETS[cpuBucket],
-  };
+  return { winner, humanGross, cpuGross, humanNet, cpuNet, humanStroke, cpuStroke };
+}
+
+/**
+ * Expected match-play points (win 1, halve 0.5) for side A against side B
+ * from their score distributions and the strokes each receives on the hole.
+ */
+export function holePointsFor(aProbs, bProbs, aStroke = 0, bStroke = 0) {
+  let points = 0;
+  aProbs.forEach((pa, i) => {
+    bProbs.forEach((pb, j) => {
+      const aNet = SCORE_VALUES[i] - aStroke;
+      const bNet = SCORE_VALUES[j] - bStroke;
+      if (aNet < bNet) points += pa * pb;
+      else if (aNet === bNet) points += pa * pb * 0.5;
+    });
+  });
+  return points;
 }
 
 /** Match-play closeout: the match is decided once the lead exceeds the holes remaining. */
@@ -671,22 +700,45 @@ export function findBestDecision({ profile, course, hole, state }) {
   return { best, worst };
 }
 
-export function chooseCpuPlayer({ players, usage, maxUses, course, hole, stateByPlayer, random = Math.random }) {
+/**
+ * The CPU captain's pick for a hole. Net match play means the right card is
+ * the one that wins the most expected points against whoever the human is
+ * likely to send: a high-capper receiving a pop on a low stroke index can be
+ * a better pick than the team's scratch player. Falls back to expected gross
+ * when no opponents are given.
+ */
+export function chooseCpuPlayer({ players, usage, maxUses, course, hole, stateByPlayer, random = Math.random, opponents = [] }) {
   const available = players.filter((player) => (usage[player.key] || 0) < maxUses);
   const pool = available.length ? available : players;
+  // The human's likely responders: their three best available golfers.
+  const responders = [...opponents].sort((a, b) => a.hi - b.hi).slice(0, 3);
+  const responderOdds = responders.map((profile) => ({
+    profile,
+    odds: buildHoleOdds({ profile, course, hole, decision: defaultDecision(profile, hole), state: stateByPlayer?.[profile.key] }),
+  }));
   let best = null;
   for (const profile of pool) {
     const { best: bestPlan } = findBestDecision({
       profile,
       course,
       hole,
-      state: stateByPlayer[profile.key],
+      state: stateByPlayer?.[profile.key],
     });
     const { decision, odds } = bestPlan;
-    const conservation = (usage[profile.key] || 0) * 0.075;
-    const noise = (random() - 0.5) * 0.12;
-    const score = odds.expectedGross + conservation + noise;
-    if (!best || score < best.score) best = { profile, decision, odds, score };
+    const noise = (random() - 0.5) * 0.03;
+    let score;
+    if (responderOdds.length) {
+      const points =
+        responderOdds.reduce((total, responder) => {
+          const pops = holePops(profile, responder.profile, course, hole);
+          return total + holePointsFor(odds.probs, responder.odds.probs, pops.human, pops.cpu);
+        }, 0) / responderOdds.length;
+      // Hold the studs back a little once they've been used.
+      score = points - (usage[profile.key] || 0) * 0.02 + noise;
+    } else {
+      score = -(odds.expectedGross + (usage[profile.key] || 0) * 0.075) + noise * 4;
+    }
+    if (!best || score > best.score) best = { profile, decision, odds, score };
   }
   return best;
 }

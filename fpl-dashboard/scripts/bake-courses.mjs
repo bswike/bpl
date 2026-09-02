@@ -2,8 +2,9 @@
 // JSONs under public/data/, plus a courses.json manifest for the menu screen.
 //
 // Usage: node scripts/bake-courses.mjs [slug ...]   (no args = all)
+//        node scripts/bake-courses.mjs --validate [slug ...]   (offline checks on baked files)
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -465,8 +466,62 @@ out geom;`;
   return manifest;
 }
 
+// --- offline validation ----------------------------------------------------
+// `node scripts/bake-courses.mjs --validate [slug ...]` reads the baked JSONs
+// and reports the geometry problems the game has to work around: practice
+// greens attached to holes 1/18, holes with no fairway, tees far from the
+// hole line, features tagged to a hole that does not exist, degenerate rings.
+function validateBaked(slugs) {
+  let problems = 0;
+  for (const slug of slugs) {
+    const path = join(OUT_DIR, `${slug}.json`);
+    if (!existsSync(path)) {
+      console.log(`${slug}: no baked file`);
+      continue;
+    }
+    const course = JSON.parse(readFileSync(path, "utf8"));
+    // Baked files store [lat, lng] pairs; the bake helpers work on {lat, lon}.
+    const pt = (pair) => ({ lat: pair[0], lon: pair[1] });
+    const holeNums = new Set(course.holes.map((h) => h.num));
+    const warnings = [];
+    for (const hole of course.holes) {
+      const mine = course.features.filter((f) => f.hole === hole.num);
+      const greens = mine.filter((f) => f.type === "green");
+      const farGreens = greens.filter((f) => hole.pin && distMeters(centroid(f.coords.map(pt)), pt(hole.pin)) > 60);
+      if (farGreens.length) warnings.push(`hole ${hole.num}: ${farGreens.length} green polygon(s) more than 60 m from the pin (practice green?)`);
+      if (!greens.length) warnings.push(`hole ${hole.num}: no green`);
+      if (hole.par > 3 && !mine.some((f) => f.type === "fairway")) warnings.push(`hole ${hole.num}: par ${hole.par} with no fairway`);
+      const tee = hole.tees?.[0]?.pos;
+      const teeGap = tee && hole.line?.length ? distMeters(pt(tee), pt(hole.line[0])) : 0;
+      if (teeGap > 30) warnings.push(`hole ${hole.num}: tee is ${Math.round(teeGap)} m from the start of the line`);
+      if (!hole.line || hole.line.length < 2) warnings.push(`hole ${hole.num}: no hole line`);
+      if (hole.par == null) warnings.push(`hole ${hole.num}: no par`);
+      if (hole.hcp == null) warnings.push(`hole ${hole.num}: no stroke index`);
+    }
+    const orphans = course.features.filter((f) => !holeNums.has(f.hole));
+    if (orphans.length) warnings.push(`${orphans.length} feature(s) tagged to a hole that does not exist`);
+    const degenerate = course.features.filter((f) => !Array.isArray(f.coords) || f.coords.length < 3);
+    if (degenerate.length) warnings.push(`${degenerate.length} feature(s) with fewer than 3 points`);
+    const byType = {};
+    for (const f of course.features) byType[f.type] = (byType[f.type] || 0) + 1;
+    console.log(`${slug}: ${course.holes.length} holes, ${course.features.length} features (${Object.entries(byType).map(([k, v]) => `${v} ${k}`).join(", ")})`);
+    for (const w of warnings) console.log(`  WARN ${w}`);
+    problems += warnings.length;
+  }
+  console.log(`${problems} warning(s)`);
+  return problems;
+}
+
+const args = process.argv.slice(2);
+if (args.includes("--validate")) {
+  const wanted = args.filter((a) => a !== "--validate");
+  const all = FETCH_GROUPS.flatMap((g) => g.courses.map((c) => c.slug));
+  validateBaked(wanted.length ? wanted : all);
+  process.exit(0);
+}
+
 mkdirSync(OUT_DIR, { recursive: true });
-const only = process.argv.slice(2);
+const only = args;
 let manifest = [];
 for (const group of FETCH_GROUPS) {
   const groupCourses = only.length ? group.courses.filter((c) => only.includes(c.slug)) : group.courses;

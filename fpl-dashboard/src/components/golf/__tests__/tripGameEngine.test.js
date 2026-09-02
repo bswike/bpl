@@ -6,6 +6,7 @@ import {
   buildTripGameModel,
   chooseCpuPlayer,
   defaultDecision,
+  holePointsFor,
   holePops,
   makeSeededRandom,
   matchCloseout,
@@ -115,5 +116,59 @@ describe("resolveMatchHole", () => {
     const run = () =>
       resolveMatchHole({ human, cpu, humanOdds: odds(human), cpuOdds: odds(cpu), course, hole, random: makeSeededRandom(7) });
     expect(run()).toEqual(run());
+  });
+});
+
+describe("model honesty", () => {
+  const course = model.courses.find((entry) => entry.slug === "crystal-springs");
+  const hole = course.holes[3];
+  const player = model.players[2];
+  it("shows the distribution the sampler actually draws from", () => {
+    const odds = buildHoleOdds({ profile: player, course, hole, decision: defaultDecision(player, hole), state: null });
+    const total = odds.probs.reduce((sum, value) => sum + value, 0);
+    expect(total).toBeCloseTo(1, 6);
+    expect(odds.preLandingProbs).toHaveLength(5);
+    const preExpected = odds.preLandingProbs.reduce((sum, value, index) => sum + value * [-1, 0, 1, 2, 3][index], 0);
+    // Mixing over landings can only make the displayed number more honest (worse or equal).
+    expect(odds.expectedRelative).toBeGreaterThanOrEqual(preExpected - 1e-9);
+    // Sampling a lot of holes lands on the displayed expectation.
+    const random = makeSeededRandom(21);
+    let sum = 0;
+    const draws = 6000;
+    for (let index = 0; index < draws; index += 1) {
+      sum += resolveMatchHole({ human: player, cpu: player, humanOdds: odds, cpuOdds: odds, course, hole, random }).humanGross - hole.par;
+    }
+    expect(sum / draws).toBeCloseTo(odds.expectedRelative, 1);
+  });
+});
+
+describe("holePointsFor", () => {
+  const even = [0.1, 0.4, 0.3, 0.15, 0.05];
+  it("splits a mirror match evenly and sums to one across both sides", () => {
+    expect(holePointsFor(even, even)).toBeCloseTo(0.5, 9);
+    const other = [0.02, 0.2, 0.4, 0.28, 0.1];
+    expect(holePointsFor(even, other) + holePointsFor(other, even)).toBeCloseTo(1, 9);
+    expect(holePointsFor(even, other)).toBeGreaterThan(0.5);
+  });
+  it("values a stroke", () => {
+    expect(holePointsFor(even, even, 1, 0)).toBeGreaterThan(0.7);
+  });
+});
+
+describe("chooseCpuPlayer with opponents", () => {
+  const course = model.courses.find((entry) => entry.slug === "crystal-springs");
+  const hardest = course.holes.find((hole) => hole.si === 1);
+  const easiest = course.holes.find((hole) => hole.si === 18);
+  const base = model.players.find((player) => player.hi < 3);
+  const scratch = { ...base, key: "cpu scratch", name: "CPU Scratch", hi: 0 };
+  const capper = { ...base, key: "cpu capper", name: "CPU Capper", hi: 14 };
+  const human = { ...base, key: "human", name: "Human", hi: 2 };
+  it("sends the golfer who gets a pop when the stroke index calls for it", () => {
+    const pick = chooseCpuPlayer({ players: [scratch, capper], usage: {}, maxUses: 9, course, hole: hardest, stateByPlayer: {}, random: makeSeededRandom(1), opponents: [human] });
+    expect(pick.profile.key).toBe("cpu capper");
+  });
+  it("sends the scratch golfer where nobody gets a stroke", () => {
+    const pick = chooseCpuPlayer({ players: [scratch, capper], usage: {}, maxUses: 9, course, hole: easiest, stateByPlayer: {}, random: makeSeededRandom(1), opponents: [human] });
+    expect(pick.profile.key).toBe("cpu scratch");
   });
 });
