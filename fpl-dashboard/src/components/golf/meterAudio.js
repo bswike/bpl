@@ -22,7 +22,21 @@ function audio() {
 
 export function setMeterAudioEnabled(value) {
   enabled = Boolean(value);
-  if (!enabled) stopPowerSweep();
+  if (!enabled) stopAll();
+}
+
+// Silence every continuous cue (sweep, heartbeat). One-shot tones ring out on
+// their own within a second.
+export function stopAll() {
+  stopPowerSweep();
+  stopHeartbeat();
+}
+
+// A backgrounded tab must not keep humming or thumping.
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopAll();
+  });
 }
 
 // Call from a user gesture so the context is allowed to start.

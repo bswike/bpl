@@ -35,11 +35,24 @@ const PRIOR_PROBS = [
   [0.0062, 0.105, 0.325, 0.315, 0.2488],
 ];
 
+// Scorecard pars are the fallback when a trip round carries no par row (Ballyowen '26).
 const COURSE_META = {
   "crystal-springs": { slope: 144, rating: 71.3, par: 72, geometry: "/data/crystal-springs.json" },
-  "wild-turkey": { slope: 132, rating: 71.7, par: 71, geometry: "/data/wild-turkey.json" },
+  "wild-turkey": {
+    slope: 132,
+    rating: 71.7,
+    par: 71,
+    geometry: "/data/wild-turkey.json",
+    pars: [4, 3, 5, 4, 4, 4, 3, 5, 4, 3, 5, 4, 4, 3, 4, 3, 5, 4],
+  },
   "black-bear": { slope: 132, rating: 71.3, par: 72, geometry: "/data/black-bear.json" },
-  ballyowen: { slope: 138, rating: 72.2, par: 72, geometry: "/data/ballyowen.json" },
+  ballyowen: {
+    slope: 138,
+    rating: 72.2,
+    par: 72,
+    geometry: "/data/ballyowen.json",
+    pars: [4, 4, 5, 3, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 4, 5, 4],
+  },
 };
 
 const PLAYER_SCOUTING = {
@@ -162,14 +175,18 @@ function inferStrokeOrder(rows) {
 }
 
 function buildCourseCandidate(dataset, round) {
-  if (!Array.isArray(round.pars) || round.pars.length < 18) return null;
-  const { allRows, individual } = collectRoundRows(round);
-  if (individual.size < 4) return null;
   const slug = courseSlug(round.course || round.label);
-  const meta = COURSE_META[slug] || {
+  const known = COURSE_META[slug];
+  // A round with no par row still plays if the course is one we know the card for.
+  const pars = Array.isArray(round.pars) && round.pars.length >= 18 ? round.pars : known?.pars || null;
+  if (!pars) return null;
+  const { allRows, individual } = collectRoundRows(round);
+  // Team-only rounds (best-ball cards) carry no per-player observations; the
+  // course still plays, with hole difficulty coming from the stroke index alone.
+  const meta = known || {
     slope: 113,
-    rating: sum(round.pars),
-    par: sum(round.pars),
+    rating: sum(pars),
+    par: sum(pars),
     geometry: null,
   };
   const strokeOrder = inferStrokeOrder(allRows);
@@ -177,7 +194,7 @@ function buildCourseCandidate(dataset, round) {
   strokeOrder.forEach((hole, rank) => {
     siByHole[hole] = rank + 1;
   });
-  const holes = round.pars.slice(0, 18).map((par, holeIndex) => {
+  const holes = pars.slice(0, 18).map((par, holeIndex) => {
     const playerScores = {};
     const relatives = [];
     for (const [playerKey, row] of individual) {
@@ -206,6 +223,7 @@ function buildCourseCandidate(dataset, round) {
     averageToPar: mean(observed),
     coverage: observed.length,
     ...meta,
+    pars: undefined,
   };
 }
 
@@ -564,14 +582,21 @@ export function resolveMatchHole({
   remapHumanLanding,
   humanGrossOverride = null,
   cpuGrossOverride = null,
+  humanLandingOverride = null,
 }) {
   const playedGross = Number.isFinite(humanGrossOverride) ? Math.max(1, Math.round(humanGrossOverride)) : null;
   const fixedCpuGross = Number.isFinite(cpuGrossOverride) ? Math.max(1, Math.round(cpuGrossOverride)) : null;
-  let humanLandingIndex = sampleIndex(
-    [humanOdds.landing.fairway, humanOdds.landing.rough, humanOdds.landing.bunker, humanOdds.landing.penalty],
-    random,
-  );
-  if (typeof remapHumanLanding === "function") {
+  // A hole played shot by shot already knows where the tee ball went: use it
+  // instead of sampling (and burning a random draw) from the odds model.
+  const forcedLanding = LANDING_LABELS.indexOf(humanLandingOverride);
+  let humanLandingIndex =
+    forcedLanding >= 0
+      ? forcedLanding
+      : sampleIndex(
+          [humanOdds.landing.fairway, humanOdds.landing.rough, humanOdds.landing.bunker, humanOdds.landing.penalty],
+          random,
+        );
+  if (forcedLanding < 0 && typeof remapHumanLanding === "function") {
     const mapped = remapHumanLanding(LANDING_LABELS[humanLandingIndex]);
     const next = LANDING_LABELS.indexOf(mapped);
     if (next >= 0) humanLandingIndex = next;

@@ -2377,10 +2377,6 @@
 
 /* Screenshake at ball contact, amplitude set inline via --shake-amp */
 
-.trip-game-map-wrap.is-shaking {
-  animation: trip-game-shake 0.28s linear;
-}
-
 @keyframes trip-game-shake {
   0% {
     transform: translate(0, 0) rotate(0deg);
@@ -2930,6 +2926,13 @@
 
 .trip-game-map-wrap.is-resolving {
   animation: trip-game-camera-kick 180ms steps(2, end) 1;
+}
+
+/* Declared after is-resolving on purpose: both classes sit on the wrap during
+   playback and the later rule wins, so the contact shake must come last. */
+.trip-game-map-wrap.is-shaking,
+.trip-game-map-wrap.is-resolving.is-shaking {
+  animation: trip-game-shake 0.28s linear;
 }
 
 /* cartoon shot theater */
@@ -6240,7 +6243,59 @@
 
 /* ---------- Reduced motion ---------- */
 
+/* Two-tap meter on iOS: no double-tap zoom, no rubber-banding under the map. */
+.trip-game-kick-catch,
+.trip-game-primary-button,
+.trip-game-skip-chip,
+.trip-game-fireball-chip,
+.trip-game-club-reel button,
+.trip-game-hole-intro {
+  touch-action: manipulation;
+}
+
+.trip-game--play {
+  overscroll-behavior: none;
+}
+
+.trip-game-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.trip-game-resume-button {
+  margin-bottom: 8px;
+}
+
+/* FAST ▶▶ sits opposite SKIP HOLE while a shot animates. */
+.trip-game-skip-chip.is-fast {
+  right: auto;
+  left: 10px;
+}
+
+.trip-game-skip-chip.is-fast.is-on {
+  background: #ffd95e;
+  color: #060f0a;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .trip-game-pure-flash,
+  .trip-game-oval-outer,
+  .trip-game-putt-arrows path,
+  .trip-game-kick-track.is-charged .trip-game-kick-goodzone,
+  .trip-game-map,
+  .trip-game-map-wrap::before,
+  .trip-game-map-wrap::after,
+  .trip-game-map-wrap.is-shaking,
+  .trip-game-kick-fill,
+  .trip-game-kick-acc-track b,
+  .trip-game-kick.is-jittery *,
   .trip-game-loading-ball,
   .trip-game-title-flag,
   .trip-game-status-light,
