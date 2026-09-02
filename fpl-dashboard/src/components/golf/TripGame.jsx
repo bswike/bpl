@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import {
   CLUBS,
   SCORE_BUCKETS,
@@ -122,6 +122,7 @@ import {
   simulateCpuStroke,
   simulateStroke,
 } from "./tripgame/liveStroke.js";
+import { INITIAL_MATCH, matchReducer } from "./tripgame/matchState.js";
 import "./TripGame.css";
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
@@ -1915,34 +1916,85 @@ export default function TripGame({ data }) {
   const [archiveState, setArchiveState] = useState("loading");
   const [courseId, setCourseId] = useState(null);
   const [captainTeam, setCaptainTeam] = useState(null);
-  const [screen, setScreen] = useState("setup");
-  const [holeIndex, setHoleIndex] = useState(0);
-  const [selectedKey, setSelectedKey] = useState(null);
-  const [decision, setDecision] = useState({ club: "driver", aim: 0, shape: "straight", fireball: false });
-  const [usage, setUsage] = useState({});
-  const [cpuUsage, setCpuUsage] = useState({});
-  const [playerState, setPlayerState] = useState({});
-  const [match, setMatch] = useState({ human: 0, cpu: 0, ties: 0 });
-  const [history, setHistory] = useState([]);
-  const [result, setResult] = useState(null);
-  const [closeout, setCloseout] = useState(null);
-  const [resolutionPhase, setResolutionPhase] = useState("idle");
-  const [playbackShots, setPlaybackShots] = useState(null);
-  const [playbackStep, setPlaybackStep] = useState({ index: 0, phase: "swing", frame: 0 });
-  const [holeIntro, setHoleIntro] = useState(false);
-  const [hype, setHype] = useState(0);
-  const [streak, setStreak] = useState(0);
+  // Match and hole state live in one reducer so a new round, a resumed round
+  // and the next hole reset the same fields in one place (see matchState.js).
+  const [game, dispatch] = useReducer(matchReducer, INITIAL_MATCH);
+  const {
+    screen,
+    holeIndex,
+    selectedKey,
+    decision,
+    usage,
+    cpuUsage,
+    playerState,
+    match,
+    history,
+    result,
+    closeout,
+    resolutionPhase,
+    playbackShots,
+    playbackStep,
+    holeIntro,
+    hype,
+    streak,
+    inventory,
+    eventOffer,
+    eventHandled,
+    pickLocked,
+    eventNote,
+    cpuOpponent,
+    roundSalt,
+    swingStreak,
+    liveInfo,
+    liveClubId,
+    puttAim,
+  } = game;
+  // Single-field updates keep the setState shape (a value or an updater).
+  // Memoised once so effects can list them as dependencies without re-running.
+  const setters = useMemo(() => {
+    const patchField = (name) => (value) =>
+      dispatch({ type: "PATCH", patch: (state) => ({ [name]: typeof value === "function" ? value(state[name]) : value }) });
+    return {
+      setSelectedKey: patchField("selectedKey"),
+      setDecision: patchField("decision"),
+      setPlayerState: patchField("playerState"),
+      setResolutionPhase: patchField("resolutionPhase"),
+      setPlaybackShots: patchField("playbackShots"),
+      setPlaybackStep: patchField("playbackStep"),
+      setHoleIntro: patchField("holeIntro"),
+      setEventOffer: patchField("eventOffer"),
+      setEventHandled: patchField("eventHandled"),
+      setPickLocked: patchField("pickLocked"),
+      setEventNote: patchField("eventNote"),
+      setCpuOpponent: patchField("cpuOpponent"),
+      setSwingStreak: patchField("swingStreak"),
+      setLiveInfo: patchField("liveInfo"),
+      setLiveClubId: patchField("liveClubId"),
+      setPuttAim: patchField("puttAim"),
+    };
+  }, []);
+  const {
+    setSelectedKey,
+    setDecision,
+    setPlayerState,
+    setResolutionPhase,
+    setPlaybackShots,
+    setPlaybackStep,
+    setHoleIntro,
+    setEventOffer,
+    setEventHandled,
+    setPickLocked,
+    setEventNote,
+    setCpuOpponent,
+    setSwingStreak,
+    setLiveInfo,
+    setLiveClubId,
+    setPuttAim,
+  } = setters;
   const [geometryBySlug, setGeometryBySlug] = useState({});
-  const [inventory, setInventory] = useState({ fireball: 1 });
-  const [eventOffer, setEventOffer] = useState(null);
-  const [eventHandled, setEventHandled] = useState({});
-  const [pickLocked, setPickLocked] = useState(false);
-  const [eventNote, setEventNote] = useState(null);
-  const [cpuOpponent, setCpuOpponent] = useState(null);
   const [meterPhase, setMeterPhase] = useState(null);
   const [fastForward, setFastForward] = useState(false);
   const fastForwardRef = useRef(false);
-  const [roundSalt, setRoundSalt] = useState(0);
   const [announce, setAnnounce] = useState("");
   const [geometryState, setGeometryState] = useState({});
   const holdTimerRef = useRef(null);
@@ -1958,7 +2010,6 @@ export default function TripGame({ data }) {
   });
   const [swingFx, setSwingFx] = useState(null);
   const [shakeFx, setShakeFx] = useState(null);
-  const [swingStreak, setSwingStreak] = useState(0);
   const [meterMods, setMeterMods] = useState({ zoneScale: 1, redBet: false, clutch: false, club: null });
   const meterModsRef = useRef({ speed: BASE_ACC_SPEED, clubSpeed: 1, zoneScale: 1, redBet: false, clutch: false });
   const [swingMode, setSwingMode] = useState(() => {
@@ -1968,9 +2019,6 @@ export default function TripGame({ data }) {
       return "single";
     }
   });
-  const [liveInfo, setLiveInfo] = useState(null);
-  const [liveClubId, setLiveClubId] = useState(null);
-  const [puttAim, setPuttAim] = useState(0);
   const [partySurge, setPartySurge] = useState(false);
   const partyTimerRef = useRef(null);
   const buyRoundRef = useRef(false);
@@ -2233,14 +2281,14 @@ export default function TripGame({ data }) {
       });
     }, fastForwardRef.current ? Math.min(duration, 40) : duration);
     return () => window.clearTimeout(timer);
-  }, [resolutionPhase, playbackShots, playbackStep]);
+  }, [resolutionPhase, playbackShots, playbackStep, setPlaybackStep]);
 
   // Hole intro card auto-dismisses after a beat.
   useEffect(() => {
     if (!holeIntro) return undefined;
     const timer = window.setTimeout(() => setHoleIntro(false), 2100);
     return () => window.clearTimeout(timer);
-  }, [holeIntro]);
+  }, [holeIntro, setHoleIntro]);
 
   const historicalData = useMemo(
     () => archive.filter((dataset) => dataset.trip?.id !== data.trip?.id),
@@ -2334,7 +2382,7 @@ export default function TripGame({ data }) {
     if (!player) return;
     setSelectedKey(player.key);
     setDecision(defaultDecision(player, hole));
-  }, [screen, holeIndex, hole, selectedKey, humanRoster, usage, maxUses, result, resolutionPhase]);
+  }, [screen, holeIndex, hole, selectedKey, humanRoster, usage, maxUses, result, resolutionPhase, setDecision, setSelectedKey]);
   const odds = useMemo(
     () => (selected && course && hole ? buildHoleOdds({ profile: selected, course, hole, decision, state: selectedState }) : null),
     [course, decision, hole, selected, selectedState],
@@ -2440,54 +2488,33 @@ export default function TripGame({ data }) {
     return Object.fromEntries(model.players.map((player) => [player.key, { buzz: 0, morale: 50 }]));
   }
 
-  function startRound() {
-    if (!course || !captainTeam) return;
+  // Timers, refs and meter state that live outside the reducer.
+  function resetRoundSideEffects() {
     if (resolutionTimerRef.current) {
       window.clearTimeout(resolutionTimerRef.current);
       resolutionTimerRef.current = null;
     }
-    setScreen("play");
-    setHoleIndex(0);
-    setSelectedKey(null);
-    setDecision({ club: "driver", aim: 0, shape: "straight", fireball: false });
-    setUsage({});
-    setCpuUsage({});
-    setPlayerState(initializePlayerState());
-    setMatch({ human: 0, cpu: 0, ties: 0 });
-    setHistory([]);
-    setResult(null);
-    setCloseout(null);
-    setResolutionPhase("idle");
-    setPlaybackShots(null);
-    setHoleIntro(true);
     pendingCommitRef.current = null;
-    setHype(0);
-    setStreak(0);
-    setSwingStreak(0);
     liveRef.current = null;
-    setLiveInfo(null);
     buyRoundRef.current = false;
     cpuEdgeRef.current = false;
-    setPartySurge(false);
-    setInventory({ fireball: 1 });
-    setEventOffer(null);
-    setEventHandled({});
-    setPickLocked(false);
-    setEventNote(null);
-    setCpuOpponent(null);
-    setMeterPhase(null);
     resolvingRef.current = false;
     meterLockRef.current = null;
     randomRef.current = makeSeededRandom(Date.now());
-    setRoundSalt(Date.now() % 997);
+    setMeterPhase(null);
     setSwingFx(null);
     setShakeFx(null);
     setMeterMods({ zoneScale: 1, redBet: false, clutch: false, club: null });
-    setLiveClubId(null);
-    setPuttAim(0);
+    setPartySurge(false);
     setFastForward(false);
     fastForwardRef.current = false;
     cancelPendingSwing();
+  }
+
+  function startRound() {
+    if (!course || !captainTeam) return;
+    resetRoundSideEffects();
+    dispatch({ type: "START_ROUND", playerState: initializePlayerState(), roundSalt: Date.now() % 997 });
     try {
       window.localStorage.removeItem(MATCH_SAVE_KEY);
     } catch {
@@ -2496,27 +2523,17 @@ export default function TripGame({ data }) {
   }
 
   // Pick the saved match back up on the hole after the last one committed.
+  // The snapshot stays in storage until the next hole boundary rewrites it.
   function resumeMatch() {
     const snapshot = savedMatch;
     if (!snapshot) return;
     setCourseId(snapshot.courseId);
     setCaptainTeam(snapshot.captainTeam);
     setSwingMode(snapshot.swingMode === "full" ? "full" : "single");
-    startRound();
-    setHoleIndex(clamp(Number(snapshot.holeIndex) || 0, 0, 17));
-    setUsage(snapshot.usage || {});
-    setCpuUsage(snapshot.cpuUsage || {});
-    setPlayerState(snapshot.playerState || initializePlayerState());
-    setMatch(snapshot.match || { human: 0, cpu: 0, ties: 0 });
-    setHistory(snapshot.history || []);
-    setHype(Number(snapshot.hype) || 0);
-    setStreak(Number(snapshot.streak) || 0);
-    setSwingStreak(Number(snapshot.swingStreak) || 0);
-    setInventory(snapshot.inventory || { fireball: 1 });
-    setEventHandled(snapshot.eventHandled || {});
+    resetRoundSideEffects();
     buyRoundRef.current = Boolean(snapshot.buyRound);
     cpuEdgeRef.current = Boolean(snapshot.cpuEdge);
-    setRoundSalt(Number(snapshot.roundSalt) || 0);
+    dispatch({ type: "RESUME", snapshot, playerState: initializePlayerState() });
     setSavedMatch(null);
   }
 
@@ -3389,10 +3406,7 @@ export default function TripGame({ data }) {
       powerUpEarned,
       nextCloseout,
     };
-    setPlaybackShots(shots);
-    setPlaybackStep({ index: 0, phase: "swing", frame: 0 });
-    setResult(completeResult);
-    setResolutionPhase("playback");
+    dispatch({ type: "STAGE_RESULT", result: completeResult, shots });
     haptic(10);
     if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
     const safetyMs = Math.max(
@@ -3411,8 +3425,27 @@ export default function TripGame({ data }) {
       resolutionTimerRef.current = null;
     }
     const { resolved, cpuPick, nextStreak, nextHype, powerUpEarned, nextCloseout } = pending;
-    setResolutionPhase("result");
-    setPlaybackShots(null);
+    dispatch({
+      type: "COMMIT_HOLE",
+      winner: resolved.winner,
+      humanKey: pending.selectedKey,
+      cpuKey: cpuPick.profile.key,
+      row: {
+        hole: pending.holeNumber,
+        winner: resolved.winner,
+        human: pending.selectedName,
+        cpu: cpuPick.profile.name,
+        humanGross: resolved.humanGross,
+        cpuGross: resolved.cpuGross,
+        humanStroke: resolved.humanStroke,
+        cpuStroke: resolved.cpuStroke,
+      },
+      hype: nextHype,
+      streak: nextStreak,
+      closeout: nextCloseout.decided ? nextCloseout : null,
+      fireballUsed: pending.usedFireball,
+      powerUpEarned,
+    });
     {
       const nextHuman = match.human + (resolved.winner === "human" ? 1 : 0);
       const nextCpu = match.cpu + (resolved.winner === "cpu" ? 1 : 0);
@@ -3426,54 +3459,17 @@ export default function TripGame({ data }) {
         }, ${resolved.humanGross} to ${resolved.cpuGross}. ${call}.`,
       );
     }
-    setUsage((current) => ({ ...current, [pending.selectedKey]: (current[pending.selectedKey] || 0) + 1 }));
-    setCpuUsage((current) => ({ ...current, [cpuPick.profile.key]: (current[cpuPick.profile.key] || 0) + 1 }));
-    setMatch((current) => ({
-      human: current.human + (resolved.winner === "human" ? 1 : 0),
-      cpu: current.cpu + (resolved.winner === "cpu" ? 1 : 0),
-      ties: current.ties + (resolved.winner === "tie" ? 1 : 0),
-    }));
-    setHistory((current) => [
-      ...current,
-      {
-        hole: pending.holeNumber,
-        winner: resolved.winner,
-        human: pending.selectedName,
-        cpu: cpuPick.profile.name,
-        humanGross: resolved.humanGross,
-        cpuGross: resolved.cpuGross,
-        humanStroke: resolved.humanStroke,
-        cpuStroke: resolved.cpuStroke,
-      },
-    ]);
-    setHype(nextHype);
-    setStreak(nextStreak);
-    if (nextCloseout.decided) setCloseout(nextCloseout);
-    setInventory((current) => ({
-      ...current,
-      fireball: Math.max(0, current.fireball - (pending.usedFireball ? 1 : 0)) + (powerUpEarned ? 1 : 0),
-    }));
     if (resolved.winner === "human") holeWinSound();
     haptic(resolved.winner === "human" ? [35, 30, 65] : 25);
   }
 
   function nextHole() {
     if (holeIndex >= 17 || closeout?.decided) {
-      setScreen("finish");
+      dispatch({ type: "FINISH" });
       return;
     }
-    setHoleIndex((current) => current + 1);
-    setSelectedKey(null);
-    setDecision({ club: "driver", aim: 0, shape: "straight", fireball: false });
-    setResult(null);
-    setResolutionPhase("idle");
-    setPlaybackShots(null);
-    setHoleIntro(true);
+    dispatch({ type: "NEXT_HOLE" });
     pendingCommitRef.current = null;
-    setEventOffer(null);
-    setPickLocked(false);
-    setEventNote(null);
-    setCpuOpponent(null);
     setMeterPhase(null);
     setSwingFx(null);
     setShakeFx(null);
@@ -3482,9 +3478,6 @@ export default function TripGame({ data }) {
     resolvingRef.current = false;
     meterLockRef.current = null;
     liveRef.current = null;
-    setLiveInfo(null);
-    setPuttAim(0);
-    setLiveClubId(null);
     setPartySurge(false);
     cancelPendingSwing();
   }
@@ -3588,7 +3581,7 @@ export default function TripGame({ data }) {
             cpuTeam={cpuTeam}
             closeout={closeout}
             onRematch={startRound}
-            onSetup={() => setScreen("setup")}
+            onSetup={() => dispatch({ type: "SETUP" })}
           />
         )}
         {screen === "play" && course && hole && projection && (
