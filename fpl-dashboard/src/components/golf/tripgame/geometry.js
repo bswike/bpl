@@ -95,3 +95,28 @@ export function sidePoint(from, toward, offset) {
   const len = Math.hypot(dx, dy) || 1;
   return [from[0] + (-dy / len) * offset, from[1] + (dx / len) * offset];
 }
+
+function distanceToSegment(a, b, target) {
+  const abx = b[0] - a[0];
+  const aby = b[1] - a[1];
+  const lengthSq = abx * abx + aby * aby || 1e-9;
+  const t = clamp(((target[0] - a[0]) * abx + (target[1] - a[1]) * aby) / lengthSq, 0, 1);
+  return Math.hypot(a[0] + abx * t - target[0], a[1] + aby * t - target[1]);
+}
+
+/**
+ * Shortest distance from a point to a polyline (metres in projection space).
+ * With `cutCorners`, the chord between every second vertex counts too, so a
+ * ball played straight across a dogleg is measured against the cut line.
+ */
+export function distanceToPolyline(points, target, cutCorners = false) {
+  if (!points || points.length === 0) return Infinity;
+  if (points.length === 1) return Math.hypot(points[0][0] - target[0], points[0][1] - target[1]);
+  let best = Infinity;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    best = Math.min(best, distanceToSegment(points[index], points[index + 1], target));
+    if (cutCorners && index + 2 < points.length) best = Math.min(best, distanceToSegment(points[index], points[index + 2], target));
+  }
+  return best;
+}
+

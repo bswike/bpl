@@ -1,4 +1,7 @@
 // Swing-meter constants, judgment, buzz and jitters, plus the needle store.
+
+import { liveClubOf } from "./clubs.js";
+import { skillOf } from "../tripGameEngine.js";
 // The meter needle lives outside React state: the rAF loop writes here and
 // only KickMeter subscribes, so a frame never re-renders the map or roster.
 export const meterStore = {
@@ -145,4 +148,19 @@ export function yardTierOf(yards) {
   if (yards >= 240) return "long";
   if (yards >= 200) return "solid";
   return "base";
+}
+
+/** The accuracy window for a swing: club, lie, skill, buzz and nerves all shrink or widen it. */
+export function meterZoneFor({ clubId, lie, hi, buzz = 0, jitters = null }) {
+  const liveClub = liveClubOf(clubId);
+  const lieMod = LIE_METER_MODS[lie] || { zone: 1, speed: 1 };
+  const skill = skillOf(hi);
+  const jitterZone = jitters ? 1 - 0.2 * jitters.intensity : 1;
+  return (
+    (liveClub?.zone ?? CLUB_ZONE_SCALE[clubId] ?? 1) *
+    (SKILL_ZONE_MIN + skill * SKILL_ZONE_RANGE) *
+    lieMod.zone *
+    buzzTierOf(buzz).zone *
+    jitterZone
+  );
 }

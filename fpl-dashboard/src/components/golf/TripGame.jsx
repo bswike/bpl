@@ -73,7 +73,6 @@ import {
 import {
   computeShotTarget,
   placeTeeLanding,
-  resolveLiveStroke,
   shapeBend,
   shapeDrift,
   shotPatternFor,
@@ -82,15 +81,9 @@ import {
   FLIGHT_FRAME_MS,
   buildShotSequence,
   framesToPath,
-  makeShot,
   mergeMatchPlayShots,
 } from "./tripgame/shotTheater.js";
-import {
-  PUTT_TICK_UNITS,
-  forLabelOf,
-  makePuttRead,
-  resolveLivePutt,
-} from "./tripgame/putting.js";
+import { PUTT_TICK_UNITS, makePuttRead } from "./tripgame/putting.js";
 import {
   ACC_GOOD,
   ACC_GREAT,
@@ -98,7 +91,6 @@ import {
   BASE_ACC_SPEED,
   BASE_POWER_SPEED,
   CLUB_METER_SPEED,
-  CLUB_ZONE_SCALE,
   CLUTCH_SPEED,
   LIE_METER_MODS,
   POWER_METER_MAX,
@@ -107,12 +99,11 @@ import {
   RED_BET_SPEED,
   RED_BET_ZONE_SCALE,
   SKILL_SPEED_PENALTY,
-  SKILL_ZONE_MIN,
-  SKILL_ZONE_RANGE,
   buzzTierOf,
   jittersFor,
   judgeSwing,
   meterStore,
+  meterZoneFor,
   yardTierOf,
   zoneStyle,
 } from "./tripgame/meter.js";
@@ -124,6 +115,13 @@ import {
   scoreMark,
   signedPercent,
 } from "./tripgame/format.js";
+import {
+  ballDone,
+  ballGross,
+  createBall,
+  simulateCpuStroke,
+  simulateStroke,
+} from "./tripgame/liveStroke.js";
 import "./TripGame.css";
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
@@ -518,6 +516,7 @@ function HoleMap({
   partySurge = false,
   liveStatus,
   livePos,
+  cpuLive = null,
   livePreview,
   clubReel,
   puttPreview,
@@ -606,7 +605,17 @@ function HoleMap({
     playback && activeShot
       ? playback.shots.slice(playback.index + 1).find((shot) => shot.side !== activeShot.side)
       : null;
-  const restingBall = otherSidePlayed && nextOtherShot ? nextOtherShot.from : null;
+  // The waiting side's ball: from the full sequence in ONE SWING mode, or from
+  // the live balls when the sides play stroke for stroke.
+  const cpuAtRest = cpuLive && cpuLive.strokes > 0 && !cpuLive.holed ? cpuLive.pos : null;
+  const restingBall =
+    otherSidePlayed && nextOtherShot
+      ? nextOtherShot.from
+      : activeShot?.side === "cpu" && livePos
+        ? livePos
+        : activeShot?.side === "human"
+          ? cpuAtRest
+          : null;
   const remainingYards = hole.yards ? Math.max(0, Math.round(hole.yards - targetYards)) : null;
   const trees = projection.trees || buildTreeSprites(projection, hole.number);
   const mapId = `trip-hole-${hole.number}`;
@@ -854,6 +863,12 @@ function HoleMap({
               <BallSprite r={2.4} />
             </g>
           </>
+        )}
+        {!playback && cpuAtRest && (
+          <g className="trip-game-resting-ball is-cpu" transform={`translate(${cpuAtRest[0]} ${cpuAtRest[1]})`}>
+            <circle r="3.4" className="trip-game-resting-ring" />
+            <circle r="1.9" className="trip-game-resting-core" />
+          </g>
         )}
         <g className="trip-game-flag" transform={`translate(${projection.pin[0]} ${projection.pin[1]})`}>
           <rect className="trip-game-flag-base" x="-3" y="0" width="6" height="2" />
@@ -2300,6 +2315,7 @@ export default function TripGame({ data }) {
       hole,
       stateByPlayer: playerState,
       random: randomRef.current,
+      opponents: humanRoster.filter((player) => (usage[player.key] || 0) < maxUses),
     });
     setCpuOpponent(pick || null);
     // Lock once per hole so the matchup is visible before the captain picks.
@@ -2651,15 +2667,9 @@ export default function TripGame({ data }) {
     const buzz = buzzTierOf(selectedState?.buzz);
     // Nerves on the big stages — offset by liquid courage.
     const jitters = jittersFor(hole?.number, options.context || "tee", selectedState?.buzz || 0);
-    const jitterZone = jitters ? 1 - 0.2 * jitters.intensity : 1;
     const jitterSpeed = jitters ? 1 + 0.25 * jitters.intensity : 1;
     const skillSpeed = (1 + (1 - skill) * SKILL_SPEED_PENALTY) * lieMod.speed * stimpNeedle * buzz.speed * jitterSpeed;
-    const baseZone =
-      (liveClub?.zone ?? CLUB_ZONE_SCALE[clubId] ?? 1) *
-      (SKILL_ZONE_MIN + skill * SKILL_ZONE_RANGE) *
-      lieMod.zone *
-      buzz.zone *
-      jitterZone;
+    const baseZone = meterZoneFor({ clubId, lie: options.lie, hi: selected?.hi, buzz: selectedState?.buzz, jitters });
     const clubSpeed = liveClub?.speed ?? CLUB_METER_SPEED[clubId] ?? 1;
     const clutch = dormie || hole?.number === 18;
     return {
@@ -2800,6 +2810,7 @@ export default function TripGame({ data }) {
         hole,
         stateByPlayer: playerState,
         random: randomRef.current,
+        opponents: humanRoster.filter((player) => (usage[player.key] || 0) < maxUses),
       });
     if (!cpuPick) return;
     const cpuDecision = cpuPick.decision || defaultDecision(cpuPick.profile, hole);
@@ -2810,26 +2821,8 @@ export default function TripGame({ data }) {
       decision: cpuDecision,
       state: cpuStateOf(cpuPick.profile.key),
     });
-    // Sample the CPU's whole hole up front so it can be interleaved live.
-    const cpuSample = resolveMatchHole({
-      human: selected,
-      cpu: cpuPick.profile,
-      humanOdds,
-      cpuOdds,
-      course,
-      hole,
-      random: randomRef.current,
-      humanGrossOverride: hole.par,
-    });
-    const cpuShots = buildShotSequence({
-      projection,
-      hole,
-      decision: cpuDecision,
-      gross: cpuSample.cpuGross,
-      landingLabel: cpuSample.cpuLanding,
-      side: "cpu",
-      seedSalt: 5,
-    }).map((shot, index) => ({ ...shot, shotNumber: index + 1 }));
+    // The CPU plays a real ball through the same physics, stroke for stroke.
+    const cpuTeeTarget = computeShotTarget(projection, hole, cpuDecision).target;
     const lastWinner = [...history].reverse().find((row) => row.winner !== "tie")?.winner;
     const { lineLength, target: teeTarget } = computeShotTarget(projection, hole, decision);
     liveRef.current = {
@@ -2847,10 +2840,15 @@ export default function TripGame({ data }) {
       yardsScale: hole.yards && lineLength ? lineLength / hole.yards : 1,
       cpuPick,
       cpuOdds,
-      cpuGross: cpuSample.cpuGross,
-      cpuShots,
-      cpuIndex: 0,
       cpuHonors: lastWinner === "cpu",
+      cpu: {
+        ball: createBall(projection),
+        hi: cpuPick.profile.hi,
+        buzz: Number(cpuStateOf(cpuPick.profile.key)?.buzz) || 0,
+        decision: cpuDecision,
+        teeTarget: cpuTeeTarget,
+        conceded: false,
+      },
       teeTarget,
       teeLanding: null,
       remainingUnits: null,
@@ -2880,25 +2878,38 @@ export default function TripGame({ data }) {
   function advanceMatchFlow() {
     const live = liveRef.current;
     if (!live || result || !projection) return;
+    const cpu = live.cpu;
     const humanDone = live.holed || live.strokes >= hole.par + 4;
-    const cpuDone = live.cpuIndex >= live.cpuShots.length;
+    const cpuDone = cpu.conceded || ballDone(cpu.ball, hole);
     if (humanDone && cpuDone) {
       completeLiveHole();
       return;
     }
-    // Match play: once they're in and your best possible net can't beat it, pick up.
-    if (cpuDone && !humanDone && selected && live.cpuPick) {
+    // Match play: once one side is in and the other's best possible net can't
+    // beat it, that side picks up.
+    if (selected && live.cpuPick) {
       const pops = holePops(selected, live.cpuPick.profile, course, hole);
-      const humanBestNet = live.strokes + 1 - pops.human;
-      const cpuNet = live.cpuGross - pops.cpu;
-      if (humanBestNet > cpuNet) {
-        live.conceded = true;
-        completeLiveHole();
-        return;
+      if (cpuDone && !humanDone) {
+        const humanBestNet = live.strokes + 1 - pops.human;
+        const cpuNet = (cpu.conceded ? cpu.ball.strokes + 1 : ballGross(cpu.ball, hole)) - pops.cpu;
+        if (humanBestNet > cpuNet) {
+          live.conceded = true;
+          completeLiveHole();
+          return;
+        }
+      }
+      if (humanDone && !cpuDone) {
+        const cpuBestNet = cpu.ball.strokes + 1 - pops.cpu;
+        const humanNet = (live.holed ? live.strokes : hole.par + 4) - pops.human;
+        if (cpuBestNet > humanNet) {
+          cpu.conceded = true;
+          completeLiveHole();
+          return;
+        }
       }
     }
     if (live.cpuHonors) {
-      if (live.cpuIndex === 0) {
+      if (cpu.ball.strokes === 0) {
         playNextCpuShot();
         return;
       }
@@ -2911,7 +2922,7 @@ export default function TripGame({ data }) {
         beginHumanTurn();
         return;
       }
-      if (live.cpuIndex === 0) {
+      if (cpu.ball.strokes === 0) {
         playNextCpuShot();
         return;
       }
@@ -2926,9 +2937,7 @@ export default function TripGame({ data }) {
     }
     const pin = projection.pin;
     const humanDist = live.remainingUnits ?? Math.hypot(live.pos[0] - pin[0], live.pos[1] - pin[1]);
-    const cpuFrom = live.cpuShots[live.cpuIndex].from;
-    const cpuDist = Math.hypot(cpuFrom[0] - pin[0], cpuFrom[1] - pin[1]);
-    if (cpuDist >= humanDist) playNextCpuShot();
+    if (cpu.ball.remainingUnits >= humanDist) playNextCpuShot();
     else beginHumanTurn();
   }
 
@@ -2978,14 +2987,22 @@ export default function TripGame({ data }) {
 
   function playNextCpuShot() {
     const live = liveRef.current;
-    if (!live) return;
-    const shot = live.cpuShots[live.cpuIndex];
-    if (!shot) {
+    if (!live || !projection) return;
+    const cpu = live.cpu;
+    if (!cpu || cpu.conceded || ballDone(cpu.ball, hole)) {
       advanceMatchFlow();
       return;
     }
-    live.cpuIndex += 1;
-    setPlaybackShots([shot]);
+    const played = simulateCpuStroke({
+      projection,
+      hole,
+      cpu,
+      yardsScale: live.yardsScale,
+      rng: randomRef.current,
+      seedSalt: hole.number * 17 + cpu.ball.strokes * 5 + 3,
+    });
+    cpu.ball = played.ball;
+    setPlaybackShots([played.shot]);
     setPlaybackStep({ index: 0, phase: "swing", frame: 0 });
     setResolutionPhase("liveshot");
   }
@@ -2993,123 +3010,44 @@ export default function TripGame({ data }) {
   function advanceLiveState(meter, judgment, animate) {
     const live = liveRef.current;
     if (!live || !projection) return;
-    const yardsScale = live.yardsScale;
-    const from = live.pos;
-    let shot = null;
-    if (live.feet != null) {
-      const read =
-        live.puttRead ||
-        makePuttRead({ hole, puttCount: live.puttCount, feet: live.feet, sceneCarry: live.sceneCarry });
-      const aimTicks = live.aimTicks ?? Math.round(read.requiredTicks);
-      const result = resolveLivePutt({ read, aimTicks, meter, puttCount: live.puttCount });
-      live.strokes += 1;
-      live.puttCount += 1;
-      const end = result.made
-        ? [85, 36]
-        : [
-            85 + result.missSide * (2.5 + Math.min(5, Math.abs(result.lineErr) * 2.2)),
-            36 + clamp(result.leaveFeet * 2.5, 3.5, 44),
-          ];
-      live.sceneCarry = result.made ? null : end;
-      live.puttRead = null;
-      live.aimTicks = null;
-      if (result.made) {
-        live.holed = true;
-        live.feet = null;
-      } else {
-        live.feet = Math.max(1, Math.round(result.leaveFeet));
-      }
-      live.remainingUnits = result.made ? 0 : (live.feet / 3) * yardsScale;
+    const played = simulateStroke({
+      projection,
+      hole,
+      ball: live,
+      meter,
+      judgment,
+      clubId: live.club,
+      side: "human",
+      yardsScale: live.yardsScale,
+      hi: selected?.hi ?? 12,
+      // Buzzed flush = super shot: the ball goes extra.
+      carryBoost: (decision.carryBoost || 1) * (judgment.buzzBonus ? meterModsRef.current.buzzBonus || 1 : 1),
+      drunk: Boolean(meterModsRef.current.buzzWobble),
+      zoneScale: meterModsRef.current.zoneScale || 1,
+      // The tee ball flies at the planned target on the hole line (which
+      // already carries the aim); par-3 tee balls and approaches aim at the pin.
+      lineTarget: live.strokes === 0 && hole.par > 3 ? live.teeTarget : null,
+      aimUnits:
+        live.strokes === 0 && hole.par <= 3 ? aimOffsetOf(decision.aim) * clamp(projection.width * 0.12, 10, 22) : 0,
+      fireball: Boolean(decision.fireball),
+      rng: randomRef.current,
+      seedSalt: hole.number * 13 + live.strokes * 7 + 2,
+    });
+    Object.assign(live, played.ball);
+    if (played.putt && animate) {
+      const result = played.result;
       // Teach the read: show what the putt actually needed.
-      if (animate) {
-        const neededLabel = `NEEDED ${Math.abs(result.effRequired).toFixed(1)} ${result.effRequired > 0 ? "R" : "L"}`;
-        const paceLabel = `PACE ${result.paceErr >= 0 ? "+" : ""}${Math.round(result.paceErr * 100)}`;
-        setSwingFx((current) =>
-          current
-            ? { ...current, sub: result.made ? `${paceLabel} · PURE READ` : `${neededLabel} · ${paceLabel}` }
-            : current,
-        );
-      }
-      shot = {
-        ...makeShot({
-          from,
-          to: result.made ? projection.pin : from,
-          kind: "putt",
-          final: result.made,
-          yardsScale,
-          caption: result.lip ? "LIPS OUT!" : null,
-        }),
-        putt: { ...read, start: read.start, end, aimTicks, for: forLabelOf(live.strokes - hole.par) },
-        lip: result.lip,
-        side: "human",
-        kickPower: meter.power,
-        shotNumber: live.strokes,
-      };
-      if (animate && result.lip) nearMissSound();
-    } else {
-      const res = resolveLiveStroke({
-        projection,
-        hole,
-        from,
-        lie: live.lie,
-        meter,
-        judgment,
-        clubId: live.club,
-        // Buzzed flush = super shot: the ball goes extra.
-        carryBoost: (decision.carryBoost || 1) * (judgment.buzzBonus ? meterModsRef.current.buzzBonus || 1 : 1),
-        drunk: Boolean(meterModsRef.current.buzzWobble),
-        yardsScale,
-        // The tee ball flies at the planned target on the hole line (which
-        // already carries the aim); par-3 tee balls and approaches aim at the pin.
-        lineTarget: live.strokes === 0 && hole.par > 3 ? live.teeTarget : null,
-        aimUnits:
-          live.strokes === 0 && hole.par <= 3 ? aimOffsetOf(decision.aim) * clamp(projection.width * 0.12, 10, 22) : 0,
-        fireball: Boolean(decision.fireball),
-        rng: randomRef.current,
-        hi: selected?.hi ?? 12,
-        zoneScale: meterModsRef.current.zoneScale || 1,
-        seedSalt: hole.number * 13 + live.strokes * 7 + 2,
-      });
-      if (live.strokes === 0) {
-        live.teeLanding = {
-          point: res.to,
-          type:
-            res.kind === "ob" || res.kind === "splash"
-              ? "Penalty area"
-              : res.nextLie === "Bunker" || res.nextLie === "Rough"
-                ? res.nextLie
-                : "Fairway",
-        };
-      }
-      live.strokes += 1 + (res.penalty || 0);
-      live.pos = res.nextPos || res.to;
-      live.lie = res.nextLie || live.lie;
-      live.remainingUnits = res.holed ? 0 : Math.hypot(projection.pin[0] - live.pos[0], projection.pin[1] - live.pos[1]);
-      if (res.holed) live.holed = true;
-      if (res.feet != null) {
-        live.feet = res.feet;
-        live.puttCount = 0;
-        live.sceneCarry = null;
-      }
-      shot = {
-        ...makeShot({
-          from,
-          to: res.to,
-          kind: res.kind,
-          final: Boolean(res.holed),
-          bend: res.bend ?? 0,
-          yardsScale,
-          caption: res.caption,
-          ground: res.ground,
-        }),
-        side: "human",
-        kickPower: meter.power,
-        shotNumber: live.strokes,
-        terrible: judgment.tier === "wild",
-      };
+      const neededLabel = `NEEDED ${Math.abs(result.effRequired).toFixed(1)} ${result.effRequired > 0 ? "R" : "L"}`;
+      const paceLabel = `PACE ${result.paceErr >= 0 ? "+" : ""}${Math.round(result.paceErr * 100)}`;
+      setSwingFx((current) =>
+        current
+          ? { ...current, sub: result.made ? `${paceLabel} · PURE READ` : `${neededLabel} · ${paceLabel}` }
+          : current,
+      );
+      if (result.lip) nearMissSound();
     }
-    if (animate && shot) {
-      setPlaybackShots([shot]);
+    if (animate) {
+      setPlaybackShots([played.shot]);
       setPlaybackStep({ index: 0, phase: "swing", frame: 0 });
       setResolutionPhase("liveshot");
     }
@@ -3124,8 +3062,17 @@ export default function TripGame({ data }) {
       live.feet != null
         ? `${live.feet} FT LEFT`
         : `${Math.max(1, Math.round(Math.hypot(projection.pin[0] - live.pos[0], projection.pin[1] - live.pos[1]) / scale))}Y LEFT`;
-    if (live.strokes === 0) return { label: `ON THE TEE · ${remaining}` };
-    return { label: `STROKE ${live.strokes} · ${live.feet != null ? "ON THE GREEN" : live.lie.toUpperCase()} · ${remaining}` };
+    const cpu = live.cpu;
+    const them =
+      cpu && cpu.ball.strokes > 0
+        ? cpu.ball.holed
+          ? ` · THEM IN ${cpu.ball.strokes}`
+          : ` · THEM ${cpu.ball.strokes} · ${Math.max(1, Math.round(cpu.ball.remainingUnits / scale))}Y`
+        : "";
+    if (live.strokes === 0) return { label: `ON THE TEE · ${remaining}${them}` };
+    return {
+      label: `STROKE ${live.strokes} · ${live.feet != null ? "ON THE GREEN" : live.lie.toUpperCase()} · ${remaining}${them}`,
+    };
   }
 
   function handleLiveShotDone() {
@@ -3190,8 +3137,13 @@ export default function TripGame({ data }) {
       hole,
       random: randomRef.current,
       humanGrossOverride: humanGross,
-      cpuGrossOverride: live.cpuGross,
+      cpuGrossOverride: clamp(
+        live.cpu.conceded ? live.cpu.ball.strokes + 1 : ballGross(live.cpu.ball, hole),
+        1,
+        hole.par + 4,
+      ),
       humanLandingOverride: live.teeLanding?.type ?? null,
+      cpuLandingOverride: live.cpu.ball.teeLanding?.type ?? null,
     });
     // Every shot was already animated live — commit straight to the scorecard.
     stageHoleResult({
@@ -3244,7 +3196,19 @@ export default function TripGame({ data }) {
       const meter = { power, accuracy };
       advanceLiveState(meter, judgeSwing(meter.power, accuracy, { zoneScale: meterModsRef.current.baseZone || 1 }), false);
     }
-    live.cpuIndex = live.cpuShots.length;
+    const cpu = live.cpu;
+    let cpuGuard = 0;
+    while (cpu && !cpu.conceded && !ballDone(cpu.ball, hole) && cpuGuard < 14) {
+      cpuGuard += 1;
+      cpu.ball = simulateCpuStroke({
+        projection,
+        hole,
+        cpu,
+        yardsScale: live.yardsScale,
+        rng: randomRef.current,
+        seedSalt: hole.number * 17 + cpu.ball.strokes * 5 + 3,
+      }).ball;
+    }
     completeLiveHole();
   }
 
@@ -3321,6 +3285,7 @@ export default function TripGame({ data }) {
       hole,
       stateByPlayer: playerState,
       random: randomRef.current,
+      opponents: humanRoster.filter((player) => (usage[player.key] || 0) < maxUses),
     });
     if (!cpuPick) return;
     const cpuOdds = buildHoleOdds({
@@ -3693,6 +3658,15 @@ export default function TripGame({ data }) {
                 }
                 liveStatus={liveInfo && !result ? liveInfo.label : null}
                 livePos={liveInfo && !result && liveRef.current ? liveRef.current.pos : null}
+                cpuLive={
+                  liveInfo && !result && liveRef.current?.cpu
+                    ? {
+                        pos: liveRef.current.cpu.ball.pos,
+                        strokes: liveRef.current.cpu.ball.strokes,
+                        holed: liveRef.current.cpu.ball.holed,
+                      }
+                    : null
+                }
                 playerHi={selected?.hi ?? 12}
                 livePreview={livePreview}
                 puttPreview={

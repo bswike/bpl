@@ -2,6 +2,7 @@
 
 import {
   clamp,
+  distanceToPolyline,
   interpolate,
   pointAlongPolyline,
   polylineLength,
@@ -76,8 +77,20 @@ export function treeCollision(projection, holeNumber, point) {
   return null;
 }
 
+// Out of bounds is a corridor around the hole line, not the edge of the drawn
+// map: the map frame is just the bounding box of whatever OSM traced, which
+// left 12 m rough strips on some holes and 60 m on others.
+const OB_HALF_WIDTH = 48;
+const OB_MAP_MARGIN = 24;
+
 export function outOfBounds(projection, point) {
-  return point[0] < 2 || point[0] > projection.width - 2 || point[1] < 2 || point[1] > projection.height - 2;
+  const offMap =
+    point[0] < -OB_MAP_MARGIN ||
+    point[0] > projection.width + OB_MAP_MARGIN ||
+    point[1] < -OB_MAP_MARGIN ||
+    point[1] > projection.height + OB_MAP_MARGIN;
+  if (offMap) return true;
+  return distanceToPolyline(projection.line, point, true) > OB_HALF_WIDTH;
 }
 
 export function placeTeeLanding(projection, hole, decision, wantedType) {

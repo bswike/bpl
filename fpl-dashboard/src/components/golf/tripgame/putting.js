@@ -68,7 +68,9 @@ export function resolveLivePutt({ read, aimTicks, meter, puttCount }) {
     if (lip) leaveFeet = 1.5;
     else if (short) leaveFeet = clamp(read.feet * Math.min(0.75, -paceErr * 2.4), 1.5, read.feet * 0.8);
     else if (hot) leaveFeet = clamp(2 + paceErr * read.effFeet * tier.runout * 0.4, 2, 14);
-    else leaveFeet = clamp(1 + Math.abs(lineErr) * 1.4, 1.2, 6);
+    // A line miss rolls past by a little more than the read was off; long lags
+    // leave a bit extra for distance, never a full re-putt.
+    else leaveFeet = clamp(0.8 + Math.min(Math.abs(lineErr), 6) * 0.35 + read.feet * 0.05, 1, 4.5);
   }
   const missSide = Math.abs(lineErr) > 0.1 ? Math.sign(lineErr) : read.breakDir >= 0 ? 1 : -1;
   return { made, lip, leaveFeet, missSide, paceErr, lineErr, effRequired };
