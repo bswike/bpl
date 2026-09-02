@@ -9,9 +9,9 @@ import {
   chooseCpuPlayer,
   courseHandicap,
   defaultDecision,
-  holePops,
   findBestDecision,
   formatOdds,
+  holePops,
   makeSeededRandom,
   matchCloseout,
   resolveMatchHole,
@@ -41,1195 +41,94 @@ import {
   zoneTick,
 } from "./meterAudio";
 import {
-  classifyTerrain,
-  nearestFeaturePoint,
-  pointInPolygon,
-  polygonArea,
-  polygonCentroid,
-} from "./tripgame/terrain.js";
+  AIM_MAX,
+  AIM_STEP,
+  CART_GIRL_HOLES,
+  DEFAULT_PLAYER_STATE,
+  FIREBALL_HOLES,
+  MATCH_SAVE_KEY,
+  PLAYBACK_SAFETY_MS,
+} from "./tripgame/constants.js";
+import {
+  clamp,
+  curvedPath,
+  pathFromPoints,
+  quadPoint,
+  seededUnit,
+  sidePoint,
+} from "./tripgame/geometry.js";
+import { buildTreeSprites, projectHole } from "./tripgame/projection.js";
+import {
+  blendCamera,
+  cameraContains,
+  computeMapCamera,
+  pointNearGreen,
+} from "./tripgame/camera.js";
+import {
+  LIVE_CARRY_SWEET,
+  LIVE_CLUBS,
+  defaultLiveClub,
+  liveClubOf,
+} from "./tripgame/clubs.js";
+import {
+  computeShotTarget,
+  placeTeeLanding,
+  resolveLiveStroke,
+  shapeBend,
+  shapeDrift,
+  shotPatternFor,
+} from "./tripgame/shotPhysics.js";
+import {
+  FLIGHT_FRAME_MS,
+  buildShotSequence,
+  framesToPath,
+  makeShot,
+  mergeMatchPlayShots,
+} from "./tripgame/shotTheater.js";
+import {
+  PUTT_TICK_UNITS,
+  forLabelOf,
+  makePuttRead,
+  resolveLivePutt,
+} from "./tripgame/putting.js";
+import {
+  ACC_GOOD,
+  ACC_GREAT,
+  ACC_PURE,
+  BASE_ACC_SPEED,
+  BASE_POWER_SPEED,
+  CLUB_METER_SPEED,
+  CLUB_ZONE_SCALE,
+  CLUTCH_SPEED,
+  LIE_METER_MODS,
+  POWER_METER_MAX,
+  POWER_SWEET_MAX,
+  POWER_SWEET_MIN,
+  RED_BET_SPEED,
+  RED_BET_ZONE_SCALE,
+  SKILL_SPEED_PENALTY,
+  SKILL_ZONE_MIN,
+  SKILL_ZONE_RANGE,
+  buzzTierOf,
+  jittersFor,
+  judgeSwing,
+  meterStore,
+  yardTierOf,
+  zoneStyle,
+} from "./tripgame/meter.js";
+import { haptic } from "./tripgame/haptics.js";
+import {
+  aimText,
+  celebrationFor,
+  lastName,
+  scoreMark,
+  signedPercent,
+} from "./tripgame/format.js";
 import "./TripGame.css";
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
-const FIREBALL_HOLES = new Set([4, 8, 12, 16]);
-const CART_GIRL_HOLES = new Set([6, 14]);
-const PLAYBACK_SAFETY_MS = 28000;
-const FLIGHT_FRAME_MS = 78;
-const FEATURE_ORDER = { water: 0, fairway: 1, bunker: 2, green: 3, tee: 4 };
-const DEFAULT_PLAYER_STATE = Object.freeze({ buzz: 0, morale: 50 });
-
-const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
-
-// Haptics honour the OS reduce-motion setting; a no-op where vibrate is absent.
-function haptic(pattern) {
-  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
-  try {
-    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    navigator.vibrate(pattern);
-  } catch {
-    // decorative only
-  }
-}
-
-// The meter needle lives outside React state: the rAF loop writes here and
-// only KickMeter subscribes, so a frame never re-renders the map or roster.
-const meterStore = {
-  value: { power: 0, accuracy: -1 },
-  listeners: new Set(),
-  get() {
-    return meterStore.value;
-  },
-  set(power, accuracy) {
-    meterStore.value = { power, accuracy };
-    for (const listener of meterStore.listeners) listener();
-  },
-  subscribe(listener) {
-    meterStore.listeners.add(listener);
-    return () => meterStore.listeners.delete(listener);
-  },
-};
-
-const MATCH_SAVE_KEY = "tripGameMatch.v1";
-
-const AIM_STEP = 0.155;
-const AIM_MAX = 0.93;
-
-function aimText(aim) {
-  const offset = aimOffsetOf(aim);
-  const yards = Math.round((offset / AIM_MAX) * 25);
-  if (yards === 0) return "CENTER";
-  return `${Math.abs(yards)}Y ${yards < 0 ? "LEFT" : "RIGHT"}`;
-}
-
-function lastName(name) {
-  return String(name || "").trim().split(/\s+/).at(-1) || name;
-}
-
-function pathFromPoints(points, close = true) {
-  if (!points?.length) return "";
-  const commands = points.map(([x, y], index) => `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`);
-  return `${commands.join(" ")}${close ? " Z" : ""}`;
-}
-
-function polylineLength(points) {
-  let total = 0;
-  for (let index = 1; index < (points?.length || 0); index += 1) {
-    total += Math.hypot(points[index][0] - points[index - 1][0], points[index][1] - points[index - 1][1]);
-  }
-  return total;
-}
-
-function pointAlongPolyline(points, distance) {
-  if (!points?.length) return { point: [0, 0], tangent: [0, -1] };
-  if (points.length === 1) return { point: points[0], tangent: [0, -1] };
-  let remaining = Math.max(0, distance);
-  for (let index = 1; index < points.length; index += 1) {
-    const start = points[index - 1];
-    const end = points[index];
-    const dx = end[0] - start[0];
-    const dy = end[1] - start[1];
-    const length = Math.hypot(dx, dy);
-    if (!length) continue;
-    if (remaining <= length) {
-      const ratio = remaining / length;
-      return {
-        point: [start[0] + dx * ratio, start[1] + dy * ratio],
-        tangent: [dx / length, dy / length],
-      };
-    }
-    remaining -= length;
-  }
-  const end = points.at(-1);
-  const previous = points.at(-2);
-  const dx = end[0] - previous[0];
-  const dy = end[1] - previous[1];
-  const length = Math.hypot(dx, dy) || 1;
-  return { point: end, tangent: [dx / length, dy / length] };
-}
-
-function seededUnit(seed) {
-  const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
-  return value - Math.floor(value);
-}
-
-function buildTreeSprites(projection, holeNumber) {
-  const length = polylineLength(projection.line);
-  if (!length) return [];
-  const rows = clamp(Math.round(projection.height / 44), 6, 13);
-  const trees = [];
-  for (let row = 0; row < rows; row += 1) {
-    const progress = 0.08 + (row / Math.max(1, rows - 1)) * 0.82;
-    const axis = pointAlongPolyline(projection.line, length * progress);
-    const perpendicular = [-axis.tangent[1], axis.tangent[0]];
-    for (const side of [-1, 1]) {
-      const seed = holeNumber * 101 + row * 17 + (side > 0 ? 7 : 3);
-      if (seededUnit(seed) < 0.13) continue;
-      const corridor = clamp(projection.width * 0.22, 18, 43);
-      const offset = corridor + seededUnit(seed + 1) * 13;
-      const along = (seededUnit(seed + 2) - 0.5) * 12;
-      const x = axis.point[0] + perpendicular[0] * offset * side + axis.tangent[0] * along;
-      const y = axis.point[1] + perpendicular[1] * offset * side + axis.tangent[1] * along;
-      if (x < 5 || x > projection.width - 5 || y < 8 || y > projection.height - 8) continue;
-      trees.push({
-        x,
-        y,
-        size: 4.2 + seededUnit(seed + 3) * 3.6,
-        variant: Math.floor(seededUnit(seed + 4) * 3),
-      });
-    }
-  }
-  return trees;
-}
-
-function routeShapeProfile(line, tee, pin) {
-  const length = polylineLength(line);
-  if (!length) return { preferredShape: "straight", shapeSeverity: 0 };
-  const samples = [
-    { progress: 0.3, weight: 0.2 },
-    { progress: 0.5, weight: 0.5 },
-    { progress: 0.68, weight: 0.3 },
-  ];
-  const deviation = samples.reduce((total, sample) => {
-    const point = pointAlongPolyline(line, length * sample.progress).point;
-    const directX = tee[0] + (pin[0] - tee[0]) * sample.progress;
-    return total + (point[0] - directX) * sample.weight;
-  }, 0);
-  const shapeSeverity = clamp((Math.abs(deviation) - 3) / 28, 0, 1);
-  return {
-    preferredShape: shapeSeverity < 0.12 ? "straight" : deviation < 0 ? "cut" : "draw",
-    shapeSeverity,
-  };
-}
-
-function interpolate(a, b, t) {
-  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-}
-
-function curvedPath(from, to, bend) {
-  const mid = interpolate(from, to, 0.5);
-  const dx = to[0] - from[0];
-  const dy = to[1] - from[1];
-  const length = Math.hypot(dx, dy) || 1;
-  const perpendicular = [-dy / length, dx / length];
-  const control = [mid[0] + perpendicular[0] * bend, mid[1] + perpendicular[1] * bend];
-  return `M${from[0].toFixed(1)},${from[1].toFixed(1)} Q${control[0].toFixed(1)},${control[1].toFixed(1)} ${to[0].toFixed(
-    1,
-  )},${to[1].toFixed(1)}`;
-}
-
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
-function featureBounds(features, type) {
-  const points = features.filter((feature) => feature.type === type).flatMap((feature) => feature.points);
-  if (!points.length) return null;
-  return {
-    minX: Math.min(...points.map((point) => point[0])),
-    maxX: Math.max(...points.map((point) => point[0])),
-    minY: Math.min(...points.map((point) => point[1])),
-    maxY: Math.max(...points.map((point) => point[1])),
-    cx: points.reduce((total, point) => total + point[0], 0) / points.length,
-    cy: points.reduce((total, point) => total + point[1], 0) / points.length,
-  };
-}
-
-function clampCamera(camera, worldW, worldH) {
-  const w = clamp(camera.w, 12, worldW);
-  const h = clamp(camera.h, 12, worldH);
-  return {
-    x: clamp(camera.x, 0, Math.max(0, worldW - w)),
-    y: clamp(camera.y, 0, Math.max(0, worldH - h)),
-    w,
-    h,
-  };
-}
-
-function fullCamera(projection) {
-  return { x: 0, y: 0, w: projection.width, h: projection.height };
-}
-
-/**
- * Tight bounds around the actual hole (line, tee, pin, turf features) — the
- * overview camera frames THIS instead of the whole canvas, so the course
- * fills the screen instead of floating in blank rough.
- */
-const corridorCache = new WeakMap();
-
-function holeCorridorCamera(projection) {
-  const cached = corridorCache.get(projection);
-  if (cached) return cached;
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  const push = (point) => {
-    minX = Math.min(minX, point[0]);
-    maxX = Math.max(maxX, point[0]);
-    minY = Math.min(minY, point[1]);
-    maxY = Math.max(maxY, point[1]);
-  };
-  (projection.line || []).forEach(push);
-  if (projection.tee) push(projection.tee);
-  if (projection.pin) push(projection.pin);
-  for (const feature of projection.features || []) {
-    if (feature.points && feature.points.length >= 3) feature.points.forEach(push);
-  }
-  if (!Number.isFinite(minX)) return fullCamera(projection);
-  const padX = Math.max(9, (maxX - minX) * 0.07);
-  const padY = Math.max(7, (maxY - minY) * 0.045);
-  const camera = clampCamera(
-    { x: minX - padX, y: minY - padY, w: maxX - minX + padX * 2, h: maxY - minY + padY * 2 },
-    projection.width,
-    projection.height,
-  );
-  corridorCache.set(projection, camera);
-  return camera;
-}
-
-/**
- * Grow a camera rect to match the on-screen container's aspect ratio, so the
- * view fills the frame edge-to-edge with no letterboxing.
- */
-function aspectFitCamera(camera, aspect, worldW, worldH) {
-  if (!aspect || !Number.isFinite(aspect)) return camera;
-  let { x, y, w, h } = camera;
-  const camAspect = w / h;
-  if (camAspect < aspect) {
-    const nextW = h * aspect;
-    x -= (nextW - w) / 2;
-    w = nextW;
-  } else if (camAspect > aspect) {
-    const nextH = w / aspect;
-    y -= (nextH - h) / 2;
-    h = nextH;
-  }
-  // Keep the window inside the world when it fits; center it when it can't.
-  if (w <= worldW) x = clamp(x, 0, worldW - w);
-  else x = (worldW - w) / 2;
-  if (h <= worldH) y = clamp(y, 0, worldH - h);
-  else y = (worldH - h) / 2;
-  return { x, y, w, h };
-}
-
-function cameraWindow(cx, cy, height, worldW, worldH, aspect = 0.82) {
-  const h = clamp(height, 80, worldH);
-  let w = h * aspect;
-  if (w > worldW) w = worldW;
-  const finalH = Math.min(Math.max(w / aspect, 80), worldH);
-  return clampCamera({ x: cx - w / 2, y: cy - finalH / 2, w, h: finalH }, worldW, worldH);
-}
-
-function lookAheadPoint(from, to, distance) {
-  const dx = to[0] - from[0];
-  const dy = to[1] - from[1];
-  const length = Math.hypot(dx, dy) || 1;
-  const t = clamp(distance / length, 0, 1);
-  return [from[0] + dx * t, from[1] + dy * t];
-}
-
-function cameraContains(camera, point, margin = 14) {
-  return (
-    point[0] >= camera.x + margin &&
-    point[0] <= camera.x + camera.w - margin &&
-    point[1] >= camera.y + margin &&
-    point[1] <= camera.y + camera.h - margin
-  );
-}
-
-function trackShotCamera({ projection, ballAir, ballGround, destination, kind, onGreen }) {
-  const worldW = projection.width;
-  const worldH = projection.height;
-  const look = lookAheadPoint(ballGround, destination, onGreen || kind === "putt" ? 42 : 110);
-  const cx = ballAir[0] * 0.48 + look[0] * 0.52;
-  const cy = ballAir[1] * 0.42 + look[1] * 0.48 + ballGround[1] * 0.1;
-  const coverH = Math.abs(look[1] - ballAir[1]) + Math.abs(ballGround[1] - ballAir[1]) + 58;
-  const coverW = Math.abs(look[0] - ballAir[0]) + 46;
-  const minH = onGreen || kind === "putt" ? 128 : 168;
-  const maxH = onGreen || kind === "putt" ? 168 : kind === "drive" || kind === "tee" ? 236 : 200;
-  return cameraWindow(cx, cy, clamp(Math.max(coverH, coverW / 0.78, minH), minH, maxH), worldW, worldH, 0.78);
-}
-
-function usableGreen(projection) {
-  const green = featureBounds(projection.features, "green");
-  if (!green) return null;
-  const wide = green.maxX - green.minX;
-  const tall = green.maxY - green.minY;
-  if (wide > projection.width * 0.62 || tall > projection.height * 0.32) return null;
-  return green;
-}
-
-function greenCamera(projection) {
-  const green = usableGreen(projection);
-  const pin = projection.pin;
-  const span = projection.height * 0.4;
-  if (green) {
-    const cx = lerp(green.cx, pin[0], 0.3);
-    const cy = lerp(green.cy, pin[1], 0.3);
-    return cameraWindow(cx, cy, Math.max(span, (green.maxY - green.minY) * 2.8), projection.width, projection.height);
-  }
-  return cameraWindow(pin[0], pin[1], span, projection.width, projection.height);
-}
-
-function pointNearGreen(point, projection) {
-  if (Math.hypot(point[0] - projection.pin[0], point[1] - projection.pin[1]) < 22) return true;
-  const green = usableGreen(projection);
-  if (!green) return false;
-  return (
-    point[0] >= green.minX - 6 &&
-    point[0] <= green.maxX + 6 &&
-    point[1] >= green.minY - 6 &&
-    point[1] <= green.maxY + 6
-  );
-}
-
-function blendCamera(from, to, t) {
-  if (!from) return to;
-  return {
-    x: lerp(from.x, to.x, t),
-    y: lerp(from.y, to.y, t),
-    w: lerp(from.w, to.w, t),
-    h: lerp(from.h, to.h, t),
-  };
-}
-
-function computeMapCamera({ projection, playback, landing, activeShot, flightFrame, liveFocus, aspect }) {
-  const overview = aspectFitCamera(holeCorridorCamera(projection), aspect, projection.width, projection.height);
-  const pin = projection.pin;
-  const greenCam = greenCamera(projection);
-
-  // Shot-by-shot club selection: show the whole hole so the player can judge
-  // the club; zoom in only once the ball is on the green.
-  if (liveFocus && !playback) {
-    if (pointNearGreen(liveFocus, projection)) {
-      return blendCamera(
-        trackShotCamera({
-          projection,
-          ballAir: liveFocus,
-          ballGround: liveFocus,
-          destination: pin,
-          kind: "approach",
-          onGreen: true,
-        }),
-        greenCam,
-        0.55,
-      );
-    }
-    // The played part of the hole no longer matters: frame only the rest —
-    // from the ball to the pin (with a little green past it).
-    const rest = {
-      x: Math.min(liveFocus[0], pin[0]) - 24,
-      y: Math.min(liveFocus[1], pin[1]) - 18,
-      w: Math.abs(liveFocus[0] - pin[0]) + 48,
-      h: Math.abs(liveFocus[1] - pin[1]) + 34,
-    };
-    if (rest.h < 76) {
-      rest.y -= (76 - rest.h) / 2;
-      rest.h = 76;
-    }
-    if (rest.w < 60) {
-      rest.x -= (60 - rest.w) / 2;
-      rest.w = 60;
-    }
-    return aspectFitCamera(
-      clampCamera(rest, projection.width, projection.height),
-      aspect,
-      projection.width,
-      projection.height,
-    );
-  }
-
-  if (playback && activeShot) {
-    const ground = flightFrame
-      ? [flightFrame.gx, flightFrame.gy]
-      : playback.phase === "settle"
-        ? activeShot.to
-        : activeShot.from;
-    const air = flightFrame ? [flightFrame.x, flightFrame.y] : ground;
-    const openingTee = playback.index === 0 && (activeShot.kind === "drive" || activeShot.kind === "tee" || activeShot.kind === "splash");
-    const onGreenNow =
-      activeShot.kind === "putt" ||
-      activeShot.final ||
-      (pointNearGreen(ground, projection) && !openingTee);
-
-    if (openingTee && playback.phase === "swing") {
-      return cameraWindow(activeShot.from[0], activeShot.from[1] - 2, 84, projection.width, projection.height, 1.15);
-    }
-
-    const follow = trackShotCamera({
-      projection,
-      ballAir: air,
-      ballGround: ground,
-      destination: activeShot.to,
-      kind: activeShot.kind,
-      onGreen: onGreenNow,
-    });
-
-    if (onGreenNow) return blendCamera(follow, greenCam, 0.55);
-
-    return follow;
-  }
-
-  if (landing) {
-    return trackShotCamera({
-      projection,
-      ballAir: landing,
-      ballGround: landing,
-      destination: pin,
-      kind: "approach",
-      onGreen: pointNearGreen(landing, projection),
-    });
-  }
-
-  return overview;
-}
-
-function computeShotTarget(projection, hole, decision) {
-  const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
-  const lineLength = polylineLength(projection.line);
-  const metered = Number.isFinite(Number(decision.power));
-  const power = metered ? clamp(Number(decision.power), 0, 1.18) : 0.9;
-  const boost = Number(decision.carryBoost) || 1;
-  const carry = (metered ? club.carry * (0.7 + clamp(power, 0, 1.15) * 0.4) : club.carry) * boost;
-  const targetYards = hole.yards ? Math.min(Math.round(carry), Math.round(hole.yards * 0.98)) : Math.round(carry);
-  const targetDistance = hole.yards ? lineLength * (targetYards / hole.yards) : lineLength * (hole.par <= 3 ? 0.94 : 0.58);
-  const centerTarget = pointAlongPolyline(projection.line, targetDistance);
-  const perpendicular = [-centerTarget.tangent[1], centerTarget.tangent[0]];
-  const lateralAim = aimOffsetOf(decision.aim) * clamp(projection.width * 0.12, 10, 22);
-  return {
-    club,
-    lineLength,
-    targetYards,
-    targetDistance,
-    perpendicular,
-    target: [centerTarget.point[0] + perpendicular[0] * lateralAim, centerTarget.point[1] + perpendicular[1] * lateralAim],
-  };
-}
-
-function shapeBend(projection, shape) {
-  return (shape?.bias || 0) * clamp(projection.width * 0.62, 40, 96);
-}
-
-function shapeDrift(projection, shape) {
-  return (shape?.bias || 0) * clamp(projection.width * 0.24, 18, 44);
-}
-
-/**
- * Water check for balls rolling ALONG the ground (tops, duffs): the first wet
- * point on the straight ground path stops them. Airborne shots fly over
- * water and only splash where they actually land — that check is the
- * landing-point terrain classification, not this.
- */
-function firstWaterAlongGround(features, from, to) {
-  for (let index = 1; index <= 20; index += 1) {
-    const point = [from[0] + ((to[0] - from[0]) * index) / 20, from[1] + ((to[1] - from[1]) * index) / 20];
-    if (classifyTerrain(features, point) === "Penalty area") return point;
-  }
-  return null;
-}
-
-function placeInRough(projection, seed, perpendicular) {
-  const prefer = projection.dangerSide === "left" ? -1 : 1;
-  const sides = prefer < 0 ? [-1, 1] : [1, -1];
-  for (const side of sides) {
-    for (const distance of [18, 26, 34, 44]) {
-      const point = [seed[0] + perpendicular[0] * distance * side, seed[1] + perpendicular[1] * distance * side];
-      if (classifyTerrain(projection.features, point) === "Rough") return point;
-    }
-  }
-  return [seed[0] + perpendicular[0] * 24 * prefer, seed[1] + perpendicular[1] * 24 * prefer];
-}
-
-function treeCollision(projection, holeNumber, point) {
-  for (const tree of projection.trees || buildTreeSprites(projection, holeNumber)) {
-    if (Math.hypot(point[0] - tree.x, point[1] - tree.y) <= tree.size * 1.15) return tree;
-  }
-  return null;
-}
-
-function outOfBounds(projection, point) {
-  return point[0] < 2 || point[0] > projection.width - 2 || point[1] < 2 || point[1] > projection.height - 2;
-}
-
-function placeTeeLanding(projection, hole, decision, wantedType) {
-  const { target, perpendicular } = computeShotTarget(projection, hole, decision);
-  const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
-  const drift = shapeDrift(projection, shape);
-  const aimed = [target[0] + perpendicular[0] * drift, target[1] + perpendicular[1] * drift];
-  let point = aimed;
-  let type = wantedType;
-
-  if (type === "Penalty area") {
-    const water = nearestFeaturePoint(projection.features, "water", aimed, 72);
-    if (water) point = water.point;
-    else type = "Rough";
-  }
-  if (type === "Bunker") {
-    const bunker = nearestFeaturePoint(projection.features, "bunker", aimed, 48);
-    if (bunker) point = bunker.point;
-    else type = "Rough";
-  }
-  if (type === "Fairway") {
-    const fairway = nearestFeaturePoint(projection.features, ["fairway", "green"], aimed, 56);
-    if (fairway) point = fairway.point;
-  }
-  if (type === "Rough") point = placeInRough(projection, aimed, perpendicular);
-
-  // The trees are real now: a ball landing in a canopy kicks out toward the tee.
-  let treeHit = false;
-  const tree = treeCollision(projection, hole.number, point);
-  if (tree) {
-    treeHit = true;
-    const toTee = [projection.tee[0] - point[0], projection.tee[1] - point[1]];
-    const away = Math.hypot(toTee[0], toTee[1]) || 1;
-    const kick = tree.size * 1.15 + 5;
-    point = [point[0] + (toTee[0] / away) * kick, point[1] + (toTee[1] / away) * kick];
-  }
-
-  // Off the mapped corridor entirely = OB, stroke and distance.
-  if (outOfBounds(projection, point)) {
-    return {
-      point: [clamp(point[0], 3, projection.width - 3), clamp(point[1], 3, projection.height - 3)],
-      type: "Penalty area",
-      ob: true,
-      treeHit,
-    };
-  }
-  return { point, type: classifyTerrain(projection.features, point), treeHit };
-}
-
-const SHOT_CAPTIONS = {
-  drive: "CRUSHED OFF THE TEE!",
-  tee: "TEE SHOT AWAY!",
-  splash: "OH NO... SPLASH!",
-  ob: "OB! STROKE AND DISTANCE!",
-  sand: "OUT OF THE SAND!",
-  punch: "PUNCHES FROM THE ROUGH!",
-  approach: "APPROACH SHOT...",
-  putt: "ROLLING...",
-};
-
-function quadPoint(from, control, to, t) {
-  const inverse = 1 - t;
-  return [
-    inverse * inverse * from[0] + 2 * inverse * t * control[0] + t * t * to[0],
-    inverse * inverse * from[1] + 2 * inverse * t * control[1] + t * t * to[1],
-  ];
-}
-
-function framesToPath(frames, lifted = true) {
-  if (!frames.length) return "";
-  return frames
-    .map((frame, index) => {
-      const x = lifted ? frame.x : frame.gx;
-      const y = lifted ? frame.y : frame.gy;
-      return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-}
-
-function buildFlightFrames({ from, to, control, apex, air }) {
-  const distance = Math.hypot(to[0] - from[0], to[1] - from[1]);
-  const count = air ? clamp(Math.round(distance / 10), 10, 18) : clamp(Math.round(distance / 4.5), 6, 10);
-  const frames = [];
-  for (let index = 0; index <= count; index += 1) {
-    const t = index / count;
-    const ground = quadPoint(from, control, to, t);
-    const lift = air ? 4 * t * (1 - t) * apex : 0;
-    frames.push({
-      gx: ground[0],
-      gy: ground[1],
-      x: ground[0],
-      y: ground[1] - lift,
-      lift,
-      size: air ? clamp(3.6 + lift * 0.08, 3.6, 7.2) : 3,
-      shadow: Math.max(1.1, 3.1 - lift * 0.045),
-    });
-  }
-  return frames;
-}
-
-function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0, caption = null, ground = false }) {
-  const distance = Math.hypot(to[0] - from[0], to[1] - from[1]);
-  const air = kind !== "putt" && !ground;
-  const dx = to[0] - from[0];
-  const dy = to[1] - from[1];
-  const length = Math.hypot(dx, dy) || 1;
-  const lateral = air ? bend : 0;
-  const control = [
-    (from[0] + to[0]) / 2 + (-dy / length) * lateral,
-    (from[1] + to[1]) / 2 + (dx / length) * lateral,
-  ];
-  const lowFlight = kind === "sand" || kind === "punch";
-  const apex = air ? clamp(distance * (lowFlight ? 0.34 : 0.62), 18, 78) : 0;
-  const frames = buildFlightFrames({ from, to, control, apex, air });
-  return {
-    from,
-    to,
-    control,
-    kind,
-    final,
-    air,
-    apex,
-    frames,
-    airPath: framesToPath(frames, true),
-    groundPath: framesToPath(frames, false),
-    yards: yardsScale ? Math.max(1, Math.round(distance / yardsScale)) : null,
-    caption: caption || (final ? "FOR THE HOLE..." : SHOT_CAPTIONS[kind] || "SWINGS..."),
-    duration: frames.length * FLIGHT_FRAME_MS,
-  };
-}
-
-/**
- * Turn a sampled hole outcome into a cartoon shot-by-shot sequence:
- * tee ball -> (drop) -> approaches -> putts, ending in the cup.
- * Works for either side — shots are tagged so the theater knows who is hitting.
- */
-function buildShotSequence({ projection, hole, decision, gross, landingLabel, side = "human", seedSalt = 0 }) {
-  const { lineLength } = computeShotTarget(projection, hole, decision);
-  const shape = SHAPES.find((item) => item.id === decision.shape) || SHAPES[1];
-  const yardsScale = hole.yards ? lineLength / hole.yards : 0;
-  const pin = projection.pin;
-  const placed = placeTeeLanding(projection, hole, decision, landingLabel);
-  const landingType = placed.type;
-  const landing = placed.point;
-  const bend = shapeBend(projection, shape);
-  const seed = hole.number * 37 + gross * 11 + seedSalt;
-  const jitter = (index, scale) => (seededUnit(seed + index) - 0.5) * scale;
-
-  const shots = [];
-  let current = projection.tee;
-  let remaining = gross;
-
-  if (landingType === "Penalty area") {
-    shots.push(makeShot({ from: current, to: landing, kind: placed.ob ? "ob" : "splash", bend, yardsScale }));
-    remaining -= 2; // stroke plus penalty
-    current = dryDropPoint(projection, landing, projection.tee);
-  } else {
-    shots.push(
-      makeShot({
-        from: current,
-        to: landing,
-        kind: hole.par <= 3 ? "tee" : "drive",
-        bend,
-        yardsScale,
-        caption: placed.treeHit ? "CLIPS A TREE!" : null,
-      }),
-    );
-    remaining -= 1;
-    current = landing;
-  }
-  remaining = Math.max(1, remaining);
-
-  // On the green already (drove a par 4, reached in regulation, etc.):
-  // everything left is putts — nobody chips off the putting surface.
-  const teeBallOnGreen = landingType !== "Penalty area" && landingType !== "Bunker" && pointNearGreen(current, projection);
-  let putts;
-  if (teeBallOnGreen) {
-    putts = remaining;
-  } else if (hole.par === 3 && (landingType === "Fairway" || landingType === "Rough") && remaining <= 2) {
-    putts = remaining; // par-3 tee ball is greenside; just putt out
-  } else {
-    putts = remaining >= 3 ? 2 : remaining === 2 ? (hole.par === 3 ? 2 : 1) : 1;
-  }
-  putts = clamp(putts, 1, 3);
-  let approaches = remaining - putts;
-  if (approaches < 0) {
-    approaches = 0;
-    putts = remaining;
-  }
-
-  const greenEntry = [pin[0] + jitter(1, 10), pin[1] + 5 + jitter(2, 4)];
-  for (let index = 0; index < approaches; index += 1) {
-    // An earlier shot already found the green — putt out from here instead.
-    if (pointNearGreen(current, projection)) {
-      putts += approaches - index;
-      break;
-    }
-    const last = index === approaches - 1;
-    // Never let a decorative landing rest in water or off the map — the
-    // sampled score didn't include a penalty there.
-    const destination = dryVisualPoint(
-      projection,
-      current,
-      last
-        ? greenEntry
-        : [
-            interpolate(current, greenEntry, (index + 1) / approaches)[0] + jitter(index + 3, 14),
-            interpolate(current, greenEntry, (index + 1) / approaches)[1] + jitter(index + 7, 8),
-          ],
-    );
-    const kind =
-      index === 0 && landingType === "Bunker"
-        ? "sand"
-        : index === 0 && landingType === "Rough"
-          ? "punch"
-          : "approach";
-    shots.push(makeShot({ from: current, to: destination, kind, bend: jitter(index + 11, 12), yardsScale }));
-    current = destination;
-  }
-
-  // Each putt gets a deterministic read (break + slope) and chained scene
-  // geometry: the next putt starts exactly where the last one finished, so a
-  // good lag leaves a short one instead of resetting across the green.
-  const sceneCup = [85, 36];
-  let sceneCarry = null;
-  const puttScene = (salt, mapFrom, mapTo, final) => {
-    const breakDir = (seededUnit(seed + salt) - 0.5) * 1.8;
-    const slope = (seededUnit(seed + salt + 1) - 0.5) * 1.6;
-    const yardsFeet = yardsScale
-      ? Math.round((Math.hypot(mapTo[0] - mapFrom[0], mapTo[1] - mapFrom[1]) / yardsScale) * 3)
-      : 8;
-    const start = sceneCarry || [
-      sceneCup[0] - breakDir * clamp(yardsFeet * 0.9, 4, 22),
-      sceneCup[1] + clamp(26 + yardsFeet * 1.3, 34, 78),
-    ];
-    const distFromCup = Math.hypot(start[0] - sceneCup[0], start[1] - sceneCup[1]);
-    const feet = sceneCarry ? Math.max(1, Math.round(distFromCup / 2.5)) : clamp(Math.max(2, yardsFeet), 2, 48);
-    const nearBase = sceneCarry ? 3.2 : 6;
-    const end = final
-      ? sceneCup
-      : [sceneCup[0] - breakDir * 2.5, sceneCup[1] + nearBase + seededUnit(seed + salt + 2) * (sceneCarry ? 1.5 : 3.5)];
-    sceneCarry = final ? null : end;
-    return { breakDir, slope, start, end, feet, stimp: stimpOf(hole) };
-  };
-  const lagTotal = Math.min(3, putts) - 1;
-  for (let lag = 0; lag < lagTotal; lag += 1) {
-    const lagSpot = [pin[0] + jitter(13 + lag, 3), pin[1] + 1.6 + jitter(14 + lag, 1.5)];
-    shots.push({
-      ...makeShot({ from: current, to: lagSpot, kind: "putt", yardsScale }),
-      putt: { ...puttScene(40 + lag * 3, current, lagSpot, false), for: forLabelOf(gross - (lagTotal - lag) - hole.par) },
-    });
-    current = lagSpot;
-  }
-  shots.push({
-    ...makeShot({ from: current, to: pin, kind: "putt", final: true, yardsScale }),
-    putt: { ...puttScene(48, current, pin, true), for: forLabelOf(gross - hole.par) },
-  });
-  return shots.map((shot) => ({ ...shot, side }));
-}
-
-/**
- * Interleave the two sides match-play style: honors off the tee, then the
- * ball farther from the hole plays — and keeps playing while still away.
- */
-function mergeMatchPlayShots(firstSide, secondSide, pin) {
-  if (!pin) return [...firstSide, ...secondSide];
-  const merged = [];
-  let a = 0;
-  let b = 0;
-  if (firstSide.length) merged.push(firstSide[a++]);
-  if (secondSide.length) merged.push(secondSide[b++]);
-  const away = (shot) => Math.hypot(shot.from[0] - pin[0], shot.from[1] - pin[1]);
-  while (a < firstSide.length || b < secondSide.length) {
-    if (a >= firstSide.length) {
-      merged.push(secondSide[b++]);
-    } else if (b >= secondSide.length) {
-      merged.push(firstSide[a++]);
-    } else if (away(firstSide[a]) >= away(secondSide[b])) {
-      merged.push(firstSide[a++]);
-    } else {
-      merged.push(secondSide[b++]);
-    }
-  }
-  return merged;
-}
-
-/**
- * Resolve one played full swing in shot-by-shot mode: carry from club/power,
- * scatter from accuracy, then real terrain — trees, water, OB, sand, green.
- */
-function resolveLiveStroke({
-  projection,
-  hole,
-  from,
-  lie,
-  meter,
-  judgment,
-  clubId,
-  carryBoost,
-  yardsScale,
-  aimUnits = 0,
-  drunk = false,
-  hi = 12,
-  zoneScale = 1,
-  seedSalt = 0,
-  lineTarget = null,
-  fireball = false,
-  rng = null,
-}) {
-  const pin = projection.pin;
-  const scale = yardsScale > 0 ? yardsScale : 1;
-  // A tee ball flies at the planned target on the hole line (doglegs bend,
-  // the ball does not); every later stroke aims straight at the pin.
-  const aimAt = lineTarget || pin;
-  const dx = aimAt[0] - from[0];
-  const dy = aimAt[1] - from[1];
-  const distUnits = Math.hypot(dx, dy) || 1;
-  const dir = [dx / distUnits, dy / distUnits];
-  // Miss direction matches the meter as the PLAYER sees it: the needle's
-  // right is the screen's right, so the lateral axis always points screen-
-  // right — even on shots played back toward the tee.
-  let perp = [-dir[1], dir[0]];
-  if (perp[0] < 0) perp = [-perp[0], -perp[1]];
-  const lieMult = lie === "Rough" ? 0.88 : lie === "Bunker" ? 0.8 : 1;
-  const power = clamp(Number(meter.power) || 0.9, 0, 1.15);
-  const liveClub = liveClubOf(clubId);
-  const baseCarry = liveClub ? liveClub.carry : (CLUBS.find((club) => club.id === clubId) || CLUBS[2]).carry;
-  // The golfer's real dispersion oval, centered on a sweet-spot strike.
-  // Fireball: a little more gas and a lot more spray, in both swing modes.
-  const centerCarry = baseCarry * LIVE_CARRY_SWEET * (carryBoost || 1) * lieMult * (fireball ? 1.06 : 1);
-  const basePattern = shotPatternFor(hi, centerCarry);
-  const pattern = fireball
-    ? { lateral: basePattern.lateral * 1.4, short: basePattern.short * 1.15, long: basePattern.long * 1.3 }
-    : basePattern;
-  const wild = judgment.tier === "wild";
-  let carryYards;
-  let lateralYards;
-  let caption = null;
-  let groundBall = false;
-  if (!wild) {
-    // The meter places the ball inside the oval: dead-center taps land dead
-    // center; edge-of-good taps ride the oval's edge.
-    const lineNorm = clamp(meter.accuracy / (ACC_GOOD * (zoneScale || 1)), -1, 1);
-    const depthNorm = clamp((power - 0.87) / 0.09, -1.6, 1.6);
-    lateralYards = lineNorm * pattern.lateral;
-    carryYards = centerCarry + (depthNorm < 0 ? depthNorm * pattern.short : depthNorm * pattern.long);
-  } else {
-    // Shank table: a wild tap is a real mishit — top, duff, or the big miss.
-    const side = meter.accuracy >= 0 ? 1 : -1;
-    const roll = rng ? rng() : seededUnit(seedSalt);
-    if (roll < 0.2) {
-      carryYards = centerCarry * 0.28;
-      lateralYards = side * pattern.lateral * 0.4;
-      caption = "TOPPED IT!";
-      groundBall = true;
-    } else if (roll < 0.4) {
-      carryYards = Math.max(6, centerCarry * 0.12);
-      lateralYards = side * pattern.lateral * 0.2;
-      caption = "CHUNKED IT!";
-      groundBall = true;
-    } else {
-      carryYards = centerCarry * 0.8;
-      lateralYards = side * pattern.lateral * 2.8 * (drunk ? 1.3 : 1);
-      caption = side > 0 ? "BANANA SLICE!" : "SNAP HOOK!";
-    }
-  }
-  let to = [
-    from[0] + dir[0] * carryYards * scale + perp[0] * (lateralYards * scale + aimUnits),
-    from[1] + dir[1] * carryYards * scale + perp[1] * (lateralYards * scale + aimUnits),
-  ];
-  const kind = lie === "Tee" ? (hole.par <= 3 ? "tee" : "drive") : lie === "Bunker" ? "sand" : lie === "Rough" ? "punch" : "approach";
-  // Ground balls stay on the dirt; airborne wild ones visibly banana-slice.
-  const bend = groundBall ? 0 : clamp(meter.accuracy * 20 * (wild ? 2.4 : 1), -55, 55);
-  const shankCaption = caption;
-
-  const finish = (extra) => ({ kind, to, nextPos: to, caption, bend, ground: groundBall, ...extra });
-  const splash = (wet) => ({
-    kind: "splash",
-    to: wet,
-    nextPos: dryDropPoint(projection, wet, from),
-    nextLie: "Rough",
-    penalty: 1,
-    bend,
-    ground: groundBall,
-    caption: shankCaption ? `${shankCaption} SPLASH!` : null,
-  });
-
-  // Only ground-scuttling mishits can find water mid-path; a flighted ball
-  // splashes only where it lands (checked below).
-  const waterHit = groundBall ? firstWaterAlongGround(projection.features, from, to) : null;
-  if (waterHit) return splash(waterHit);
-  const tree = !groundBall ? treeCollision(projection, hole.number, to) : null;
-  if (tree) {
-    caption = caption || "CLIPS A TREE!";
-    const toTee = [from[0] - to[0], from[1] - to[1]];
-    const away = Math.hypot(toTee[0], toTee[1]) || 1;
-    const kick = tree.size * 1.15 + 5;
-    to = [to[0] + (toTee[0] / away) * kick, to[1] + (toTee[1] / away) * kick];
-  }
-  if (outOfBounds(projection, to)) {
-    return {
-      kind: "ob",
-      to: [clamp(to[0], 3, projection.width - 3), clamp(to[1], 3, projection.height - 3)],
-      nextPos: from,
-      nextLie: lie,
-      penalty: 1,
-      bend,
-      ground: groundBall,
-      caption: wild ? `${shankCaption || "WILD ONE"}... OB!` : null,
-    };
-  }
-  // Wherever the ball graphic rests decides: water is water, before any
-  // green proximity — a pond beside the pin is still a pond.
-  const terrain = classifyTerrain(projection.features, to);
-  if (terrain === "Penalty area") return splash(to);
-  const pinDist = Math.hypot(to[0] - pin[0], to[1] - pin[1]);
-  // A flushed wedge can drop right in the bucket.
-  if (judgment.tier === "pure" && clubId === "wedge" && pinDist <= 2.4) {
-    return finish({ to: pin, nextPos: pin, holed: true, caption: "JARRED IT!" });
-  }
-  // Sand beside the green is still sand; only then does green proximity count.
-  if (terrain === "Bunker") return finish({ nextLie: "Bunker" });
-  if (pointNearGreen(to, projection)) {
-    const feet = clamp(Math.round((pinDist / scale) * 3), 2, 60);
-    return finish({ nextLie: "Green", feet });
-  }
-  return finish({ nextLie: terrain });
-}
-
-/** Walk back from a wet spot toward the shot's origin until the drop is dry. */
-function dryDropPoint(projection, wet, from) {
-  for (let t = 0.22; t <= 0.95; t += 0.12) {
-    const candidate = interpolate(wet, from, t);
-    if (classifyTerrain(projection.features, candidate) !== "Penalty area" && !outOfBounds(projection, candidate)) {
-      return candidate;
-    }
-  }
-  return from;
-}
-
-/** Keep decorative sequence landings honest: never rest a ball in water/OB. */
-function dryVisualPoint(projection, from, point) {
-  if (classifyTerrain(projection.features, point) !== "Penalty area" && !outOfBounds(projection, point)) return point;
-  for (let t = 0.85; t >= 0.1; t -= 0.12) {
-    const candidate = interpolate(from, point, t);
-    if (classifyTerrain(projection.features, candidate) !== "Penalty area" && !outOfBounds(projection, candidate)) {
-      return candidate;
-    }
-  }
-  return from;
-}
 
 // ---- Putting model: read the green, aim against the break, control pace ----
-
-const STIMP_TIERS = {
-  SLOW: { label: "SLOW", stimp: 8, breakMult: 0.8, bandWidth: 0.2, needle: 1, runout: 1.6 },
-  MEDIUM: { label: "MEDIUM", stimp: 10, breakMult: 1, bandWidth: 0.15, needle: 1.08, runout: 2.2 },
-  FAST: { label: "FAST", stimp: 12, breakMult: 1.3, bandWidth: 0.11, needle: 1.16, runout: 3 },
-};
-
-/** Green speed is a per-hole condition, announced and deterministic. */
-function stimpOf(hole) {
-  const roll = seededUnit(hole.number * 17 + 3 + (Number(hole.stimpSalt) || 0));
-  return roll < 0.34 ? "SLOW" : roll < 0.72 ? "MEDIUM" : "FAST";
-}
-
-/**
- * One putt's full read: break, slope, green speed, distances, and the aim
- * (in cup-width ticks) that would hole it at good pace. Everything the
- * outcome depends on is visible to the player — no hidden rolls.
- */
-function makePuttRead({ hole, puttCount, feet, sceneCarry }) {
-  const salt = hole.number * 29 + puttCount * 11 + 5;
-  const breakDir = (seededUnit(salt) - 0.5) * 1.8;
-  const slope = (seededUnit(salt + 1) - 0.5) * 1.6;
-  const stimpKey = stimpOf(hole);
-  const tier = STIMP_TIERS[stimpKey];
-  // Uphill plays longer, downhill shorter; fast greens roll out farther.
-  const effFeet = Math.max(
-    1,
-    Math.round(feet * (1 + slope * 0.28) * (stimpKey === "FAST" ? 0.88 : stimpKey === "SLOW" ? 1.14 : 1)),
-  );
-  // Aim required to hole it at dying pace, in ticks (positive = aim right).
-  const requiredTicks = -breakDir * tier.breakMult * clamp(feet, 2, 30) * 0.16;
-  const start = sceneCarry || [
-    85 - breakDir * clamp(feet * 0.9, 4, 22),
-    36 + clamp(26 + feet * 1.3, 34, 78),
-  ];
-  // Pace band on the power bar: farther/faster putts need more fill.
-  const paceCenter = clamp(0.42 + effFeet * 0.012, 0.45, 0.98);
-  const paceBand = { min: Math.max(0.2, paceCenter - tier.bandWidth / 2), max: Math.min(1.06, paceCenter + tier.bandWidth / 2) };
-  return { feet, effFeet, breakDir, slope, stimp: stimpKey, requiredTicks, start, paceBand, needle: tier.needle };
-}
-
-/**
- * Deterministic putt resolution: outcome is a pure function of the player's
- * aim ticks, pace error, and line error against the visible read. Hot putts
- * shrink the capture width; centered-but-hot earns the horseshoe lip-out.
- */
-function resolveLivePutt({ read, aimTicks, meter, puttCount }) {
-  const tier = STIMP_TIERS[read.stimp] || STIMP_TIERS.MEDIUM;
-  const paceCenter = (read.paceBand.min + read.paceBand.max) / 2;
-  const paceErr = meter.power - paceCenter;
-  const bandHalf = (read.paceBand.max - read.paceBand.min) / 2;
-  // Firm putts take the break out (Mario Golf rule) but risk the lip.
-  const firm = paceErr > bandHalf * 0.6;
-  const effRequired = read.requiredTicks * (firm ? 0.68 : 1);
-  const lineErr = aimTicks - effRequired + meter.accuracy * 3.4;
-  const hot = paceErr > bandHalf + 0.05;
-  const short = paceErr < -bandHalf - 0.03;
-  const capture = hot ? 0.55 : 1.15;
-  let made = false;
-  let lip = false;
-  if (!short && !hot && Math.abs(lineErr) <= capture) made = true;
-  else if (!short && hot && paceErr < bandHalf + 0.14 && Math.abs(lineErr) <= capture * 0.6) lip = true;
-  if (!made && !lip && puttCount >= 3) made = true; // arcade mercy on the 4th
-  let leaveFeet = 0;
-  if (!made) {
-    if (lip) leaveFeet = 1.5;
-    else if (short) leaveFeet = clamp(read.feet * Math.min(0.75, -paceErr * 2.4), 1.5, read.feet * 0.8);
-    else if (hot) leaveFeet = clamp(2 + paceErr * read.effFeet * tier.runout * 0.4, 2, 14);
-    else leaveFeet = clamp(1 + Math.abs(lineErr) * 1.4, 1.2, 6);
-  }
-  const missSide = Math.abs(lineErr) > 0.1 ? Math.sign(lineErr) : read.breakDir >= 0 ? 1 : -1;
-  return { made, lip, leaveFeet, missSide, paceErr, lineErr, effRequired };
-}
-
-// Trees are part of the projection: built once per hole, never on a pond, a
-// fairway or a green, and read by both the map and the collision test.
-function withTrees(projection, holeNumber) {
-  const trees = buildTreeSprites(projection, holeNumber).filter(
-    (tree) => classifyTerrain(projection.features, [tree.x, tree.y]) === "Rough",
-  );
-  return { ...projection, trees };
-}
-
-function fallbackProjection(hole) {
-  const bend = hole.number % 2 ? -18 : 18;
-  const waterSide = hole.number % 3 === 0 ? "right" : hole.number % 4 === 0 ? "left" : null;
-  const features = [
-    {
-      type: "fairway",
-      points: [
-        [70, 216],
-        [103, 172],
-        [90 + bend, 116],
-        [92, 48],
-        [69, 42],
-        [58 + bend, 112],
-        [48, 176],
-      ],
-    },
-    { type: "green", points: [[63, 43], [73, 29], [93, 32], [101, 47], [92, 58], [73, 57]] },
-    { type: "tee", points: [[65, 216], [96, 216], [94, 229], [66, 229]] },
-    { type: "bunker", points: [[51, 61], [62, 50], [67, 65], [56, 73]] },
-  ];
-  if (waterSide) {
-    const left = waterSide === "left";
-    features.push({
-      type: "water",
-      points: left
-        ? [[0, 118], [39, 110], [47, 150], [24, 180], [0, 173]]
-        : [[119, 103], [160, 91], [160, 174], [132, 165], [112, 132]],
-    });
-  }
-  const base = {
-    width: 160,
-    height: 240,
-    features,
-    line: [[80, 222], [80 + bend, 125], [82, 43]],
-    tee: [80, 222],
-    pin: [82, 43],
-    dangerSide: waterSide,
-    primaryHazard: waterSide ? "water" : "bunker",
-    hasWater: Boolean(waterSide),
-    hazardLabel: waterSide ? `WATER ${waterSide.toUpperCase()}` : "BUNKERS LEFT",
-    preferredShape: bend < 0 ? "cut" : "draw",
-    shapeSeverity: 0.58,
-    hazardSeverity: waterSide ? 0.68 : 0.32,
-    official: null,
-    elevation: null,
-    source: "prototype",
-  };
-  return withTrees(base, hole.number);
-}
-
-function projectHole(geometry, hole) {
-  const sourceHole = geometry?.holes?.find((entry) => Number(entry.num) === hole.number);
-  if (!sourceHole?.line?.length) return fallbackProjection(hole);
-  const teeRaw = sourceHole.tees?.[0]?.pos || sourceHole.line[0];
-  const pinRaw = sourceHole.pin || sourceHole.line.at(-1);
-  const metersPerDegreeLat = 111320;
-  const metersPerDegreeLng = metersPerDegreeLat * Math.cos((teeRaw[0] * Math.PI) / 180);
-  const toMeters = ([lat, lng]) => [(lng - teeRaw[1]) * metersPerDegreeLng, (lat - teeRaw[0]) * metersPerDegreeLat];
-  const pinMeters = toMeters(pinRaw);
-  const angle = Math.PI / 2 - Math.atan2(pinMeters[1], pinMeters[0]);
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  const rotate = ([x, y]) => [x * cos - y * sin, x * sin + y * cos];
-  const transformRaw = (point) => rotate(toMeters(point));
-  const rawTee = transformRaw(teeRaw);
-  const rawPin = transformRaw(pinRaw);
-  const projectFeature = (feature) => ({
-    type: feature.type,
-    points: feature.coords.map(transformRaw).filter((point) => point.every(Number.isFinite)),
-  });
-  // Clubhouse practice greens get baked onto holes 1 and 18 (anything within
-  // 150 m of the line): keep only greens that hold the pin or sit near it.
-  const nearPin = (feature) => {
-    if (feature.type !== "green") return true;
-    if (pointInPolygon(rawPin, feature.points)) return true;
-    const centroid = polygonCentroid(feature.points);
-    return Math.hypot(centroid[0] - rawPin[0], centroid[1] - rawPin[1]) <= 60;
-  };
-  const rawFeatures = (geometry.features || [])
-    .filter((feature) => Number(feature.hole) === hole.number && Array.isArray(feature.coords) && feature.coords.length >= 3)
-    .map(projectFeature)
-    .filter((feature) => feature.points.length >= 3)
-    .filter(nearPin);
-  const rawLine = sourceHole.line.map(transformRaw).filter((point) => point.every(Number.isFinite));
-  const allPoints = [...rawFeatures.flatMap((feature) => feature.points), ...rawLine, rawTee, rawPin];
-  if (!allPoints.length) return fallbackProjection(hole);
-  const pad = 14;
-  const minX = Math.min(...allPoints.map((point) => point[0])) - pad;
-  const maxX = Math.max(...allPoints.map((point) => point[0])) + pad;
-  const minY = Math.min(...allPoints.map((point) => point[1])) - pad;
-  const maxY = Math.max(...allPoints.map((point) => point[1])) + pad;
-  const width = Math.max(50, maxX - minX);
-  const height = Math.max(80, maxY - minY);
-  const toSvg = ([x, y]) => [x - minX, maxY - y];
-  // A pond or bunker shared with the next hole is baked onto one hole only.
-  // Pull any neighbouring hazard that reaches into this frame so it is drawn
-  // and counts as terrain; the frame itself stays defined by this hole.
-  const inFrame = (point) => point[0] >= minX && point[0] <= maxX && point[1] >= minY && point[1] <= maxY;
-  const neighbourHazards = (geometry.features || [])
-    .filter(
-      (feature) =>
-        Number(feature.hole) !== hole.number &&
-        (feature.type === "water" || feature.type === "bunker") &&
-        Array.isArray(feature.coords) &&
-        feature.coords.length >= 3,
-    )
-    .map(projectFeature)
-    .filter((feature) => feature.points.length >= 3 && feature.points.some(inFrame));
-
-  const hazards = rawFeatures.filter((feature) => feature.type === "water" || feature.type === "bunker");
-  let hazardPull = 0;
-  for (const feature of hazards) {
-    const centerX = feature.points.reduce((total, point) => total + point[0], 0) / feature.points.length;
-    hazardPull += centerX * (feature.type === "water" ? 2.5 : 1);
-  }
-  const dangerSide = Math.abs(hazardPull) < 2 ? null : hazardPull < 0 ? "left" : "right";
-  const hasWater = hazards.some((feature) => feature.type === "water");
-  const primaryHazard = hasWater ? "water" : hazards.length ? "bunker" : null;
-  const hazardArea = hazards.reduce((total, feature) => total + polygonArea(feature.points), 0) / (width * height || 1);
-  const hazardSeverity = clamp(hazards.length * 0.055 + hazardArea * 2.8 + (hasWater ? 0.16 : 0), 0.08, 1);
-  const routeShape = routeShapeProfile(rawLine, rawTee, rawPin);
-  const hazardLabel = primaryHazard
-    ? `${primaryHazard === "water" ? "WATER" : "BUNKERS"}${dangerSide ? ` ${dangerSide.toUpperCase()}` : ""}`
-    : "NO MAJOR HAZARD";
-
-  const projected = {
-    width,
-    height,
-    features: [...rawFeatures, ...neighbourHazards]
-      .map((feature) => ({ ...feature, points: feature.points.map(toSvg) }))
-      .sort((a, b) => (FEATURE_ORDER[a.type] ?? 9) - (FEATURE_ORDER[b.type] ?? 9)),
-    line: rawLine.map(toSvg),
-    tee: toSvg(rawTee),
-    pin: toSvg(rawPin),
-    dangerSide,
-    primaryHazard,
-    hasWater,
-    hazardLabel,
-    hazardSeverity,
-    ...routeShape,
-    official: sourceHole,
-    elevation: Number(sourceHole.elevM) || null,
-    source: "OpenStreetMap / ODbL",
-  };
-  return withTrees(projected, hole.number);
-}
 
 function ScoreOdds({ odds, label = "MODEL" }) {
   if (!odds) return null;
@@ -1258,11 +157,6 @@ function ScoreOdds({ odds, label = "MODEL" }) {
       </div>
     </div>
   );
-}
-
-function signedPercent(value) {
-  const points = Math.round((Number(value) || 0) * 100);
-  return `${points > 0 ? "+" : ""}${points}%`;
 }
 
 function CaptainRead({ read }) {
@@ -1305,13 +199,6 @@ function CaptainRead({ read }) {
       </div>
     </div>
   );
-}
-
-function sidePoint(from, toward, offset) {
-  const dx = toward[0] - from[0];
-  const dy = toward[1] - from[1];
-  const len = Math.hypot(dx, dy) || 1;
-  return [from[0] + (-dy / len) * offset, from[1] + (dx / len) * offset];
 }
 
 /**
@@ -1470,13 +357,6 @@ function GolferSprite({ at, toward, hat = "red", pose = "idle", putting = false,
     </g>
   );
 }
-
-/**
- * Dedicated arcade putting view: a green close-up with a visible cup, a ball
- * you can actually watch roll and drop, plus Mario-Golf-style break arrows
- * that drift downslope and an uphill/downhill + break readout.
- */
-const PUTT_TICK_UNITS = 2.4;
 
 function PuttingScene({ shot, phase, frame, side, preview = false, read = null, aimTicks = 0 }) {
   const info = preview ? read : shot?.putt || { breakDir: 0, slope: 0 };
@@ -2256,174 +1136,6 @@ function HoleMap({
   );
 }
 
-// Swing judgment tiers. Accuracy is in [-1, 1]; the engine's sweet power band
-// is 0.78–0.96 with overswing punished past 0.96 (see tripGameEngine).
-const ACC_PURE = 0.05;
-const ACC_GREAT = 0.16;
-const ACC_GOOD = 0.34;
-const POWER_SWEET_MIN = 0.78;
-const POWER_SWEET_MAX = 0.96;
-const POWER_METER_MAX = 1.12;
-
-// The red-band bet: locking power in the overswing band shrinks every accuracy
-// zone and speeds the needle up — more distance, on your own dare.
-const RED_BET_ZONE_SCALE = 0.6;
-const RED_BET_SPEED = 1.25;
-const CLUTCH_SPEED = 0.7;
-const CLUB_METER_SPEED = { driver: 1, wood: 0.92, iron: 0.84, wedge: 0.8, putter: 0.72 };
-// Laying up is a real choice: shorter clubs also get wider judgment zones.
-const CLUB_ZONE_SCALE = { driver: 1, wood: 1.12, iron: 1.3, wedge: 1.42, putter: 1.5 };
-// A bad lie tightens the zones and jitters the needle.
-const LIE_METER_MODS = { Rough: { zone: 0.85, speed: 1.06 }, Bunker: { zone: 0.72, speed: 1.12 } };
-const BASE_ACC_SPEED = 2.6;
-const BASE_POWER_SPEED = 1.08;
-// Skill scaling (from handicap) — the gap is meant to be dramatic: a scratch
-// player gets zones 1.5x wide at base speed, while the worst hackers fight
-// zones 30% tighter with a meter well over 2x faster.
-const SKILL_ZONE_MIN = 0.7;
-const SKILL_ZONE_RANGE = 0.8;
-const SKILL_SPEED_PENALTY = 1.3;
-
-// The shot-by-shot bag: each club is a real distance choice. Full-swing carry
-// at sweet power is roughly carry * 1.06 (times the player's carry boost).
-// Sweet-spot carry multiplier shared by the physics, the club picker and the preview.
-const LIVE_CARRY_SWEET = 0.7 + 0.87 * 0.4;
-
-const LIVE_CLUBS = [
-  // ids must not collide with the tee-shot CLUBS ids ("wood"/"iron") — the
-  // tee ball resolves carry from the engine bag, approaches from this one.
-  { id: "wood3", short: "3W", carry: 222, speed: 0.92, zone: 1.12, lateral: 27 },
-  { id: "iron4", short: "4I", carry: 195, speed: 0.88, zone: 1.2, lateral: 22 },
-  { id: "iron7", short: "7I", carry: 160, speed: 0.84, zone: 1.3, lateral: 18 },
-  { id: "iron9", short: "9I", carry: 130, speed: 0.82, zone: 1.36, lateral: 14 },
-  { id: "wedge", short: "PW", carry: 105, speed: 0.8, zone: 1.42, lateral: 10 },
-  { id: "sandwedge", short: "SW", carry: 75, speed: 0.78, zone: 1.48, lateral: 8 },
-  { id: "chip", short: "CHP", carry: 42, speed: 0.74, zone: 1.55, lateral: 5 },
-];
-
-function liveClubOf(clubId) {
-  return LIVE_CLUBS.find((club) => club.id === clubId) || null;
-}
-
-/**
- * Booze tiers: the drunker you are, the faster and tighter the meter — but a
- * flushed shot while buzzed is a SUPER shot with bonus carry. Pulse is the
- * stadium-party intensity level.
- */
-function buzzTierOf(buzz) {
-  const level = Number(buzz) || 0;
-  if (level >= 60) return { id: "lit", label: "LIT", zone: 0.72, speed: 1.3, wobble: true, bonus: 1.15, pulse: 3 };
-  if (level >= 34) return { id: "tipsy", label: "TIPSY", zone: 0.82, speed: 1.18, wobble: true, bonus: 1.1, pulse: 2 };
-  if (level >= 12) return { id: "buzzed", label: "BUZZED", zone: 0.92, speed: 1.08, wobble: false, bonus: 1.06, pulse: 1 };
-  return { id: "sober", label: "SOBER", zone: 1, speed: 1, wobble: false, bonus: 1, pulse: 0 };
-}
-
-/**
- * Handicap-based dispersion pattern for a full swing: the oval of where this
- * golfer's shots actually finish, per real amateur dispersion data. Radii are
- * "most shots inside" (~1.5 sigma) in yards. lateral = half-width, short/long
- * = depth behind/past the target center.
- */
-function shotPatternFor(hi, carryYards) {
-  const hcp = clamp(Number(hi) || 12, 0, 28);
-  const driverLike = carryYards >= 180;
-  // Real driver spread is nearly flat across handicaps (Arccos/Stagner), but
-  // this is an arcade game: we exaggerate the gap so a scratch driver oval is
-  // a lane and a 20-capper's is a barn door. Approaches follow proximity
-  // data: radius ~ distance * (5.5% + 0.35% per handicap point).
-  const lateral = driverLike
-    ? (12 + 0.95 * hcp) * 1.25 * clamp(carryYards / 250, 0.8, 1.15)
-    : carryYards * (0.055 + 0.0035 * hcp);
-  // Drivers spread wider than deep (~1.5:1); irons/wedges run deeper than
-  // wide and miss SHORT far more than long (54-75% short misses).
-  const depth = driverLike ? lateral / 1.5 : lateral * (1.15 + hcp * 0.01);
-  const shortBias = 0.2 + hcp * 0.02;
-  const short = depth * (1 + shortBias);
-  const long = depth * (1 - shortBias * 0.55);
-  return { lateral, short, long };
-}
-
-/**
- * Nerves: the first tee with everyone watching, and the closing stretch of 18
- * with the whole trip gathered. Jitters tighten and speed the meter — unless
- * you've had enough to drink. Liquid courage is the balancing act.
- */
-function jittersFor(holeNumber, context, buzz) {
-  let base = 0;
-  let label = null;
-  if (holeNumber === 1 && context === "tee") {
-    base = 1;
-    label = "FIRST TEE JITTERS";
-  } else if (holeNumber === 18 && (context === "approach" || context === "putt")) {
-    base = 1.2;
-    label = "THE TRIP IS WATCHING";
-  }
-  if (!base) return null;
-  const courage = Math.min(base, buzzTierOf(buzz).pulse * 0.6);
-  const intensity = Math.max(0, base - courage);
-  return { label, intensity, calmed: intensity < 0.15 };
-}
-
-/** Default club for the lie/distance; the player can cycle from here. */
-function defaultLiveClub(remainingYards, lie) {
-  if (lie === "Bunker") return remainingYards > 90 ? "wedge" : "sandwedge";
-  let best = LIVE_CLUBS[0];
-  let bestCost = Infinity;
-  for (const club of LIVE_CLUBS) {
-    // Club up: coming up short costs more than having a little extra.
-    const gap = club.carry * LIVE_CARRY_SWEET - remainingYards;
-    const cost = gap >= 0 ? gap : -gap * 1.6;
-    if (cost < bestCost) {
-      bestCost = cost;
-      best = club;
-    }
-  }
-  return best.id;
-}
-
-function judgeSwing(power, accuracy, mods = {}) {
-  const zoneScale = mods.zoneScale || 1;
-  const pureZone = ACC_PURE * zoneScale;
-  const greatZone = ACC_GREAT * zoneScale;
-  const goodZone = ACC_GOOD * zoneScale;
-  const off = Math.abs(accuracy);
-  const overswung = mods.paceBand ? power > mods.paceBand.max : power > POWER_SWEET_MAX;
-  const eased = mods.paceBand ? power < mods.paceBand.min : power < 0.72;
-  const tier = off <= pureZone ? "pure" : off <= greatZone ? "great" : off <= goodZone ? "good" : "wild";
-  const label =
-    tier === "pure"
-      ? mods.redBet
-        ? "PURE! FULL SEND!"
-        : "PURE!"
-      : tier === "great"
-        ? "GREAT"
-        : tier === "good"
-          ? "GOOD"
-          : accuracy < 0
-            ? "WAY LEFT"
-            : "WAY RIGHT";
-  // Near-miss: just barely outside the PURE sliver. Neurologically half a win —
-  // call it out explicitly so the player knows exactly how close they came.
-  const nearMiss = tier !== "pure" && off <= pureZone * 2.4;
-  const fromPure = Math.max(1, Math.round((off - pureZone) * 100));
-  const sub = nearMiss
-    ? `SO CLOSE · ${fromPure} FROM PURE`
-    : `PWR ${Math.round(power * 100)}${overswung ? " · OVERSWUNG" : eased ? " · EASED OFF" : ""}`;
-  // Hit-stop: the world freezes on the tap, longer for better strikes and a
-  // beat longer on near-misses so the ache lands.
-  const base = tier === "pure" ? 680 : tier === "great" ? 500 : tier === "wild" ? 460 : 400;
-  const hold = nearMiss ? base + 160 : base;
-  // Flushing one while buzzed is a SUPER shot.
-  const buzzBonus = (mods.buzzBonus || 1) > 1.05 && (tier === "pure" || tier === "great");
-  const finalLabel = buzzBonus && tier === "pure" ? "LIQUID GOLD!" : label;
-  return { tier, label: finalLabel, sub, hold, overswung, nearMiss, redBet: Boolean(mods.redBet), buzzBonus };
-}
-
-function zoneStyle(threshold, zoneScale) {
-  const half = threshold * zoneScale * 46;
-  return { left: `${50 - half}%`, width: `${half * 2}%` };
-}
-
 function KickMeter({ phase, power: previewPower = 0, accuracy: previewAccuracy = 0, onTap, judgment, streak, mods }) {
   const tick = useSyncExternalStore(meterStore.subscribe, meterStore.get, meterStore.get);
   const power = phase === "preview" ? previewPower : tick.power;
@@ -2534,16 +1246,6 @@ function KickMeter({ phase, power: previewPower = 0, accuracy: previewAccuracy =
   );
 }
 
-// Casino-style odometer that rolls up the drive distance during ball flight.
-// The color heats up live as the number climbs through the distance tiers.
-function yardTierOf(yards) {
-  if (yards >= 300) return "bomb";
-  if (yards >= 270) return "hot";
-  if (yards >= 240) return "long";
-  if (yards >= 200) return "solid";
-  return "base";
-}
-
 function YardageTicker({ yards, rollMs }) {
   const [shown, setShown] = useState(0);
   const [done, setDone] = useState(false);
@@ -2607,15 +1309,6 @@ function HoleLadder({ history, humanTeam, cpuTeam, currentHole }) {
       })}
     </div>
   );
-}
-
-/** Broadcast-style stakes label for a putt: what dropping it would score. */
-function forLabelOf(rel) {
-  if (rel <= -2) return { text: "FOR EAGLE", tone: "eagle" };
-  if (rel === -1) return { text: "FOR BIRDIE", tone: "birdie" };
-  if (rel === 0) return { text: "FOR PAR", tone: "par" };
-  if (rel === 1) return { text: "FOR BOGEY", tone: "bogey" };
-  return { text: "FOR DOUBLE+", tone: "double" };
 }
 
 /**
@@ -2808,31 +1501,12 @@ function PlaybackPanel({ result, shots, shotIndex, onSkip }) {
   );
 }
 
-function celebrationFor(result) {
-  if (result.humanBucket.id === "birdie") return { label: "BIRDIE BLAST!", icon: "★", tone: "birdie" };
-  if (result.winner === "human" && result.humanBucket.id === "par") return { label: "CLUTCH PAR!", icon: "!", tone: "win" };
-  if (result.winner === "human") return { label: "HOLE STOLEN!", icon: "▲", tone: "win" };
-  if (result.winner === "tie") return { label: "CLUTCH HALF!", icon: "=", tone: "tie" };
-  if (result.humanBucket.id === "triple") return { label: "BLOW-UP HOLE!", icon: "×", tone: "bust" };
-  return { label: "CPU STRIKES!", icon: "▼", tone: "loss" };
-}
-
 function courseCardHoles(course) {
   const holes = course?.holes || [];
   return Array.from({ length: 18 }, (_, index) => {
     const hole = holes.find((item) => item.number === index + 1) || holes[index];
     return { number: index + 1, par: Number(hole?.par) || 4 };
   });
-}
-
-function scoreMark(gross, par) {
-  if (gross == null || !Number.isFinite(gross)) return "empty";
-  const rel = gross - par;
-  if (rel <= -2) return "eagle";
-  if (rel === -1) return "birdie";
-  if (rel === 0) return "par";
-  if (rel === 1) return "bogey";
-  return "blow";
 }
 
 function ScorecardNine({ holes, historyByHole, liveHole, sideKey, sideGross, sidePops }) {
