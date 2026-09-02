@@ -123,7 +123,26 @@ import {
   simulateStroke,
 } from "./tripgame/liveStroke.js";
 import { INITIAL_MATCH, matchReducer } from "./tripgame/matchState.js";
-import "./TripGame.css";
+import { METER_PHASES, PHASE, phaseOf, primaryLabel } from "./tripgame/phase.js";
+import "./tripgame/css/01-shell.css";
+import "./tripgame/css/02-setup-finish.css";
+import "./tripgame/css/03-buttons.css";
+import "./tripgame/css/04-scorebar.css";
+import "./tripgame/css/05-map-hud.css";
+import "./tripgame/css/06-party-buzz-reel.css";
+import "./tripgame/css/07-putting.css";
+import "./tripgame/css/08-intro-landing-meter.css";
+import "./tripgame/css/09-judgment.css";
+import "./tripgame/css/10-odometer-pad.css";
+import "./tripgame/css/11-course.css";
+import "./tripgame/css/12-theater.css";
+import "./tripgame/css/13-sprites-odds-read.css";
+import "./tripgame/css/14-modals.css";
+import "./tripgame/css/15-finish.css";
+import "./tripgame/css/16-loading-keyframes.css";
+import "./tripgame/css/17-mobile.css";
+import "./tripgame/css/18-play-screen.css";
+import "./tripgame/css/19-reduced-motion.css";
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
 
@@ -528,6 +547,7 @@ function HoleMap({
   const aimOffset = aimOffsetOf(decision.aim);
   const aimHoldRef = useRef(null);
   const cameraRef = useRef(null);
+  const svgRef = useRef(null);
   const wrapRef = useRef(null);
   const [viewAspect, setViewAspect] = useState(null);
 
@@ -645,19 +665,36 @@ function HoleMap({
   const ballEscaping = Boolean(
     playback?.phase === "flight" && ballAir && cameraRef.current && !cameraContains(cameraRef.current, ballAir, 18),
   );
-  // Static views (planning, club select) have no continuous re-renders to
-  // carry a slow lerp — snap straight to their framing.
-  const cameraEase = !playback
-    ? 1
-    : firstFlightFrame || ballEscaping
-      ? 1
-      : playback.phase === "flight"
-        ? 0.84
-        : playback.phase === "swing" && playback.index === 0
-          ? 1
-          : 0.5;
-  cameraRef.current = blendCamera(cameraRef.current, targetCam, cameraRef.current ? cameraEase : 1);
+  // Static views and cuts snap to their framing; during playback the camera
+  // eases toward the target on a clock (time constant per phase), driven by
+  // a rAF effect that writes the viewBox directly, so easing no longer
+  // depends on how often React happens to render.
+  const cameraSnap = !playback || firstFlightFrame || ballEscaping || (playback.phase === "swing" && playback.index === 0);
+  const cameraEaseMs = playback?.phase === "flight" ? 45 : 110;
+  if (!cameraRef.current || cameraSnap) cameraRef.current = targetCam;
   const camera = cameraRef.current;
+  const targetKey = `${targetCam.x.toFixed(2)} ${targetCam.y.toFixed(2)} ${targetCam.w.toFixed(2)} ${targetCam.h.toFixed(2)}`;
+  useEffect(() => {
+    if (cameraSnap) {
+      cameraRef.current = targetCam;
+      svgRef.current?.setAttribute("viewBox", targetKey);
+      return undefined;
+    }
+    let frame = 0;
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = Math.min(64, now - last);
+      last = now;
+      const next = blendCamera(cameraRef.current || targetCam, targetCam, 1 - Math.exp(-dt / cameraEaseMs));
+      cameraRef.current = next;
+      svgRef.current?.setAttribute("viewBox", `${next.x.toFixed(2)} ${next.y.toFixed(2)} ${next.w.toFixed(2)} ${next.h.toFixed(2)}`);
+      const settled = ["x", "y", "w", "h"].every((key) => Math.abs(next[key] - targetCam[key]) < 0.05);
+      if (!settled) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- targetKey stands in for the target camera
+  }, [targetKey, cameraSnap, cameraEaseMs]);
   const fullFramed = camera.w > projection.width * 0.9 && camera.h > projection.height * 0.9;
 
   return (
@@ -706,6 +743,7 @@ function HoleMap({
         </div>
       )}
       <svg
+        ref={svgRef}
         className="trip-game-map"
         viewBox={`${camera.x.toFixed(2)} ${camera.y.toFixed(2)} ${camera.w.toFixed(2)} ${camera.h.toFixed(2)}`}
         preserveAspectRatio={fullFramed ? "xMidYMid meet" : "xMidYMid slice"}
@@ -2089,47 +2127,56 @@ export default function TripGame({ data }) {
   // Game Boy style keyboard play on desktop. The handler lives in a ref so the
   // listener is attached once per screen instead of on every render (which,
   // while the meter ran, meant every frame).
+  const phase = phaseOf({
+    screen,
+    meterPhase,
+    resolutionPhase,
+    result,
+    eventOffer,
+    live: liveRef.current,
+    activeSide: playbackShots?.[0]?.side || null,
+  });
   const keyHandlerRef = useRef(null);
   keyHandlerRef.current = (event) => {
     const live = liveRef.current;
     const confirmKey = event.key === " " || event.key === "Enter";
     const onButton = event.target instanceof HTMLElement && event.target.tagName === "BUTTON";
-    if (meterPhase && confirmKey) {
-      if (event.repeat) return;
+    if (phase === PHASE.METER_POWER || phase === PHASE.METER_ACCURACY) {
+      if (!confirmKey || event.repeat) return;
       event.preventDefault();
       tapMeter();
       return;
     }
-    if (meterPhase) return;
-    if (resolutionPhase === "result" && confirmKey) {
+    if (phase === PHASE.METER_LOCKED) return;
+    if (phase === PHASE.RESULT && confirmKey) {
       if (event.repeat) return;
       event.preventDefault();
       nextHole();
       return;
     }
-    if (event.key === "Escape" && live && !result && (resolutionPhase === "liveshot" || resolutionPhase === "idle")) {
+    if (event.key === "Escape" && live && (phase === PHASE.SHOT || phase === PHASE.CPU_SHOT || phase === PHASE.HUMAN_READY)) {
       event.preventDefault();
       skipLiveHole();
       return;
     }
-    if (confirmKey && !onButton && resolutionPhase === "idle" && !result && !eventOffer) {
+    if (confirmKey && !onButton && (phase === PHASE.PLAN || phase === PHASE.HUMAN_READY)) {
       if (event.repeat) return;
       event.preventDefault();
       playHole();
       return;
     }
-    if (live?.awaitingHuman && live.feet != null && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+    if (phase === PHASE.HUMAN_READY && live?.awaitingHuman && live.feet != null && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
       event.preventDefault();
       adjustPuttAim(event.key === "ArrowLeft" ? -1 : 1);
       return;
     }
-    if (live?.awaitingHuman && live.feet == null && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+    if (phase === PHASE.HUMAN_READY && live?.awaitingHuman && live.feet == null && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
       event.preventDefault();
       cycleLiveClub(event.key === "ArrowUp" ? 1 : -1);
       return;
     }
     // Once the ball is in play the tee aim is history: arrows must not edit it.
-    if (live) return;
+    if (phase !== PHASE.PLAN) return;
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
     stepAim(event.key === "ArrowLeft" ? -1 : 1);
@@ -2329,14 +2376,17 @@ export default function TripGame({ data }) {
 
   const baseHole = course?.holes?.[holeIndex] || null;
   const geometry = course ? geometryBySlug[course.slug] : null;
-  const projection = useMemo(() => (baseHole ? projectHole(geometry, baseHole) : null), [baseHole, geometry]);
+  const projection = useMemo(
+    () => (baseHole ? projectHole(geometry, baseHole, { tripYards: course?.tripYards }) : null),
+    [baseHole, geometry, course?.tripYards],
+  );
   const hole = useMemo(() => {
     if (!baseHole || !projection) return baseHole;
     return {
       ...baseHole,
       par: Number(projection.official?.par) || baseHole.par,
       si: Number(projection.official?.hcp) || baseHole.si,
-      yards: Number(projection.official?.yards) || null,
+      yards: Number(projection.teeYards) || Number(projection.official?.yards) || null,
       dangerSide: projection.dangerSide,
       primaryHazard: projection.primaryHazard,
       hasWater: projection.hasWater,
@@ -3823,23 +3873,14 @@ export default function TripGame({ data }) {
                     disabled={!selected}
                     onClick={meterPhase ? tapMeter : playHole}
                   >
-                    {meterPhase === "power"
-                      ? meterMods.club === "putter"
-                        ? "TAP PACE"
-                        : "TAP POWER"
-                      : meterPhase === "accuracy"
-                        ? meterMods.club === "putter"
-                          ? "TAP LINE"
-                          : "TAP ACCURACY"
-                        : meterPhase === "locked"
-                          ? swingFx?.label || "..."
-                          : liveInfo
-                            ? liveRef.current?.feet != null
-                              ? "PUTT ▶"
-                              : "SWING ▶"
-                            : selected
-                              ? `PLAY ${lastName(selected.name).toUpperCase()}${livePops?.human ? " ●" : livePops?.cpu ? " GIVE" : ""} ▶`
-                              : "PLAY ▶"}
+                    {primaryLabel({
+                      phase: liveInfo && !METER_PHASES.has(phase) ? PHASE.HUMAN_READY : phase,
+                      putter: meterMods.club === "putter",
+                      judgmentLabel: swingFx?.label,
+                      awaitingPutt: liveRef.current?.feet != null,
+                      selectedName: selected ? lastName(selected.name).toUpperCase() : null,
+                      pops: livePops,
+                    })}
                   </button>
                 </div>
               )}

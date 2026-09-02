@@ -1,0 +1,159 @@
+/* trees */
+
+.trip-game-tree-layer {
+  pointer-events: none;
+}
+
+.trip-game-tree-shadow {
+  fill: rgba(4, 19, 10, 0.32);
+}
+
+.trip-game-tree-trunk {
+  fill: #6d4c2c;
+  stroke: #1a2b1e;
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-tree-back {
+  fill: #1c4a2d;
+  stroke: #113020;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-tree-front {
+  fill: #357a48;
+  stroke: none;
+}
+
+.trip-game-tree--1 .trip-game-tree-back {
+  fill: #2b5f38;
+}
+
+.trip-game-tree--1 .trip-game-tree-front {
+  fill: #4d9155;
+}
+
+.trip-game-tree--2 .trip-game-tree-back {
+  fill: #17402a;
+}
+
+.trip-game-tree--2 .trip-game-tree-front {
+  fill: #2e6b40;
+}
+
+/* course features */
+
+.trip-game-map-feature {
+  stroke: rgba(18, 50, 28, 0.78);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  paint-order: stroke fill;
+}
+
+.trip-game-map-feature--fairway {
+  fill: #7fb95c;
+  stroke: #47793f;
+  stroke-width: 2.2;
+}
+
+.trip-game-map-feature--green {
+  fill: #b3dc78;
+  stroke: #74a656;
+  stroke-width: 3.5;
+}
+
+.trip-game-map-feature--tee {
+  fill: #97c169;
+  stroke: #578148;
+  stroke-width: 1.8;
+}
+
+.trip-game-map-feature--bunker {
+  fill: #e8d494;
+  stroke: #97824f;
+  stroke-width: 1.6;
+}
+
+.trip-game-map-feature--water {
+  fill: #4390a8;
+  stroke: #1c5468;
+  stroke-width: 1.8;
+  filter: drop-shadow(1.5px 2px 0 rgba(8, 35, 24, 0.38));
+}
+
+.trip-game-map-texture {
+  stroke: none;
+  pointer-events: none;
+}
+
+.trip-game-map-texture--fairway {
+  opacity: 0.3;
+}
+
+.trip-game-map-texture--green {
+  opacity: 0.28;
+}
+
+.trip-game-map-texture--bunker {
+  opacity: 0.52;
+}
+
+.trip-game-map-texture--water {
+  opacity: 0.55;
+}
+
+.trip-game-fairway-stripe {
+  fill: rgba(45, 106, 53, 0.22);
+}
+
+.trip-game-fairway-stripe--light {
+  fill: rgba(219, 236, 152, 0.14);
+}
+
+.trip-game-green-cut {
+  fill: none;
+  stroke: rgba(60, 118, 58, 0.33);
+  stroke-width: 0.8;
+}
+
+.trip-game-sand-grain {
+  fill: rgba(122, 92, 47, 0.46);
+}
+
+.trip-game-water-ripple {
+  fill: none;
+  stroke: rgba(184, 227, 226, 0.48);
+  stroke-width: 0.9;
+}
+
+/* shot planning overlays */
+
+.trip-game-centerline {
+  fill: none;
+  stroke: rgba(238, 245, 200, 0.3);
+  stroke-width: 1;
+  stroke-dasharray: 3 6;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-shot-line {
+  fill: none;
+  stroke: #ffb659;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(1px 1px 0 #07180f);
+}
+
+.trip-game-map-wrap.is-resolving {
+  animation: trip-game-camera-kick 180ms steps(2, end) 1;
+}
+
+/* Declared after is-resolving on purpose: both classes sit on the wrap during
+   playback and the later rule wins, so the contact shake must come last. */
+.trip-game-map-wrap.is-shaking,
+.trip-game-map-wrap.is-resolving.is-shaking {
+  animation: trip-game-shake 0.28s linear;
+}

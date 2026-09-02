@@ -1,0 +1,407 @@
+/* ---------- Modals ---------- */
+
+.trip-game-scorecard-backdrop {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  display: grid;
+  padding: 10px 8px;
+  place-items: center;
+  background: rgba(4, 10, 7, 0.72);
+}
+
+.trip-game-scorecard {
+  position: relative;
+  display: grid;
+  width: min(420px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  gap: 7px;
+  padding: 10px 10px 12px;
+  border: 4px solid #060f0a;
+  background: #e8ead4;
+  color: #1a1c16;
+  box-shadow:
+    5px 5px 0 #060f0a,
+    inset 0 0 0 2px #b7ba9c;
+}
+
+.trip-game-scorecard-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  align-items: end;
+}
+
+.trip-game-scorecard-head small {
+  color: #5c6048;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.08em;
+}
+
+.trip-game-scorecard-head b {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: #1a1c16;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.15;
+  text-align: right;
+}
+
+.trip-game-scorecard-head b.is-south {
+  color: #c45a22;
+}
+
+.trip-game-scorecard-head b.is-north {
+  color: #2a5f8a;
+}
+
+.trip-game-scorecard-head span {
+  color: #4a4e3a;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.trip-game-scorecard h3 {
+  margin: 2px 0 0;
+  color: #2a2c22;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+.trip-game-scorecard-call {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 2px solid #060f0a;
+  background: #d8dcc0;
+  font-size: 12px;
+}
+
+.trip-game-scorecard-call strong {
+  font-family: var(--font-display);
+  font-size: 7px;
+  font-weight: 400;
+}
+
+.trip-game-scorecard-call.is-birdie {
+  background: #9dcc8a;
+}
+
+.trip-game-scorecard-call.is-win {
+  background: #c8d48a;
+}
+
+.trip-game-scorecard-call.is-loss,
+.trip-game-scorecard-call.is-bust {
+  background: #e0b8a4;
+}
+
+.trip-game-scorecard-nine {
+  display: grid;
+  gap: 1px;
+  padding: 2px;
+  border: 2px solid #060f0a;
+  background: #060f0a;
+}
+
+.trip-game-scorecard-row {
+  display: grid;
+  grid-template-columns: 32px repeat(9, minmax(0, 1fr));
+  min-height: 20px;
+}
+
+.trip-game-scorecard-row span,
+.trip-game-scorecard-row b {
+  position: relative;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.trip-game-pop-dot {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #111;
+  box-shadow: 0 0 0 1px #ecefe0;
+}
+
+.trip-game-pop-dot.is-double em {
+  position: absolute;
+  top: -5px;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #111;
+}
+
+.trip-game-scorecard-row b.has-pop {
+  padding-bottom: 2px;
+}
+
+.trip-game-scorecard-row span {
+  background: #3d4034;
+  color: #f0f2dc;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+.trip-game-scorecard-row.is-hole b {
+  background: #3d4034;
+  color: #f0f2dc;
+}
+
+.trip-game-scorecard-row.is-par b {
+  background: #d5d8c0;
+  color: #2a2c22;
+}
+
+.trip-game-scorecard-row.is-score b {
+  background: #ecefe0;
+  color: #1a1c16;
+}
+
+.trip-game-scorecard-row.is-human span {
+  background: #c45a22;
+}
+
+.trip-game-scorecard-row.is-cpu span {
+  background: #2a5f8a;
+}
+
+.trip-game-scorecard-row b.is-empty {
+  color: #8a8d78;
+}
+
+.trip-game-scorecard-row b.is-birdie,
+.trip-game-scorecard-row b.is-eagle {
+  background: #6fbf6a;
+  color: #102010;
+}
+
+.trip-game-scorecard-row b.is-eagle {
+  box-shadow: inset 0 0 0 2px #1a5c28;
+}
+
+.trip-game-scorecard-row b.is-bogey,
+.trip-game-scorecard-row b.is-blow {
+  background: #ecefe0;
+  color: #8a2a22;
+  box-shadow: inset 0 0 0 2px #c85341;
+  border-radius: 50%;
+}
+
+.trip-game-scorecard-row b.is-blow {
+  background: #e7b8b0;
+}
+
+.trip-game-scorecard-row b.is-won {
+  font-weight: 700;
+}
+
+.trip-game-scorecard-row b.is-live {
+  outline: 2px solid #f2c14e;
+  outline-offset: -2px;
+}
+
+.trip-game-scorecard-board {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.trip-game-scorecard-board > div {
+  display: grid;
+  padding: 5px 6px 4px;
+  border: 2px solid #060f0a;
+  background: #d8dcc0;
+  text-align: center;
+}
+
+.trip-game-scorecard-board > div.is-south {
+  background: #f0d2b4;
+}
+
+.trip-game-scorecard-board > div.is-north {
+  background: #c5d6e8;
+}
+
+.trip-game-scorecard-board > div.is-leading {
+  box-shadow: inset 0 0 0 2px #f2c14e;
+}
+
+.trip-game-scorecard-board small {
+  font-family: var(--font-display);
+  font-size: 7px;
+  letter-spacing: 0.08em;
+}
+
+.trip-game-scorecard-board b {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.trip-game-scorecard-board > div.is-south b {
+  color: #a83c2e;
+}
+
+.trip-game-scorecard-board > div.is-north b {
+  color: #23557e;
+}
+
+.trip-game-scorecard-board span {
+  color: #5c6048;
+  font-size: 10px;
+}
+
+.trip-game-scorecard-board em {
+  color: #5c6048;
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-style: normal;
+}
+
+.trip-game-scorecard-closeout {
+  padding: 4px;
+  border: 2px solid #060f0a;
+  background: #f2c14e;
+  font-family: var(--font-display);
+  font-size: 7px;
+  text-align: center;
+}
+
+.trip-game-scorecard .trip-game-primary-button {
+  min-height: 40px;
+  margin-top: 2px;
+}
+
+.trip-game-modal-backdrop {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  padding: 18px;
+  place-items: center;
+  background: rgba(3, 9, 6, 0.82);
+}
+
+.trip-game-modal {
+  width: min(390px, 100%);
+  padding: 16px;
+  border: 4px solid #060f0a;
+  background: var(--px-screen);
+  color: var(--px-ink);
+  box-shadow:
+    7px 7px 0 #060f0a,
+    inset 0 0 0 3px #86a06d;
+  text-align: center;
+  animation: trip-game-celebration-in 260ms steps(4, end);
+}
+
+.trip-game-modal-sprite {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 10px;
+  place-items: center;
+  border: 3px solid #060f0a;
+  background: #ac4e30;
+  font-size: 27px;
+  box-shadow: 4px 4px 0 #718e5b;
+  animation: trip-game-bounce 1.2s steps(2, end) infinite;
+}
+
+.trip-game-modal--cart .trip-game-modal-sprite {
+  background: #427a89;
+}
+
+.trip-game-modal--cart .trip-game-modal-options button:first-child {
+  background: #905c33;
+}
+
+.trip-game-modal--cart .trip-game-modal-options button:last-child {
+  background: #35705b;
+}
+
+.trip-game-modal-kicker {
+  margin: 0 0 6px;
+  color: #99642f;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+}
+
+.trip-game-modal h3,
+.trip-game-finish h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.trip-game-modal > p:not(.trip-game-modal-kicker) {
+  margin: 10px auto;
+  max-width: 310px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.trip-game-modal-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.trip-game-modal-options button {
+  min-height: 60px;
+  padding: 8px;
+  border: 3px solid #060f0a;
+  background: #345540;
+  color: #ebf0cc;
+  box-shadow: 3px 3px 0 #7d9666;
+  cursor: pointer;
+}
+
+.trip-game-modal-options button:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 #7d9666;
+}
+
+.trip-game-modal-options button:first-child {
+  background: #ae5231;
+}
+
+.trip-game-modal-options b,
+.trip-game-modal-options span {
+  display: block;
+}
+
+.trip-game-modal-options b {
+  font-size: 15px;
+  letter-spacing: 0.06em;
+}
+
+.trip-game-modal-options span {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.3;
+}

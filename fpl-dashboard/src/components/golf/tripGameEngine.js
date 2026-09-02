@@ -37,20 +37,33 @@ const PRIOR_PROBS = [
 
 // Scorecard pars are the fallback when a trip round carries no par row (Ballyowen '26).
 const COURSE_META = {
-  "crystal-springs": { slope: 144, rating: 71.3, par: 72, geometry: "/data/crystal-springs.json" },
+  // tripYards: the scorecard total for the tees the trip plays (the rating
+  // and slope above are for those tees); the projection picks the matching
+  // OSM tee set per hole.
+  "crystal-springs": { slope: 144, rating: 71.3, par: 72, geometry: "/data/crystal-springs.json", tripYards: 6134 },
   "wild-turkey": {
     slope: 132,
     rating: 71.7,
     par: 71,
     geometry: "/data/wild-turkey.json",
+    tripYards: 6515,
     pars: [4, 3, 5, 4, 4, 4, 3, 5, 4, 3, 5, 4, 4, 3, 4, 3, 5, 4],
   },
-  "black-bear": { slope: 132, rating: 71.3, par: 72, geometry: "/data/black-bear.json" },
+  // OSM has no stroke index for Black Bear; si is the scorecard's men's handicap order.
+  "black-bear": {
+    slope: 132,
+    rating: 71.3,
+    par: 72,
+    geometry: "/data/black-bear.json",
+    tripYards: 6334,
+    si: [9, 11, 1, 5, 17, 13, 7, 15, 3, 8, 18, 4, 2, 16, 14, 12, 6, 10],
+  },
   ballyowen: {
     slope: 138,
     rating: 72.2,
     par: 72,
     geometry: "/data/ballyowen.json",
+    tripYards: 6508,
     pars: [4, 4, 5, 3, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 4, 5, 4],
   },
 };
@@ -189,11 +202,13 @@ function buildCourseCandidate(dataset, round) {
     par: sum(pars),
     geometry: null,
   };
-  const strokeOrder = inferStrokeOrder(allRows);
-  const siByHole = Array(18).fill(18);
-  strokeOrder.forEach((hole, rank) => {
-    siByHole[hole] = rank + 1;
-  });
+  // A known scorecard stroke index beats inferring it from who took pops.
+  const siByHole = Array.isArray(meta.si) && meta.si.length >= 18 ? meta.si.slice(0, 18) : Array(18).fill(18);
+  if (!Array.isArray(meta.si) || meta.si.length < 18) {
+    inferStrokeOrder(allRows).forEach((hole, rank) => {
+      siByHole[hole] = rank + 1;
+    });
+  }
   const holes = pars.slice(0, 18).map((par, holeIndex) => {
     const playerScores = {};
     const relatives = [];
@@ -224,6 +239,7 @@ function buildCourseCandidate(dataset, round) {
     coverage: observed.length,
     ...meta,
     pars: undefined,
+    si: undefined,
   };
 }
 

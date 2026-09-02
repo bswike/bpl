@@ -1,0 +1,268 @@
+/* ---------- Scorebar / match state / hype ---------- */
+
+.trip-game-scorebar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr);
+  border-bottom: 3px solid var(--px-ink);
+  background: #0c1a11;
+}
+
+.trip-game-score-team,
+.trip-game-hole-box {
+  min-width: 0;
+  min-height: 64px;
+  padding: 8px 10px;
+}
+
+.trip-game-score-team {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.trip-game-score-team span {
+  overflow: hidden;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-game-score-team b {
+  font-size: 34px;
+  line-height: 1;
+  text-shadow: 2px 2px 0 rgba(6, 15, 10, 0.6);
+}
+
+.trip-game-score-team.is-south {
+  border-top: 4px solid var(--px-red);
+  color: #f2c5b3;
+}
+
+.trip-game-score-team.is-north {
+  border-top: 4px solid var(--px-blue);
+  color: #c2ddec;
+}
+
+.trip-game-score-team:last-child {
+  grid-template-columns: auto minmax(0, 1fr);
+  text-align: right;
+}
+
+.trip-game-score-team:last-child b {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.trip-game-score-team:last-child span {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.trip-game-hole-box {
+  display: grid;
+  place-items: center;
+  border-right: 2px solid #2d4536;
+  border-left: 2px solid #2d4536;
+  background: linear-gradient(180deg, #234030 0%, #1a2f22 100%);
+  text-align: center;
+}
+
+.trip-game-hole-box small {
+  color: var(--px-muted);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  line-height: 1;
+}
+
+.trip-game-hole-box b {
+  color: var(--px-gold);
+  font-size: 28px;
+  line-height: 0.95;
+  text-shadow: 2px 2px 0 rgba(6, 15, 10, 0.6);
+}
+
+.trip-game-hole-box span {
+  color: #b4c69a;
+  font-size: 11px;
+}
+
+.trip-game-hole-box .trip-game-par-pill {
+  margin-top: 3px;
+  color: #fff8dc;
+  font-size: 9px;
+}
+
+.trip-game-match-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-bottom: 2px solid #060f0a;
+  background: var(--px-screen);
+  color: var(--px-ink);
+}
+
+.trip-game-match-call {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  animation: trip-game-call-pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+.trip-game-match-call.is-south {
+  color: var(--px-red);
+}
+
+.trip-game-match-call.is-north {
+  color: var(--px-blue);
+}
+
+.trip-game-match-call.is-square {
+  color: var(--px-ink);
+}
+
+@keyframes trip-game-call-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  55% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.trip-game-hole-ladder {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+}
+
+.trip-game-hole-ladder i {
+  width: 8px;
+  height: 10px;
+  border: 1px solid rgba(6, 15, 10, 0.55);
+  background: rgba(6, 15, 10, 0.08);
+}
+
+.trip-game-hole-ladder i.is-south {
+  border-color: #060f0a;
+  background: var(--px-red);
+}
+
+.trip-game-hole-ladder i.is-north {
+  border-color: #060f0a;
+  background: var(--px-blue);
+}
+
+.trip-game-hole-ladder i.is-halved {
+  border-color: #060f0a;
+  background: linear-gradient(135deg, var(--px-red) 0 46%, #060f0a 46% 54%, var(--px-blue) 54% 100%);
+}
+
+.trip-game-hole-ladder i.is-live {
+  border-color: #060f0a;
+  animation: trip-game-ladder-live 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes trip-game-ladder-live {
+  from {
+    background: rgba(6, 15, 10, 0.08);
+  }
+  to {
+    background: var(--px-gold);
+  }
+}
+
+.trip-game-match-thru {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.trip-game-match-thru.is-dormie {
+  padding: 1px 5px;
+  border: 2px solid #060f0a;
+  background: var(--px-red);
+  color: #fff2e2;
+  font-family: var(--font-display);
+  font-size: 8px;
+  animation: trip-kick-pulse 0.7s ease-in-out infinite;
+}
+
+.trip-game-score-pips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: flex-end;
+  max-width: 108px;
+}
+
+.trip-game-score-team:first-child .trip-game-score-pips {
+  justify-content: flex-start;
+}
+
+.trip-game-score-pips i {
+  width: 9px;
+  height: 9px;
+  border: 1px solid #060f0a;
+}
+
+.trip-game-score-team.is-south .trip-game-score-pips i {
+  background: var(--px-red);
+  box-shadow: 0 0 5px rgba(200, 83, 65, 0.55);
+}
+
+.trip-game-score-team.is-north .trip-game-score-pips i {
+  background: var(--px-blue);
+  box-shadow: 0 0 5px rgba(94, 143, 181, 0.55);
+}
+
+.trip-game-score-team.is-leading span {
+  color: var(--px-gold);
+}
+
+.trip-game-hype {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 27px;
+  padding: 4px 10px;
+  border-bottom: 2px solid #060f0a;
+  background: #2a1d25;
+  color: #efc077;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+.trip-game-hype-track {
+  overflow: hidden;
+  height: 10px;
+  border: 2px solid #060f0a;
+  background: #0e1711;
+}
+
+.trip-game-hype-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #e16b31 0%, #f4c858 66%, #fff2a6 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.24);
+  transition: width 360ms steps(8, end);
+}
+
+.trip-game-hype em {
+  padding: 2px 5px;
+  background: #a5432b;
+  color: #fff0b9;
+  font-size: 11px;
+  font-style: normal;
+  animation: trip-game-heat-pulse 700ms steps(2, end) infinite;
+}
+
+.trip-game-hype.is-charging .trip-game-hype-track {
+  box-shadow: 0 0 8px rgba(244, 200, 88, 0.55);
+}

@@ -1,0 +1,494 @@
+/* cartoon shot theater */
+
+.trip-game-theater-ball {
+  fill: #fffbe0;
+  stroke: #0a1c11;
+  stroke-width: 1.35;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(1px 1px 0 #07180f);
+}
+
+.trip-game-theater-ball.is-settled {
+  animation: trip-game-ball-bounce 260ms steps(3, end) 1;
+}
+
+.trip-game-ball-base {
+  filter: drop-shadow(1px 1px 0 #07180f);
+}
+
+.trip-game-ball-rim {
+  fill: none;
+  stroke: #0a1c11;
+  stroke-width: 1.35;
+  vector-effect: non-scaling-stroke;
+}
+
+/* PURE ball swoosh: the blue/green tour-ball stripes */
+
+.trip-game-ball-swoosh path {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.trip-game-ball-swoosh .is-edge {
+  stroke: rgba(255, 255, 255, 0.95);
+}
+
+.trip-game-ball-swoosh .is-blue {
+  stroke: #2e9fe6;
+}
+
+.trip-game-ball-swoosh .is-green {
+  stroke: #63cc2a;
+}
+
+.trip-game-ball-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.trip-game-ball-spin circle {
+  fill: rgba(10, 28, 17, 0.28);
+}
+
+.trip-game-ball-spin.is-fast {
+  animation: trip-game-ball-spin 240ms steps(4, end) infinite;
+}
+
+.trip-game-ball-spin.is-roll {
+  animation: trip-game-ball-spin 460ms steps(4, end) infinite;
+}
+
+.trip-game-ball-shine {
+  fill: #ffffff;
+}
+
+.trip-game-ball-deform {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.trip-game-ball-deform.is-launching {
+  animation: trip-game-ball-stretch 180ms ease-out 1;
+}
+
+/* Glint: casino twinkle reserved for PURE / FULL SEND balls */
+
+.trip-game-ball-glint {
+  fill: #ffffff;
+  stroke: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trip-game-ball-twinkle 640ms ease-out infinite;
+}
+
+.trip-game-ball-glint.is-fire {
+  fill: #ffd95e;
+}
+
+.trip-game-ball-settle .trip-game-ball-deform {
+  animation: trip-game-ball-land 300ms ease-out 1;
+}
+
+@keyframes trip-game-ball-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes trip-game-ball-stretch {
+  0% {
+    transform: scale(1.55, 0.65);
+  }
+
+  60% {
+    transform: scale(0.92, 1.1);
+  }
+
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@keyframes trip-game-ball-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.15) rotate(18deg);
+  }
+}
+
+@keyframes trip-game-ball-land {
+  0% {
+    transform: translateY(-2.5px) scale(1.35, 0.65);
+  }
+
+  45% {
+    transform: translateY(0) scale(0.85, 1.15);
+  }
+
+  75% {
+    transform: translateY(0) scale(1.1, 0.92);
+  }
+
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+/* Landing dust puff */
+
+.trip-game-land-puff circle {
+  fill: none;
+  stroke: rgba(232, 240, 200, 0.75);
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trip-game-land-puff 320ms ease-out forwards;
+}
+
+.trip-game-land-puff circle:nth-child(2) {
+  animation-delay: 70ms;
+}
+
+@keyframes trip-game-land-puff {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.4);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+.trip-game-theater-shadow {
+  fill: rgba(7, 24, 15, 0.45);
+}
+
+.trip-game-air-arc {
+  fill: none;
+  stroke: rgba(255, 251, 224, 0.28);
+  stroke-width: 1.4;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-aim-ahead {
+  fill: none;
+  stroke: #ffb659;
+  stroke-width: 1.8;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-shot-ahead {
+  opacity: 0.85;
+}
+
+.trip-game-air-trail-line {
+  fill: none;
+  stroke: rgba(255, 251, 224, 0.7);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-air-trail {
+  fill: #fffbe0;
+  stroke: rgba(10, 28, 17, 0.55);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Comet trails earned at the meter: gold for PURE, green for GREAT */
+
+.trip-game-air-trail-line.is-pure {
+  stroke: rgba(255, 217, 94, 0.95);
+  stroke-width: 2.4;
+  filter: drop-shadow(0 0 3px rgba(255, 217, 94, 0.9));
+}
+
+.trip-game-air-trail.is-pure {
+  fill: #ffd95e;
+  filter: drop-shadow(0 0 2px rgba(255, 217, 94, 0.9));
+}
+
+.trip-game-air-trail-line.is-great {
+  stroke: rgba(143, 236, 152, 0.9);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 2px rgba(95, 216, 106, 0.8));
+}
+
+.trip-game-air-trail.is-great {
+  fill: #8fec98;
+  filter: drop-shadow(0 0 1.5px rgba(95, 216, 106, 0.8));
+}
+
+.trip-game-air-trail-line.is-fire {
+  stroke: rgba(255, 107, 74, 0.95);
+  stroke-width: 2.6;
+  filter: drop-shadow(0 0 4px rgba(236, 113, 55, 0.95));
+}
+
+.trip-game-air-trail.is-fire {
+  fill: #ff6b4a;
+  filter: drop-shadow(0 0 3px rgba(255, 158, 74, 0.95));
+}
+
+.trip-game-drop-line {
+  stroke: rgba(255, 251, 224, 0.35);
+  stroke-width: 1;
+  stroke-dasharray: 1.5 2.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-motion-ticks rect {
+  fill: #fff4bd;
+  stroke: none;
+}
+
+.trip-game-crumb {
+  fill: rgba(255, 251, 224, 0.75);
+  stroke: rgba(7, 24, 15, 0.5);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-swinger .trip-game-swing-arm,
+.trip-game-golfer .trip-game-swing-arm {
+  transform-box: fill-box;
+  transform-origin: top center;
+  transform: rotate(0deg);
+}
+
+.trip-game-swinger.is-swinging .trip-game-swing-arm {
+  animation: trip-game-swing 420ms forwards;
+}
+
+.trip-game-swinger.is-swinging.is-putting .trip-game-swing-arm {
+  animation: trip-game-putt-stroke 320ms forwards;
+}
+
+.trip-game-swinger.is-through .trip-game-swing-arm {
+  transform: rotate(62deg);
+}
+
+.trip-game-swinger.is-through.is-putting .trip-game-swing-arm {
+  transform: rotate(16deg);
+}
+
+/* Body rig: coil on the backswing, stretch through impact, settle */
+
+.trip-game-golfer-body {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+.trip-game-swinger.is-swinging .trip-game-golfer-body {
+  animation: trip-game-body-coil 420ms forwards;
+}
+
+/* Idle liveliness: gentle two-frame bob plus an occasional club waggle */
+
+.trip-game-golfer:not(.trip-game-swinger) .trip-game-golfer-body {
+  animation: trip-game-idle-bob 1150ms steps(2, jump-none) infinite;
+}
+
+.trip-game-golfer:not(.trip-game-swinger) .trip-game-swing-arm {
+  animation: trip-game-club-waggle 7s ease-in-out infinite;
+}
+
+/* Result reactions: hop-and-pump for a holed ball, slump for a disaster */
+
+.trip-game-swinger.is-celebrating .trip-game-golfer-body {
+  animation: trip-game-celebrate-hop 900ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.trip-game-swinger.is-celebrating .trip-game-swing-arm {
+  animation: trip-game-celebrate-arm 900ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.trip-game-swinger.is-slumping .trip-game-golfer-body {
+  animation: trip-game-slump 620ms ease-out forwards;
+}
+
+.trip-game-swinger.is-slumping .trip-game-swing-arm {
+  transform: rotate(70deg);
+  transition: transform 400ms ease-out;
+}
+
+.trip-game-swinger-shadow {
+  fill: rgba(7, 24, 15, 0.3);
+}
+
+.trip-game-club-head {
+  fill: #8f97a1;
+}
+
+/* Terrible-shot panic marker: a big bouncing "!" over the golfer */
+
+.trip-game-terrible rect {
+  fill: #ff5c39;
+  stroke: #060f0a;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-terrible {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: trip-game-terrible-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1), trip-kick-pulse 0.4s ease-in-out 0.5s infinite;
+}
+
+@keyframes trip-game-terrible-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) translateY(4px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.25) translateY(-1px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.trip-game-impact path {
+  fill: #ffe14d;
+  stroke: #0a1c11;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+  animation: trip-game-impact-pop 260ms steps(3, end) forwards;
+}
+
+.trip-game-splash circle {
+  fill: none;
+  stroke: #bfe6ff;
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  animation: trip-game-splash-ring 640ms steps(4, end) forwards;
+}
+
+.trip-game-splash circle:nth-child(2) {
+  animation-delay: 110ms;
+}
+
+.trip-game-splash circle:nth-child(3) {
+  animation-delay: 220ms;
+}
+
+.trip-game-holeout path {
+  fill: #ffd028;
+  stroke: #0a1c11;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trip-game-holeout-pop 620ms steps(5, end) forwards;
+}
+
+.trip-game-target {
+  color: #fff3ba;
+}
+
+.trip-game-target circle {
+  fill: rgba(255, 243, 186, 0.14);
+  stroke: #fff3ba;
+  stroke-width: 1.3;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-target path {
+  fill: none;
+  stroke: #fff3ba;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Handicap dispersion oval, Mario-Golf style: a marching-ants ring for the
+   pattern, and a pulsing gold star zone where the pure ones land */
+
+.trip-game-oval-outer {
+  fill: rgba(255, 251, 224, 0.08);
+  stroke: #fff3ba;
+  stroke-width: 1.7;
+  stroke-dasharray: 6 5;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  animation: trip-game-oval-march 1.6s linear infinite;
+  filter: drop-shadow(0 0 2px rgba(255, 243, 186, 0.5));
+}
+
+@keyframes trip-game-oval-march {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+
+.trip-game-oval-pure-wrap {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trip-game-oval-breathe 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes trip-game-oval-breathe {
+  from {
+    transform: scale(0.94);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+.trip-game-oval-pure {
+  fill: rgba(255, 217, 94, 0.28);
+  stroke: #ffd95e;
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 3px rgba(255, 217, 94, 0.7));
+}
+
+.trip-game-oval-star {
+  fill: #ffd95e;
+  stroke: #060f0a;
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: trip-game-oval-twinkle 1.4s ease-in-out infinite;
+}
+
+@keyframes trip-game-oval-twinkle {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+    transform: rotate(14deg);
+  }
+}
+
+.trip-game-carry-label {
+  fill: #fff4bd;
+  stroke: #0a1c11;
+  stroke-width: 1.8;
+  paint-order: stroke fill;
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+}

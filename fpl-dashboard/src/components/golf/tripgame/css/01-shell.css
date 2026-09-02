@@ -1,0 +1,98 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap");
+
+/* ============================================================
+   Captain's Cup — Game Boy Color inspired theme
+   Display font: Press Start 2P (short strings only)
+   Body font: VT323 (legible pixel type at small sizes)
+   ============================================================ */
+
+.trip-game {
+  --px-ink: #0b1a10;
+  --px-shell: #17281d;
+  --px-shell-edge: #3e5c47;
+  --px-panel: #1f3628;
+  --px-panel-deep: #142219;
+  --px-screen: #d8e8ab;
+  --px-screen-dark: #9cb877;
+  --px-paper: #f0f4d8;
+  --px-grass: #79b356;
+  --px-orange: #ec7137;
+  --px-gold: #f2c14e;
+  --px-red: #c85341;
+  --px-blue: #4e86ad;
+  --px-muted: #93ab80;
+  --font-body: "VT323", "Courier New", ui-monospace, monospace;
+  --font-display: "Press Start 2P", "VT323", ui-monospace, monospace;
+  position: relative;
+  color: var(--px-paper);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.trip-game *,
+.trip-game *::before,
+.trip-game *::after {
+  box-sizing: border-box;
+}
+
+.trip-game button {
+  font: inherit;
+}
+
+/* ---------- Console shell ---------- */
+
+.trip-game-shell {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border: 3px solid #060f0a;
+  border-radius: 12px 12px 28px 12px;
+  background: linear-gradient(180deg, #1c3021 0%, var(--px-shell) 32%, #121f16 100%);
+  box-shadow:
+    0 0 0 2px var(--px-shell-edge),
+    7px 8px 0 #060f0a,
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* CRT scanlines */
+.trip-game-shell::after {
+  position: absolute;
+  z-index: 40;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(6, 15, 10, 0.09) 0,
+    rgba(6, 15, 10, 0.09) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  content: "";
+  pointer-events: none;
+}
+
+.trip-game-console-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  min-height: 38px;
+  padding: 7px 12px;
+  border-bottom: 3px solid var(--px-ink);
+  background: linear-gradient(180deg, #2f4736 0%, #22372a 100%);
+  color: var(--px-muted);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+}
+
+.trip-game-console-head b {
+  color: var(--px-gold);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 400;
+  text-align: center;
+  text-shadow: 2px 2px 0 var(--px-ink);
+}
+
+.trip-game-console-head span:last-child {
+  text-align: right;
+}

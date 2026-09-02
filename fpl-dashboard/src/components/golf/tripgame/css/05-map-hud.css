@@ -1,0 +1,126 @@
+/* ---------- Play grid + map ---------- */
+
+.trip-game-play-grid {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  border-bottom: 3px solid var(--px-ink);
+}
+
+.trip-game-map-wrap {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: #2c5236;
+}
+
+/* soft vignette over the map */
+.trip-game-map-wrap::before {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  box-shadow: inset 0 0 34px rgba(5, 16, 9, 0.5);
+  content: "";
+  pointer-events: none;
+}
+
+.trip-game-map-hud,
+.trip-game-map-foot {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 27px;
+  padding: 5px 8px;
+  background: #102a1b;
+  color: #c5d6a6;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.trip-game-map-foot {
+  margin-top: auto;
+  border-top: 2px solid #060f0a;
+  color: #88a17a;
+  font-size: 11px;
+}
+
+/* big bubbly par badge */
+
+.trip-game-par-pill {
+  display: inline-grid;
+  place-items: center;
+  padding: 3px 9px 2px;
+  border: 2px solid #060f0a;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: #fff8dc;
+  background: #3f7bb8;
+  box-shadow:
+    2px 2px 0 #060f0a,
+    inset 0 -2px 0 rgba(6, 15, 10, 0.35);
+}
+
+.trip-game-par-pill.is-par-4 {
+  background: #4c9247;
+}
+
+.trip-game-par-pill.is-par-5 {
+  background: #cf5a2e;
+}
+
+/* per-shot caption during playback */
+
+.trip-game-playcap {
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  border-bottom: 2px solid #060f0a;
+  background: #0b1a11;
+  text-align: center;
+}
+
+/* Shot-by-shot mode: stroke status strip + skip controls */
+
+.trip-game-live-status {
+  z-index: 2;
+  padding: 3px 8px;
+  border-bottom: 2px solid #060f0a;
+  background: #142219;
+  color: #f2c14e;
+  font-family: var(--font-display);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.trip-game-skip-chip {
+  padding: 6px 8px;
+  border: 2px solid #060f0a;
+  background: #1a2f22;
+  box-shadow: 2px 2px 0 #060f0a;
+  color: #b4c69a;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.trip-game-skip-chip.is-floating {
+  position: absolute;
+  z-index: 7;
+  right: 10px;
+  bottom: 10px;
+  pointer-events: auto;
+}

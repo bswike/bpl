@@ -1,0 +1,337 @@
+/* ---------- Mobile (<=699px) ---------- */
+
+@media (max-width: 699px) {
+  .trip-game {
+    font-size: 13px;
+  }
+
+  .trip-game-console-head {
+    min-height: 24px;
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .trip-game-console-head b {
+    font-size: 8px;
+  }
+
+  .trip-game-score-team,
+  .trip-game-hole-box {
+    min-height: 48px;
+    padding: 4px 7px;
+  }
+
+  .trip-game-score-team b,
+  .trip-game-hole-box b {
+    font-size: 22px;
+  }
+
+  .trip-game-score-team span {
+    font-size: 10px;
+  }
+
+  .trip-game-hole-box small {
+    font-size: 9px;
+  }
+
+  .trip-game-hole-box span {
+    font-size: 9px;
+  }
+
+  .trip-game-match-state {
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+
+  .trip-game-hype {
+    min-height: 23px;
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .trip-game-hype em {
+    font-size: 9px;
+  }
+
+  .trip-game-hype-track {
+    height: 8px;
+  }
+
+  .trip-game-play-grid {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .trip-game-map-wrap {
+    min-height: 0;
+    border-right: 0;
+  }
+
+  .trip-game-map {
+    height: 172px;
+    flex: none;
+  }
+
+  .trip-game-map-hud,
+  .trip-game-map-foot {
+    min-height: 21px;
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .trip-game-map-foot {
+    display: none;
+  }
+
+  .trip-game-map-landing span {
+    padding: 2px 2px;
+    font-size: 9px;
+    gap: 3px;
+  }
+
+  .trip-game-map-landing b {
+    font-size: 12px;
+  }
+
+  .trip-game-par-pill {
+    padding: 2px 7px 1px;
+    font-size: 8px;
+  }
+
+  .trip-game-playcap {
+    padding: 3px 6px;
+  }
+
+  .trip-game-playcap small {
+    font-size: 8px;
+  }
+
+  .trip-game-playcap b {
+    font-size: 8px;
+  }
+
+  .trip-game-hole-intro {
+    min-width: 160px;
+    padding: 12px 18px 14px;
+  }
+
+  .trip-game-hole-intro b {
+    font-size: 17px;
+  }
+
+  .trip-game-hole-intro span {
+    font-size: 10px;
+  }
+
+  .trip-game-pad {
+    gap: 6px;
+    padding: 6px 7px;
+  }
+
+  .trip-game-pad-aim button {
+    width: 52px;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .trip-game-pad-aim > span {
+    min-width: 80px;
+    padding: 1px 6px;
+  }
+
+  .trip-game-pad-aim > span small {
+    font-size: 9px;
+  }
+
+  .trip-game-pad-aim > span b {
+    font-size: 13px;
+  }
+
+  .trip-game-pad-menus button {
+    min-width: 68px;
+    padding: 3px 7px;
+  }
+
+  .trip-game-pad-menus button small {
+    font-size: 9px;
+  }
+
+  .trip-game-pad-menus button b {
+    font-size: 15px;
+  }
+
+  .trip-game-odds {
+    padding: 5px;
+  }
+
+  .trip-game-odds .trip-game-section-label {
+    margin-bottom: 3px;
+  }
+
+  .trip-game-section-label {
+    font-size: 10px;
+  }
+
+  .trip-game-odds-bar {
+    min-height: 30px;
+  }
+
+  .trip-game-odds-segment span {
+    font-size: 8px;
+  }
+
+  .trip-game-odds-segment b {
+    margin-top: 2px;
+    font-size: 10px;
+  }
+
+  .trip-game-read-call {
+    padding: 4px 6px;
+  }
+
+  .trip-game-read-call small,
+  .trip-game-read-call span {
+    font-size: 8px;
+  }
+
+  .trip-game-read-call b {
+    font-size: 12px;
+  }
+
+  .trip-game-read-metrics span {
+    padding: 3px 1px;
+    font-size: 8px;
+  }
+
+  .trip-game-read-metrics b {
+    margin-bottom: 1px;
+    font-size: 12px;
+  }
+
+  .trip-game-caddie-tip {
+    padding: 2px 4px;
+    font-size: 9px;
+  }
+
+  .trip-game-event-note {
+    font-size: 10px;
+  }
+
+  .trip-game-primary-button,
+  .trip-game-secondary-button {
+    min-height: 38px;
+    padding: 8px 9px;
+    font-size: 9px;
+  }
+
+  .trip-game-bottom-status {
+    display: none;
+  }
+
+  .trip-game-playback {
+    min-height: 140px;
+    padding: 10px;
+  }
+
+  .trip-game-playback > b {
+    font-size: 11px;
+  }
+
+  .trip-game-playback > p {
+    font-size: 10px;
+  }
+
+  .trip-game-playback-pips span {
+    width: 19px;
+    height: 19px;
+    font-size: 10px;
+  }
+
+}
+
+/* ---------- Small phones (<=479px) ---------- */
+
+@media (max-width: 479px) {
+  .trip-game-shell {
+    border-width: 2px;
+    border-radius: 8px 8px 19px 8px;
+    box-shadow:
+      0 0 0 1px var(--px-shell-edge),
+      4px 5px 0 #060f0a;
+  }
+
+  .trip-game-setup,
+  .trip-game-finish {
+    padding: 9px;
+  }
+
+  .trip-game-title-screen {
+    padding: 27px 8px 25px;
+  }
+
+  .trip-game-title-screen h2 {
+    font-size: clamp(14px, 5.4vw, 20px);
+  }
+
+  .trip-game-story {
+    font-size: 13px;
+  }
+
+  .trip-game-course-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trip-game-scorebar {
+    grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr);
+  }
+
+  .trip-game-score-team,
+  .trip-game-hole-box {
+    min-height: 48px;
+    padding: 4px 5px;
+  }
+
+  .trip-game-score-team {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    text-align: center;
+  }
+
+  .trip-game-score-team:last-child {
+    display: flex;
+    text-align: center;
+  }
+
+  .trip-game-score-team:last-child b,
+  .trip-game-score-team:last-child span {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .trip-game-score-team b {
+    font-size: 21px;
+  }
+
+  .trip-game-score-team span {
+    max-width: 100%;
+    font-size: 9px;
+  }
+
+  .trip-game-hole-box b {
+    font-size: 21px;
+  }
+
+  .trip-game-map-wrap {
+    min-height: 225px;
+  }
+
+  .trip-game-map {
+    height: 172px;
+  }
+
+  .trip-game-modal-options {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,271 @@
+/* Casino odometer for drive distance, colors heat up with the number */
+
+.trip-game-yardage {
+  position: absolute;
+  z-index: 7;
+  top: 16%;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.trip-game-yardage-digits {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.trip-game-yardage-digits span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  padding: 3px 1px;
+  border: 2px solid #060f0a;
+  background: #0c1811;
+  box-shadow: 2px 2px 0 #060f0a;
+  color: #e8f0c8;
+  font-family: var(--font-display);
+  font-size: 15px;
+  transition: color 120ms linear, box-shadow 120ms linear;
+}
+
+.trip-game-yardage-digits small {
+  margin-left: 2px;
+  color: #89a07a;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-shadow: 2px 2px 0 #060f0a;
+}
+
+.trip-game-yardage.is-solid .trip-game-yardage-digits span {
+  color: #f2c14e;
+}
+
+.trip-game-yardage.is-long .trip-game-yardage-digits span {
+  color: #ec7137;
+}
+
+.trip-game-yardage.is-hot .trip-game-yardage-digits span {
+  color: #ff6b4a;
+  box-shadow: 2px 2px 0 #060f0a, 0 0 8px rgba(255, 107, 74, 0.55);
+}
+
+.trip-game-yardage.is-bomb .trip-game-yardage-digits span {
+  color: #ffd95e;
+  box-shadow: 2px 2px 0 #060f0a, 0 0 12px rgba(255, 217, 94, 0.75);
+}
+
+.trip-game-yardage.is-done .trip-game-yardage-digits {
+  animation: trip-game-yardage-land 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes trip-game-yardage-land {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.trip-game-yardage-tag {
+  color: #ffd95e;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-shadow: 2px 2px 0 #060f0a, 0 0 10px rgba(255, 217, 94, 0.8);
+  animation: trip-game-tag-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes trip-game-tag-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Sound toggle chip in the map HUD */
+
+.trip-game-sound-chip {
+  margin-left: auto;
+  padding: 2px 5px;
+  border: 2px solid #060f0a;
+  background: #142219;
+  box-shadow: 2px 2px 0 #060f0a;
+  color: #89a07a;
+  font-family: var(--font-display);
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.trip-game-sound-chip.is-on {
+  color: #f2c14e;
+}
+
+.trip-game-stage-overlay {
+  position: absolute;
+  z-index: 6;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  max-height: 42%;
+  overflow: auto;
+  pointer-events: auto;
+}
+
+/* Game Boy control pad under the screen */
+
+.trip-game-pad {
+  z-index: 2;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-top: 2px solid #060f0a;
+  background: linear-gradient(180deg, #223829 0%, #182a1e 100%);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.trip-game-pad-aim {
+  display: flex;
+  align-items: stretch;
+  gap: 5px;
+}
+
+.trip-game-pad-aim button {
+  width: 58px;
+  min-height: 46px;
+  border: 2px solid #060f0a;
+  background: linear-gradient(180deg, #4a5c50 0%, #37473c 100%);
+  color: #e7f0cc;
+  font-size: 18px;
+  box-shadow:
+    2px 2px 0 #060f0a,
+    inset 0 2px 0 rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.trip-game-pad-aim button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #060f0a;
+}
+
+.trip-game-pad-aim button.is-maxed {
+  opacity: 0.35;
+}
+
+.trip-game-pad-aim > span {
+  display: grid;
+  min-width: 96px;
+  align-content: center;
+  justify-items: center;
+  padding: 2px 8px;
+  border: 2px solid #060f0a;
+  background: var(--px-screen);
+  color: var(--px-ink);
+  text-align: center;
+}
+
+.trip-game-pad-aim > span small {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  opacity: 0.75;
+}
+
+.trip-game-pad-aim > span b {
+  font-size: 15px;
+  line-height: 1.05;
+}
+
+.trip-game-pad-menus {
+  display: flex;
+  gap: 6px;
+}
+
+.trip-game-pad-menus button {
+  display: grid;
+  min-width: 88px;
+  align-content: center;
+  justify-items: center;
+  padding: 4px 9px;
+  border: 2px solid #060f0a;
+  background: linear-gradient(180deg, #b05836 0%, #91401f 100%);
+  color: #ffedc2;
+  box-shadow:
+    2px 2px 0 #060f0a,
+    inset 0 2px 0 rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.trip-game-pad-menus button:last-child {
+  background: linear-gradient(180deg, #3f6a7f 0%, #2e4f61 100%);
+}
+
+.trip-game-pad-menus button:active,
+.trip-game-pad-menus button.is-open {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 #060f0a;
+}
+
+.trip-game-pad-menus button small {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  opacity: 0.8;
+}
+
+.trip-game-pad-menus button b {
+  font-size: 17px;
+  line-height: 1.05;
+}
+
+.trip-game-map {
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  background: #37633e;
+  filter: saturate(1.04) contrast(1.05);
+}
+
+.trip-game-map-wrap.is-flyover::before {
+  box-shadow: inset 0 0 52px 16px rgba(5, 16, 9, 0.58);
+}
+
+.trip-game-map-wrap.is-green-zoom::before {
+  box-shadow: inset 0 0 64px 22px rgba(5, 16, 9, 0.62);
+}
+
+.trip-game-map-rough {
+  fill: #37633e;
+}
+
+.trip-game-rough-pixel {
+  fill: rgba(19, 54, 32, 0.34);
+}
+
+.trip-game-rough-pixel--light {
+  fill: rgba(150, 184, 102, 0.22);
+}

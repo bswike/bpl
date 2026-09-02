@@ -1,0 +1,357 @@
+/* Dedicated putting scene: green close-up over the map during putts */
+
+.trip-game-putt-scene {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 15, 10, 0.72);
+  pointer-events: none;
+}
+
+.trip-game-putt-svg {
+  width: min(92%, 470px);
+  filter: drop-shadow(4px 4px 0 rgba(6, 15, 10, 0.8));
+}
+
+.trip-game-putt-fringe {
+  fill: #2f5c38;
+  stroke: #060f0a;
+  stroke-width: 1.6;
+}
+
+.trip-game-putt-green {
+  fill: #6cb75f;
+  stroke: #24512c;
+  stroke-width: 1;
+}
+
+.trip-game-putt-stripes rect {
+  fill: rgba(255, 255, 255, 0.07);
+}
+
+.trip-game-putt-contour {
+  fill: none;
+  stroke: rgba(20, 60, 30, 0.35);
+  stroke-width: 0.8;
+  stroke-dasharray: 3 3;
+}
+
+.trip-game-putt-arrows path {
+  fill: rgba(255, 249, 220, 0.75);
+  stroke: rgba(6, 15, 10, 0.35);
+  stroke-width: 0.4;
+  animation: trip-game-putt-flow 1.3s ease-in-out infinite;
+}
+
+/* Break severity tiers, Mario-Golf grammar: pale -> amber -> red */
+
+.trip-game-putt-arrows.is-mid path {
+  fill: rgba(242, 193, 78, 0.85);
+  animation-duration: 0.95s;
+}
+
+.trip-game-putt-arrows.is-steep path {
+  fill: rgba(236, 113, 55, 0.95);
+  animation-duration: 0.65s;
+}
+
+/* The player's straight aim line — the game never bends it for you */
+
+.trip-game-putt-aim-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 0.9;
+  stroke-dasharray: 2.6 2;
+}
+
+.trip-game-putt-aim-marker path {
+  fill: #ffd95e;
+  stroke: #060f0a;
+  stroke-width: 0.6;
+  animation: trip-kick-pulse 0.7s ease-in-out infinite;
+}
+
+.trip-game-putt-stimp {
+  padding: 1px 5px;
+  border: 2px solid #060f0a;
+  font-family: var(--font-display);
+  font-size: 6px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+}
+
+.trip-game-putt-stimp.is-slow {
+  background: #35506b;
+  color: #cfe3f2;
+}
+
+.trip-game-putt-stimp.is-medium {
+  background: #4e6b3a;
+  color: #e8f0c8;
+}
+
+.trip-game-putt-stimp.is-fast {
+  background: #8f2418;
+  color: #ffd0c0;
+  animation: trip-kick-pulse 0.8s ease-in-out infinite;
+}
+
+.trip-game-putt-in.is-lip {
+  color: #ff9e4a;
+  font-size: 17px;
+  text-shadow: 3px 3px 0 #060f0a, 0 0 12px rgba(255, 107, 74, 0.8);
+}
+
+.trip-game-club-reel.is-aim {
+  border-color: #f2c14e;
+}
+
+@keyframes trip-game-putt-flow {
+  0% {
+    opacity: 0.25;
+    translate: 0 0;
+  }
+  55% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0.15;
+    translate: var(--flow-x, 0) var(--flow-y, 0);
+  }
+}
+
+.trip-game-putt-line {
+  fill: none;
+  stroke: rgba(255, 249, 220, 0.85);
+  stroke-width: 1;
+  stroke-dasharray: 3 2.4;
+}
+
+.trip-game-putt-line.is-preview {
+  animation: trip-kick-pulse 0.7s ease-in-out infinite;
+}
+
+.trip-game-putt-cup-rim {
+  fill: #dfe8c8;
+}
+
+.trip-game-putt-cup-hole {
+  fill: #10230f;
+}
+
+.trip-game-putt-pin {
+  fill: #d8dcc0;
+}
+
+.trip-game-putt-pin-flag {
+  fill: var(--px-red);
+}
+
+.trip-game-putt-ball {
+  fill: #fffbe0;
+  stroke: #060f0a;
+  stroke-width: 0.5;
+}
+
+.trip-game-putt-ball-shadow {
+  fill: rgba(6, 15, 10, 0.35);
+}
+
+.trip-game-putt-drop-ring {
+  fill: none;
+  stroke: #ffd95e;
+  stroke-width: 1.2;
+  animation: trip-game-putt-ring 0.6s ease-out forwards;
+}
+
+.trip-game-putt-drop-star {
+  fill: #ffd95e;
+  stroke: #060f0a;
+  stroke-width: 0.6;
+  animation: trip-game-tag-pop 0.55s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes trip-game-putt-ring {
+  0% {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+.trip-game-putt-hud {
+  position: absolute;
+  top: 21%;
+  left: 50%;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 8px;
+  border: 2px solid #060f0a;
+  background: #142219;
+  box-shadow: 3px 3px 0 #060f0a;
+  transform: translateX(-50%);
+  color: #e8f0c8;
+}
+
+.trip-game-putt-hud span {
+  color: #f2c14e;
+  font-family: var(--font-display);
+  font-size: 7px;
+  letter-spacing: 0.08em;
+}
+
+.trip-game-putt-hud.is-cpu span {
+  color: #7fa0bd;
+}
+
+.trip-game-putt-hud b {
+  font-family: var(--font-display);
+  font-size: 13px;
+}
+
+.trip-game-putt-hud em {
+  color: #b4c69a;
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: 0.06em;
+}
+
+/* Broadcast stakes banner while the opponent putts: FOR BIRDIE / PAR / BOGEY */
+
+.trip-game-putt-for {
+  position: absolute;
+  bottom: 16%;
+  left: 50%;
+  padding: 5px 14px 4px;
+  border: 3px solid #060f0a;
+  box-shadow: 4px 4px 0 #060f0a;
+  transform: translateX(-50%) skewX(-8deg);
+  animation: trip-game-for-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+  pointer-events: none;
+}
+
+.trip-game-putt-for span {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-shadow: 2px 2px 0 rgba(6, 15, 10, 0.55);
+  transform: skewX(8deg);
+}
+
+.trip-game-putt-for.is-eagle {
+  background: linear-gradient(90deg, #ffd95e 0%, #ff9e4a 100%);
+  color: #060f0a;
+  animation: trip-game-for-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1), trip-kick-pulse 0.5s ease-in-out 0.5s infinite;
+}
+
+.trip-game-putt-for.is-birdie {
+  background: linear-gradient(90deg, #ffd95e 0%, #f2c14e 100%);
+  color: #060f0a;
+  box-shadow: 4px 4px 0 #060f0a, 0 0 14px rgba(255, 217, 94, 0.55);
+}
+
+.trip-game-putt-for.is-par {
+  background: #e8f0c8;
+  color: #1a2f22;
+}
+
+.trip-game-putt-for.is-bogey {
+  background: #ec7137;
+  color: #fff2e2;
+}
+
+.trip-game-putt-for.is-double {
+  background: #8f2418;
+  color: #ffd0c0;
+}
+
+@keyframes trip-game-for-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) skewX(-8deg) scale(0.4) translateY(8px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-50%) skewX(-8deg) scale(1.12) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) skewX(-8deg) scale(1) translateY(0);
+  }
+}
+
+.trip-game-putt-in {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ffd95e;
+  font-family: var(--font-display);
+  font-size: 24px;
+  letter-spacing: 0.08em;
+  text-shadow: 3px 3px 0 #060f0a, 0 0 14px rgba(255, 217, 94, 0.8);
+  animation: trip-game-tag-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+/* The waiting player's ball rests on the map while the other side plays */
+
+.trip-game-resting-core {
+  fill: #f4f7ee;
+  stroke: #060f0a;
+  stroke-width: 0.5;
+}
+
+.trip-game-resting-ring {
+  fill: none;
+  stroke-width: 1;
+  opacity: 0.85;
+}
+
+.trip-game-resting-ball.is-cpu .trip-game-resting-ring {
+  stroke: var(--px-blue);
+}
+
+.trip-game-resting-ball.is-human .trip-game-resting-ring {
+  stroke: var(--px-red);
+}
+
+/* The other team's shots read blue */
+
+.trip-game-playcap.is-cpu {
+  border-bottom-color: var(--px-blue);
+  background: #0b141d;
+}
+
+.trip-game-playcap.is-cpu small {
+  color: #7fa0bd;
+}
+
+.trip-game-playback.is-cpu {
+  border-color: var(--px-blue);
+}
+
+.trip-game-playback.is-cpu small {
+  color: #7fa0bd;
+}
+
+.trip-game-playcap small {
+  color: #7a9078;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+
+.trip-game-playcap b {
+  color: #ffe9a8;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-shadow: 2px 2px 0 #060f0a;
+}

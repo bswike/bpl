@@ -1,0 +1,227 @@
+/* ---------- Setup + finish frames ---------- */
+
+.trip-game-setup,
+.trip-game-finish {
+  padding: 14px;
+}
+
+.trip-game-title-screen {
+  position: relative;
+  overflow: hidden;
+  padding: 34px 16px 30px;
+  border: 4px solid var(--px-ink);
+  background:
+    linear-gradient(180deg, #b9d3ea 0%, #cfe0c2 34%, var(--px-screen) 60%),
+    var(--px-screen);
+  color: var(--px-ink);
+  text-align: center;
+  box-shadow: inset 0 0 0 4px #7d9866;
+}
+
+.trip-game-title-screen::before,
+.trip-game-title-screen::after {
+  position: absolute;
+  bottom: 0;
+  width: 36%;
+  height: 26px;
+  background: #2c5537;
+  content: "";
+  clip-path: polygon(0 100%, 18% 55%, 34% 78%, 54% 12%, 73% 69%, 100% 30%, 100% 100%);
+}
+
+.trip-game-title-screen::before {
+  left: 0;
+}
+
+.trip-game-title-screen::after {
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.trip-game-title-screen p,
+.trip-game-title-screen span {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+}
+
+.trip-game-title-screen h2 {
+  position: relative;
+  z-index: 1;
+  margin: 12px 0 10px;
+  color: #14432a;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 4.6vw, 30px);
+  font-weight: 400;
+  line-height: 1.2;
+  text-shadow:
+    3px 3px 0 #8fac6f,
+    -1px -1px 0 #f3f8dd;
+}
+
+.trip-game-title-flag {
+  position: absolute;
+  top: 11px;
+  right: 14px;
+  z-index: 1;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 2px solid var(--px-ink);
+  background: var(--px-orange);
+  color: var(--px-paper);
+  font-size: 13px;
+  box-shadow: 3px 3px 0 var(--px-ink);
+  animation: trip-game-bounce 1.6s steps(2, end) infinite;
+}
+
+.trip-game-story {
+  margin: 12px 2px 16px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--px-orange);
+  background: var(--px-panel);
+  color: #d8e2bd;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.trip-game-setup-block {
+  margin-top: 14px;
+}
+
+.trip-game-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+  color: var(--px-muted);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+
+.trip-game-section-label span:last-child {
+  overflow: hidden;
+  max-width: 58%;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-game-course-grid,
+.trip-game-team-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.trip-game-course-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.trip-game-team-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.trip-game-course-grid button,
+.trip-game-team-grid button {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 64px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 9px 11px;
+  border: 2px solid var(--px-ink);
+  background: #2c4a38;
+  color: #cddcae;
+  text-align: left;
+  box-shadow: 3px 3px 0 #060f0a;
+  cursor: pointer;
+}
+
+.trip-game-course-grid button:hover,
+.trip-game-team-grid button:hover,
+.trip-game-course-grid button.is-selected,
+.trip-game-team-grid button.is-selected {
+  border-color: var(--px-paper);
+  background: var(--px-screen);
+  color: var(--px-ink);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 #060f0a;
+}
+
+.trip-game-course-grid button.is-selected::after,
+.trip-game-team-grid button.is-selected::after {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  content: "▶";
+  color: var(--px-orange);
+  font-size: 11px;
+}
+
+.trip-game-course-grid b,
+.trip-game-team-grid b {
+  overflow: hidden;
+  max-width: calc(100% - 15px);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-game-course-grid span,
+.trip-game-team-grid span {
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+.trip-game-course-grid small {
+  margin-top: 2px;
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.trip-game-team-grid button.is-south {
+  border-left: 5px solid var(--px-red);
+}
+
+.trip-game-team-grid button.is-north {
+  border-left: 5px solid var(--px-blue);
+}
+
+.trip-game-model-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 30px;
+  margin-top: 14px;
+  border: 1px solid #3a5945;
+  color: var(--px-muted);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.trip-game-status-light {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--px-ink);
+  background: var(--px-gold);
+  box-shadow: 1px 1px 0 var(--px-ink);
+}
+
+.trip-game-status-light.is-loading {
+  animation: trip-game-heat-pulse 700ms steps(2, end) infinite;
+}
+
+.trip-game-status-light.is-ready {
+  background: #8fce62;
+}
+
+.trip-game-status-light.is-partial {
+  background: var(--px-orange);
+}

@@ -1,0 +1,425 @@
+/* Nested judgment zones: GOOD > GREAT > PURE sliver. Widths follow the
+   ACC_* thresholds in TripGame.jsx (offset * 46% of track), set inline so a
+   red-band bet can shrink them — the transition makes the squeeze visible. */
+.trip-game-kick-acc-track i {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  transition: left 0.22s ease-out, width 0.22s ease-out;
+}
+
+.trip-game-kick-zone-good {
+  left: 34.4%;
+  width: 31.2%;
+  background: rgba(95, 216, 106, 0.22);
+}
+
+.trip-game-kick-zone-great {
+  left: 42.6%;
+  width: 14.8%;
+  background: rgba(95, 216, 106, 0.55);
+}
+
+.trip-game-kick-zone-pure {
+  left: 47.7%;
+  width: 4.6%;
+  background: #ffd95e;
+  box-shadow: 0 0 6px rgba(255, 217, 94, 0.8);
+}
+
+.trip-game-kick-acc-center {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: 50%;
+  width: 1px;
+  background: rgba(244, 247, 238, 0.7);
+}
+
+.trip-game-kick-acc-track b {
+  position: absolute;
+  top: -3px;
+  width: 4px;
+  height: 16px;
+  margin-left: -2px;
+  background: #9fb193;
+  box-shadow: 1px 1px 0 #060f0a;
+  transition: background 90ms linear, box-shadow 90ms linear;
+}
+
+/* Needle heat ramps as it approaches the pure sliver — anticipation cue. */
+.trip-game-kick-acc-track b.is-near {
+  background: #f2c14e;
+}
+
+.trip-game-kick-acc-track b.is-hot {
+  background: #ffdf7e;
+  box-shadow: 1px 1px 0 #060f0a, 0 0 6px rgba(255, 223, 126, 0.9);
+}
+
+.trip-game-kick-acc-track b.is-burning {
+  background: #ffffff;
+  box-shadow: 1px 1px 0 #060f0a, 0 0 10px rgba(255, 255, 255, 0.95), 0 0 16px rgba(255, 217, 94, 0.8);
+}
+
+.trip-game-kick-acc span {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  color: #89a07a;
+  font-size: 9px;
+}
+
+.trip-game-kick strong {
+  display: block;
+  padding-top: 2px;
+  color: #f2c14e;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.trip-game-kick.is-accuracy strong {
+  color: #8fce62;
+}
+
+.trip-game-kick-read {
+  display: block;
+  margin: 2px 0 6px;
+  color: #f2c14e;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+@keyframes trip-kick-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Red-band bet: the meter goes into risk mode after an overswung power lock */
+
+.trip-game-kick-bet {
+  margin: -2px 0 2px;
+  padding: 2px 3px;
+  border: 2px solid #060f0a;
+  background: linear-gradient(90deg, #c85341 0%, #ec7137 100%);
+  color: #fff2e2;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: trip-kick-pulse 0.4s ease-in-out infinite;
+}
+
+.trip-game-kick.is-red-bet {
+  border-color: #ff6b4a;
+  box-shadow: 4px 4px 0 #060f0a, 0 0 14px rgba(255, 107, 74, 0.5);
+}
+
+/* Jitters: the gallery is watching — the whole meter trembles */
+
+.trip-game-kick-jitters {
+  margin: -2px 0 2px;
+  padding: 2px 3px;
+  border: 2px solid #060f0a;
+  background: #4a3a10;
+  color: #ffe9a8;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: trip-kick-pulse 0.5s ease-in-out infinite;
+}
+
+.trip-game-kick-courage {
+  margin: -2px 0 2px;
+  padding: 2px 3px;
+  border: 2px solid #060f0a;
+  background: linear-gradient(90deg, #f2c14e 0%, #ec7137 100%);
+  color: #060f0a;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+.trip-game-kick.is-jittery {
+  animation: trip-game-jitter-tremble 0.12s linear infinite;
+}
+
+@keyframes trip-game-jitter-tremble {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(0.7px, -0.4px);
+  }
+  50% {
+    transform: translate(-0.5px, 0.5px);
+  }
+  75% {
+    transform: translate(0.4px, 0.6px);
+  }
+}
+
+/* Clutch time: match on the line — heartbeat chip, drained color outside */
+
+.trip-game-kick-clutch {
+  margin: -2px 0 2px;
+  padding: 2px 3px;
+  border: 2px solid #060f0a;
+  background: #6b1d12;
+  color: #ffb3a0;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: trip-game-heartbeat 0.95s ease-in-out infinite;
+}
+
+@keyframes trip-game-heartbeat {
+  0%,
+  55%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  10% {
+    opacity: 0.7;
+    transform: scale(1.06);
+  }
+  30% {
+    opacity: 0.82;
+    transform: scale(1.03);
+  }
+}
+
+.trip-game-map-wrap.is-clutch .trip-game-map {
+  filter: saturate(0.35) contrast(1.08);
+}
+
+.trip-game-map-wrap.is-clutch::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(60, 8, 4, 0.55) 100%);
+  animation: trip-game-heartbeat 0.95s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Striping streak: chip above the meter, panel trim escalates with heat */
+
+.trip-game-kick-streak {
+  margin: -2px 0 2px;
+  padding: 2px 3px;
+  border: 2px solid #060f0a;
+  background: #f2c14e;
+  color: #060f0a;
+  font-family: var(--font-display);
+  font-size: 6px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: trip-kick-pulse 0.8s ease-in-out infinite;
+}
+
+.trip-game-kick.is-streak-hot {
+  border-color: #f2c14e;
+}
+
+.trip-game-kick.is-streak-fire {
+  border-color: #ffd95e;
+  box-shadow: 4px 4px 0 #060f0a, 0 0 14px rgba(255, 217, 94, 0.55);
+}
+
+.trip-game-kick.is-streak-fire .trip-game-kick-streak {
+  background: linear-gradient(90deg, #ffd95e 0%, #ec7137 100%);
+}
+
+/* Preview meter: shown before the swing starts — sits above the control pad */
+
+.trip-game-kick.is-preview {
+  bottom: 62px;
+  opacity: 0.94;
+}
+
+/* Meter panel lights up in the tier color during the hit-stop freeze */
+
+.trip-game-kick.is-judged.is-pure {
+  border-color: #ffd95e;
+  box-shadow: 4px 4px 0 #060f0a, 0 0 16px rgba(255, 217, 94, 0.7);
+}
+
+.trip-game-kick.is-judged.is-pure strong {
+  color: #ffd95e;
+}
+
+.trip-game-kick.is-judged.is-great {
+  border-color: #5fd86a;
+  box-shadow: 4px 4px 0 #060f0a, 0 0 10px rgba(95, 216, 106, 0.5);
+}
+
+.trip-game-kick.is-judged.is-great strong {
+  color: #5fd86a;
+}
+
+.trip-game-kick.is-judged.is-wild {
+  border-color: #c85341;
+}
+
+.trip-game-kick.is-judged.is-wild strong {
+  color: #ec7137;
+}
+
+/* Swing judgment popup: pops in with overshoot, holds, drifts out */
+
+.trip-game-judgment {
+  position: absolute;
+  z-index: 8;
+  top: 34%;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  transform: translate(-50%, -50%);
+  animation: trip-game-judgment-pop 1.5s cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
+  pointer-events: none;
+  text-align: center;
+}
+
+.trip-game-judgment b {
+  color: #f4f7ee;
+  font-family: var(--font-display);
+  font-size: 24px;
+  letter-spacing: 0.06em;
+  text-shadow: 3px 3px 0 #060f0a;
+}
+
+.trip-game-judgment small {
+  color: #e8f0c8;
+  font-family: var(--font-display);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-shadow: 2px 2px 0 #060f0a;
+}
+
+.trip-game-judgment em {
+  padding: 2px 5px;
+  border: 2px solid #060f0a;
+  background: #f2c14e;
+  color: #060f0a;
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-style: normal;
+  letter-spacing: 0.1em;
+}
+
+.trip-game-judgment.is-near-miss small {
+  color: #ffd95e;
+  text-shadow: 2px 2px 0 #060f0a, 0 0 8px rgba(255, 217, 94, 0.7);
+  animation: trip-kick-pulse 0.5s ease-in-out infinite;
+}
+
+.trip-game-judgment.is-pure b {
+  color: #ffd95e;
+  font-size: 30px;
+  text-shadow: 3px 3px 0 #060f0a, 0 0 14px rgba(255, 217, 94, 0.85);
+}
+
+.trip-game-judgment.is-fire b {
+  color: #ff9e4a;
+  text-shadow: 3px 3px 0 #060f0a, 0 0 16px rgba(255, 107, 74, 0.95);
+}
+
+.trip-game-judgment.is-great b {
+  color: #5fd86a;
+}
+
+.trip-game-judgment.is-wild b {
+  color: #ec7137;
+}
+
+@keyframes trip-game-judgment-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.18);
+  }
+  22% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  72% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -62%) scale(1);
+  }
+}
+
+/* One-frame white-gold burst reserved for PURE strikes only */
+
+.trip-game-pure-flash {
+  position: absolute;
+  z-index: 7;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 217, 94, 0.55) 40%,
+    rgba(255, 217, 94, 0) 75%
+  );
+  animation: trip-game-pure-flash 0.5s ease-out forwards;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+@keyframes trip-game-pure-flash {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Screenshake at ball contact, amplitude set inline via --shake-amp */
+
+@keyframes trip-game-shake {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  15% {
+    transform: translate(var(--shake-amp, 4px), calc(var(--shake-amp, 4px) * -0.6)) rotate(0.4deg);
+  }
+  30% {
+    transform: translate(calc(var(--shake-amp, 4px) * -0.8), calc(var(--shake-amp, 4px) * 0.5)) rotate(-0.35deg);
+  }
+  45% {
+    transform: translate(calc(var(--shake-amp, 4px) * 0.6), calc(var(--shake-amp, 4px) * 0.35)) rotate(0.22deg);
+  }
+  62% {
+    transform: translate(calc(var(--shake-amp, 4px) * -0.35), calc(var(--shake-amp, 4px) * -0.25)) rotate(-0.14deg);
+  }
+  82% {
+    transform: translate(calc(var(--shake-amp, 4px) * 0.15), calc(var(--shake-amp, 4px) * 0.1)) rotate(0.06deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}

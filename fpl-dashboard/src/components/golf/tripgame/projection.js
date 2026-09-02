@@ -122,10 +122,42 @@ export function fallbackProjection(hole) {
   return withTrees(base, hole.number);
 }
 
-export function projectHole(geometry, hole) {
+/**
+ * OSM tee sets carry no names, only yardages. Pick the set whose course
+ * total lands closest to the trip's scorecard yardage; holes with fewer
+ * sets fall back to their last (shortest) one.
+ */
+const teeIndexCache = new WeakMap();
+export function tripTeeIndex(geometry, tripYards) {
+  if (!geometry?.holes?.length || !Number.isFinite(Number(tripYards))) return 0;
+  const cached = teeIndexCache.get(geometry);
+  if (cached && cached.tripYards === tripYards) return cached.index;
+  const maxSets = Math.max(...geometry.holes.map((entry) => entry.tees?.length || 0), 1);
+  let best = 0;
+  let bestGap = Infinity;
+  for (let index = 0; index < maxSets; index += 1) {
+    const total = geometry.holes.reduce((sum, entry) => {
+      const tees = entry.tees || [];
+      const tee = tees[Math.min(index, tees.length - 1)];
+      return sum + (Number(tee?.yards) || Number(entry.yards) || 0);
+    }, 0);
+    const gap = Math.abs(total - Number(tripYards));
+    if (gap < bestGap) {
+      bestGap = gap;
+      best = index;
+    }
+  }
+  teeIndexCache.set(geometry, { tripYards, index: best });
+  return best;
+}
+
+export function projectHole(geometry, hole, options = {}) {
   const sourceHole = geometry?.holes?.find((entry) => Number(entry.num) === hole.number);
   if (!sourceHole?.line?.length) return fallbackProjection(hole);
-  const teeRaw = sourceHole.tees?.[0]?.pos || sourceHole.line[0];
+  const teeSets = sourceHole.tees || [];
+  const teeIndex = Math.min(tripTeeIndex(geometry, options.tripYards), Math.max(0, teeSets.length - 1));
+  const tripTee = teeSets[teeIndex] || teeSets[0] || null;
+  const teeRaw = tripTee?.pos || sourceHole.line[0];
   const pinRaw = sourceHole.pin || sourceHole.line.at(-1);
   const metersPerDegreeLat = 111320;
   const metersPerDegreeLng = metersPerDegreeLat * Math.cos((teeRaw[0] * Math.PI) / 180);
@@ -213,6 +245,7 @@ export function projectHole(geometry, hole) {
     hazardSeverity,
     ...routeShape,
     official: sourceHole,
+    teeYards: Number(tripTee?.yards) || null,
     elevation: Number(sourceHole.elevM) || null,
     source: "OpenStreetMap / ODbL",
   };

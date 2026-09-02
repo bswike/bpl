@@ -1,0 +1,127 @@
+/* ---------- Finish ---------- */
+
+.trip-game-finish {
+  min-height: 520px;
+  color: #e0eac2;
+  text-align: center;
+}
+
+.trip-game-finish h2 {
+  color: var(--px-gold);
+  font-size: clamp(15px, 4vw, 22px);
+  text-shadow: 3px 3px 0 #060f0a;
+}
+
+.trip-game-final-score {
+  display: grid;
+  width: min(390px, 100%);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  margin: 17px auto;
+  border: 3px solid #060f0a;
+  background: var(--px-screen);
+  color: var(--px-ink);
+  box-shadow: 5px 5px 0 #060f0a;
+}
+
+.trip-game-final-score > div {
+  display: grid;
+  padding: 10px;
+  place-items: center;
+}
+
+.trip-game-final-score span {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.trip-game-final-score b {
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.trip-game-final-score > div.is-south b {
+  color: var(--px-red);
+}
+
+.trip-game-final-score > div.is-north b {
+  color: var(--px-blue);
+}
+
+.trip-game-final-score > div.is-leading {
+  box-shadow: inset 0 0 0 3px var(--px-gold);
+}
+
+.trip-game-final-score em {
+  font-size: 12px;
+  font-style: normal;
+  letter-spacing: 0.14em;
+}
+
+.trip-game-finish h2.is-south {
+  color: var(--px-red);
+}
+
+.trip-game-finish h2.is-north {
+  color: var(--px-blue);
+}
+
+.trip-game-finish .trip-game-hole-ladder {
+  margin: 0 0 16px;
+}
+
+.trip-game-finish .trip-game-hole-ladder i {
+  width: 11px;
+  height: 13px;
+  border-color: rgba(232, 240, 200, 0.4);
+  background: rgba(232, 240, 200, 0.08);
+}
+
+.trip-game-finish .trip-game-hole-ladder i.is-south,
+.trip-game-finish .trip-game-hole-ladder i.is-north,
+.trip-game-finish .trip-game-hole-ladder i.is-halved {
+  border-color: #060f0a;
+}
+
+.trip-game-mini-card {
+  overflow: hidden;
+  max-width: 500px;
+  margin: 0 auto;
+  border: 2px solid #060f0a;
+  background: #233b2e;
+}
+
+.trip-game-mini-card > div {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 27px 30px 27px minmax(0, 1fr);
+  align-items: center;
+  min-height: 25px;
+  border-bottom: 1px solid #4d664f;
+  color: #c1d1a4;
+  font-size: 12px;
+}
+
+.trip-game-mini-card > div:last-child {
+  border-bottom: 0;
+}
+
+.trip-game-mini-card > div.is-human {
+  border-left: 4px solid #93b56c;
+}
+
+.trip-game-mini-card > div.is-cpu {
+  border-right: 4px solid #c06943;
+}
+
+.trip-game-mini-card em {
+  color: #f2c876;
+  font-style: normal;
+}
+
+.trip-game-finish-actions {
+  display: grid;
+  max-width: 500px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 15px auto 0;
+}
