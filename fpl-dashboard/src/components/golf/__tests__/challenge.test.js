@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeCode, encodeCode, randomSeed } from "../tripgame/challenge.js";
+import { decodeCode, encodeCode, randomSeed, streamSeeds } from "../tripgame/challenge.js";
 
 describe("challenge codes", () => {
   it("round-trips course, side, style and seed", () => {
@@ -13,5 +13,15 @@ describe("challenge codes", () => {
     expect(decodeCode("hello")).toBeNull();
     expect(decodeCode("ZZ-S-F-12345")).toBeNull();
     expect(decodeCode("")).toBeNull();
+  });
+});
+
+describe("streamSeeds", () => {
+  it("gives each hole its own deterministic streams", () => {
+    const a = streamSeeds(12345, 0);
+    expect(streamSeeds(12345, 0)).toEqual(a);
+    expect(streamSeeds(12345, 5)).not.toEqual(a);
+    expect(streamSeeds(12345, 5).cpu).not.toBe(streamSeeds(12346, 5).cpu);
+    expect(a.human).not.toBe(a.cpu);
   });
 });

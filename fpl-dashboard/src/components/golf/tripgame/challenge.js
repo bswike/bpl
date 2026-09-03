@@ -4,6 +4,13 @@
 const COURSE_TAGS = { "crystal-springs": "CS", "wild-turkey": "WT", "black-bear": "BB", ballyowen: "BO" };
 export const SEED_SPACE = 36 ** 5;
 
+/** Each hole's luck is a pure function of (seed, hole): a resume or a replay of a code lands on the same streams. */
+export function streamSeeds(seed, holeIndex = 0) {
+  const base = Math.floor(Math.abs(Number(seed) || 0));
+  const hole = Math.max(0, Math.floor(Number(holeIndex) || 0));
+  return { human: (base * 17 + 3 + hole * 104729) >>> 0, cpu: (base * 31 + 7 + hole * 7919) >>> 0 };
+}
+
 export function randomSeed(now = Date.now()) {
   return Math.floor(now % SEED_SPACE);
 }

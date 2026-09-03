@@ -126,7 +126,7 @@ import { INITIAL_MATCH, matchReducer } from "./tripgame/matchState.js";
 import { METER_PHASES, PHASE, phaseOf, primaryLabel } from "./tripgame/phase.js";
 import { windEffect, windFor, windLabel } from "./tripgame/wind.js";
 import { EMPTY_RECORDS, loadRecords, noteRecord, saveRecords } from "./tripgame/records.js";
-import { decodeCode, encodeCode, randomSeed } from "./tripgame/challenge.js";
+import { decodeCode, encodeCode, randomSeed, streamSeeds } from "./tripgame/challenge.js";
 import "./tripgame/css/01-shell.css";
 import "./tripgame/css/02-setup-finish.css";
 import "./tripgame/css/03-buttons.css";
@@ -2674,9 +2674,10 @@ export default function TripGame({ data }) {
   // The seed fixes the wind, the greens, the CPU's picks and its swings, so a
   // challenge code replays the same round for whoever enters it. The human's
   // own luck (mishit rolls) runs on a separate stream.
-  function seedStreams(nextSeed) {
-    randomRef.current = makeSeededRandom(nextSeed * 17 + 3);
-    cpuRandomRef.current = makeSeededRandom(nextSeed * 31 + 7);
+  function seedStreams(nextSeed, holeAt = 0) {
+    const seeds = streamSeeds(nextSeed, holeAt);
+    randomRef.current = makeSeededRandom(seeds.human);
+    cpuRandomRef.current = makeSeededRandom(seeds.cpu);
   }
 
   function startRound() {
@@ -2715,7 +2716,7 @@ export default function TripGame({ data }) {
     setCaptainTeam(snapshot.captainTeam);
     setSwingMode(snapshot.swingMode === "full" ? "full" : "single");
     resetRoundSideEffects();
-    seedStreams(Number(snapshot.seed) || randomSeed());
+    seedStreams(Number(snapshot.seed) || randomSeed(), clamp(Number(snapshot.holeIndex) || 0, 0, 17));
     buyRoundRef.current = Boolean(snapshot.buyRound);
     cpuEdgeRef.current = Boolean(snapshot.cpuEdge);
     dispatch({ type: "RESUME", snapshot, playerState: initializePlayerState() });
@@ -3158,7 +3159,16 @@ export default function TripGame({ data }) {
     const live = liveRef.current;
     if (!live || !projection) return;
     if (live.strokes === 0) {
-      startNextLiveSwing();
+      // Your honors: PLAY was just pressed, so the meter arms straight away.
+      // Their honors: their drive just landed; wait for SWING like any other stroke.
+      if (!live.cpuHonors) {
+        startNextLiveSwing();
+        return;
+      }
+      live.club = decision.club;
+      live.awaitingHuman = true;
+      setLiveClubId(null);
+      setLiveInfo(liveStatusOf());
       return;
     }
     if (live.feet != null) {
@@ -3329,7 +3339,7 @@ export default function TripGame({ data }) {
     const live = liveRef.current;
     if (!live) return;
     if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
-    resolutionTimerRef.current = window.setTimeout(() => advanceMatchFlow(), 700);
+    resolutionTimerRef.current = window.setTimeout(() => advanceMatchFlow(), fastForwardRef.current ? 120 : 700);
   }
 
   function startNextLiveSwing() {
@@ -3707,6 +3717,7 @@ export default function TripGame({ data }) {
       return;
     }
     dispatch({ type: "NEXT_HOLE" });
+    seedStreams(seed, holeIndex + 1);
     pendingCommitRef.current = null;
     setMeterPhase(null);
     setSwingFx(null);
