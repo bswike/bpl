@@ -105,3 +105,22 @@ describe("simulateStroke", () => {
     expect(played.shot.side).toBe("human");
   });
 });
+
+describe("CPU eases off", () => {
+  const { hole, projection, yardsScale } = holes.find((entry) => entry.hole.par === 4);
+  const scratch = { hi: 2, buzz: 0, decision: defaultDecision({ hi: 2, stockShape: "cut" }, hole), teeTarget: projection.pin, conceded: false };
+  const from = (yards) => [projection.pin[0], projection.pin[1] + yards * yardsScale];
+  const play = (yards, lie, seed) => {
+    const ball = { ...createBall(projection), pos: from(yards), lie, strokes: 1, remainingUnits: yards * yardsScale };
+    return simulateCpuStroke({ projection, hole, cpu: { ...scratch, ball }, yardsScale, rng: makeSeededRandom(seed), seedSalt: 1 });
+  };
+  it("does not fly a 60-yard bunker shot over the green", () => {
+    const flew = Array.from({ length: 40 }, (_, seed) => play(60, "Bunker", 500 + seed).result.totalYards);
+    expect(average(flew)).toBeLessThan(75);
+    expect(average(flew)).toBeGreaterThan(40);
+  });
+  it("lands a 150-yard approach near the number on average", () => {
+    const carried = Array.from({ length: 60 }, (_, seed) => play(150, "Fairway", 900 + seed).result.totalYards);
+    expect(Math.abs(average(carried) - 150)).toBeLessThan(15);
+  });
+});

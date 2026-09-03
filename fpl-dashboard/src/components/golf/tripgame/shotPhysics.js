@@ -145,6 +145,34 @@ export function placeTeeLanding(projection, hole, decision, wantedType) {
  * Resolve one played full swing in shot-by-shot mode: carry from club/power,
  * scatter from accuracy, then real terrain — trees, water, OB, sand, green.
  */
+/**
+ * The golfer's carry model for a club from a lie: the sweet-spot carry and
+ * the dispersion oval around it. Shared by the physics and by the CPU, which
+ * solves it backwards to decide how hard to swing.
+ */
+export function carryProfile({ clubId, lie, carryBoost = 1, fireball = false, spin = "none", hi = 12 }) {
+  const lieMult = lie === "Rough" ? 0.88 : lie === "Bunker" ? 0.8 : 1;
+  const liveClub = liveClubOf(clubId);
+  const baseCarry = liveClub ? liveClub.carry : (CLUBS.find((club) => club.id === clubId) || CLUBS[2]).carry;
+  // Fireball: a little more gas and a lot more spray, in both swing modes.
+  // Spin trades a touch of carry (back) or adds a touch (top); the real
+  // difference shows up in the rollout.
+  const spinCarry = spin === "back" ? 0.97 : spin === "top" ? 1.02 : 1;
+  const centerCarry = baseCarry * LIVE_CARRY_SWEET * (carryBoost || 1) * lieMult * (fireball ? 1.06 : 1) * spinCarry;
+  const basePattern = shotPatternFor(hi, centerCarry);
+  const pattern = fireball
+    ? { lateral: basePattern.lateral * 1.4, short: basePattern.short * 1.15, long: basePattern.long * 1.3 }
+    : basePattern;
+  return { centerCarry, pattern };
+}
+
+/** The meter power that carries `yards` with this profile (the sweet spot is 0.87; each 0.09 is one oval depth). */
+export function powerForCarry(profile, yards) {
+  const gap = yards - profile.centerCarry;
+  const depthNorm = clamp(gap / (gap < 0 ? profile.pattern.short : profile.pattern.long), -1.6, 1.6);
+  return clamp(0.87 + depthNorm * 0.09, 0.55, 1.1);
+}
+
 export function resolveLiveStroke({
   projection,
   hole,
@@ -180,20 +208,8 @@ export function resolveLiveStroke({
   // right — even on shots played back toward the tee.
   let perp = [-dir[1], dir[0]];
   if (perp[0] < 0) perp = [-perp[0], -perp[1]];
-  const lieMult = lie === "Rough" ? 0.88 : lie === "Bunker" ? 0.8 : 1;
   const power = clamp(Number(meter.power) || 0.9, 0, 1.15);
-  const liveClub = liveClubOf(clubId);
-  const baseCarry = liveClub ? liveClub.carry : (CLUBS.find((club) => club.id === clubId) || CLUBS[2]).carry;
-  // The golfer's real dispersion oval, centered on a sweet-spot strike.
-  // Fireball: a little more gas and a lot more spray, in both swing modes.
-  // Spin trades a touch of carry (back) or adds a touch (top); the real
-  // difference shows up in the rollout below.
-  const spinCarry = spin === "back" ? 0.97 : spin === "top" ? 1.02 : 1;
-  const centerCarry = baseCarry * LIVE_CARRY_SWEET * (carryBoost || 1) * lieMult * (fireball ? 1.06 : 1) * spinCarry;
-  const basePattern = shotPatternFor(hi, centerCarry);
-  const pattern = fireball
-    ? { lateral: basePattern.lateral * 1.4, short: basePattern.short * 1.15, long: basePattern.long * 1.3 }
-    : basePattern;
+  const { centerCarry, pattern } = carryProfile({ clubId, lie, carryBoost, fireball, spin, hi });
   const wild = judgment.tier === "wild";
   let carryYards;
   let lateralYards;

@@ -3206,6 +3206,8 @@ export default function TripGame({ data }) {
   function advanceLiveState(meter, judgment, animate) {
     const live = liveRef.current;
     if (!live || !projection) return;
+    // Power shot: the token was armed when the meter started; it buys 12% carry.
+    const powered = animate && Boolean(meterModsRef.current.powered) && live.feet == null;
     const played = simulateStroke({
       projection,
       hole,
@@ -3217,7 +3219,8 @@ export default function TripGame({ data }) {
       yardsScale: live.yardsScale,
       hi: selected?.hi ?? 12,
       // Buzzed flush = super shot: the ball goes extra.
-      carryBoost: (decision.carryBoost || 1) * (judgment.buzzBonus ? meterModsRef.current.buzzBonus || 1 : 1),
+      carryBoost:
+        (decision.carryBoost || 1) * (judgment.buzzBonus ? meterModsRef.current.buzzBonus || 1 : 1) * (powered ? 1.12 : 1),
       drunk: Boolean(meterModsRef.current.buzzWobble),
       zoneScale: meterModsRef.current.zoneScale || 1,
       // The tee ball flies at the planned target on the hole line (which
@@ -3231,7 +3234,6 @@ export default function TripGame({ data }) {
       wind,
       spin: live.feet != null ? "none" : spin,
     });
-    const powered = animate && Boolean(meterModsRef.current.powered) && live.feet == null;
     const strokesBefore = live.strokes;
     Object.assign(live, played.ball);
     if (live.feet == null || played.putt) setSpin("none");

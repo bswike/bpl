@@ -73,8 +73,16 @@
   .trip-game-ball-deform,
   .trip-game-ball-glint,
   .trip-game-land-puff circle,
+  .trip-game-kick.is-jittery,
+  .trip-game-judgment b,
+  .trip-game-yardage-digits span,
+  .trip-game-resting-ball,
+  .trip-game-club-reel-window b {
+    animation: none !important;
+  }
 
-  .trip-game-hype-track i {
+  .trip-game-hype-track i,
+  .trip-game-wind i {
     transition: none;
   }
 }

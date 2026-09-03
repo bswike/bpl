@@ -5,7 +5,8 @@ import { defaultLiveClub } from "./clubs.js";
 import { clamp } from "./geometry.js";
 import { ACC_GOOD, judgeSwing, meterZoneFor } from "./meter.js";
 import { forLabelOf, makePuttRead, resolveLivePutt } from "./putting.js";
-import { resolveLiveStroke } from "./shotPhysics.js";
+import { carryProfile, powerForCarry, resolveLiveStroke } from "./shotPhysics.js";
+import { windEffect } from "./wind.js";
 import { makeShot } from "./shotTheater.js";
 import { aimOffsetOf, skillOf } from "../tripGameEngine.js";
 
@@ -15,10 +16,10 @@ import { aimOffsetOf, skillOf } from "../tripGameEngine.js";
 // difference and the meter's difficulty scaling does not double-count it.
 // Putts get an aim error that grows with distance, as real make rates do.
 export const CPU_TUNING = {
-  lineSpread: 0.42, // sigma in oval units, scratch
-  lineSpreadPerSkill: 0.4,
-  depthSpread: 0.55, // sigma in depth units (1 = 0.09 of power)
-  depthSpreadPerSkill: 0.5,
+  lineSpread: 0.58, // sigma in oval units, scratch
+  lineSpreadPerSkill: 0.32,
+  depthSpread: 0.85, // sigma in depth units (1 = 0.09 of power)
+  depthSpreadPerSkill: 0.4,
   wildChance: 0.006,
   wildChancePerSkill: 0.035,
   puttAimTicks: 1.3, // sigma in ticks for an 8-footer, scratch
@@ -206,7 +207,7 @@ function gaussian(rng) {
 }
 
 /** A CPU golfer's two taps: tighter with skill, with the odd wild one. */
-export function cpuMeterSample({ hi, rng, putt = false, paceBand = null, feet = 10, zoneScale = 1 }) {
+export function cpuMeterSample({ hi, rng, putt = false, paceBand = null, feet = 10, zoneScale = 1, powerCenter = 0.87 }) {
   const miss = cpuMiss(hi);
   const t = CPU_TUNING;
   if (putt) {
@@ -220,12 +221,12 @@ export function cpuMeterSample({ hi, rng, putt = false, paceBand = null, feet = 
   }
   if (rng() < t.wildChance + t.wildChancePerSkill * miss) {
     return {
-      power: clamp(0.87 + gaussian(rng) * 0.08, 0.5, 1.12),
+      power: clamp(powerCenter + gaussian(rng) * 0.08, 0.5, 1.12),
       accuracy: (rng() < 0.5 ? -1 : 1) * (0.7 + rng() * 0.3),
     };
   }
   return {
-    power: clamp(0.87 + gaussian(rng) * 0.09 * (t.depthSpread + t.depthSpreadPerSkill * miss), 0.55, 1.1),
+    power: clamp(powerCenter + gaussian(rng) * 0.09 * (t.depthSpread + t.depthSpreadPerSkill * miss), 0.55, 1.1),
     accuracy: clamp(gaussian(rng) * ACC_GOOD * zoneScale * (t.lineSpread + t.lineSpreadPerSkill * miss), -1, 1),
   };
 }
@@ -254,17 +255,28 @@ export function simulateCpuStroke({ projection, hole, cpu, yardsScale, rng, seed
     return simulateStroke({ projection, hole, ball, meter, judgment, clubId: "putter", side: "cpu", yardsScale, hi: cpu.hi, zoneScale, rng, seedSalt });
   }
   const remaining = ball.remainingUnits / (yardsScale || 1);
-  const clubId =
-    ball.strokes === 0
-      ? hole.par <= 3
-        ? defaultLiveClub(hole.yards || remaining, "Fairway")
-        : cpu.decision.club
-      : defaultLiveClub(remaining, ball.lie);
-  const zoneScale = meterZoneFor({ clubId, lie: ball.lie, hi: cpu.hi, buzz: cpu.buzz });
-  const meter = cpuMeterSample({ hi: cpu.hi, rng, zoneScale });
-  const judgment = judgeSwing(meter.power, meter.accuracy, { zoneScale });
+  const carryBoost = cpu.decision.carryBoost || 1;
   // Better players hold greens with backspin on approaches; everyone else just hits it.
   const spin = ball.strokes > 0 && ball.lie !== "Bunker" && skillOf(cpu.hi) > 0.55 && remaining <= 200 ? "back" : "none";
+  // Play the wind: the carry the shot needs is the distance divided by what
+  // the wind gives or takes along the way.
+  const toPin = [projection.pin[0] - ball.pos[0], projection.pin[1] - ball.pos[1]];
+  const toPinLength = Math.hypot(toPin[0], toPin[1]) || 1;
+  const windMult = wind && wind.mph ? windEffect(wind, [toPin[0] / toPinLength, toPin[1] / toPinLength], Math.max(60, remaining)).carryMult : 1;
+  const needed = remaining / windMult;
+  // Club from the distance this golfer actually hits it, then swing only as
+  // hard as the shot needs: a 60-yard bunker shot is not a full sand wedge.
+  const teeClub = hole.par <= 3 ? defaultLiveClub((hole.yards || remaining) / (carryBoost * windMult), "Fairway") : cpu.decision.club;
+  const clubId =
+    ball.strokes === 0
+      ? teeClub
+      : defaultLiveClub(needed / (carryBoost * (spin === "back" ? 0.97 : 1) * (ball.lie === "Rough" ? 0.88 : ball.lie === "Bunker" ? 0.8 : 1)), ball.lie);
+  const profile = carryProfile({ clubId, lie: ball.lie, carryBoost, fireball: Boolean(cpu.decision.fireball), spin, hi: cpu.hi });
+  const fullSend = ball.strokes === 0 && hole.par > 3;
+  const powerCenter = fullSend ? 0.87 : powerForCarry(profile, needed);
+  const zoneScale = meterZoneFor({ clubId, lie: ball.lie, hi: cpu.hi, buzz: cpu.buzz });
+  const meter = cpuMeterSample({ hi: cpu.hi, rng, zoneScale, powerCenter });
+  const judgment = judgeSwing(meter.power, meter.accuracy, { zoneScale });
   return simulateStroke({
     projection,
     hole,
@@ -275,7 +287,7 @@ export function simulateCpuStroke({ projection, hole, cpu, yardsScale, rng, seed
     side: "cpu",
     yardsScale,
     hi: cpu.hi,
-    carryBoost: cpu.decision.carryBoost || 1,
+    carryBoost,
     zoneScale,
     lineTarget: ball.strokes === 0 && hole.par > 3 ? cpu.teeTarget : null,
     aimUnits: ball.strokes === 0 && hole.par <= 3 ? aimOffsetOf(cpu.decision.aim) * clamp(projection.width * 0.12, 10, 22) : 0,
