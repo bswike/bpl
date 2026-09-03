@@ -43,7 +43,7 @@ describe("wind", () => {
     expect(windEffect(into, up, 250).carryMult).toBeLessThan(0.96);
     expect(Math.abs(windEffect(cross, up, 250).driftYards)).toBeGreaterThan(5);
     expect(Math.abs(windEffect(cross, up, 100).driftYards)).toBeLessThan(Math.abs(windEffect(cross, up, 250).driftYards));
-    expect(windLabel(into, up)).toBe("12 MPH INTO");
+    expect(windLabel(into, up)).toBe("12MPH INTO");
     expect(windLabel(null, up)).toBe("CALM");
   });
 });
@@ -101,7 +101,7 @@ describe("records", () => {
     expect(out.record.label).toBe("CLOSEST APPROACH · 4 FT");
     out = noteRecord(out.records, { type: "holeOut", ace: true });
     expect(out.records.aces).toBe(1);
-    expect(out.record.label).toBe("ACE #1");
+    expect(out.record.label).toBe("HOLE IN ONE #1");
     out = noteRecord(out.records, { type: "streak", count: 2, player: "A" });
     expect(out.record).toBeNull();
   });

@@ -74,7 +74,7 @@ export function noteRecord(records, event) {
     case "holeOut":
       if (event.ace) {
         next.aces += 1;
-        record = { kind: "ace", label: `ACE #${next.aces}` };
+        record = { kind: "ace", label: `HOLE IN ONE #${next.aces}` };
       } else if (event.eagle) {
         next.eagles += 1;
         record = { kind: "eagle", label: `EAGLE #${next.eagles}` };

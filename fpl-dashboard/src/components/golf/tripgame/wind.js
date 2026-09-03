@@ -44,7 +44,7 @@ export function windLabel(wind, dir) {
   if (!wind || !wind.mph) return "CALM";
   const { along, cross } = windRead(wind, dir);
   const parts = [];
-  if (Math.abs(along) >= wind.mph * 0.35) parts.push(along > 0 ? "HELPING" : "INTO");
+  if (Math.abs(along) >= wind.mph * 0.35) parts.push(along > 0 ? "HELP" : "INTO");
   if (Math.abs(cross) >= wind.mph * 0.35) parts.push(cross > 0 ? "L→R" : "R→L");
-  return `${wind.mph} MPH${parts.length ? ` ${parts.join(" ")}` : ""}`;
+  return `${wind.mph}MPH${parts.length ? ` ${parts.join(" ")}` : ""}`;
 }

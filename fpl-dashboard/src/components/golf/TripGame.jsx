@@ -811,7 +811,6 @@ function HoleMap({
           <span
             className={`trip-game-wind${wind.mph >= 10 ? " is-strong" : ""}`}
             style={{ "--wind-angle": `${Math.round((wind.angle * 180) / Math.PI)}deg` }}
-            aria-label={`Wind ${windLabel(wind, windDir)}`}
           >
             <i aria-hidden="true">{wind.mph ? "↑" : "·"}</i>
             {windLabel(wind, windDir)}
@@ -836,6 +835,7 @@ function HoleMap({
             {activeShot.yards ? ` · ${activeShot.yards}Y` : ""}
           </small>
           <b>{activeShot.caption}</b>
+          {activeShot.record && <em>NEW RECORD · {activeShot.record}</em>}
         </div>
       )}
       {odds && (
@@ -1819,7 +1819,7 @@ function CartGirlOffer({ player, onDrink, onHydrate }) {
   );
 }
 
-function TrophyCase({ records }) {
+function TrophyCase({ records, swingMode = "full" }) {
   const cells = [
     records?.longestDrive && { label: "LONGEST DRIVE", value: `${records.longestDrive.yards}Y`, note: `${lastName(records.longestDrive.player)} · ${records.longestDrive.course}` },
     records?.closestApproach && { label: "CLOSEST APPROACH", value: `${records.closestApproach.feet} FT`, note: `from ${records.closestApproach.fromYards}Y · ${lastName(records.closestApproach.player)}` },
@@ -1830,16 +1830,20 @@ function TrophyCase({ records }) {
   ].filter(Boolean);
   if (!cells.length) {
     return (
-      <div className="trip-game-trophy-case is-empty">
+      <div className="trip-game-trophy-case is-empty" role="group" aria-label="Trophy case">
         <div>
           <small>TROPHY CASE</small>
-          <span>Longest drive, closest approach, longest putt, aces. Go set one.</span>
+          <span>
+            {swingMode === "full"
+              ? "LONGEST DRIVE · CLOSEST APPROACH · LONGEST PUTT · ACES. GO SET ONE."
+              : "DRIVE, APPROACH AND PUTT RECORDS FALL IN EVERY SHOT MODE. ONE SWING SETS STREAKS AND BIGGEST WIN."}
+          </span>
         </div>
       </div>
     );
   }
   return (
-    <div className="trip-game-trophy-case" aria-label="Trophy case">
+    <div className="trip-game-trophy-case" role="group" aria-label="Trophy case">
       {cells.map((cell) => (
         <div key={cell.label}>
           <small>{cell.label}</small>
@@ -1870,6 +1874,9 @@ function SetupScreen({
   codeError = null,
   lastCode = null,
 }) {
+  const decoded = decodeCode(code);
+  const typedEnough = code.replace(/[^A-Z0-9]/gi, "").length >= 8;
+  const decodedCourse = decoded ? model.courses.find((entry) => entry.slug === decoded.slug) : null;
   const resumeDiff = resume ? resume.match.human - resume.match.cpu : 0;
   const resumeCall =
     resumeDiff === 0
@@ -1974,15 +1981,26 @@ function SetupScreen({
           aria-label="Challenge code"
           spellCheck={false}
           autoCapitalize="characters"
-          aria-invalid={Boolean(codeError) || (Boolean(code) && !decodeCode(code))}
+          aria-invalid={Boolean(codeError) || (typedEnough && !decoded)}
+          aria-describedby="trip-game-code-hint"
         />
       </div>
+      {decoded && !codeError && (
+        <p className="trip-game-code-error is-ok" id="trip-game-code-hint">
+          CODE SETS {decodedCourse ? decodedCourse.label.toUpperCase() : decoded.slug.toUpperCase()} · {decoded.team.toUpperCase()} ·{" "}
+          {decoded.swingMode === "full" ? "EVERY SHOT" : "ONE SWING"}
+        </p>
+      )}
       {codeError && (
         <p className="trip-game-code-error" role="alert">
           {codeError}
         </p>
       )}
-      {!codeError && code && !decodeCode(code) && <p className="trip-game-code-error">CODES LOOK LIKE CS-S-F-1K7Q2</p>}
+      {!codeError && typedEnough && !decoded && (
+        <p className="trip-game-code-error" id="trip-game-code-hint">
+          CODES LOOK LIKE CS-S-F-1K7Q2
+        </p>
+      )}
       {resume && (
         <button type="button" className="trip-game-primary-button trip-game-start-button trip-game-resume-button" onClick={onResume}>
           RESUME · HOLE {Math.min(18, resume.holeIndex + 1)} · {resumeCall} ▶
@@ -1994,9 +2012,9 @@ function SetupScreen({
         disabled={!courseId || !team || !model.courses.length}
         onClick={onStart}
       >
-        {code && decodeCode(code) ? "PLAY THE CODE ▶" : resume ? "NEW CAPTAIN ROUND ▶" : "START CAPTAIN ROUND ▶"}
+        {decoded ? `PLAY CODE ${code.toUpperCase()} ▶` : resume ? "NEW CAPTAIN ROUND ▶" : "START CAPTAIN ROUND ▶"}
       </button>
-      <TrophyCase records={records} />
+      <TrophyCase records={records} swingMode={swingMode} />
       <p className="trip-game-disclaimer">
         Turf and hazard shapes use OpenStreetMap geometry. Trees and mowing texture are illustrative; unscouted shot shapes remain
         modeled until player profiles are entered.
@@ -2005,7 +2023,7 @@ function SetupScreen({
   );
 }
 
-function FinishScreen({ match, history, team, cpuTeam, closeout, onRematch, onSetup, code = null, records = EMPTY_RECORDS }) {
+function FinishScreen({ match, history, team, cpuTeam, closeout, onRematch, onSetup, code = null, records = EMPTY_RECORDS, swingMode = "full" }) {
   const winner = match.human > match.cpu ? team : match.cpu > match.human ? cpuTeam : null;
   const diff = match.human - match.cpu;
   return (
@@ -2044,10 +2062,10 @@ function FinishScreen({ match, history, team, cpuTeam, closeout, onRematch, onSe
         <p className="trip-game-modal-kicker">
           CHALLENGE CODE <span className="trip-game-code-badge">{code}</span>
           <br />
-          SAME WIND, GREENS AND CPU FOR ANYONE WHO PLAYS IT
+          {swingMode === "full" ? "SAME WIND, GREENS AND CPU" : "SAME GREENS AND CPU"} FOR ANYONE WHO PLAYS IT
         </p>
       )}
-      <TrophyCase records={records} />
+      <TrophyCase records={records} swingMode={swingMode} />
       <div className="trip-game-finish-actions">
         <button type="button" className="trip-game-primary-button" onClick={onRematch}>
           REMATCH
@@ -2153,6 +2171,7 @@ export default function TripGame({ data }) {
   const [records, setRecords] = useState(() => loadRecords(typeof window !== "undefined" ? window.localStorage : null));
   const recordsRef = useRef(records);
   const [challengeCode, setChallengeCode] = useState("");
+  const [lastCode, setLastCode] = useState(null);
   const [codeError, setCodeError] = useState(null);
   const cpuRandomRef = useRef(makeSeededRandom(1));
   // Records: note an event, persist, and surface "NEW RECORD" when one falls.
@@ -2722,6 +2741,14 @@ export default function TripGame({ data }) {
     }
     setCodeError(null);
     setSavedMatch(null);
+    setLastCode(
+      encodeCode({
+        slug: (fromCode && model.courses.find((entry) => entry.slug === fromCode.slug)?.slug) || course.slug,
+        team: fromCode ? fromCode.team : captainTeam,
+        swingMode: fromCode ? fromCode.swingMode : swingMode,
+        seed: nextSeed,
+      }),
+    );
     resetRoundSideEffects();
     seedStreams(nextSeed);
     dispatch({ type: "START_ROUND", playerState: initializePlayerState(), roundSalt: nextSeed % 997, seed: nextSeed });
@@ -3309,12 +3336,11 @@ export default function TripGame({ data }) {
     if (live.holed && strokesBefore === 0) {
       // ACE. Jackpot: the hype meter fills and a fireball drops.
       live.jackpot = "ace";
-      played.shot.caption = "ACE!!!";
       dispatch({ type: "PATCH", patch: (state) => ({ hype: 100, inventory: { ...state.inventory, fireball: (state.inventory.fireball || 0) + 1 } }) });
       noteEvent({ type: "holeOut", ace: true });
       setAnnounce("Hole in one!");
     } else if (fell) {
-      played.shot.caption = `NEW RECORD! ${fell.label}`;
+      played.shot.record = fell.label;
       setAnnounce(`New record: ${fell.label}`);
     }
     if (played.putt && animate) {
@@ -3838,7 +3864,7 @@ export default function TripGame({ data }) {
         <header className="trip-game-console-head">
           <span>GG POCKET</span>
           <b>CAPTAIN&apos;S CUP</b>
-          <span>DATA PLAY</span>
+          <span>{screen === "play" && roundCode ? roundCode : "DATA PLAY"}</span>
         </header>
         {screen === "setup" && (
           <SetupScreen
@@ -3861,7 +3887,7 @@ export default function TripGame({ data }) {
               setCodeError(null);
             }}
             codeError={codeError}
-            lastCode={seed ? roundCode : null}
+            lastCode={lastCode}
           />
         )}
         {screen === "finish" && (
@@ -3875,6 +3901,7 @@ export default function TripGame({ data }) {
             onSetup={() => dispatch({ type: "SETUP" })}
             code={roundCode}
             records={records}
+            swingMode={swingMode}
           />
         )}
         {screen === "play" && course && hole && projection && (
@@ -3953,7 +3980,7 @@ export default function TripGame({ data }) {
                       }
                     : null
                 }
-                wind={wind}
+                wind={swingMode === "full" ? wind : null}
                 playerHi={selected?.hi ?? 12}
                 livePreview={livePreview}
                 puttPreview={
@@ -4124,8 +4151,9 @@ export default function TripGame({ data }) {
                         disabled={!selected || Boolean(meterPhase) || liveRef.current?.feet != null}
                         onClick={() => setSpin((current) => (current === "none" ? "back" : current === "back" ? "top" : "none"))}
                         aria-label={`Spin: ${spin}`}
+                        title="Tap to cycle: backspin bites on the green, topspin runs out, off"
                       >
-                        {spin === "back" ? "↩ BACK" : spin === "top" ? "↪ TOP" : "○ SPIN"}
+                        {spin === "back" ? "BACK ↩" : spin === "top" ? "TOP ↪" : "SPIN OFF"}
                       </button>
                       <button
                         type="button"
@@ -4134,13 +4162,14 @@ export default function TripGame({ data }) {
                         onClick={() => setPowerArmed((current) => !current)}
                         aria-pressed={powerArmed}
                         aria-label={`Power shot, ${powerShots} left`}
+                        title="Arm one big swing: more carry, tighter window. PURE timing gives the token back."
                       >
-                        ⚡ {powerShots}
+                        {powerArmed ? "⚡ ARMED" : `⚡ ${powerShots}`}
                       </button>
                     </>
                   )}
-                  {liveInfo && (
-                    <button type="button" className="trip-game-skip-chip" onClick={skipLiveHole}>
+                  {(liveInfo || swingMode === "full") && (
+                    <button type="button" className="trip-game-skip-chip" onClick={skipLiveHole} disabled={!liveInfo}>
                       SKIP ▶▶
                     </button>
                   )}
