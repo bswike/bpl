@@ -12,6 +12,7 @@ import { buildTreeSprites } from "./projection.js";
 import { pointNearGreen } from "./camera.js";
 import { LIVE_CARRY_SWEET, liveClubOf } from "./clubs.js";
 import { ACC_GOOD } from "./meter.js";
+import { windEffect } from "./wind.js";
 import { classifyTerrain, nearestFeaturePoint } from "./terrain.js";
 import { CLUBS, SHAPES, aimOffsetOf } from "../tripGameEngine.js";
 export function computeShotTarget(projection, hole, decision) {
@@ -162,6 +163,8 @@ export function resolveLiveStroke({
   lineTarget = null,
   fireball = false,
   rng = null,
+  wind = null,
+  spin = "none",
 }) {
   const pin = projection.pin;
   const scale = yardsScale > 0 ? yardsScale : 1;
@@ -183,7 +186,10 @@ export function resolveLiveStroke({
   const baseCarry = liveClub ? liveClub.carry : (CLUBS.find((club) => club.id === clubId) || CLUBS[2]).carry;
   // The golfer's real dispersion oval, centered on a sweet-spot strike.
   // Fireball: a little more gas and a lot more spray, in both swing modes.
-  const centerCarry = baseCarry * LIVE_CARRY_SWEET * (carryBoost || 1) * lieMult * (fireball ? 1.06 : 1);
+  // Spin trades a touch of carry (back) or adds a touch (top); the real
+  // difference shows up in the rollout below.
+  const spinCarry = spin === "back" ? 0.97 : spin === "top" ? 1.02 : 1;
+  const centerCarry = baseCarry * LIVE_CARRY_SWEET * (carryBoost || 1) * lieMult * (fireball ? 1.06 : 1) * spinCarry;
   const basePattern = shotPatternFor(hi, centerCarry);
   const pattern = fireball
     ? { lateral: basePattern.lateral * 1.4, short: basePattern.short * 1.15, long: basePattern.long * 1.3 }
@@ -220,67 +226,120 @@ export function resolveLiveStroke({
       caption = side > 0 ? "BANANA SLICE!" : "SNAP HOOK!";
     }
   }
-  let to = [
+  // Wind works on anything in the air: into it costs carry, across it drifts.
+  let windDrift = 0;
+  if (!groundBall && wind && wind.mph) {
+    const effect = windEffect(wind, dir, carryYards);
+    carryYards *= effect.carryMult;
+    windDrift = effect.driftYards;
+    lateralYards += windDrift;
+  }
+  const land = [
     from[0] + dir[0] * carryYards * scale + perp[0] * (lateralYards * scale + aimUnits),
     from[1] + dir[1] * carryYards * scale + perp[1] * (lateralYards * scale + aimUnits),
   ];
   const kind = lie === "Tee" ? (hole.par <= 3 ? "tee" : "drive") : lie === "Bunker" ? "sand" : lie === "Rough" ? "punch" : "approach";
   // Ground balls stay on the dirt; airborne wild ones visibly banana-slice.
-  const bend = groundBall ? 0 : clamp(meter.accuracy * 20 * (wild ? 2.4 : 1), -55, 55);
+  const bend = groundBall ? 0 : clamp(meter.accuracy * 20 * (wild ? 2.4 : 1) + windDrift * 1.2, -55, 55);
   const shankCaption = caption;
+  const yardsOf = (point) => Math.round(Math.hypot(point[0] - from[0], point[1] - from[1]) / scale);
+  let rollYards = 0; // signed: negative when backspin pulls the ball back
 
-  const finish = (extra) => ({ kind, to, nextPos: to, caption, bend, ground: groundBall, ...extra });
-  const splash = (wet) => ({
+  const finish = (rest, extra) => ({
+    kind,
+    to: rest,
+    carryTo: land,
+    nextPos: rest,
+    caption,
+    bend,
+    ground: groundBall,
+    rollYards: Math.round(rollYards),
+    totalYards: yardsOf(rest),
+    ...extra,
+  });
+  const splash = (wet, why = null) => ({
     kind: "splash",
     to: wet,
+    carryTo: land,
     nextPos: dryDropPoint(projection, wet, from),
     nextLie: "Rough",
     penalty: 1,
     bend,
     ground: groundBall,
-    caption: shankCaption ? `${shankCaption} SPLASH!` : null,
+    caption: why || (shankCaption ? `${shankCaption} SPLASH!` : null),
+    totalYards: yardsOf(wet),
+  });
+  const outOf = (point, why) => ({
+    kind: "ob",
+    to: [clamp(point[0], 3, projection.width - 3), clamp(point[1], 3, projection.height - 3)],
+    carryTo: land,
+    nextPos: from,
+    nextLie: lie,
+    penalty: 1,
+    bend,
+    ground: groundBall,
+    caption: why || (wild ? `${shankCaption || "WILD ONE"}... OB!` : null),
+    totalYards: yardsOf(point),
   });
 
   // Only ground-scuttling mishits can find water mid-path; a flighted ball
   // splashes only where it lands (checked below).
-  const waterHit = groundBall ? firstWaterAlongGround(projection.features, from, to) : null;
+  const waterHit = groundBall ? firstWaterAlongGround(projection.features, from, land) : null;
   if (waterHit) return splash(waterHit);
-  const tree = !groundBall ? treeCollision(projection, hole.number, to) : null;
+  const tree = !groundBall ? treeCollision(projection, hole.number, land) : null;
   if (tree) {
     caption = caption || "CLIPS A TREE!";
-    const toTee = [from[0] - to[0], from[1] - to[1]];
+    const toTee = [from[0] - land[0], from[1] - land[1]];
     const away = Math.hypot(toTee[0], toTee[1]) || 1;
     const kick = tree.size * 1.15 + 5;
-    to = [to[0] + (toTee[0] / away) * kick, to[1] + (toTee[1] / away) * kick];
+    land[0] += (toTee[0] / away) * kick;
+    land[1] += (toTee[1] / away) * kick;
   }
-  if (outOfBounds(projection, to)) {
-    return {
-      kind: "ob",
-      to: [clamp(to[0], 3, projection.width - 3), clamp(to[1], 3, projection.height - 3)],
-      nextPos: from,
-      nextLie: lie,
-      penalty: 1,
-      bend,
-      ground: groundBall,
-      caption: wild ? `${shankCaption || "WILD ONE"}... OB!` : null,
-    };
-  }
-  // Wherever the ball graphic rests decides: water is water, before any
+  if (outOfBounds(projection, land)) return outOf(land);
+  // Wherever the ball graphic lands decides: water is water, before any
   // green proximity — a pond beside the pin is still a pond.
-  const terrain = classifyTerrain(projection.features, to);
-  if (terrain === "Penalty area") return splash(to);
-  const pinDist = Math.hypot(to[0] - pin[0], to[1] - pin[1]);
-  // A flushed wedge can drop right in the bucket.
-  if (judgment.tier === "pure" && clubId === "wedge" && pinDist <= 2.4) {
-    return finish({ to: pin, nextPos: pin, holed: true, caption: "JARRED IT!" });
+  const landTerrain = classifyTerrain(projection.features, land);
+  if (landTerrain === "Penalty area") return splash(land);
+  const landOnGreen = landTerrain === "Fairway" && pointNearGreen(land, projection);
+  const pinDistLand = Math.hypot(land[0] - pin[0], land[1] - pin[1]);
+  // A flushed short iron can drop right in the bucket.
+  const jarWindow = clubId === "wedge" || clubId === "sandwedge" || clubId === "chip" ? 2.4 : 1.3;
+  if (!groundBall && judgment.tier === "pure" && pinDistLand <= jarWindow) {
+    return finish(pin, { nextPos: pin, holed: true, caption: kind === "approach" || kind === "tee" ? "SLAM DUNK!" : "JARRED IT!" });
   }
+  // Rollout: the ball keeps going after it lands, more on short grass and
+  // with topspin, less on rough, not at all in sand. Backspin holds a green
+  // and a flushed one bites back toward the player.
+  if (!tree) {
+    const lowFlight = kind === "sand" || kind === "punch";
+    const base = landTerrain === "Bunker" ? 0 : landTerrain === "Rough" ? 0.02 : landOnGreen ? 0.04 : kind === "drive" ? 0.09 : 0.06;
+    const spinMult = spin === "back" ? (landOnGreen ? 0 : 0.5) : spin === "top" ? 2.2 : 1;
+    rollYards = carryYards * base * spinMult * (groundBall ? 1.6 : 1) * (lowFlight ? 1.4 : 1);
+    if (spin === "back" && landOnGreen && !groundBall && (judgment.tier === "pure" || judgment.tier === "great")) {
+      rollYards = -(judgment.tier === "pure" ? 3 : 1.5);
+      caption = caption || "BITES!";
+    }
+  }
+  let rest = [land[0] + dir[0] * rollYards * scale, land[1] + dir[1] * rollYards * scale];
+  if (rollYards > 0.5) {
+    const rolledIn = firstWaterAlongGround(projection.features, land, rest);
+    if (rolledIn) return splash(rolledIn, "ROLLS INTO THE WATER!");
+    if (outOfBounds(projection, rest)) return outOf(rest, "ROLLS OUT OF BOUNDS!");
+    if (classifyTerrain(projection.features, rest) === "Penalty area") return splash(rest, "ROLLS INTO THE WATER!");
+  }
+  const restTerrain = classifyTerrain(projection.features, rest);
   // Sand beside the green is still sand; only then does green proximity count.
-  if (terrain === "Bunker") return finish({ nextLie: "Bunker" });
-  if (pointNearGreen(to, projection)) {
+  if (restTerrain === "Bunker") return finish(rest, { nextLie: "Bunker" });
+  const pinDist = Math.hypot(rest[0] - pin[0], rest[1] - pin[1]);
+  if (pointNearGreen(rest, projection)) {
     const feet = clamp(Math.round((pinDist / scale) * 3), 2, 60);
-    return finish({ nextLie: "Green", feet });
+    // Proximity call-outs for anything that flew in from off the green.
+    if (!groundBall && kind !== "putt" && !caption) {
+      caption = feet <= 3 ? "KICK-IN!" : feet <= 8 ? "STIFF!" : feet <= 15 ? "GREAT LOOK!" : null;
+    }
+    return finish(rest, { nextLie: "Green", feet, proximityFeet: feet });
   }
-  return finish({ nextLie: terrain });
+  return finish(rest, { nextLie: restTerrain });
 }
 
 /** Walk back from a wet spot toward the shot's origin until the drop is dry. */

@@ -64,8 +64,10 @@ describe("projectHole", () => {
 describe("resolveLiveStroke", () => {
   it("lands a flushed centre tap at the sweet-spot carry on the fairway", () => {
     const res = stroke({});
-    const carried = Math.hypot(res.to[0] - projection.tee[0], res.to[1] - projection.tee[1]) / yardsScale;
+    const carried = Math.hypot(res.carryTo[0] - projection.tee[0], res.carryTo[1] - projection.tee[1]) / yardsScale;
     expect(carried).toBeCloseTo(255 * LIVE_CARRY_SWEET, 0);
+    expect(res.rollYards).toBeGreaterThan(10); // a drive runs out on the fairway
+    expect(res.totalYards).toBeGreaterThan(carried);
     expect(res.nextLie).toBe("Fairway");
     expect(res.penalty).toBeUndefined();
   });

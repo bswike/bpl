@@ -124,6 +124,9 @@ import {
 } from "./tripgame/liveStroke.js";
 import { INITIAL_MATCH, matchReducer } from "./tripgame/matchState.js";
 import { METER_PHASES, PHASE, phaseOf, primaryLabel } from "./tripgame/phase.js";
+import { windEffect, windFor, windLabel } from "./tripgame/wind.js";
+import { EMPTY_RECORDS, loadRecords, noteRecord, saveRecords } from "./tripgame/records.js";
+import { decodeCode, encodeCode, randomSeed } from "./tripgame/challenge.js";
 import "./tripgame/css/01-shell.css";
 import "./tripgame/css/02-setup-finish.css";
 import "./tripgame/css/03-buttons.css";
@@ -142,6 +145,7 @@ import "./tripgame/css/15-finish.css";
 import "./tripgame/css/16-loading-keyframes.css";
 import "./tripgame/css/17-mobile.css";
 import "./tripgame/css/18-play-screen.css";
+import "./tripgame/css/20-arcade.css";
 import "./tripgame/css/19-reduced-motion.css";
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
@@ -537,6 +541,7 @@ function HoleMap({
   liveStatus,
   livePos,
   cpuLive = null,
+  wind = null,
   livePreview,
   clubReel,
   puttPreview,
@@ -638,6 +643,13 @@ function HoleMap({
           ? cpuAtRest
           : null;
   const remainingYards = hole.yards ? Math.max(0, Math.round(hole.yards - targetYards)) : null;
+  const windOrigin = livePos || projection.tee;
+  const windDir = (() => {
+    const wx = projection.pin[0] - windOrigin[0];
+    const wy = projection.pin[1] - windOrigin[1];
+    const length = Math.hypot(wx, wy) || 1;
+    return [wx / length, wy / length];
+  })();
   const trees = projection.trees || buildTreeSprites(projection, hole.number);
   const mapId = `trip-hole-${hole.number}`;
   const ballPoint = flightFrame ? [flightFrame.gx, flightFrame.gy] : activeShot ? (playback.phase === "settle" ? activeShot.to : activeShot.from) : null;
@@ -705,6 +717,16 @@ function HoleMap({
     >
       <div className="trip-game-map-hud">
         <span className={`trip-game-par-pill is-par-${hole.par}`}>PAR {hole.par}</span>
+        {wind && (
+          <span
+            className={`trip-game-wind${wind.mph >= 10 ? " is-strong" : ""}`}
+            style={{ "--wind-angle": `${Math.round((wind.angle * 180) / Math.PI)}deg` }}
+            aria-label={`Wind ${windLabel(wind, windDir)}`}
+          >
+            <i aria-hidden="true">{wind.mph ? "↑" : "·"}</i>
+            {windLabel(wind, windDir)}
+          </span>
+        )}
         <span>{projection.hazardLabel}</span>
         <span>
           {onGreenCam
@@ -1772,6 +1794,38 @@ function CartGirlOffer({ player, onDrink, onHydrate }) {
   );
 }
 
+function TrophyCase({ records }) {
+  const cells = [
+    records?.longestDrive && { label: "LONGEST DRIVE", value: `${records.longestDrive.yards}Y`, note: `${lastName(records.longestDrive.player)} · ${records.longestDrive.course}` },
+    records?.closestApproach && { label: "CLOSEST APPROACH", value: `${records.closestApproach.feet} FT`, note: `from ${records.closestApproach.fromYards}Y · ${lastName(records.closestApproach.player)}` },
+    records?.longestPutt && { label: "LONGEST PUTT", value: `${records.longestPutt.feet} FT`, note: lastName(records.longestPutt.player) },
+    records?.bestStreak && { label: "STRIPING STREAK", value: `×${records.bestStreak.count}`, note: lastName(records.bestStreak.player) },
+    records?.biggestWin && { label: "BIGGEST WIN", value: records.biggestWin.label, note: `${records.biggestWin.team} · ${records.biggestWin.course}` },
+    (records?.aces || records?.eagles) && { label: "ACES · EAGLES", value: `${records.aces} · ${records.eagles}`, note: `${records.rounds} rounds` },
+  ].filter(Boolean);
+  if (!cells.length) {
+    return (
+      <div className="trip-game-trophy-case is-empty">
+        <div>
+          <small>TROPHY CASE</small>
+          <span>Longest drive, closest approach, longest putt, aces. Go set one.</span>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="trip-game-trophy-case" aria-label="Trophy case">
+      {cells.map((cell) => (
+        <div key={cell.label}>
+          <small>{cell.label}</small>
+          <b>{cell.value}</b>
+          <span>{cell.note}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SetupScreen({
   model,
   courseId,
@@ -1785,6 +1839,10 @@ function SetupScreen({
   resume = null,
   onResume,
   onStart,
+  records = EMPTY_RECORDS,
+  code = "",
+  setCode,
+  lastCode = null,
 }) {
   const resumeDiff = resume ? resume.match.human - resume.match.cpu : 0;
   const resumeCall =
@@ -1881,6 +1939,17 @@ function SetupScreen({
           ? "LOADING 2025 + 2026 PLAYER HISTORY..."
           : `${model.dataSummary.trips} TRIPS · ${model.dataSummary.historicalPlayers} PROFILES · ODDS READY`}
       </div>
+      <div className="trip-game-code-row">
+        <input
+          type="text"
+          value={code}
+          onChange={(event) => setCode?.(event.target.value.toUpperCase())}
+          placeholder={lastCode ? `PLAY A CODE · LAST ${lastCode}` : "PLAY A CODE · CS-S-F-XXXXX"}
+          aria-label="Challenge code"
+          spellCheck={false}
+          autoCapitalize="characters"
+        />
+      </div>
       {resume && (
         <button type="button" className="trip-game-primary-button trip-game-start-button trip-game-resume-button" onClick={onResume}>
           RESUME · HOLE {Math.min(18, resume.holeIndex + 1)} · {resumeCall} ▶
@@ -1892,8 +1961,9 @@ function SetupScreen({
         disabled={!courseId || !team || !model.courses.length}
         onClick={onStart}
       >
-        {resume ? "NEW CAPTAIN ROUND ▶" : "START CAPTAIN ROUND ▶"}
+        {code && decodeCode(code) ? "PLAY THE CODE ▶" : resume ? "NEW CAPTAIN ROUND ▶" : "START CAPTAIN ROUND ▶"}
       </button>
+      <TrophyCase records={records} />
       <p className="trip-game-disclaimer">
         Turf and hazard shapes use OpenStreetMap geometry. Trees and mowing texture are illustrative; unscouted shot shapes remain
         modeled until player profiles are entered.
@@ -1902,7 +1972,7 @@ function SetupScreen({
   );
 }
 
-function FinishScreen({ match, history, team, cpuTeam, closeout, onRematch, onSetup }) {
+function FinishScreen({ match, history, team, cpuTeam, closeout, onRematch, onSetup, code = null, records = EMPTY_RECORDS }) {
   const winner = match.human > match.cpu ? team : match.cpu > match.human ? cpuTeam : null;
   const diff = match.human - match.cpu;
   return (
@@ -1937,6 +2007,14 @@ function FinishScreen({ match, history, team, cpuTeam, closeout, onRematch, onSe
           </div>
         ))}
       </div>
+      {code && (
+        <p className="trip-game-modal-kicker">
+          CHALLENGE CODE <span className="trip-game-code-badge">{code}</span>
+          <br />
+          SAME WIND, GREENS AND CPU FOR ANYONE WHO PLAYS IT
+        </p>
+      )}
+      <TrophyCase records={records} />
       <div className="trip-game-finish-actions">
         <button type="button" className="trip-game-primary-button" onClick={onRematch}>
           REMATCH
@@ -1986,6 +2064,10 @@ export default function TripGame({ data }) {
     liveInfo,
     liveClubId,
     puttAim,
+    spin,
+    powerArmed,
+    powerShots,
+    seed,
   } = game;
   // Single-field updates keep the setState shape (a value or an updater).
   // Memoised once so effects can list them as dependencies without re-running.
@@ -2009,6 +2091,9 @@ export default function TripGame({ data }) {
       setLiveInfo: patchField("liveInfo"),
       setLiveClubId: patchField("liveClubId"),
       setPuttAim: patchField("puttAim"),
+      setSpin: patchField("spin"),
+      setPowerArmed: patchField("powerArmed"),
+      setPowerShots: patchField("powerShots"),
     };
   }, []);
   const {
@@ -2028,7 +2113,24 @@ export default function TripGame({ data }) {
     setLiveInfo,
     setLiveClubId,
     setPuttAim,
+    setSpin,
+    setPowerArmed,
+    setPowerShots,
   } = setters;
+  const [records, setRecords] = useState(() => loadRecords(typeof window !== "undefined" ? window.localStorage : null));
+  const [challengeCode, setChallengeCode] = useState("");
+  const cpuRandomRef = useRef(makeSeededRandom(1));
+  // Records: note an event, persist, and surface "NEW RECORD" when one falls.
+  function noteEvent(event) {
+    let fell = null;
+    setRecords((current) => {
+      const { records: next, record } = noteRecord(current, event);
+      fell = record;
+      if (typeof window !== "undefined") saveRecords(window.localStorage, next);
+      return next;
+    });
+    return fell;
+  }
   const [geometryBySlug, setGeometryBySlug] = useState({});
   const [meterPhase, setMeterPhase] = useState(null);
   const [fastForward, setFastForward] = useState(false);
@@ -2412,7 +2514,7 @@ export default function TripGame({ data }) {
       course,
       hole,
       stateByPlayer: playerState,
-      random: randomRef.current,
+      random: cpuRandomRef.current,
       opponents: humanRoster.filter((player) => (usage[player.key] || 0) < maxUses),
     });
     setCpuOpponent(pick || null);
@@ -2550,7 +2652,6 @@ export default function TripGame({ data }) {
     cpuEdgeRef.current = false;
     resolvingRef.current = false;
     meterLockRef.current = null;
-    randomRef.current = makeSeededRandom(Date.now());
     setMeterPhase(null);
     setSwingFx(null);
     setShakeFx(null);
@@ -2561,10 +2662,28 @@ export default function TripGame({ data }) {
     cancelPendingSwing();
   }
 
+  // The seed fixes the wind, the greens, the CPU's picks and its swings, so a
+  // challenge code replays the same round for whoever enters it. The human's
+  // own luck (mishit rolls) runs on a separate stream.
+  function seedStreams(nextSeed) {
+    randomRef.current = makeSeededRandom(nextSeed * 17 + 3);
+    cpuRandomRef.current = makeSeededRandom(nextSeed * 31 + 7);
+  }
+
   function startRound() {
     if (!course || !captainTeam) return;
+    const fromCode = decodeCode(challengeCode);
+    const nextSeed = fromCode ? fromCode.seed : randomSeed();
+    if (fromCode) {
+      const coded = model.courses.find((entry) => entry.slug === fromCode.slug);
+      if (coded) setCourseId(coded.id);
+      setCaptainTeam(fromCode.team);
+      setSwingMode(fromCode.swingMode);
+      setChallengeCode("");
+    }
     resetRoundSideEffects();
-    dispatch({ type: "START_ROUND", playerState: initializePlayerState(), roundSalt: Date.now() % 997 });
+    seedStreams(nextSeed);
+    dispatch({ type: "START_ROUND", playerState: initializePlayerState(), roundSalt: nextSeed % 997, seed: nextSeed });
     try {
       window.localStorage.removeItem(MATCH_SAVE_KEY);
     } catch {
@@ -2581,6 +2700,7 @@ export default function TripGame({ data }) {
     setCaptainTeam(snapshot.captainTeam);
     setSwingMode(snapshot.swingMode === "full" ? "full" : "single");
     resetRoundSideEffects();
+    seedStreams(Number(snapshot.seed) || randomSeed());
     buyRoundRef.current = Boolean(snapshot.buyRound);
     cpuEdgeRef.current = Boolean(snapshot.cpuEdge);
     dispatch({ type: "RESUME", snapshot, playerState: initializePlayerState() });
@@ -2739,13 +2859,19 @@ export default function TripGame({ data }) {
     const baseZone = meterZoneFor({ clubId, lie: options.lie, hi: selected?.hi, buzz: selectedState?.buzz, jitters });
     const clubSpeed = liveClub?.speed ?? CLUB_METER_SPEED[clubId] ?? 1;
     const clutch = dormie || hole?.number === 18;
+    // Power shot (Mario Golf rules): more carry, a tighter window, a faster needle.
+    const powered = Boolean(powerArmed) && options.context !== "putt";
+    const powerMult = powered ? 1.1 : 1;
+    const poweredZone = baseZone * (powered ? 0.65 : 1);
     return {
-      speed: BASE_ACC_SPEED * clubSpeed * skillSpeed * (clutch ? CLUTCH_SPEED : 1),
+      speed: BASE_ACC_SPEED * clubSpeed * skillSpeed * (clutch ? CLUTCH_SPEED : 1) * powerMult,
       powerSpeed: BASE_POWER_SPEED * skillSpeed * (clutch ? 0.85 : 1),
       clubSpeed,
       skillSpeed,
-      baseZone,
-      zoneScale: baseZone,
+      powerMult,
+      powered,
+      baseZone: poweredZone,
+      zoneScale: poweredZone,
       redBet: false,
       clutch,
       club: clubId,
@@ -2796,7 +2922,8 @@ export default function TripGame({ data }) {
       (live.clubSpeed ?? 1) *
       (live.skillSpeed ?? 1) *
       (live.clutch ? CLUTCH_SPEED : 1) *
-      (redBet ? RED_BET_SPEED : 1);
+      (redBet ? RED_BET_SPEED : 1) *
+      (live.powerMult ?? 1);
     meterLiveRef.current.accHold = 0.16;
     setMeterMods((current) => ({ ...current, zoneScale: live.zoneScale, redBet, clutch: live.clutch, club: live.club }));
     if (redBet) riskArmedSound();
@@ -2831,6 +2958,7 @@ export default function TripGame({ data }) {
     // chord up the scale; any lesser strike resets it.
     const nextStreak = judgment.tier === "pure" || judgment.tier === "great" ? swingStreak + 1 : 0;
     setSwingStreak(nextStreak);
+    if (nextStreak >= 3) noteEvent({ type: "streak", count: nextStreak, player: selected?.name || "You" });
     setSwingFx({ ...judgment, power, accuracy, streak: nextStreak, id: now });
     setAnnounce(judgment.label ? `${judgment.label}${judgment.sub ? `. ${judgment.sub}` : ""}` : "");
     setMeterPhase("locked");
@@ -2876,7 +3004,7 @@ export default function TripGame({ data }) {
         course,
         hole,
         stateByPlayer: playerState,
-        random: randomRef.current,
+        random: cpuRandomRef.current,
         opponents: humanRoster.filter((player) => (usage[player.key] || 0) < maxUses),
       });
     if (!cpuPick) return;
@@ -3065,7 +3193,8 @@ export default function TripGame({ data }) {
       hole,
       cpu,
       yardsScale: live.yardsScale,
-      rng: randomRef.current,
+      rng: cpuRandomRef.current,
+      wind,
       seedSalt: hole.number * 17 + cpu.ball.strokes * 5 + 3,
     });
     cpu.ball = played.ball;
@@ -3099,8 +3228,42 @@ export default function TripGame({ data }) {
       fireball: Boolean(decision.fireball),
       rng: randomRef.current,
       seedSalt: hole.number * 13 + live.strokes * 7 + 2,
+      wind,
+      spin: live.feet != null ? "none" : spin,
     });
+    const powered = Boolean(meterModsRef.current.powered) && live.feet == null;
+    const strokesBefore = live.strokes;
     Object.assign(live, played.ball);
+    if (live.feet == null || played.putt) setSpin("none");
+    if (powered) {
+      // A perfectly timed power shot is free; anything less spends the token.
+      setPowerArmed(false);
+      if (judgment.tier === "pure") played.shot.caption = `${played.shot.caption ? `${played.shot.caption} · ` : ""}PERFECT POWER · TOKEN BACK`;
+      else setPowerShots((current) => Math.max(0, (current || 0) - 1));
+    }
+    // Bar-room numbers: longest drive, closest approach, longest putt, aces.
+    const res = played.result;
+    const who = selected?.name || "You";
+    const courseLabel = course?.label || "";
+    let fell = null;
+    if (!played.putt && !res.penalty && (res.kind === "drive" || res.kind === "tee") && res.totalYards) {
+      fell = noteEvent({ type: "drive", yards: res.totalYards, player: who, course: courseLabel, hole: hole.number });
+    } else if (!played.putt && res.proximityFeet != null && played.fromYards >= 40) {
+      fell = noteEvent({ type: "approach", feet: res.proximityFeet, fromYards: played.fromYards, player: who, course: courseLabel, hole: hole.number });
+    } else if (played.putt && res.made && played.shot.putt?.feet) {
+      fell = noteEvent({ type: "putt", feet: played.shot.putt.feet, player: who, course: courseLabel, hole: hole.number });
+    }
+    if (live.holed && strokesBefore === 0) {
+      // ACE. Jackpot: the hype meter fills and a fireball drops.
+      live.jackpot = "ace";
+      played.shot.caption = "ACE!!!";
+      dispatch({ type: "PATCH", patch: (state) => ({ hype: 100, inventory: { ...state.inventory, fireball: (state.inventory.fireball || 0) + 1 } }) });
+      noteEvent({ type: "holeOut", ace: true });
+      setAnnounce("Hole in one!");
+    } else if (fell) {
+      played.shot.caption = `NEW RECORD! ${fell.label}`;
+      setAnnounce(`New record: ${fell.label}`);
+    }
     if (played.putt && animate) {
       const result = played.result;
       // Teach the read: show what the putt actually needed.
@@ -3195,6 +3358,7 @@ export default function TripGame({ data }) {
       1,
       hole.par + 4,
     );
+    if (live.holed && live.jackpot !== "ace" && humanGross <= hole.par - 2) noteEvent({ type: "holeOut", eagle: true });
     const resolved = resolveMatchHole({
       human: selected,
       cpu: live.cpuPick.profile,
@@ -3272,7 +3436,8 @@ export default function TripGame({ data }) {
         hole,
         cpu,
         yardsScale: live.yardsScale,
-        rng: randomRef.current,
+        rng: cpuRandomRef.current,
+      wind,
         seedSalt: hole.number * 17 + cpu.ball.strokes * 5 + 3,
       }).ball;
     }
@@ -3351,7 +3516,7 @@ export default function TripGame({ data }) {
       course,
       hole,
       stateByPlayer: playerState,
-      random: randomRef.current,
+      random: cpuRandomRef.current,
       opponents: humanRoster.filter((player) => (usage[player.key] || 0) < maxUses),
     });
     if (!cpuPick) return;
@@ -3515,6 +3680,11 @@ export default function TripGame({ data }) {
 
   function nextHole() {
     if (holeIndex >= 17 || closeout?.decided) {
+      const margin = match.human - match.cpu;
+      noteEvent({ type: "round" });
+      if (margin > 0) {
+        noteEvent({ type: "win", label: closeout?.label || `${margin} UP`, margin, course: course?.label || "", team: captainTeam });
+      }
       dispatch({ type: "FINISH" });
       return;
     }
@@ -3563,6 +3733,8 @@ export default function TripGame({ data }) {
         buyRound: buyRoundRef.current,
         cpuEdge: cpuEdgeRef.current,
         roundSalt,
+        seed,
+        powerShots,
       };
       window.localStorage.setItem(MATCH_SAVE_KEY, JSON.stringify(snapshot));
     } catch {
@@ -3573,6 +3745,8 @@ export default function TripGame({ data }) {
     saveRef.current?.();
   }, [history.length, screen, closeout]);
 
+  const wind = useMemo(() => (hole ? windFor(hole, roundSalt) : null), [hole, roundSalt]);
+  const roundCode = course && captainTeam ? encodeCode({ slug: course.slug, team: captainTeam, swingMode, seed }) : null;
   const resumable =
     savedMatch &&
     savedMatch.tripId === (data?.trip?.id ?? null) &&
@@ -3621,6 +3795,10 @@ export default function TripGame({ data }) {
             resume={resumable}
             onResume={resumeMatch}
             onStart={startRound}
+            records={records}
+            code={challengeCode}
+            setCode={setChallengeCode}
+            lastCode={seed ? roundCode : null}
           />
         )}
         {screen === "finish" && (
@@ -3632,6 +3810,8 @@ export default function TripGame({ data }) {
             closeout={closeout}
             onRematch={startRound}
             onSetup={() => dispatch({ type: "SETUP" })}
+            code={roundCode}
+            records={records}
           />
         )}
         {screen === "play" && course && hole && projection && (
@@ -3710,6 +3890,7 @@ export default function TripGame({ data }) {
                       }
                     : null
                 }
+                wind={wind}
                 playerHi={selected?.hi ?? 12}
                 livePreview={livePreview}
                 puttPreview={
@@ -3749,7 +3930,17 @@ export default function TripGame({ data }) {
                               <span>{prevClub.short}</span>
                               <b key={liveClubId}>
                                 {liveClubEntry.short}
-                                <em>{livePreview.carryYards}Y</em>
+                                <em>
+                                  {livePreview.carryYards}Y
+                                  {(() => {
+                                    const origin = liveRef.current?.pos || projection.tee;
+                                    const wx = projection.pin[0] - origin[0];
+                                    const wy = projection.pin[1] - origin[1];
+                                    const length = Math.hypot(wx, wy) || 1;
+                                    const plays = Math.round(livePreview.carryYards * windEffect(wind, [wx / length, wy / length], livePreview.carryYards).carryMult);
+                                    return plays !== livePreview.carryYards ? ` · PLAYS ${plays}` : "";
+                                  })()}
+                                </em>
                               </b>
                               <span>{nextClub.short}</span>
                             </div>
@@ -3862,6 +4053,29 @@ export default function TripGame({ data }) {
                   >
                     🥃 SHOT
                   </button>
+                  {swingMode === "full" && (
+                    <>
+                      <button
+                        type="button"
+                        className={`trip-game-fireball-chip is-spin is-${spin}`}
+                        disabled={!selected || Boolean(meterPhase) || liveRef.current?.feet != null}
+                        onClick={() => setSpin((current) => (current === "none" ? "back" : current === "back" ? "top" : "none"))}
+                        aria-label={`Spin: ${spin}`}
+                      >
+                        {spin === "back" ? "↩ BACK" : spin === "top" ? "↪ TOP" : "○ SPIN"}
+                      </button>
+                      <button
+                        type="button"
+                        className={`trip-game-fireball-chip is-power${powerArmed ? " is-selected" : ""}`}
+                        disabled={!selected || Boolean(meterPhase) || powerShots < 1 || liveRef.current?.feet != null}
+                        onClick={() => setPowerArmed((current) => !current)}
+                        aria-pressed={powerArmed}
+                        aria-label={`Power shot, ${powerShots} left`}
+                      >
+                        ⚡ {powerShots}
+                      </button>
+                    </>
+                  )}
                   {liveInfo && (
                     <button type="button" className="trip-game-skip-chip" onClick={skipLiveHole}>
                       SKIP ▶▶

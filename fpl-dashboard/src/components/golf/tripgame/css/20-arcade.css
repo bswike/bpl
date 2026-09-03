@@ -1,0 +1,118 @@
+/* ---------- Arcade layer: wind, spin, power shots, trophy case, codes ---------- */
+
+.trip-game-wind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.trip-game-wind i {
+  display: inline-block;
+  font-style: normal;
+  transform: rotate(var(--wind-angle, 0deg));
+  transition: transform 300ms ease-out;
+}
+
+.trip-game-wind.is-strong {
+  color: #ffd95e;
+}
+
+.trip-game-fireball-chip.is-spin,
+.trip-game-fireball-chip.is-power {
+  min-width: 52px;
+}
+
+.trip-game-fireball-chip.is-spin.is-back {
+  background: #2f6f9f;
+  color: #eaf6ff;
+}
+
+.trip-game-fireball-chip.is-spin.is-top {
+  background: #9f5f2f;
+  color: #fff1e2;
+}
+
+.trip-game-fireball-chip.is-power.is-selected {
+  background: linear-gradient(90deg, #ffd95e, #ff9a3c);
+  color: #060f0a;
+}
+
+.trip-game-trophy-case {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 10px 0 6px;
+}
+
+.trip-game-trophy-case > div {
+  display: grid;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 2px solid #060f0a;
+  background: #0f2418;
+  box-shadow: 2px 2px 0 #060f0a;
+}
+
+.trip-game-trophy-case small {
+  font-family: "Press Start 2P", monospace;
+  font-size: 6px;
+  letter-spacing: 0.06em;
+  color: #9fd8a8;
+}
+
+.trip-game-trophy-case b {
+  font-size: 15px;
+  line-height: 1.1;
+  color: #fff3ba;
+}
+
+.trip-game-trophy-case span {
+  font-size: 10px;
+  color: #cfe6d2;
+}
+
+.trip-game-trophy-case.is-empty {
+  grid-template-columns: 1fr;
+  text-align: center;
+}
+
+.trip-game-code-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.trip-game-code-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 2px solid #060f0a;
+  background: #eaf6ff;
+  color: #060f0a;
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trip-game-code-row input:focus-visible {
+  outline: 3px solid #ffd95e;
+  outline-offset: 1px;
+}
+
+.trip-game-code-badge {
+  display: inline-block;
+  margin: 6px 0 10px;
+  padding: 5px 9px;
+  border: 2px solid #060f0a;
+  background: #ffd95e;
+  color: #060f0a;
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  box-shadow: 2px 2px 0 #060f0a;
+  user-select: all;
+  -webkit-user-select: all;
+}

@@ -21,6 +21,8 @@ export const HOLE_RESET = Object.freeze({
   liveInfo: null,
   liveClubId: null,
   puttAim: 0,
+  spin: "none",
+  powerArmed: false,
 });
 
 /** Everything that starts fresh on a new round. */
@@ -38,6 +40,8 @@ export const ROUND_RESET = Object.freeze({
   inventory: { fireball: 1 },
   eventHandled: {},
   roundSalt: 0,
+  powerShots: 3,
+  seed: 0,
 });
 
 export const INITIAL_MATCH = Object.freeze({ screen: "setup", ...ROUND_RESET, ...HOLE_RESET, holeIntro: false });
@@ -52,6 +56,7 @@ export function matchReducer(state, action) {
         screen: "play",
         playerState: action.playerState || {},
         roundSalt: Number(action.roundSalt) || 0,
+        seed: Number(action.seed) || 0,
       };
     case "RESUME": {
       const snapshot = action.snapshot || {};
@@ -72,6 +77,8 @@ export function matchReducer(state, action) {
         inventory: snapshot.inventory || ROUND_RESET.inventory,
         eventHandled: snapshot.eventHandled || {},
         roundSalt: Number(snapshot.roundSalt) || 0,
+        powerShots: Number.isFinite(Number(snapshot.powerShots)) ? Number(snapshot.powerShots) : 3,
+        seed: Number(snapshot.seed) || 0,
       };
     }
     case "NEXT_HOLE":

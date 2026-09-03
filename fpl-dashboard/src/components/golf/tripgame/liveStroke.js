@@ -78,6 +78,8 @@ export function simulateStroke({
   fireball = false,
   rng = null,
   seedSalt = 0,
+  wind = null,
+  spin = "none",
 }) {
   const from = ball.pos;
   if (ball.feet != null) {
@@ -138,6 +140,8 @@ export function simulateStroke({
     hi,
     zoneScale,
     seedSalt,
+    wind,
+    spin,
   });
   const teeLanding =
     ball.strokes === 0
@@ -171,6 +175,7 @@ export function simulateStroke({
     ...makeShot({
       from,
       to: res.to,
+      carryTo: res.carryTo || null,
       kind: res.kind,
       final: Boolean(res.holed),
       bend: res.bend ?? 0,
@@ -183,7 +188,7 @@ export function simulateStroke({
     shotNumber: next.strokes,
     terrible: judgment.tier === "wild",
   };
-  return { ball: next, shot, result: res, putt: false };
+  return { ball: next, shot, result: res, putt: false, fromYards: Math.round(ball.remainingUnits / (yardsScale || 1)) };
 }
 
 // Skill deficit on a curve: mid handicaps miss more than a straight line
@@ -237,7 +242,7 @@ export function cpuPuttAim(read, hi, rng) {
  * One CPU stroke through the shared physics. `cpu` carries the ball plus the
  * golfer's handicap, buzz, tee decision and planned tee target.
  */
-export function simulateCpuStroke({ projection, hole, cpu, yardsScale, rng, seedSalt = 0 }) {
+export function simulateCpuStroke({ projection, hole, cpu, yardsScale, rng, seedSalt = 0, wind = null }) {
   const ball = { ...cpu.ball };
   if (ball.feet != null) {
     const read = makePuttRead({ hole, puttCount: ball.puttCount, feet: ball.feet, sceneCarry: ball.sceneCarry });
@@ -258,6 +263,8 @@ export function simulateCpuStroke({ projection, hole, cpu, yardsScale, rng, seed
   const zoneScale = meterZoneFor({ clubId, lie: ball.lie, hi: cpu.hi, buzz: cpu.buzz });
   const meter = cpuMeterSample({ hi: cpu.hi, rng, zoneScale });
   const judgment = judgeSwing(meter.power, meter.accuracy, { zoneScale });
+  // Better players hold greens with backspin on approaches; everyone else just hits it.
+  const spin = ball.strokes > 0 && ball.lie !== "Bunker" && skillOf(cpu.hi) > 0.55 && remaining <= 200 ? "back" : "none";
   return simulateStroke({
     projection,
     hole,
@@ -275,5 +282,7 @@ export function simulateCpuStroke({ projection, hole, cpu, yardsScale, rng, seed
     fireball: Boolean(cpu.decision.fireball),
     rng,
     seedSalt,
+    wind,
+    spin,
   });
 }

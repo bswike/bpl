@@ -61,30 +61,45 @@ export function buildFlightFrames({ from, to, control, apex, air }) {
   return frames;
 }
 
-export function makeShot({ from, to, kind, bend = 0, final = false, yardsScale = 0, caption = null, ground = false }) {
+export function makeShot({ from, to, carryTo = null, kind, bend = 0, final = false, yardsScale = 0, caption = null, ground = false }) {
   const distance = Math.hypot(to[0] - from[0], to[1] - from[1]);
   const air = kind !== "putt" && !ground;
-  const dx = to[0] - from[0];
-  const dy = to[1] - from[1];
+  // With a carry point the ball flies there, lands, and rolls on to `to`.
+  const landing = air && carryTo ? carryTo : to;
+  const dx = landing[0] - from[0];
+  const dy = landing[1] - from[1];
   const length = Math.hypot(dx, dy) || 1;
   const lateral = air ? bend : 0;
   const control = [
-    (from[0] + to[0]) / 2 + (-dy / length) * lateral,
-    (from[1] + to[1]) / 2 + (dx / length) * lateral,
+    (from[0] + landing[0]) / 2 + (-dy / length) * lateral,
+    (from[1] + landing[1]) / 2 + (dx / length) * lateral,
   ];
   const lowFlight = kind === "sand" || kind === "punch";
-  const apex = air ? clamp(distance * (lowFlight ? 0.34 : 0.62), 18, 78) : 0;
-  const frames = buildFlightFrames({ from, to, control, apex, air });
+  const flightDistance = Math.hypot(landing[0] - from[0], landing[1] - from[1]);
+  const apex = air ? clamp(flightDistance * (lowFlight ? 0.34 : 0.62), 18, 78) : 0;
+  const flight = buildFlightFrames({ from, to: landing, control, apex, air });
+  const rollDistance = Math.hypot(to[0] - landing[0], to[1] - landing[1]);
+  const rollCount = landing === to || rollDistance < 0.6 ? 0 : clamp(Math.round(rollDistance / 4), 2, 6);
+  const roll = [];
+  for (let index = 1; index <= rollCount; index += 1) {
+    const t = index / rollCount;
+    const eased = 1 - (1 - t) * (1 - t);
+    const gx = landing[0] + (to[0] - landing[0]) * eased;
+    const gy = landing[1] + (to[1] - landing[1]) * eased;
+    roll.push({ gx, gy, x: gx, y: gy, lift: 0, size: 3.2, shadow: 3, rolling: true });
+  }
+  const frames = [...flight, ...roll];
   return {
     from,
     to,
+    carryTo: landing,
     control,
     kind,
     final,
     air,
     apex,
     frames,
-    airPath: framesToPath(frames, true),
+    airPath: framesToPath(flight, true),
     groundPath: framesToPath(frames, false),
     yards: yardsScale ? Math.max(1, Math.round(distance / yardsScale)) : null,
     caption: caption || (final ? "FOR THE HOLE..." : SHOT_CAPTIONS[kind] || "SWINGS..."),
