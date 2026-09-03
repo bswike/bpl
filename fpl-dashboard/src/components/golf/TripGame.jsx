@@ -2118,18 +2118,18 @@ export default function TripGame({ data }) {
     setPowerShots,
   } = setters;
   const [records, setRecords] = useState(() => loadRecords(typeof window !== "undefined" ? window.localStorage : null));
+  const recordsRef = useRef(records);
   const [challengeCode, setChallengeCode] = useState("");
   const cpuRandomRef = useRef(makeSeededRandom(1));
   // Records: note an event, persist, and surface "NEW RECORD" when one falls.
+  // Decided synchronously against a ref mirror (a setState updater runs
+  // later, so its result cannot be returned to the caller).
   function noteEvent(event) {
-    let fell = null;
-    setRecords((current) => {
-      const { records: next, record } = noteRecord(current, event);
-      fell = record;
-      if (typeof window !== "undefined") saveRecords(window.localStorage, next);
-      return next;
-    });
-    return fell;
+    const { records: next, record } = noteRecord(recordsRef.current, event);
+    recordsRef.current = next;
+    setRecords(next);
+    if (typeof window !== "undefined") saveRecords(window.localStorage, next);
+    return record;
   }
   const [geometryBySlug, setGeometryBySlug] = useState({});
   const [meterPhase, setMeterPhase] = useState(null);
@@ -3231,10 +3231,11 @@ export default function TripGame({ data }) {
       wind,
       spin: live.feet != null ? "none" : spin,
     });
-    const powered = Boolean(meterModsRef.current.powered) && live.feet == null;
+    const powered = animate && Boolean(meterModsRef.current.powered) && live.feet == null;
     const strokesBefore = live.strokes;
     Object.assign(live, played.ball);
     if (live.feet == null || played.putt) setSpin("none");
+    if (!animate) return;
     if (powered) {
       // A perfectly timed power shot is free; anything less spends the token.
       setPowerArmed(false);
