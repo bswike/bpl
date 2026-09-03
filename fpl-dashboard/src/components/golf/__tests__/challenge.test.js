@@ -7,6 +7,12 @@ describe("challenge codes", () => {
     const code = encodeCode({ slug: "wild-turkey", team: "North", swingMode: "full", seed });
     expect(code).toMatch(/^WT-N-F-[0-9A-Z]{5}$/);
     expect(decodeCode(code)).toEqual({ slug: "wild-turkey", team: "North", swingMode: "full", seed });
+    expect(decodeCode(encodeCode({ slug: "suntree-classic", team: "South", swingMode: "single", seed: 1 }))).toEqual({
+      slug: "suntree-classic",
+      team: "South",
+      swingMode: "single",
+      seed: 1,
+    });
     expect(decodeCode(code.toLowerCase())).toEqual(decodeCode(code));
   });
   it("rejects junk", () => {

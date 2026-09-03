@@ -1,7 +1,13 @@
 // Challenge codes: a short string that fixes the course, side, swing style
 // and the seed, so two captains can play the same wind, greens and CPU and
 // compare. Format: <course>-<side>-<mode>-<seed36>, e.g. CS-S-F-1K7Q2.
-const COURSE_TAGS = { "crystal-springs": "CS", "wild-turkey": "WT", "black-bear": "BB", ballyowen: "BO" };
+const COURSE_TAGS = {
+  "crystal-springs": "CS",
+  "wild-turkey": "WT",
+  "black-bear": "BB",
+  ballyowen: "BO",
+  "suntree-classic": "SC",
+};
 export const SEED_SPACE = 36 ** 5;
 
 /** Each hole's luck is a pure function of (seed, hole): a resume or a replay of a code lands on the same streams. */

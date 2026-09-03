@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { computeMapCamera } from "../tripgame/camera.js";
 import { LIVE_CARRY_SWEET, LIVE_CLUBS, defaultLiveClub } from "../tripgame/clubs.js";
@@ -157,5 +159,20 @@ describe("computeMapCamera", () => {
     expect(contains(projection.tee)).toBe(true);
     expect(contains(projection.pin)).toBe(true);
     expect(camera.w / camera.h).toBeCloseTo(0.8, 1);
+  });
+});
+
+describe("suntree classic bake", () => {
+  const baked = JSON.parse(
+    fs.readFileSync(fileURLToPath(new URL("../../../../public/data/suntree-classic.json", import.meta.url)), "utf8"),
+  );
+  it("projects all 18 holes from the OSM map, not the prototype card", () => {
+    expect(baked.holes).toHaveLength(18);
+    for (const source of baked.holes) {
+      const view = projectHole(baked, { number: source.num, par: source.par }, { tripYards: 6699 });
+      expect(view.source).not.toBe("prototype");
+      expect(view.line.length).toBeGreaterThan(1);
+      expect(view.features.some((feature) => feature.type === "green")).toBe(true);
+    }
   });
 });

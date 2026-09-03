@@ -22,7 +22,11 @@ const model = buildTripGameModel(nj26, [archive]);
 describe("buildTripGameModel", () => {
   it("offers every course the trip plays, including team-only and par-less rounds", () => {
     const slugs = model.courses.map((course) => course.slug).sort();
-    expect(slugs).toEqual(["ballyowen", "black-bear", "crystal-springs", "wild-turkey"]);
+    expect(slugs).toEqual(["ballyowen", "black-bear", "crystal-springs", "suntree-classic", "wild-turkey"]);
+    const home = model.courses.find((course) => course.slug === "suntree-classic");
+    expect(home.extra).toBe(true);
+    expect(home.geometry).toBe("/data/suntree-classic.json");
+    expect(home.holes.map((hole) => hole.par)).toEqual([4, 5, 3, 4, 5, 4, 3, 4, 4, 5, 4, 4, 4, 3, 4, 3, 4, 5]);
     for (const course of model.courses) {
       expect(course.holes).toHaveLength(18);
       expect(course.holes.every((hole) => hole.par >= 3 && hole.par <= 5)).toBe(true);

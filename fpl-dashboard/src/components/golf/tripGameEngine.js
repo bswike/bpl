@@ -66,6 +66,21 @@ const COURSE_META = {
     tripYards: 6508,
     pars: [4, 4, 5, 3, 5, 3, 4, 4, 4, 5, 3, 4, 4, 4, 3, 4, 5, 4],
   },
+  // Not on the NJ trip card — offered as an extra home course. Pars from the
+  // OSM bake; hole 7 SI is 15 (OSM tagged two 17s). Rating/slope are the tips
+  // card. tripYards matches tee-set 0 on the baked geometry (~6,699).
+  "suntree-classic": {
+    slope: 132,
+    rating: 73.7,
+    par: 72,
+    geometry: "/data/suntree-classic.json",
+    tripYards: 6699,
+    label: "Suntree CC — Classic",
+    home: "Melbourne, FL",
+    extra: true,
+    pars: [4, 5, 3, 4, 5, 4, 3, 4, 4, 5, 4, 4, 4, 3, 4, 3, 4, 5],
+    si: [7, 1, 17, 11, 5, 13, 15, 9, 3, 10, 14, 8, 6, 16, 2, 18, 12, 4],
+  },
 };
 
 const PLAYER_SCOUTING = {
@@ -100,6 +115,8 @@ export function courseSlug(value) {
   if (label.includes("wild turkey") || label.includes("turkey")) return "wild-turkey";
   if (label.includes("black bear") || /\bbear\b/.test(label)) return "black-bear";
   if (label.includes("ballyowen")) return "ballyowen";
+  if (label.includes("suntree") && label.includes("challenge")) return "suntree-challenge";
+  if (label.includes("suntree")) return "suntree-classic";
   return label
     .replace(/golf club|golf course|\bgc\b/g, "")
     .replace(/[^a-z0-9]+/g, "-")
@@ -252,6 +269,39 @@ function decorateCourse(course) {
   };
 }
 
+/** A mapped course that is not on the trip card — playable, no hole samples. */
+function buildCatalogCourse(slug) {
+  const meta = COURSE_META[slug];
+  if (!meta?.geometry || !Array.isArray(meta.pars) || meta.pars.length < 18) return null;
+  const siByHole =
+    Array.isArray(meta.si) && meta.si.length >= 18 ? meta.si.slice(0, 18) : meta.pars.map((_, index) => index + 1);
+  const holes = meta.pars.slice(0, 18).map((par, holeIndex) => ({
+    number: holeIndex + 1,
+    par,
+    si: siByHole[holeIndex],
+    playerScores: {},
+    relatives: [],
+    averageToPar: 0,
+  }));
+  return {
+    id: `catalog-${slug}`,
+    slug,
+    label: meta.label || slug,
+    roundLabel: meta.label || slug,
+    tripLabel: meta.home || "Home Course",
+    holes,
+    averageToPar: 0,
+    coverage: 0,
+    extra: true,
+    slope: meta.slope,
+    rating: meta.rating,
+    par: meta.par,
+    geometry: meta.geometry,
+    tripYards: meta.tripYards,
+    home: meta.home || null,
+  };
+}
+
 export function buildTripGameModel(primary, history = []) {
   if (!primary) return { players: [], courses: [], teams: [] };
   const datasets = [primary, ...history].filter(
@@ -301,9 +351,14 @@ export function buildTripGameModel(primary, history = []) {
       if (!previous || candidate.coverage > previous.coverage) courseBySlug.set(candidate.slug, candidate);
     }
   }
+  for (const slug of Object.keys(COURSE_META)) {
+    if (courseBySlug.has(slug)) continue;
+    const extra = buildCatalogCourse(slug);
+    if (extra) courseBySlug.set(slug, extra);
+  }
   const courses = [...courseBySlug.values()]
     .map(decorateCourse)
-    .sort((a, b) => b.coverage - a.coverage || a.label.localeCompare(b.label));
+    .sort((a, b) => Number(a.extra) - Number(b.extra) || b.coverage - a.coverage || a.label.localeCompare(b.label));
   return {
     players,
     courses,

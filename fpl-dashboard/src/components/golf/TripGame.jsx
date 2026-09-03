@@ -1908,7 +1908,11 @@ function SetupScreen({
               onClick={() => setCourseId(course.id)}
             >
               <b>{course.label}</b>
-              <span>{course.coverage} PLAYER-HOLE SAMPLES</span>
+              <span>
+                {course.extra
+                  ? course.home || "HOME COURSE"
+                  : `${course.coverage} PLAYER-HOLE SAMPLES`}
+              </span>
               <small>
                 PAR {course.par} ·{" "}
                 {!course.geometry
