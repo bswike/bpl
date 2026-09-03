@@ -1842,6 +1842,7 @@ function SetupScreen({
   records = EMPTY_RECORDS,
   code = "",
   setCode,
+  codeError = null,
   lastCode = null,
 }) {
   const resumeDiff = resume ? resume.match.human - resume.match.cpu : 0;
@@ -1948,8 +1949,15 @@ function SetupScreen({
           aria-label="Challenge code"
           spellCheck={false}
           autoCapitalize="characters"
+          aria-invalid={Boolean(codeError) || (Boolean(code) && !decodeCode(code))}
         />
       </div>
+      {codeError && (
+        <p className="trip-game-code-error" role="alert">
+          {codeError}
+        </p>
+      )}
+      {!codeError && code && !decodeCode(code) && <p className="trip-game-code-error">CODES LOOK LIKE CS-S-F-1K7Q2</p>}
       {resume && (
         <button type="button" className="trip-game-primary-button trip-game-start-button trip-game-resume-button" onClick={onResume}>
           RESUME · HOLE {Math.min(18, resume.holeIndex + 1)} · {resumeCall} ▶
@@ -2120,6 +2128,7 @@ export default function TripGame({ data }) {
   const [records, setRecords] = useState(() => loadRecords(typeof window !== "undefined" ? window.localStorage : null));
   const recordsRef = useRef(records);
   const [challengeCode, setChallengeCode] = useState("");
+  const [codeError, setCodeError] = useState(null);
   const cpuRandomRef = useRef(makeSeededRandom(1));
   // Records: note an event, persist, and surface "NEW RECORD" when one falls.
   // Decided synchronously against a ref mirror (a setState updater runs
@@ -2676,11 +2685,17 @@ export default function TripGame({ data }) {
     const nextSeed = fromCode ? fromCode.seed : randomSeed();
     if (fromCode) {
       const coded = model.courses.find((entry) => entry.slug === fromCode.slug);
-      if (coded) setCourseId(coded.id);
+      if (!coded) {
+        setCodeError(`THAT CODE IS FOR ${fromCode.slug.replace(/-/g, " ").toUpperCase()}, WHICH THIS TRIP DOESN'T PLAY`);
+        return;
+      }
+      setCourseId(coded.id);
       setCaptainTeam(fromCode.team);
       setSwingMode(fromCode.swingMode);
       setChallengeCode("");
     }
+    setCodeError(null);
+    setSavedMatch(null);
     resetRoundSideEffects();
     seedStreams(nextSeed);
     dispatch({ type: "START_ROUND", playerState: initializePlayerState(), roundSalt: nextSeed % 997, seed: nextSeed });
@@ -3249,7 +3264,7 @@ export default function TripGame({ data }) {
     const who = selected?.name || "You";
     const courseLabel = course?.label || "";
     let fell = null;
-    if (!played.putt && !res.penalty && (res.kind === "drive" || res.kind === "tee") && res.totalYards) {
+    if (!played.putt && !res.penalty && res.kind === "drive" && res.totalYards) {
       fell = noteEvent({ type: "drive", yards: res.totalYards, player: who, course: courseLabel, hole: hole.number });
     } else if (!played.putt && res.proximityFeet != null && played.fromYards >= 40) {
       fell = noteEvent({ type: "approach", feet: res.proximityFeet, fromYards: played.fromYards, player: who, course: courseLabel, hole: hole.number });
@@ -3800,7 +3815,11 @@ export default function TripGame({ data }) {
             onStart={startRound}
             records={records}
             code={challengeCode}
-            setCode={setChallengeCode}
+            setCode={(value) => {
+              setChallengeCode(value);
+              setCodeError(null);
+            }}
+            codeError={codeError}
             lastCode={seed ? roundCode : null}
           />
         )}
