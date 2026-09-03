@@ -79,11 +79,12 @@ export function makeShot({ from, to, carryTo = null, kind, bend = 0, final = fal
   const apex = air ? clamp(flightDistance * (lowFlight ? 0.34 : 0.62), 18, 78) : 0;
   const flight = buildFlightFrames({ from, to: landing, control, apex, air });
   const rollDistance = Math.hypot(to[0] - landing[0], to[1] - landing[1]);
-  const rollCount = landing === to || rollDistance < 0.6 ? 0 : clamp(Math.round(rollDistance / 4), 2, 6);
+  const rollCount = landing === to || rollDistance < 0.6 ? 0 : clamp(Math.round(rollDistance / 2.5), 2, 16);
   const roll = [];
   for (let index = 1; index <= rollCount; index += 1) {
     const t = index / rollCount;
-    const eased = 1 - (1 - t) * (1 - t);
+    // Ease out from a little below the landing speed so the ball visibly slows.
+    const eased = 1 - Math.pow(1 - t, 1.7);
     const gx = landing[0] + (to[0] - landing[0]) * eased;
     const gy = landing[1] + (to[1] - landing[1]) * eased;
     roll.push({ gx, gy, x: gx, y: gy, lift: 0, size: 3.2, shadow: 3, rolling: true });

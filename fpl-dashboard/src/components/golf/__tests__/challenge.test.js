@@ -25,3 +25,12 @@ describe("streamSeeds", () => {
     expect(a.human).not.toBe(a.cpu);
   });
 });
+
+describe("seed space", () => {
+  it("wraps seeds past 36^5 and decodes back", async () => {
+    const { SEED_SPACE } = await import("../tripgame/challenge.js");
+    const code = encodeCode({ slug: "ballyowen", team: "South", swingMode: "single", seed: SEED_SPACE + 5 });
+    expect(code).toBe("BO-S-O-00005");
+    expect(decodeCode(code).seed).toBe(5);
+  });
+});

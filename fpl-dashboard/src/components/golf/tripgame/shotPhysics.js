@@ -324,7 +324,9 @@ export function resolveLiveStroke({
   // A flushed short iron can drop right in the bucket.
   const jarWindow = clubId === "wedge" || clubId === "sandwedge" || clubId === "chip" ? 2.4 : 1.3;
   if (!groundBall && judgment.tier === "pure" && pinDistLand <= jarWindow) {
-    return finish(pin, { nextPos: pin, holed: true, caption: kind === "approach" || kind === "tee" ? "SLAM DUNK!" : "JARRED IT!" });
+    const jarCaption =
+      kind === "tee" ? "HOLE IN ONE!!!" : kind === "drive" ? "HOLED IT FROM THE TEE!" : kind === "sand" ? "HOLES IT FROM THE SAND!" : "SLAM DUNK!";
+    return finish(pin, { nextPos: pin, holed: true, ace: kind === "tee", caption: jarCaption });
   }
   // Rollout: the ball keeps going after it lands, more on short grass and
   // with topspin, less on rough, not at all in sand. Backspin holds a green

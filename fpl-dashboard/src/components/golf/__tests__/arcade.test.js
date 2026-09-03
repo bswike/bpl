@@ -143,3 +143,22 @@ describe("batch B: bite, drift frame, drop", () => {
     expect(dropBack).toBeLessThan(12);
   });
 });
+
+describe("records at the bar", () => {
+  it("only counts drives from 200, putts from 6 ft and approaches from 40 yards", () => {
+    const base = { player: "A", course: "CS", hole: 1 };
+    expect(noteRecord(EMPTY_RECORDS, { type: "drive", yards: 199, ...base }).record).toBeNull();
+    expect(noteRecord(EMPTY_RECORDS, { type: "drive", yards: 200, ...base }).record).not.toBeNull();
+    expect(noteRecord(EMPTY_RECORDS, { type: "putt", feet: 5, ...base }).record).toBeNull();
+    expect(noteRecord(EMPTY_RECORDS, { type: "putt", feet: 6, ...base }).record).not.toBeNull();
+    expect(noteRecord(EMPTY_RECORDS, { type: "approach", feet: 3, fromYards: 39, ...base }).record).toBeNull();
+    expect(noteRecord(EMPTY_RECORDS, { type: "approach", feet: 3, fromYards: 40, ...base }).record).not.toBeNull();
+  });
+  it("survives a storage that throws", async () => {
+    const { loadRecords, saveRecords } = await import("../tripgame/records.js");
+    const angry = { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } };
+    expect(loadRecords(angry)).toEqual({ ...EMPTY_RECORDS });
+    expect(() => saveRecords(angry, EMPTY_RECORDS)).not.toThrow();
+    expect(loadRecords(null)).toEqual({ ...EMPTY_RECORDS });
+  });
+});

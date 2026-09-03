@@ -63,3 +63,22 @@ describe("matchReducer", () => {
     expect(b.puttAim).toBe(3);
   });
 });
+
+describe("snapshot contract", () => {
+  it("resumes a pre-seed v1 snapshot with full power shots and a zero seed", () => {
+    const resumed = matchReducer(INITIAL_MATCH, { type: "RESUME", snapshot: { holeIndex: 3, history: [row, row, row] } });
+    expect(resumed).toMatchObject({ powerShots: 3, seed: 0, holeIndex: 3, screen: "play" });
+  });
+  it("round-trips the fields the save effect writes", () => {
+    const snapshot = {
+      v: 1, savedAt: 0, tripId: "t", courseId: "c", captainTeam: "South", swingMode: "full", holeIndex: 7,
+      usage: { a: 2 }, cpuUsage: { b: 1 }, playerState: { a: { buzz: 12, morale: 50 } }, match: { human: 4, cpu: 2, ties: 1 },
+      history: Array.from({ length: 7 }, (_, i) => ({ ...row, hole: i + 1 })), hype: 61, streak: 2, swingStreak: 3,
+      inventory: { fireball: 2 }, eventHandled: { 5: true }, buyRound: true, cpuEdge: false, roundSalt: 44, seed: 987654, powerShots: 1,
+    };
+    const resumed = matchReducer(INITIAL_MATCH, { type: "RESUME", snapshot });
+    for (const key of ["holeIndex", "usage", "cpuUsage", "playerState", "match", "history", "hype", "streak", "swingStreak", "inventory", "eventHandled", "roundSalt", "seed", "powerShots"]) {
+      expect(resumed[key]).toEqual(snapshot[key]);
+    }
+  });
+});

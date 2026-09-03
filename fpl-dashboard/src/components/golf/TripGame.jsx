@@ -251,8 +251,11 @@ function checkBallImages() {
   });
 }
 
-function BallSprite({ r = 2.6, spin = "none", tier = null, launch = false, angle = 0 }) {
+function BallSprite({ r = 2.6, spin = "none", tier = null, launch = false, angle = 0, defsId = null }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  // The map hoists one gradient + clip into its own <defs>; standalone scenes keep their own.
+  const gradientId = defsId ? `${defsId}-ballg` : `ballg${uid}`;
+  const clipId = defsId ? `${defsId}-ballc` : `ballc${uid}`;
   const [, bumpImages] = useState(0);
   useEffect(() => {
     checkBallImages();
@@ -268,19 +271,21 @@ function BallSprite({ r = 2.6, spin = "none", tier = null, launch = false, angle
       className={`trip-game-ball-deform${launch ? " is-launching" : ""}`}
       transform={angle ? `rotate(${angle})` : undefined}
     >
-      <defs>
-        <radialGradient id={`ballg${uid}`} cx="36%" cy="30%" r="78%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="52%" stopColor="#f6f8ee" />
-          <stop offset="84%" stopColor="#d3dac9" />
-          <stop offset="100%" stopColor="#a9b3a0" />
-        </radialGradient>
-        <clipPath id={`ballc${uid}`}>
-          <circle r={r} />
-        </clipPath>
-      </defs>
-      <circle r={r} fill={`url(#ballg${uid})`} className="trip-game-ball-base" />
-      <g clipPath={`url(#ballc${uid})`}>
+      {!defsId && (
+        <defs>
+          <radialGradient id={gradientId} cx="36%" cy="30%" r="78%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="52%" stopColor="#f6f8ee" />
+            <stop offset="84%" stopColor="#d3dac9" />
+            <stop offset="100%" stopColor="#a9b3a0" />
+          </radialGradient>
+          <clipPath id={clipId}>
+            <circle r={r} />
+          </clipPath>
+        </defs>
+      )}
+      <circle r={r} fill={`url(#${gradientId})`} className="trip-game-ball-base" />
+      <g clipPath={`url(#${clipId})`}>
         <g className={`trip-game-ball-spin${spin === "fast" ? " is-fast" : spin === "roll" ? " is-roll" : ""}`}>
           <circle cx={-r * 0.38} cy={-r * 0.12} r={dimple} />
           <circle cx={r * 0.12} cy={-r * 0.42} r={dimple * 0.9} />
@@ -652,6 +657,91 @@ function HoleMap({
   })();
   const trees = projection.trees || buildTreeSprites(projection, hole.number);
   const mapId = `trip-hole-${hole.number}`;
+  // Static base of the map (patterns, ground, trees, features, centerline):
+  // built once per hole instead of on every frame of every shot.
+  const base = useMemo(
+    () => (
+      <>
+        <defs>
+          <pattern id={`${mapId}-rough`} width="13" height="13" patternUnits="userSpaceOnUse">
+            <rect width="13" height="13" fill="transparent" />
+            <rect x="2" y="3" width="2" height="2" className="trip-game-rough-pixel" />
+            <rect x="9" y="8" width="1.5" height="1.5" className="trip-game-rough-pixel trip-game-rough-pixel--light" />
+          </pattern>
+          <pattern id={`${mapId}-fairway`} width="18" height="18" patternUnits="userSpaceOnUse">
+            <rect width="9" height="18" className="trip-game-fairway-stripe" />
+            <rect x="9" width="9" height="18" className="trip-game-fairway-stripe trip-game-fairway-stripe--light" />
+          </pattern>
+          <pattern id={`${mapId}-green`} width="8" height="8" patternUnits="userSpaceOnUse">
+            <path d="M0 8 L8 0 M-2 2 L2 -2 M6 10 L10 6" className="trip-game-green-cut" />
+          </pattern>
+          <pattern id={`${mapId}-sand`} width="9" height="9" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="3" r="0.8" className="trip-game-sand-grain" />
+            <circle cx="7" cy="6" r="0.55" className="trip-game-sand-grain" />
+          </pattern>
+          <pattern id={`${mapId}-water`} width="16" height="10" patternUnits="userSpaceOnUse">
+            <path d="M-2 3 Q2 0 6 3 T14 3 T22 3 M3 8 Q7 5 11 8 T19 8" className="trip-game-water-ripple" />
+          </pattern>
+          <filter id={`game-pixel-shadow-${hole.number}`} x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="2" dy="2" stdDeviation="0" floodColor="#07180f" />
+          </filter>
+          <radialGradient id={`${mapId}-ballg`} cx="36%" cy="30%" r="78%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="52%" stopColor="#f6f8ee" />
+            <stop offset="84%" stopColor="#d3dac9" />
+            <stop offset="100%" stopColor="#a9b3a0" />
+          </radialGradient>
+          <clipPath id={`${mapId}-ballc`}>
+            <circle r={2.7} />
+          </clipPath>
+        </defs>
+        <rect width={projection.width} height={projection.height} className="trip-game-map-rough" />
+        <rect width={projection.width} height={projection.height} fill={`url(#${mapId}-rough)`} />
+        <g className="trip-game-tree-layer" aria-hidden="true">
+          {trees.map((tree, index) => (
+            <g
+              key={`${tree.x.toFixed(1)}-${tree.y.toFixed(1)}-${index}`}
+              className={`trip-game-tree trip-game-tree--${tree.variant}`}
+              transform={`translate(${tree.x.toFixed(1)} ${tree.y.toFixed(1)}) scale(${(tree.size / 6).toFixed(2)})`}
+            >
+              {tree.variant === 1 ? (
+                <>
+                  <ellipse className="trip-game-tree-shadow" cx="1.5" cy="5" rx="5" ry="1.8" />
+                  <rect className="trip-game-tree-trunk" x="-1" y="1" width="2" height="4.5" />
+                  <circle className="trip-game-tree-back" cx="0" cy="-2.5" r="5.2" />
+                  <circle className="trip-game-tree-front" cx="-1.4" cy="-3.6" r="3.4" />
+                </>
+              ) : (
+                <>
+                  <ellipse className="trip-game-tree-shadow" cx="1.5" cy="5.5" rx="4.6" ry="1.7" />
+                  <rect className="trip-game-tree-trunk" x="-0.9" y="2" width="1.8" height="3.8" />
+                  <path className="trip-game-tree-back" d="M0,-11 L-5,-4.5 L-2.6,-4.5 L-6,1.5 L6,1.5 L2.6,-4.5 L5,-4.5 Z" />
+                  <path className="trip-game-tree-front" d="M0,-9 L-3.4,-3.5 L-1.8,-3.5 L-4.2,1.5 L0,1.5 Z" />
+                </>
+              )}
+            </g>
+          ))}
+        </g>
+        {projection.features.map((feature, index) => (
+          <g key={`${feature.type}-${index}`}>
+            <path
+              d={pathFromPoints(feature.points)}
+              className={`trip-game-map-feature trip-game-map-feature--${feature.type}`}
+            />
+            {["fairway", "green", "bunker", "water"].includes(feature.type) && (
+              <path
+                d={pathFromPoints(feature.points)}
+                className={`trip-game-map-texture trip-game-map-texture--${feature.type}`}
+                fill={`url(#${mapId}-${feature.type === "bunker" ? "sand" : feature.type})`}
+              />
+            )}
+          </g>
+        ))}
+        <path d={pathFromPoints(projection.line, false)} className="trip-game-centerline" />
+      </>
+    ),
+    [projection, mapId, trees, hole.number],
+  );
   const ballPoint = flightFrame ? [flightFrame.gx, flightFrame.gy] : activeShot ? (playback.phase === "settle" ? activeShot.to : activeShot.from) : null;
   const onGreenCam = Boolean(
     activeShot &&
@@ -772,73 +862,7 @@ function HoleMap({
         aria-label={`Top-down map of hole ${hole.number}`}
         role="img"
       >
-        <defs>
-          <pattern id={`${mapId}-rough`} width="13" height="13" patternUnits="userSpaceOnUse">
-            <rect width="13" height="13" fill="transparent" />
-            <rect x="2" y="3" width="2" height="2" className="trip-game-rough-pixel" />
-            <rect x="9" y="8" width="1.5" height="1.5" className="trip-game-rough-pixel trip-game-rough-pixel--light" />
-          </pattern>
-          <pattern id={`${mapId}-fairway`} width="18" height="18" patternUnits="userSpaceOnUse">
-            <rect width="9" height="18" className="trip-game-fairway-stripe" />
-            <rect x="9" width="9" height="18" className="trip-game-fairway-stripe trip-game-fairway-stripe--light" />
-          </pattern>
-          <pattern id={`${mapId}-green`} width="8" height="8" patternUnits="userSpaceOnUse">
-            <path d="M0 8 L8 0 M-2 2 L2 -2 M6 10 L10 6" className="trip-game-green-cut" />
-          </pattern>
-          <pattern id={`${mapId}-sand`} width="9" height="9" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="3" r="0.8" className="trip-game-sand-grain" />
-            <circle cx="7" cy="6" r="0.55" className="trip-game-sand-grain" />
-          </pattern>
-          <pattern id={`${mapId}-water`} width="16" height="10" patternUnits="userSpaceOnUse">
-            <path d="M-2 3 Q2 0 6 3 T14 3 T22 3 M3 8 Q7 5 11 8 T19 8" className="trip-game-water-ripple" />
-          </pattern>
-          <filter id={`game-pixel-shadow-${hole.number}`} x="-40%" y="-40%" width="180%" height="180%">
-            <feDropShadow dx="2" dy="2" stdDeviation="0" floodColor="#07180f" />
-          </filter>
-        </defs>
-        <rect width={projection.width} height={projection.height} className="trip-game-map-rough" />
-        <rect width={projection.width} height={projection.height} fill={`url(#${mapId}-rough)`} />
-        <g className="trip-game-tree-layer" aria-hidden="true">
-          {trees.map((tree, index) => (
-            <g
-              key={`${tree.x.toFixed(1)}-${tree.y.toFixed(1)}-${index}`}
-              className={`trip-game-tree trip-game-tree--${tree.variant}`}
-              transform={`translate(${tree.x.toFixed(1)} ${tree.y.toFixed(1)}) scale(${(tree.size / 6).toFixed(2)})`}
-            >
-              {tree.variant === 1 ? (
-                <>
-                  <ellipse className="trip-game-tree-shadow" cx="1.5" cy="5" rx="5" ry="1.8" />
-                  <rect className="trip-game-tree-trunk" x="-1" y="1" width="2" height="4.5" />
-                  <circle className="trip-game-tree-back" cx="0" cy="-2.5" r="5.2" />
-                  <circle className="trip-game-tree-front" cx="-1.4" cy="-3.6" r="3.4" />
-                </>
-              ) : (
-                <>
-                  <ellipse className="trip-game-tree-shadow" cx="1.5" cy="5.5" rx="4.6" ry="1.7" />
-                  <rect className="trip-game-tree-trunk" x="-0.9" y="2" width="1.8" height="3.8" />
-                  <path className="trip-game-tree-back" d="M0,-11 L-5,-4.5 L-2.6,-4.5 L-6,1.5 L6,1.5 L2.6,-4.5 L5,-4.5 Z" />
-                  <path className="trip-game-tree-front" d="M0,-9 L-3.4,-3.5 L-1.8,-3.5 L-4.2,1.5 L0,1.5 Z" />
-                </>
-              )}
-            </g>
-          ))}
-        </g>
-        {projection.features.map((feature, index) => (
-          <g key={`${feature.type}-${index}`}>
-            <path
-              d={pathFromPoints(feature.points)}
-              className={`trip-game-map-feature trip-game-map-feature--${feature.type}`}
-            />
-            {["fairway", "green", "bunker", "water"].includes(feature.type) && (
-              <path
-                d={pathFromPoints(feature.points)}
-                className={`trip-game-map-texture trip-game-map-texture--${feature.type}`}
-                fill={`url(#${mapId}-${feature.type === "bunker" ? "sand" : feature.type})`}
-              />
-            )}
-          </g>
-        ))}
-        <path d={pathFromPoints(projection.line, false)} className="trip-game-centerline" />
+        {base}
         {planning && (
           <>
             <path d={shotPath} className="trip-game-shot-line" />
@@ -921,7 +945,7 @@ function HoleMap({
             <GolferSprite at={sidePoint(livePos, projection.pin, 7)} toward={projection.pin} hat="red" scale={1.25} />
             <g transform={`translate(${livePos[0]} ${livePos[1]})`}>
               <ellipse className="trip-game-theater-shadow" cx="0" cy="1.2" rx="3" ry="1.4" />
-              <BallSprite r={2.4} />
+              <BallSprite r={2.4} defsId={mapId} />
             </g>
           </>
         )}
@@ -998,7 +1022,7 @@ function HoleMap({
             {playback.phase === "swing" && (
               <g className="trip-game-theater-ball-wrap" transform={`translate(${activeShot.from[0]} ${activeShot.from[1]})`}>
                 <ellipse className="trip-game-theater-shadow" cx="0" cy="1.2" rx="3" ry="1.4" />
-                <BallSprite r={2.6} />
+                <BallSprite r={2.6} defsId={mapId} />
               </g>
             )}
             {playback.phase === "flight" && flightFrame && (
@@ -1075,7 +1099,7 @@ function HoleMap({
             )}
             {playback.phase === "settle" && activeShot.kind !== "splash" && !activeShot.final && (
               <g className="trip-game-ball-settle" transform={`translate(${activeShot.to[0]} ${activeShot.to[1]})`}>
-                <BallSprite r={2.3} />
+                <BallSprite r={2.3} defsId={mapId} />
               </g>
             )}
             {playback.phase === "settle" &&
@@ -1665,6 +1689,7 @@ function ScorecardModal({
           <strong>
             {celebration.label}
             {result.conceded ? " · PICKED UP" : ""}
+            {result.cpuConceded ? " · THEY PICKED UP" : ""}
           </strong>
           <span>
             {lastName(result.human.name).toUpperCase()} {result.humanGross}
@@ -2252,6 +2277,11 @@ export default function TripGame({ data }) {
     const live = liveRef.current;
     const confirmKey = event.key === " " || event.key === "Enter";
     const onButton = event.target instanceof HTMLElement && event.target.tagName === "BUTTON";
+    if (event.key === "Escape" && live && (METER_PHASES.has(phase) || phase === PHASE.SHOT || phase === PHASE.CPU_SHOT || phase === PHASE.HUMAN_READY)) {
+      event.preventDefault();
+      skipLiveHole();
+      return;
+    }
     if (phase === PHASE.METER_POWER || phase === PHASE.METER_ACCURACY) {
       if (!confirmKey || event.repeat) return;
       event.preventDefault();
@@ -2263,11 +2293,6 @@ export default function TripGame({ data }) {
       if (event.repeat) return;
       event.preventDefault();
       nextHole();
-      return;
-    }
-    if (event.key === "Escape" && live && (phase === PHASE.SHOT || phase === PHASE.CPU_SHOT || phase === PHASE.HUMAN_READY)) {
-      event.preventDefault();
-      skipLiveHole();
       return;
     }
     if (confirmKey && !onButton && (phase === PHASE.PLAN || phase === PHASE.HUMAN_READY)) {
@@ -3386,7 +3411,7 @@ export default function TripGame({ data }) {
       1,
       hole.par + 4,
     );
-    if (live.holed && live.jackpot !== "ace" && humanGross <= hole.par - 2) noteEvent({ type: "holeOut", eagle: true });
+    if (!live.skipped && live.holed && live.jackpot !== "ace" && humanGross <= hole.par - 2) noteEvent({ type: "holeOut", eagle: true });
     const resolved = resolveMatchHole({
       human: selected,
       cpu: live.cpuPick.profile,
@@ -3415,6 +3440,7 @@ export default function TripGame({ data }) {
       shots: [],
       teeLanding: live.teeLanding,
       conceded: Boolean(live.conceded),
+      cpuConceded: Boolean(live.cpu?.conceded),
     });
   }
 
@@ -3432,6 +3458,7 @@ export default function TripGame({ data }) {
     resolvingRef.current = false;
     setPlaybackShots(null);
     cancelPendingSwing();
+    live.skipped = true;
     // Simulate the rest of the hole with steady, decent swings — picking a
     // sensible club each time — and fast-forward the CPU's remaining answer.
     let guard = 0;
@@ -3595,6 +3622,7 @@ export default function TripGame({ data }) {
       lastWinner === "cpu"
         ? mergeMatchPlayShots(cpuShots, humanShots, projection?.pin)
         : mergeMatchPlayShots(humanShots, cpuShots, projection?.pin);
+    const placedTee = projection ? placeTeeLanding(projection, hole, visualDecision, resolved.humanLanding) : null;
     stageHoleResult({
       resolved,
       cpuPick,
@@ -3603,12 +3631,13 @@ export default function TripGame({ data }) {
       visualDecision,
       kick: { power: meter.power, accuracy: meter.accuracy },
       shots,
+      teeLanding: placedTee ? { point: placedTee.point, type: placedTee.type } : null,
     });
   }
 
   // Shared tail of a resolved hole: hype/streak accounting, pending commit,
   // and kicking off the playback. Used by both swing modes.
-  function stageHoleResult({ resolved, cpuPick, humanOdds, cpuOdds, visualDecision, kick, shots, teeLanding = null, conceded = false }) {
+  function stageHoleResult({ resolved, cpuPick, humanOdds, cpuOdds, visualDecision, kick, shots, teeLanding = null, conceded = false, cpuConceded = false }) {
     const completeResult = {
       ...resolved,
       human: selected,
@@ -3632,6 +3661,7 @@ export default function TripGame({ data }) {
     completeResult.shotDecision = visualDecision;
     completeResult.teeLanding = teeLanding;
     completeResult.conceded = conceded;
+    completeResult.cpuConceded = cpuConceded;
     const nextCloseout = matchCloseout({
       humanWins: match.human + (resolved.winner === "human" ? 1 : 0),
       cpuWins: match.cpu + (resolved.winner === "cpu" ? 1 : 0),
