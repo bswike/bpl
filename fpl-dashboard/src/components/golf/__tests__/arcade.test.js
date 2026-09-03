@@ -106,3 +106,40 @@ describe("records", () => {
     expect(out.record).toBeNull();
   });
 });
+
+describe("batch B: bite, drift frame, drop", () => {
+  it("does not spin back off the green into a fronting pond", () => {
+    const fronted = {
+      ...geometry,
+      features: [
+        { type: "fairway", hole: 1, coords: box(30, 315, -20, 20) },
+        { type: "green", hole: 1, coords: box(335, 365, -14, 14) },
+        { type: "water", hole: 1, coords: box(318, 334, -25, 25) },
+      ],
+    };
+    const proj = projectHole(fronted, hole);
+    const scale = polylineLength(proj.line) / hole.yards;
+    // Land 1.5 m onto the front of the green; a 3-yard bite would cross the pond edge.
+    const carry = 105 * 1.048 * 0.97;
+    const from = [proj.pin[0], proj.pin[1] + (13.5 + carry * scale)];
+    const res = resolveLiveStroke({ projection: proj, hole, from, lie: "Fairway", meter: { power: 0.87, accuracy: 0 }, judgment: pure, clubId: "wedge", carryBoost: 1, yardsScale: scale, hi: 8, spin: "back" });
+    expect(res.kind).not.toBe("splash");
+    expect(res.nextLie).toBe("Green");
+    expect(res.rollYards).toBeGreaterThanOrEqual(0);
+  });
+  it("drifts the same way on screen whichever way the shot is headed", () => {
+    const cross = { mph: 15, angle: Math.PI / 2, vx: 15, vy: 0 };
+    const up = shot({ wind: cross, clubId: "iron7", judgment: { tier: "great" } });
+    const fromPast = [projection.pin[0], projection.pin[1] - 20];
+    const target = [projection.pin[0], projection.pin[1] + 120 * yardsScale];
+    const down = resolveLiveStroke({ projection, hole, from: fromPast, lie: "Rough", meter: { power: 0.87, accuracy: 0 }, judgment: { tier: "great" }, clubId: "iron9", carryBoost: 1, yardsScale, hi: 8, wind: cross, lineTarget: target });
+    expect(up.carryTo[0] - projection.tee[0]).toBeGreaterThan(0.5);
+    expect(down.carryTo[0] - fromPast[0]).toBeGreaterThan(0.5);
+  });
+  it("drops a trickle-in beside the hazard, not down the fairway", () => {
+    const res = shot({ spin: "top" });
+    expect(res.kind).toBe("splash");
+    const dropBack = Math.hypot(res.nextPos[0] - res.to[0], res.nextPos[1] - res.to[1]) / yardsScale;
+    expect(dropBack).toBeLessThan(12);
+  });
+});

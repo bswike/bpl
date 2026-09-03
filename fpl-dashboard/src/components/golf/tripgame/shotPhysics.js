@@ -207,6 +207,9 @@ export function resolveLiveStroke({
   // right is the screen's right, so the lateral axis always points screen-
   // right — even on shots played back toward the tee.
   let perp = [-dir[1], dir[0]];
+  // screenFlip converts between the map frame (wind, theater arc) and the
+  // player's frame (meter, lateral miss) on shots played back down the map.
+  const screenFlip = perp[0] < 0 ? -1 : 1;
   if (perp[0] < 0) perp = [-perp[0], -perp[1]];
   const power = clamp(Number(meter.power) || 0.9, 0, 1.15);
   const { centerCarry, pattern } = carryProfile({ clubId, lie, carryBoost, fireball, spin, hi });
@@ -248,7 +251,7 @@ export function resolveLiveStroke({
     const effect = windEffect(wind, dir, carryYards);
     carryYards *= effect.carryMult;
     windDrift = effect.driftYards;
-    lateralYards += windDrift;
+    lateralYards += windDrift * screenFlip;
   }
   const land = [
     from[0] + dir[0] * carryYards * scale + perp[0] * (lateralYards * scale + aimUnits),
@@ -256,7 +259,7 @@ export function resolveLiveStroke({
   ];
   const kind = lie === "Tee" ? (hole.par <= 3 ? "tee" : "drive") : lie === "Bunker" ? "sand" : lie === "Rough" ? "punch" : "approach";
   // Ground balls stay on the dirt; airborne wild ones visibly banana-slice.
-  const bend = groundBall ? 0 : clamp(meter.accuracy * 20 * (wild ? 2.4 : 1) + windDrift * 1.2, -55, 55);
+  const bend = groundBall ? 0 : clamp(screenFlip * meter.accuracy * 20 * (wild ? 2.4 : 1) + windDrift * 1.2, -55, 55);
   const shankCaption = caption;
   const yardsOf = (point) => Math.round(Math.hypot(point[0] - from[0], point[1] - from[1]) / scale);
   let rollYards = 0; // signed: negative when backspin pulls the ball back
@@ -332,12 +335,17 @@ export function resolveLiveStroke({
     const spinMult = spin === "back" ? (landOnGreen ? 0 : 0.5) : spin === "top" ? 2.2 : 1;
     rollYards = carryYards * base * spinMult * (groundBall ? 1.6 : 1) * (lowFlight ? 1.4 : 1);
     if (spin === "back" && landOnGreen && !groundBall && (judgment.tier === "pure" || judgment.tier === "great")) {
-      rollYards = -(judgment.tier === "pure" ? 3 : 1.5);
-      caption = caption || "BITES!";
+      const back = -(judgment.tier === "pure" ? 3 : 1.5);
+      const bitTo = [land[0] + dir[0] * back * scale, land[1] + dir[1] * back * scale];
+      // A ball only spins back across the green, never off it into a hazard.
+      if (pointNearGreen(bitTo, projection) && classifyTerrain(projection.features, bitTo) === "Fairway") {
+        rollYards = back;
+        caption = caption || "BITES!";
+      }
     }
   }
   let rest = [land[0] + dir[0] * rollYards * scale, land[1] + dir[1] * rollYards * scale];
-  if (rollYards > 0.5) {
+  if (Math.abs(rollYards) > 0.5) {
     const rolledIn = firstWaterAlongGround(projection.features, land, rest);
     if (rolledIn) return splash(rolledIn, "ROLLS INTO THE WATER!");
     if (outOfBounds(projection, rest)) return outOf(rest, "ROLLS OUT OF BOUNDS!");
@@ -360,8 +368,11 @@ export function resolveLiveStroke({
 
 /** Walk back from a wet spot toward the shot's origin until the drop is dry. */
 export function dryDropPoint(projection, wet, from) {
-  for (let t = 0.22; t <= 0.95; t += 0.12) {
-    const candidate = interpolate(wet, from, t);
+  // Walk back toward where the shot came from in fixed 4 m steps: the drop
+  // is next to the hazard, not a fraction of the way back down the hole.
+  const span = Math.hypot(wet[0] - from[0], wet[1] - from[1]) || 1;
+  for (let back = 4; back <= span * 0.95; back += 4) {
+    const candidate = interpolate(wet, from, back / span);
     if (classifyTerrain(projection.features, candidate) !== "Penalty area" && !outOfBounds(projection, candidate)) {
       return candidate;
     }
