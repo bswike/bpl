@@ -18,9 +18,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Footie />} />
-        <Route path="/footie" element={<Footie />} />
+        <Route path="/" element={<App />} />
         <Route path="/fpl" element={<App />} />
+        <Route path="/footie" element={<Footie />} />
         <Route path="/calcutta" element={<Calcutta />} />
         <Route path="/golf" element={<GolfApp />} />
         <Route path="/draft" element={<Draft />} />
