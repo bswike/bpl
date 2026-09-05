@@ -3,7 +3,7 @@ Unified FPL app for Fly.io + Upstash Redis
 Combines your existing scraper with SSE server
 """
 
-import os, time, requests, signal, subprocess, hashlib, json, uuid, threading
+import os, sys, time, requests, signal, subprocess, hashlib, json, uuid, threading
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from flask import Flask, Response, request
@@ -39,6 +39,7 @@ except Exception as e:
 # ====== CONFIG ======
 UPLOAD_ENDPOINT = os.getenv("BASE_UPLOAD_ENDPOINT", "https://swikle.com/api/upload-csv")
 PUBLIC_BASE = os.getenv("PUBLIC_BASE", "https://1b0s3gmik3fqhcvt.public.blob.vercel-storage.com/")
+APP_DIR = Path(__file__).resolve().parent  # /app in the container; also works when run locally
 
 def _int_env(name, default):
     try:
@@ -54,10 +55,38 @@ ACTIVE = os.getenv("ACTIVE", "1")
 MAX_GAMEWEEK = _int_env("MAX_GAMEWEEK", 38)
 CHANNEL_NAME = 'fpl_updates'
 
+# ====== SEASON / LEAGUE ======
+# New season checklist: bump FPL_SEASON and point FPL_LEAGUE_ID at the new
+# classic league. Blob files are namespaced by season, so a new season starts
+# from an empty manifest (the scraper backfills every gameweek played so far)
+# and never overwrites or mixes with the previous season's data.
+SEASON = os.getenv("FPL_SEASON", "2026-27")
+# FPL re-issues entry ids every season, so members are looked up from the
+# league standings rather than hardcoded.
+LEAGUE_ID = _int_env("FPL_LEAGUE_ID", 495161)
+# Only used if the league standings API is unreachable before anything is cached.
+# 2026-27 Baltimore Premier League membership as of 2026-09-05.
+FALLBACK_ENTRY_IDS = [
+    5684138, 3021558, 4760474, 2510261, 7480800, 8000952, 3165934, 4258079,
+    3020188, 2787840, 3137734, 2784927, 4903248, 5756873, 3622044, 3314183,
+    6621946, 2790301, 7317025, 8135079,
+]
+MANIFEST_BLOB_NAME = f"fpl-league-manifest-{SEASON}.json"
+
+def rosters_blob_name(gw: int) -> str:
+    return f"{SEASON}/fpl_rosters_points_gw{gw}.csv"
+
+def projections_blob_name(gw: int) -> str:
+    return f"{SEASON}/projections_gw{gw}.json"
+
+def fresh_manifest() -> dict:
+    return {"gameweeks": {}, "season": SEASON, "league_id": LEAGUE_ID,
+            "version": None, "timestamp": None, "updated": None}
+
 # ====== STATE ======
 file_hashes = {}
 scraper_running = True
-current_manifest = {"gameweeks": {}, "version": None, "timestamp": None, "updated": None}
+current_manifest = fresh_manifest()
 manifest_lock = threading.Lock()
 
 # ====== FLASK SSE SERVER ======
@@ -81,6 +110,53 @@ def bust():
 def get_file_hash(data: bytes) -> str:
     return hashlib.md5(data).hexdigest()
 
+# ====== LEAGUE MEMBERSHIP ======
+league_entries_cache = {"ids": None, "timestamp": 0}
+league_entries_lock = threading.Lock()
+LEAGUE_ENTRIES_CACHE_DURATION = 3600  # 1 hour
+
+def fetch_league_entry_ids() -> list[int]:
+    """Fetch every entry id in the classic league (follows standings pagination)."""
+    ids: list[int] = []
+    page = 1
+    while page <= 10:
+        r = requests.get(
+            f"https://fantasy.premierleague.com/api/leagues-classic/{LEAGUE_ID}/standings/",
+            params={"page_standings": page},
+            timeout=15,
+        )
+        r.raise_for_status()
+        standings = r.json().get('standings', {})
+        ids.extend(int(row['entry']) for row in standings.get('results', []))
+        if not standings.get('has_next'):
+            break
+        page += 1
+    if not ids:
+        raise RuntimeError(f"league {LEAGUE_ID} returned no entries")
+    return ids
+
+def get_league_entry_ids() -> list[int]:
+    """League entry ids, cached for an hour. Falls back to the last good list,
+    then to FALLBACK_ENTRY_IDS, if the FPL API is unavailable."""
+    now = time.time()
+    with league_entries_lock:
+        cached = league_entries_cache["ids"]
+        if cached and (now - league_entries_cache["timestamp"]) < LEAGUE_ENTRIES_CACHE_DURATION:
+            return list(cached)
+    try:
+        ids = fetch_league_entry_ids()
+        with league_entries_lock:
+            league_entries_cache["ids"] = ids
+            league_entries_cache["timestamp"] = now
+        log(f"[league] Loaded {len(ids)} entries from league {LEAGUE_ID}")
+        return list(ids)
+    except Exception as e:
+        if cached:
+            log(f"[league] Refresh failed ({e}); using cached list of {len(cached)} entries")
+            return list(cached)
+        log(f"[league] Fetch failed ({e}); using fallback list of {len(FALLBACK_ENTRY_IDS)} entries")
+        return list(FALLBACK_ENTRY_IDS)
+
 # ====== MANIFEST MANAGEMENT ======
 def update_manifest_in_memory(manifest_data):
     """Update the in-memory manifest (thread-safe)"""
@@ -90,18 +166,35 @@ def update_manifest_in_memory(manifest_data):
         log(f"[manifest] Updated in-memory manifest to version {manifest_data.get('version')}")
 
 def load_manifest_from_blob():
-    """Load manifest from blob storage on startup"""
+    """Load this season's manifest from blob storage on startup.
+
+    The manifest is namespaced by season, so at the start of a season there is
+    nothing to load yet: we start empty and the scraper backfills every
+    gameweek played so far."""
     global current_manifest
     try:
-        manifest_url = f"{PUBLIC_BASE}fpl-league-manifest.json?v={bust()}"
+        manifest_url = f"{PUBLIC_BASE}{MANIFEST_BLOB_NAME}?v={bust()}"
         log(f"[manifest] Loading from blob: {manifest_url}")
         response = requests.get(manifest_url, timeout=10)
         if response.ok:
             manifest_data = response.json()
+            if manifest_data.get('season', SEASON) != SEASON:
+                log(f"[manifest] Blob manifest is for season {manifest_data.get('season')}, "
+                    f"not {SEASON} - starting fresh")
+                with manifest_lock:
+                    current_manifest = fresh_manifest()
+                return False
+            manifest_data.setdefault('season', SEASON)
+            manifest_data.setdefault('league_id', LEAGUE_ID)
             with manifest_lock:
                 current_manifest = manifest_data
             log(f"[manifest] Loaded from blob: {len(manifest_data.get('gameweeks', {}))} gameweeks")
             return True
+        elif response.status_code == 404:
+            log(f"[manifest] No manifest for season {SEASON} yet - starting fresh")
+            with manifest_lock:
+                current_manifest = fresh_manifest()
+            return False
         else:
             log(f"[manifest] Failed to load from blob: {response.status_code}")
             return False
@@ -213,10 +306,20 @@ def health():
     except:
         redis_status = 'error'
     
+    with manifest_lock:
+        manifest_gws = sorted(int(gw) for gw in current_manifest.get('gameweeks', {}).keys())
+    with league_entries_lock:
+        entries_loaded = len(league_entries_cache["ids"] or [])
+
     status = {
         'status': 'healthy' if redis_status in ['connected', 'disabled'] else 'degraded',
         'redis': redis_status,
         'scraper': 'running' if scraper_running else 'stopped',
+        'active': ACTIVE == "1",
+        'season': SEASON,
+        'league_id': LEAGUE_ID,
+        'league_entries_loaded': entries_loaded,
+        'manifest_gameweeks': manifest_gws,
         'timestamp': int(time.time())
     }
     
@@ -228,7 +331,9 @@ def root():
     """Info page"""
     return {
         'service': 'FPL Dashboard Backend',
-        'version': '2.3-no-pointers',
+        'version': '2.4-season-aware',
+        'season': SEASON,
+        'league_id': LEAGUE_ID,
         'endpoints': {
             'sse': '/sse/fpl-updates',
             'health': '/health',
@@ -839,8 +944,13 @@ def get_historical_data():
                     
                     # Initialize manager if not exists
                     if manager_name not in managers:
+                        try:
+                            entry_id = int(row.get('entry_id') or 0) or None
+                        except ValueError:
+                            entry_id = None
                         managers[manager_name] = {
                             'manager_name': manager_name,
+                            'entry_id': entry_id,
                             'team_name': row.get('entry_team_name', ''),
                             'total_points': 0,
                             'bench_points': 0,
@@ -912,11 +1022,7 @@ def get_chips():
         
         # Cache miss - fetch fresh data concurrently
         log("[chips] Cache miss, fetching from FPL API concurrently...")
-        entry_ids = [
-            394273, 373574, 650881, 6197529, 1094601, 6256408, 62221, 701623,
-            3405299, 5438502, 5423005, 4807443, 581156, 4912819, 876871, 4070923,
-            5898648, 872442, 468791, 8592148
-        ]
+        entry_ids = get_league_entry_ids()
         
         def fetch_manager_chips(entry_id):
             try:
@@ -994,7 +1100,7 @@ def get_projections():
         if requested_gw is None:
             # Use latest gameweek from manifest
             with manifest_lock:
-                requested_gw = current_manifest.get('latest_gw', 20)
+                requested_gw = current_manifest.get('latest_gw') or 1
         
         cache_key = str(requested_gw)
         
@@ -1007,7 +1113,7 @@ def get_projections():
                     return cached["data"], 200
         
         # Fetch from blob storage
-        blob_url = f"{PUBLIC_BASE}projections_gw{requested_gw}.json?_t={int(time.time())}"
+        blob_url = f"{PUBLIC_BASE}{projections_blob_name(requested_gw)}?_t={int(time.time())}"
         log(f"[projections] Fetching GW{requested_gw} from {blob_url}")
         
         response = requests.get(blob_url, timeout=10)
@@ -1037,7 +1143,7 @@ def get_projections():
             if requested_gw > 1:
                 fallback_gw = requested_gw - 1
                 log(f"[projections] Trying fallback to GW{fallback_gw}")
-                fallback_url = f"{PUBLIC_BASE}projections_gw{fallback_gw}.json?_t={int(time.time())}"
+                fallback_url = f"{PUBLIC_BASE}{projections_blob_name(fallback_gw)}?_t={int(time.time())}"
                 fallback_response = requests.get(fallback_url, timeout=10)
                 if fallback_response.ok:
                     data = fallback_response.json()
@@ -1078,7 +1184,7 @@ def upload_projections(gw=None):
         json_bytes = json.dumps(data, indent=2).encode('utf-8')
         
         # Upload to blob storage with gameweek-specific filename
-        filename = f'projections_gw{target_gw}.json'
+        filename = projections_blob_name(target_gw)
         success = smart_upload_bytes(filename, json_bytes, content_type='application/json')
         
         if success:
@@ -1113,38 +1219,13 @@ def upload_csv(gw):
         
         log(f"[admin] GW{gw} data validated: {reason}")
         
-        # Use non-versioned filename for consistency
-        blob_name = f"fpl_rosters_points_gw{gw}.csv"
-        
-        # Upload to blob storage
+        # Season-namespaced, non-versioned filename (this is what the manifest points to)
+        blob_name = rosters_blob_name(gw)
         success = smart_upload_csv(blob_name, csv_data)
         
         if success:
-            # Update manifest
             h = get_file_hash(csv_data)
-            timestamp = int(time.time())
-            
-            with manifest_lock:
-                if 'gameweeks' not in current_manifest:
-                    current_manifest['gameweeks'] = {}
-                current_manifest['gameweeks'][str(gw)] = {
-                    'url': f"{PUBLIC_BASE}{blob_name}",
-                    'hash': h,
-                    'timestamp': timestamp,
-                    'updated': datetime.utcnow().isoformat() + "Z"
-                }
-                current_manifest['updated'] = datetime.utcnow().isoformat() + "Z"
-                current_manifest['version'] = str(timestamp)
-                current_manifest['timestamp'] = timestamp
-                
-                # Upload updated manifest to blob storage (using correct filename)
-                manifest_bytes = json.dumps(current_manifest).encode('utf-8')
-                smart_upload_bytes('fpl-league-manifest.json', manifest_bytes, content_type='application/json')
-            
-            # Clear historical cache
-            with historical_cache_lock:
-                historical_cache["data"] = None
-                historical_cache["timestamp"] = 0
+            record_gameweek_in_manifest(gw, f"{PUBLIC_BASE}{blob_name}", h)
             
             log(f"[admin] Uploaded CSV for GW{gw} ({len(csv_data)} bytes)")
             return {'success': True, 'gw': gw, 'blob': blob_name, 'hash': h}, 200
@@ -1183,6 +1264,49 @@ def smart_upload_bytes(blob_name: str, data: bytes, content_type: str = "text/pl
 def smart_upload_csv(blob_name: str, data: bytes) -> bool:
     return smart_upload_bytes(blob_name, data, content_type="text/csv")
 
+def record_gameweek_in_manifest(gw: int, csv_url: str, data_hash: str) -> tuple[dict, bool]:
+    """Point the manifest at a freshly uploaded gameweek CSV.
+
+    Updates the in-memory manifest (the source of truth), backs it up to blob
+    storage and invalidates the historical cache. Returns (manifest, uploaded)."""
+    with manifest_lock:
+        manifest_data = current_manifest.copy()
+    manifest_data['gameweeks'] = dict(manifest_data.get('gameweeks') or {})
+
+    timestamp = int(time.time())
+    now_iso = datetime.utcnow().isoformat() + "Z"
+    manifest_data['gameweeks'][str(gw)] = {
+        'url': csv_url,
+        'hash': data_hash,
+        'timestamp': timestamp,
+        'updated': now_iso,
+    }
+    manifest_data['season'] = SEASON
+    manifest_data['league_id'] = LEAGUE_ID
+    manifest_data['updated'] = now_iso
+    manifest_data['version'] = str(timestamp)
+    manifest_data['timestamp'] = timestamp
+    # latest_gw is always the highest gameweek we hold data for
+    manifest_data['latest_gw'] = max(int(k) for k in manifest_data['gameweeks'].keys())
+
+    uploaded = smart_upload_bytes(
+        MANIFEST_BLOB_NAME,
+        json.dumps(manifest_data, indent=2).encode("utf-8"),
+        content_type="application/json",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "CDN-Cache-Control": "no-cache"
+        }
+    )
+    # ALWAYS update the in-memory manifest, even if the blob backup failed
+    update_manifest_in_memory(manifest_data)
+
+    with historical_cache_lock:
+        historical_cache["data"] = None
+        historical_cache["timestamp"] = 0
+
+    return manifest_data, uploaded
+
 def run_scraper(cmd: list[str], expect_file: Path, timeout_sec: int = 90) -> bytes:
     try:
         if expect_file.exists():
@@ -1191,7 +1315,7 @@ def run_scraper(cmd: list[str], expect_file: Path, timeout_sec: int = 90) -> byt
         pass
 
     log(f"Running: {' '.join(cmd)}")
-    proc = subprocess.run(cmd, cwd="/app", capture_output=True, text=True, timeout=timeout_sec)
+    proc = subprocess.run(cmd, cwd=str(APP_DIR), capture_output=True, text=True, timeout=timeout_sec)
 
     if proc.returncode != 0:
         raise RuntimeError(f"Scraper failed ({cmd[0]}): {proc.stderr or proc.stdout}")
@@ -1206,17 +1330,15 @@ def run_scraper(cmd: list[str], expect_file: Path, timeout_sec: int = 90) -> byt
     return data
 
 def get_output_file_path(file_type: str, gw: int) -> Path:
-    return Path(f"/app/fpl_{file_type}_gw{gw}.csv")
+    return APP_DIR / f"fpl_{file_type}_gw{gw}.csv"
 
 def scrape_rosters_bytes(gw: int) -> bytes:
     output_file = get_output_file_path("rosters_points", gw)
+    entry_ids = get_league_entry_ids()
     return run_scraper([
-        "python3", "fpl_scrape_rosters.py",
+        sys.executable, "fpl_scrape_rosters.py",
         "--gw", str(gw),
-        "--entries",
-        "394273", "373574", "650881", "6197529", "1094601", "6256408", "62221", "701623",
-        "3405299", "5438502", "5423005", "4807443", "581156", "4912819", "876871", "4070923",
-        "5898648", "872442", "468791", "8592148"
+        "--entries", *[str(eid) for eid in entry_ids],
     ], output_file)
 
 def detect_current_gameweek() -> int:
@@ -1323,53 +1445,16 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
         log(f"GW{gw} data validated: {reason}")
         h = get_file_hash(rosters_data)
 
-        # Upload to non-versioned path (this is what the manifest will point to)
-        csv_name = f"fpl_rosters_points_gw{gw}.csv"
+        # Upload to the season-namespaced, non-versioned path the manifest points to
+        csv_name = rosters_blob_name(gw)
         csv_url = f"{PUBLIC_BASE}{csv_name}"
         uploaded = smart_upload_csv(csv_name, rosters_data)
 
         if uploaded:
             log(f"New version uploaded for GW{gw}, updating manifest...")
-            
-            # Use in-memory manifest as source of truth - DON'T load from blob storage
-            # This preserves manual updates and prevents overwriting good data
-            with manifest_lock:
-                manifest_data = current_manifest.copy()
-            
-            if 'gameweeks' not in manifest_data: 
-                manifest_data['gameweeks'] = {}
-            
-            timestamp = int(time.time())
-            
-            # Store full gameweek info directly in manifest (use non-versioned URL)
-            manifest_data['gameweeks'][str(gw)] = {
-                'url': csv_url,
-                'hash': h,
-                'timestamp': timestamp,
-                'updated': datetime.utcnow().isoformat() + "Z"
-            }
-            manifest_data['updated'] = datetime.utcnow().isoformat() + "Z"
-            manifest_data['version'] = str(timestamp)
-            manifest_data['timestamp'] = timestamp
-            
-            # Always update latest_gw to the highest gameweek in manifest
-            all_gws = [int(k) for k in manifest_data['gameweeks'].keys()]
-            manifest_data['latest_gw'] = max(all_gws) if all_gws else gw
-
-            # Upload to Vercel Blob (backup only)
-            manifest_name = "fpl-league-manifest.json"
-            manifest_uploaded = smart_upload_bytes(
-                manifest_name,
-                json.dumps(manifest_data, indent=2).encode("utf-8"),
-                content_type="application/json",
-                headers={
-                    "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
-                    "CDN-Cache-Control": "no-cache"
-                }
-            )
-            
-            # ALWAYS update in-memory manifest (this is the source of truth now)
-            update_manifest_in_memory(manifest_data)
+            # The in-memory manifest is the source of truth - never reload it from
+            # blob here, so manual uploads survive and good data is never overwritten.
+            manifest_data, manifest_uploaded = record_gameweek_in_manifest(gw, csv_url, h)
             
             if manifest_uploaded:
                 log(f"SUCCESS: Updated manifest for GW{gw} (blob backup + in-memory)")
@@ -1393,6 +1478,32 @@ def scrape_and_upload_gameweek(gw: int) -> bool:
         log(f"GW{gw} scrape FAILED: {e}")
         log(f"Keeping existing data intact - NOT uploading anything")
         return False
+
+# ====== BACKFILL ======
+BACKFILL_RETRY_SECONDS = 1800  # don't hammer FPL if a past gameweek keeps failing
+backfill_next_attempt: dict[int, float] = {}
+
+def backfill_missing_gameweeks(current_gw: int) -> None:
+    """Scrape every gameweek before current_gw that the manifest has no data for.
+
+    Covers a fresh season (empty manifest) and downtime that spanned a whole
+    gameweek. Gameweeks already in the manifest are never re-scraped."""
+    with manifest_lock:
+        have = {int(k) for k in current_manifest.get('gameweeks', {}).keys()}
+    now = time.time()
+    missing = [gw for gw in range(1, current_gw)
+               if gw not in have and backfill_next_attempt.get(gw, 0) <= now]
+    if not missing:
+        return
+    log(f"[backfill] Season {SEASON} manifest is missing GW{', GW'.join(map(str, missing))}")
+    for gw in missing:
+        if not scraper_running:
+            return
+        if scrape_and_upload_gameweek(gw):
+            log(f"[backfill] GW{gw} filled in")
+        else:
+            backfill_next_attempt[gw] = time.time() + BACKFILL_RETRY_SECONDS
+            log(f"[backfill] GW{gw} failed; will retry in {BACKFILL_RETRY_SECONDS // 60} min")
 
 # ====== BACKGROUND WORKERS ======
 def redis_health_check():
@@ -1428,6 +1539,10 @@ def scraper_worker():
                 if current_gw is None:
                     log("Could not determine current gameweek - skipping this cycle")
                 else:
+                    # Fill in earlier gameweeks we hold no data for (new season, or
+                    # downtime that spanned a whole gameweek) before the live one.
+                    backfill_missing_gameweeks(current_gw)
+
                     # Double-check: only scrape if this is actually the current GW in manifest
                     # This prevents accidentally overwriting wrong gameweeks
                     with manifest_lock:

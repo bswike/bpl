@@ -37,30 +37,6 @@ const OverallLeaderboard = () => {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' or 'team'
   const [countdown, setCountdown] = useState('');
 
-  // Entry ID mapping (verified against FPL API)
-  const entryIdMap = {
-    'Andrew Vidal': 394273,
-    'Garrett Kunkel': 373574,
-    'John Matthew': 650881,
-    'Brett Swikle': 6197529,
-    'Joe Curran': 1094601,
-    'Chris Munoz': 6256408,
-    'John Sebastian': 62221,
-    'Jared Alexander': 701623,
-    'Evan Bagheri': 3405299,
-    'Nate Cohen': 5438502,
-    'Dean Maghsadi': 5423005,
-    'Max Maier': 4807443,
-    'Adrian McLoughlin': 581156,
-    'Wes H': 4912819,
-    'Kevin Tomek': 876871,
-    'Brian Pleines': 4070923,
-    'Kevin K': 5898648,
-    'Patrick McCleary': 872442,
-    'JP Fischer': 468791,
-    'Tony Tharakan': 8592148,
-  };
-
   // Determine if current GW is finished (for stats calculations)
   const isCurrentGwFinished = useMemo(() => {
     return contextGwStatus?.current_gameweek?.finished ?? true;
@@ -229,6 +205,15 @@ const OverallLeaderboard = () => {
       });
     }
     
+    // Entry ids come straight from the scraped data: FPL re-issues them every
+    // season, so a hardcoded name -> id map would end up pointing at strangers.
+    const entryIdByManager = {};
+    availableGameweeks.forEach(gw => {
+      (gameweekData[gw] || []).forEach(m => {
+        if (m.entry_id) entryIdByManager[m.manager_name] = m.entry_id;
+      });
+    });
+
     return combinedData.map((manager, idx) => {
       const currentPos = idx + 1;
       const prevPos = prevStandings.positions?.[manager.manager_name] || currentPos;
@@ -238,7 +223,7 @@ const OverallLeaderboard = () => {
         ...manager,
         position: currentPos,
         positionChange: posChange,
-        entryId: entryIdMap[manager.manager_name],
+        entryId: entryIdByManager[manager.manager_name],
       };
     });
   }, [combinedData, availableGameweeks, gameweekData]);
