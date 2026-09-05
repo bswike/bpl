@@ -149,11 +149,28 @@ function koKeyForDate(yyyymmdd) {
   return null;
 }
 
+// ESPN sits behind a bot filter that rejects some User-Agent strings with a 403
+// (which one varies by client and by network). Try the default fetch UA first
+// (the one api/scores.js uses successfully from Vercel), then fall back.
+const ESPN_USER_AGENTS = [
+  null,
+  "Mozilla/5.0 (footie-pool)",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+];
+
+async function fetchEspn(url) {
+  const statuses = [];
+  for (const ua of ESPN_USER_AGENTS) {
+    const res = await fetch(url, ua ? { headers: { "User-Agent": ua } } : undefined);
+    if (res.ok) return res;
+    statuses.push(res.status);
+    if (res.status !== 403) break; // only a 403 is worth retrying with another UA
+  }
+  throw new Error(`ESPN fetch failed: ${statuses.join("/")}`);
+}
+
 async function fetchEvents(range) {
-  const res = await fetch(`${ESPN_BASE}?dates=${range}&limit=300`, {
-    headers: { "User-Agent": "Mozilla/5.0 (footie-pool)" },
-  });
-  if (!res.ok) throw new Error(`ESPN fetch failed: ${res.status}`);
+  const res = await fetchEspn(`${ESPN_BASE}?dates=${range}&limit=300`);
   const data = await res.json();
   return data.events || [];
 }
@@ -279,10 +296,7 @@ function extractOdds(comp) {
 async function fetchLockedOdds(eventId) {
   try {
     const url = `https://sports.core.api.espn.com/v2/sports/soccer/leagues/fifa.world/events/${eventId}/competitions/${eventId}/odds`;
-    const r = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (footie-pool)" },
-    });
-    if (!r.ok) return null;
+    const r = await fetchEspn(url);
     const j = await r.json();
     const items = j.items || [];
     const it = items.find((x) => x.provider?.id === "100") || items[0];
@@ -1643,8 +1657,11 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error("Footie API error:", err);
     res.setHeader("Cache-Control", "s-maxage=10");
-    return res
-      .status(500)
-      .json({ error: "Failed to load pool data", managers: [], standings: [] });
+    return res.status(500).json({
+      error: "Failed to load pool data",
+      detail: String(err?.message || err).slice(0, 300),
+      managers: [],
+      standings: [],
+    });
   }
 }
