@@ -406,13 +406,12 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
   ];
   const lastFrame = Math.max(1, (shot?.frames?.length || 8) - 1);
   const t = preview || phase === "swing" ? 0 : phase === "flight" ? clamp((frame || 0) / lastFrame, 0, 1) : 1;
-  const eased = 1 - Math.pow(1 - t, 1.75);
+  // Uphill rolls lose pace sooner; downhill rolls keep their speed longer.
+  const eased = 1 - Math.pow(1 - t, 1.75 + slope * .45);
   const ball = quadPoint(start, control, end, eased);
   const trailControl = start.map((value, index) => value + (control[index] - value) * eased);
   const dropped = !preview && shot?.final && phase === "settle";
   const rolled = !preview && phase !== "swing";
-  const breakLabel = breakDir > 0.12 ? "L → R" : breakDir < -0.12 ? "R → L" : "STRAIGHT";
-  const slopeLabel = slope > 0.12 ? "UPHILL" : slope < -0.12 ? "DOWNHILL" : "FLAT";
   const severity = Math.abs(breakDir) + Math.abs(slope) * 0.5;
   const severityClass = severity > 1 ? " is-steep" : severity > 0.5 ? " is-mid" : "";
   // The player's chosen start line: a straight ray from the ball through the
@@ -422,21 +421,35 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
   const aimTarget = preview ? aimPoint : [cup[0] + (info?.aimTicks || 0) * PUTT_TICK_UNITS, cup[1]];
   const flowing = Math.hypot(breakDir, slope) > 0.12;
   const angle = (Math.atan2(slope, breakDir || 0.0001) * 180) / Math.PI;
-  const arrows = [];
-  for (let row = 0; row < 4; row += 1) {
-    for (let col = 0; col < 5; col += 1) {
-      arrows.push([24 + col * 30 + (row % 2) * 10, 34 + row * 22]);
+  const flowStrength = clamp(Math.hypot(breakDir, slope), 0, 1.3);
+  const flowDuration = 2.8 - flowStrength * 1.5;
+  const speedLevel = stimp === "FAST" ? 3 : stimp === "SLOW" ? 1 : 2;
+  const breakAdvice = breakDir > 0.12 ? "Breaks right · aim left" : breakDir < -0.12 ? "Breaks left · aim right" : "Straight line";
+  const slopeAdvice = slope > 0.12 ? "Uphill · give it more" : slope < -0.12 ? "Downhill · a softer touch" : "Level putt";
+  const beads = [];
+  for (let row = 0; row < 6; row += 1) {
+    for (let col = 0; col < 6; col += 1) {
+      const point = [18 + col * 25 + (row % 2) * 6, 28 + row * 16];
+      // Leave a clear pocket around the cup and the player.
+      if (Math.hypot(point[0] - cup[0], point[1] - cup[1]) > 22 &&
+          Math.hypot(point[0] - start[0], point[1] - start[1]) > 18) beads.push(point);
     }
   }
   return (
-    <div className={`trip-game-putt-scene${preview ? " is-reading" : " is-rolling"}${preview && phase ? " is-meter-active" : ""}`} role="group" aria-label="Putting green">
+    <div className={`trip-game-putt-scene${preview ? " is-reading" : " is-rolling"}${preview && phase ? " is-meter-active" : ""}`} role="group" aria-label="Putting green" style={{ "--green-speed-duration": `${3.4 - speedLevel * .7}s` }}>
       <svg viewBox="0 0 170 128" className="trip-game-putt-svg" role="img" aria-label="Putting green close-up">
         <defs>
+          <linearGradient id={`${greenId}-slope`} x1={`${50 - Math.cos(angle * Math.PI / 180) * 50}%`} y1={`${50 - Math.sin(angle * Math.PI / 180) * 50}%`} x2={`${50 + Math.cos(angle * Math.PI / 180) * 50}%`} y2={`${50 + Math.sin(angle * Math.PI / 180) * 50}%`}>
+            <stop offset="0" stopColor="#e6ec9c" />
+            <stop offset=".5" stopColor="#87b966" />
+            <stop offset="1" stopColor="#367b60" />
+          </linearGradient>
           <clipPath id={greenId}>
             <rect x="-100" y="-100" width="400" height="400" />
           </clipPath>
         </defs>
         <rect x="-100" y="-100" width="400" height="400" className="trip-game-putt-green" />
+        {flowing && <rect x="-100" y="-100" width="400" height="400" fill={`url(#${greenId}-slope)`} opacity={.25 + flowStrength * .25} />}
         <g clipPath={`url(#${greenId})`} className="trip-game-putt-stripes">
           {Array.from({ length: 5 }, (_, index) => (
             <rect key={index} x="0" y={12 + index * 22} width="170" height="11" />
@@ -458,29 +471,12 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
         <path d="M28,48 Q85,58 142,46" className="trip-game-putt-contour" />
         {flowing && (
           <>
-            <g
-              className={`trip-game-putt-flow-lines${severityClass}`}
-              transform={`rotate(${angle.toFixed(1)} 85 64)`}
-            >
-              {[-18, 0, 18].map((offset) => <path key={offset} d={`M18 ${64 + offset} H152`} />)}
-            </g>
-            <g
-              className={`trip-game-putt-arrows${severityClass}`}
-              style={{ "--flow-x": `${breakDir * 10}px`, "--flow-y": `${slope * 10}px` }}
-            >
-              {arrows.map(([x, y], index) => (
-                <path
-                  key={index}
-                  d="M-5,-1.5 H1 V-4 L6,0 L1,4 V1.5 H-5 Z"
-                  transform={`translate(${x} ${y}) rotate(${angle.toFixed(1)})`}
-                  style={{ animationDelay: `${((index * 3) % 7) * 0.11}s` }}
-                />
+            <g className={`trip-game-putt-streams${severityClass}`} style={{ "--slope-duration": `${flowDuration}s` }}>
+              {beads.map(([x, y], index) => (
+                <g key={index} transform={`translate(${x} ${y}) rotate(${angle.toFixed(1)})`}>
+                  <circle r="1.6" className="trip-game-putt-stream-bead" style={{ animationDelay: `${-index * .31}s` }} />
+                </g>
               ))}
-            </g>
-            <g className={`trip-game-putt-slope-compass${severityClass}`} transform="translate(146 18)">
-              <circle r="12" />
-              <path d="M-6,-2 H2 V-6 L8,0 L2,6 V2 H-6 Z" transform={`rotate(${angle.toFixed(1)})`} />
-              <text x="0" y="17">SLOPE</text>
             </g>
           </>
         )}
@@ -516,7 +512,7 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
           scale={0.9}
         />
         {!dropped && (
-          <g transform={`translate(${ball[0].toFixed(1)} ${ball[1].toFixed(1)})`}>
+          <g className="trip-game-putt-rolling-ball" style={{ transform: `translate(${ball[0].toFixed(1)}px, ${ball[1].toFixed(1)}px)`, transition: phase === "flight" ? `transform ${FLIGHT_FRAME_MS}ms linear` : "none" }}>
             <ellipse cx="0" cy="1.4" rx="2.4" ry="1" className="trip-game-putt-ball-shadow" />
             <BallSprite r={2.2} spin={rolled ? "roll" : "none"} />
           </g>
@@ -535,10 +531,19 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
         <span>{side === "cpu" ? "THEM" : "YOU"}</span>
         <b>{feet} FT</b>
         <em>
-          {effFeet !== feet ? `PLAYS ${effFeet} · ` : ""}
-          {breakLabel} · {slopeLabel}
+          {effFeet !== feet ? `PLAYS LIKE ${effFeet} FT` : "TO THE CUP"}
         </em>
-        {stimp && <i className={`trip-game-putt-stimp is-${stimp.toLowerCase()}`}>{stimp} GREEN</i>}
+      </div>
+      <div className="trip-game-green-read">
+        <div className="trip-game-green-read-direction">
+          <span className="trip-game-downhill-dial" aria-hidden="true" style={{ "--downhill-angle": `${angle}deg` }}>{flowing ? "➜" : "•"}</span>
+          <div><b>{breakAdvice}</b><span>{slopeAdvice}</span></div>
+        </div>
+        <div className="trip-game-green-speed" aria-label={`${stimp || "MEDIUM"} green speed, ${speedLevel} of 3`}>
+          <b>{stimp || "MEDIUM"} GREEN</b>
+          <span className="trip-game-speed-demo" aria-hidden="true"><i /></span>
+          <span>{[1, 2, 3].map(level => <i key={level} className={level <= speedLevel ? "is-lit" : ""} />)} {speedLevel === 3 ? "LIGHT TOUCH" : speedLevel === 1 ? "MORE PACE" : "SMOOTH ROLL"}</span>
+        </div>
       </div>
       {!preview && !dropped && side === "cpu" && info?.for && (
         <div className={`trip-game-putt-for is-${info.for.tone}`}>
@@ -550,8 +555,8 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
       {preview && phase !== "locked" && (
         <div className="trip-game-putt-coach">
           <b>{phase === "power" ? "02 · SET THE PACE" : phase === "accuracy" ? "03 · STRIKE THE PUTT" : "01 · READ THE GREEN"}</b>
-          <span>{phase === "power" ? "Stop in the gold band for a smooth roll." : phase === "accuracy" ? "Stop in the center to hold your chosen line." : flowing ? "Moving arrows show the break. Aim against the slope." : "A straight read. Pick your line and trust the pace."}</span>
-          {!phase && <small>SET YOUR LINE BELOW · THEN START YOUR PUTT</small>}
+          <span>{phase === "power" ? "Stop in the gold band for a smooth roll." : phase === "accuracy" ? "Stop in the center to hold your chosen line." : Math.abs(breakDir) > .12 ? "Aim against the flow. Let the slope bring it back." : "Hold a straight line. Let the pace do the work."}</span>
+          {!phase && <small>{flowing ? "DOTS FLOW DOWNHILL · QUICKER DOTS = STEEPER SLOPE" : "NO BREAK · TRUST YOUR LINE"}</small>}
         </div>
       )}
     </div>
@@ -1372,7 +1377,7 @@ function KickMeter({ phase, power: previewPower = 0, accuracy: previewAccuracy =
           </div>
         )}
         <div className={`trip-game-kick-col ${powerLocked ? "is-locked" : ""}`}>
-          <small>{mods?.paceBand ? "PACE" : "PWR"}</small>
+          <small>{mods?.paceBand ? `PACE · ${power < bandMin ? "SOFT" : power > bandMax ? "FIRM" : "CUP PACE ✓"}` : "PWR"}</small>
           <div className={`trip-game-kick-track${inSweet ? " is-charged" : ""}`}>
             {!mods?.paceBand && <i className="trip-game-kick-redzone" />}
             <i
@@ -1394,7 +1399,7 @@ function KickMeter({ phase, power: previewPower = 0, accuracy: previewAccuracy =
           </div>
         </div>
         <div className={`trip-game-kick-acc ${accLive || locked ? "is-live" : ""}`}>
-          <small>{mods?.paceBand ? "STRIKE" : "ACC"}</small>
+          <small>{mods?.paceBand ? "STRIKE · STOP IN THE CENTER" : "ACC"}</small>
           <div className="trip-game-kick-acc-track">
             <i className="trip-game-kick-zone-good" style={zoneStyle(ACC_GOOD, zoneScale)} />
             <i className="trip-game-kick-zone-great" style={zoneStyle(ACC_GREAT, zoneScale)} />

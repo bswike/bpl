@@ -15,44 +15,68 @@
   display: block;
   width: 100%;
   height: 100%;
-  padding: 60px 0 108px;
+  padding: 110px 0 90px;
   filter: none;
   overflow: visible;
 }
 .trip-game-putt-green { fill: #82b05d; stroke: none; }
 .trip-game-putt-stripes rect { fill: #b4d779; fill-opacity: .18; }
-.trip-game-putt-grid path { fill: none; stroke: #e5f1b3; stroke-width: .55; opacity: .45; }
+.trip-game-putt-grid path { fill: none; stroke: #e5f1b3; stroke-width: .45; opacity: .28; }
 .trip-game-putt-distance-rings { fill: none; stroke: #f3f6c4; stroke-width: .6; opacity: .4; stroke-dasharray: 1 3; }
 .trip-game-putt-contour { opacity: .3; }
-.trip-game-putt-flow-lines path {
-  fill: none;
-  stroke: #f5f8c8;
-  stroke-width: 1.1;
-  stroke-dasharray: 2 5;
-  opacity: .22;
+.trip-game-putt-streams { --bead-color: #fffbd8; }
+.trip-game-putt-streams.is-mid { --bead-color: #ffe28b; }
+.trip-game-putt-streams.is-steep { --bead-color: #ffbe72; }
+.trip-game-putt-stream-bead {
+  fill: var(--bead-color);
+  stroke: #2f583b;
+  stroke-width: .45;
+  animation: trip-putt-bead var(--slope-duration) linear infinite;
 }
-.trip-game-putt-flow-lines.is-mid path { stroke: #ffe37e; opacity: .3; }
-.trip-game-putt-flow-lines.is-steep path { stroke: #ffb34f; opacity: .4; }
-.trip-game-putt-arrows path {
-  fill: #f6fad0;
-  stroke: #315a3b;
-  stroke-width: .7;
-  paint-order: stroke fill;
-  filter: drop-shadow(1px 1px 0 #23472f);
+@keyframes trip-putt-bead {
+  0% { transform: translateX(-9px); opacity: 0; }
+  15%, 80% { opacity: 1; }
+  100% { transform: translateX(9px); opacity: 0; }
 }
-.trip-game-putt-arrows.is-mid path { fill: #ffe275; stroke: #6e5720; }
-.trip-game-putt-arrows.is-steep path { fill: #ffad49; stroke: #743d22; }
-.trip-game-putt-slope-compass circle { fill: #173e32dd; stroke: #eff5bf; stroke-width: 1; }
-.trip-game-putt-slope-compass path { fill: #f6fad0; stroke: #173e32; stroke-width: .7; }
-.trip-game-putt-slope-compass.is-mid path { fill: #ffe275; }
-.trip-game-putt-slope-compass.is-steep path { fill: #ffad49; }
-.trip-game-putt-slope-compass text {
-  fill: #173e32;
-  font-family: var(--font-body);
-  font-size: 6px;
-  font-weight: 700;
-  text-anchor: middle;
+.trip-game-green-read {
+  position: absolute;
+  top: 55px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #173e32;
+  background: #e8efbddd;
+  border: 1px solid #486b48;
+  padding: 5px 8px;
 }
+.trip-game-green-read-direction { display: flex; gap: 10px; align-items: center; }
+.trip-game-downhill-dial {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #456946;
+  border-radius: 50%;
+  background: #fff6cf;
+  font: 25px Arial, sans-serif;
+  transform: rotate(var(--downhill-angle));
+}
+.trip-game-green-read b { display: block; font-size: 16px; font-weight: 400; }
+.trip-game-green-read-direction div > span { font-size: 14px; }
+.trip-game-green-speed { min-width: 105px; padding-left: 10px; border-left: 1px solid #719165; }
+.trip-game-green-speed b { font-size: 13px; }
+.trip-game-green-speed > span:last-child { display: flex; align-items: center; gap: 3px; font-size: 10px; }
+.trip-game-green-speed > span:last-child i { width: 6px; height: 6px; background: #839b6b; }
+.trip-game-green-speed > span:last-child i.is-lit { background: #315d40; }
+.trip-game-speed-demo { display: block; position: relative; width: 90px; height: 10px; margin: 3px 0; border-bottom: 1px solid #6b875a; }
+.trip-game-speed-demo i { position: absolute; top: 1px; width: 7px; height: 7px; border-radius: 50%; background: #fff; box-shadow: 1px 1px 0 #315c40; animation: trip-green-speed var(--green-speed-duration) linear infinite; }
+@keyframes trip-green-speed { from { transform: translateX(0); } to { transform: translateX(83px); } }
+.trip-game-putt-hud .trip-game-putt-stimp { display: none; }
+.trip-game-putt-scene.is-rolling .trip-game-putt-streams { opacity: .35; }
+.trip-game-putt-scene.is-rolling .trip-game-green-read { opacity: .8; }
 .trip-game-putt-aim-line { stroke: #fffbe1; stroke-width: 1.1; stroke-dasharray: 3 2; }
 .trip-game-putt-aim-marker path { fill: #ffdc70; stroke: #25452e; animation: none; }
 .trip-game-putt-cup-rim { fill: #dcebac; }
@@ -82,7 +106,7 @@
   right: 12px;
   bottom: 60px;
   display: grid;
-  gap: 4px;
+  gap: 3px;
   text-align: center;
   color: #173e2f;
 }
@@ -132,14 +156,39 @@
 .trip-game .is-putt-meter strong { font-size: 10px; }
 .trip-game .is-putt-meter small { font-size: 9px; }
 @media (max-height: 650px) {
-  .trip-game-putt-svg { padding-top: 44px; padding-bottom: 80px; }
+  .trip-game-putt-svg { padding-top: 98px; padding-bottom: 90px; }
   .trip-game-putt-coach span { font-size: 13px; }
-  .trip-game-putt-coach small { display: none; }
+  .trip-game-putt-coach b { display: none; }
+  .trip-game-putt-coach small { font-size: 10px; }
   .trip-game-putt-hud { padding: 5px 8px; }
   .trip-game-putt-hud b { font-size: 14px; }
 }
 
-.trip-game-putt-scene.is-meter-active .trip-game-putt-coach { bottom: 125px; }
+@media (max-width: 480px) {
+  .trip-game-green-read { padding: 6px; gap: 6px; }
+  .trip-game-green-read-direction { gap: 6px; }
+  .trip-game-green-read b { font-size: 14px; }
+  .trip-game-green-read-direction div > span { font-size: 12px; }
+  .trip-game-green-speed { min-width: 91px; padding-left: 6px; }
+  .trip-game-green-speed b { font-size: 12px; }
+  .trip-game-speed-demo { width: 80px; }
+  .trip-game-downhill-dial { width: 27px; height: 27px; font-size: 22px; }
+}
+@media (max-height: 650px) { .trip-game-green-read { top: 45px; } }
+@media (max-width: 480px) {
+  .trip-game-putt-hud { flex-wrap: nowrap; justify-content: center; gap: 8px; padding: 6px; }
+  .trip-game-putt-hud b { font-size: 16px; }
+  .trip-game-putt-hud em { font-size: 12px; white-space: nowrap; }
+  .trip-game-green-read { top: 51px; }
+  .trip-game-putt-svg { padding-top: 106px; }
+  .trip-game-putt-coach b { display: none; }
+  .trip-game-putt-coach span { font-size: 13px; }
+  .trip-game-putt-coach small { font-size: 10px; }
+}
+
+.trip-game-putt-scene.is-meter-active .trip-game-putt-coach { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .trip-game-putt-arrows path { animation: none; opacity: .8; }
+  .trip-game-putt-stream-bead, .trip-game-speed-demo i { animation: none; opacity: 1; }
+  .trip-game-putt-rolling-ball { transition: none !important; }
 }
