@@ -110,14 +110,14 @@
 
 @keyframes trip-game-putt-flow {
   0% {
-    opacity: 0.25;
+    opacity: 0.35;
     translate: 0 0;
   }
   55% {
-    opacity: 0.95;
+    opacity: 1;
   }
   100% {
-    opacity: 0.15;
+    opacity: 0.25;
     translate: var(--flow-x, 0) var(--flow-y, 0);
   }
 }

@@ -423,9 +423,9 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
   const flowing = Math.hypot(breakDir, slope) > 0.12;
   const angle = (Math.atan2(slope, breakDir || 0.0001) * 180) / Math.PI;
   const arrows = [];
-  for (let row = 0; row < 3; row += 1) {
-    for (let col = 0; col < 4; col += 1) {
-      arrows.push([36 + col * 33 + (row % 2) * 14, 40 + row * 25]);
+  for (let row = 0; row < 4; row += 1) {
+    for (let col = 0; col < 5; col += 1) {
+      arrows.push([24 + col * 30 + (row % 2) * 10, 34 + row * 22]);
     }
   }
   return (
@@ -457,19 +457,32 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
         <path d="M18,84 Q85,72 152,86" className="trip-game-putt-contour" />
         <path d="M28,48 Q85,58 142,46" className="trip-game-putt-contour" />
         {flowing && (
-          <g
-            className={`trip-game-putt-arrows${severityClass}`}
-            style={{ "--flow-x": `${breakDir * 7}px`, "--flow-y": `${slope * 7}px` }}
-          >
-            {arrows.map(([x, y], index) => (
-              <path
-                key={index}
-                d="M-3.4,-3 L3.4,0 L-3.4,3 Z"
-                transform={`translate(${x} ${y}) rotate(${angle.toFixed(1)})`}
-                style={{ animationDelay: `${(index % 4) * 0.22}s` }}
-              />
-            ))}
-          </g>
+          <>
+            <g
+              className={`trip-game-putt-flow-lines${severityClass}`}
+              transform={`rotate(${angle.toFixed(1)} 85 64)`}
+            >
+              {[-18, 0, 18].map((offset) => <path key={offset} d={`M18 ${64 + offset} H152`} />)}
+            </g>
+            <g
+              className={`trip-game-putt-arrows${severityClass}`}
+              style={{ "--flow-x": `${breakDir * 10}px`, "--flow-y": `${slope * 10}px` }}
+            >
+              {arrows.map(([x, y], index) => (
+                <path
+                  key={index}
+                  d="M-5,-1.5 H1 V-4 L6,0 L1,4 V1.5 H-5 Z"
+                  transform={`translate(${x} ${y}) rotate(${angle.toFixed(1)})`}
+                  style={{ animationDelay: `${((index * 3) % 7) * 0.11}s` }}
+                />
+              ))}
+            </g>
+            <g className={`trip-game-putt-slope-compass${severityClass}`} transform="translate(146 18)">
+              <circle r="12" />
+              <path d="M-6,-2 H2 V-6 L8,0 L2,6 V2 H-6 Z" transform={`rotate(${angle.toFixed(1)})`} />
+              <text x="0" y="17">SLOPE</text>
+            </g>
+          </>
         )}
         {aimShown && (
           <>
