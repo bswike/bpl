@@ -160,10 +160,27 @@ export function blendCamera(from, to, t) {
   };
 }
 
-export function computeMapCamera({ projection, playback, landing, activeShot, flightFrame, liveFocus, aspect }) {
+export function computeMapCamera({ projection, playback, landing, activeShot, flightFrame, liveFocus, aspect, planningTarget, wholeHole = false }) {
   const overview = aspectFitCamera(holeCorridorCamera(projection), aspect, projection.width, projection.height);
   const pin = projection.pin;
   const greenCam = greenCamera(projection);
+
+  if (!playback && wholeHole) return overview;
+
+  // A landing-area close-up gives narrow holes useful width without stretching
+  // their geography. The overview and inset retain the tee-to-green context.
+  if (!playback && planningTarget && !pointNearGreen(liveFocus || projection.tee, projection)) {
+    const ratio = aspect > 0 && Number.isFinite(aspect) ? aspect : 0.82;
+    const w = Math.max(90, Math.min(140, projection.width * 1.35));
+    const h = Math.max(90, w / ratio);
+    const focused = {
+      x: planningTarget[0] - h * ratio / 2,
+      y: planningTarget[1] - h * 0.42,
+      w: h * ratio,
+      h,
+    };
+    if (focused.h < overview.h * 0.85) return focused;
+  }
 
   // Shot-by-shot club selection: show the whole hole so the player can judge
   // the club; zoom in only once the ball is on the green.

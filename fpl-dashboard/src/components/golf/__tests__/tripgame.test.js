@@ -153,6 +153,22 @@ describe("buildShotSequence", () => {
 });
 
 describe("computeMapCamera", () => {
+  it("zooms into Black Bear 2's shot while preserving a whole-hole overview", () => {
+    const course = JSON.parse(fs.readFileSync(new URL("../../../../public/data/black-bear.json", import.meta.url), "utf8"));
+    const view = projectHole(course, { number: 2, par: 5, yards: 444 });
+    const target = view.tee.map((value, index) => value + (view.pin[index] - value) * 0.6);
+    const contains = (camera, point) => point[0] >= camera.x && point[0] <= camera.x + camera.w && point[1] >= camera.y && point[1] <= camera.y + camera.h;
+    for (const aspect of [0.6, 2]) {
+      const args = { projection: view, aspect, planningTarget: target };
+      const focused = computeMapCamera(args);
+      const overview = computeMapCamera({ ...args, wholeHole: true });
+      expect(focused.h).toBeLessThan(overview.h * 0.85);
+      expect(focused.w).toBeLessThan(overview.w * 0.7);
+      expect(contains(focused, target)).toBe(true);
+      expect(contains(overview, view.pin)).toBe(true);
+      expect(focused.w / focused.h).toBeCloseTo(aspect);
+    }
+  });
   it("frames both the tee and the pin when planning, at the requested aspect", () => {
     const camera = computeMapCamera({ projection, playback: null, landing: null, activeShot: null, flightFrame: null, liveFocus: null, aspect: 0.8 });
     const contains = ([x, y]) => x >= camera.x && x <= camera.x + camera.w && y >= camera.y && y <= camera.y + camera.h;

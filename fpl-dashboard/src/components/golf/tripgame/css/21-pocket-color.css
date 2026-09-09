@@ -233,3 +233,47 @@
   .trip-game--play .trip-game-score-team,
   .trip-game--play .trip-game-hole-box { min-height: 50px; padding-block: 4px; }
 }
+.trip-game-camera-toggle {
+  flex: none;
+  min-height: 28px;
+  padding: 3px 7px;
+  border: 2px solid #102c29;
+  background: #e4edb1;
+  color: #173b2d;
+  box-shadow: 2px 2px 0 #102c29;
+  font-size: 12px;
+  cursor: pointer;
+}
+.trip-game-map-hud { flex-wrap: wrap; }
+/* The intro leaves the course visible; the inset preserves orientation once zoomed. */
+.trip-game-hole-intro {
+  top: auto;
+  bottom: 80px;
+  left: 12px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 3px;
+  transform: none;
+  animation: none;
+}
+.trip-game-hole-intro b { font-size: 16px; padding: 6px 10px; border-radius: 2px; }
+.trip-game-hole-inset {
+  position: absolute;
+  z-index: 3;
+  left: 10px;
+  bottom: 80px;
+  width: 60px;
+  height: 140px;
+  padding: 3px;
+  border: 2px solid #e4edb1;
+  background: #203f35;
+  box-shadow: 3px 3px 0 #102c29;
+  pointer-events: none;
+}
+.trip-game-hole-inset svg { display: block; width: 100%; height: 111px; }
+.trip-game-hole-inset span { display: block; font-size: 11px; text-align: center; }
+.trip-game-inset-window { fill: #ffda7233; stroke: #ffda72; stroke-width: 2; vector-effect: non-scaling-stroke; }
+@media (max-height: 600px) {
+  .trip-game-hole-inset { height: 95px; width: 46px; }
+  .trip-game-hole-inset svg { height: 66px; }
+}

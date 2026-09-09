@@ -561,10 +561,11 @@ function HoleMap({
   const svgRef = useRef(null);
   const wrapRef = useRef(null);
   const [viewAspect, setViewAspect] = useState(null);
+  const [wholeHole, setWholeHole] = useState(false);
 
   // Measure the on-screen frame so cameras can fill it edge-to-edge.
   useEffect(() => {
-    const node = wrapRef.current;
+    const node = svgRef.current;
     if (!node || typeof ResizeObserver === "undefined") return undefined;
     const observer = new ResizeObserver((entries) => {
       const box = entries[0]?.contentRect;
@@ -594,6 +595,7 @@ function HoleMap({
   useEffect(() => () => stopAimHold(), []);
   useEffect(() => {
     cameraRef.current = null;
+    setWholeHole(false);
   }, [hole.number]);
 
   const shotDecision = result?.shotDecision || decision;
@@ -765,6 +767,16 @@ function HoleMap({
     flightFrame,
     liveFocus: livePos || null,
     aspect: viewAspect,
+    wholeHole: wholeHole || intro,
+    planningTarget: planning ? previewTarget : livePos && livePreview
+      ? (() => {
+          const distance = livePreview.carryYards * (hole.yards && lineLength ? lineLength / hole.yards : 1);
+          const dx = projection.pin[0] - livePos[0];
+          const dy = projection.pin[1] - livePos[1];
+          const length = Math.hypot(dx, dy) || 1;
+          return [livePos[0] + dx / length * distance, livePos[1] + dy / length * distance];
+        })()
+      : null,
   });
   const firstFlightFrame = playback?.phase === "flight" && (playback.frame || 0) === 0;
   const ballAir = flightFrame ? [flightFrame.x, flightFrame.y] : null;
@@ -775,8 +787,9 @@ function HoleMap({
   // eases toward the target on a clock (time constant per phase), driven by
   // a rAF effect that writes the viewBox directly, so easing no longer
   // depends on how often React happens to render.
-  const cameraSnap = !playback || firstFlightFrame || ballEscaping || (playback.phase === "swing" && playback.index === 0);
-  const cameraEaseMs = playback?.phase === "flight" ? 45 : 110;
+  const reducedCameraMotion = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const cameraSnap = reducedCameraMotion || intro || firstFlightFrame || ballEscaping || (playback?.phase === "swing" && playback.index === 0);
+  const cameraEaseMs = !playback ? 240 : playback.phase === "flight" ? 45 : 110;
   if (!cameraRef.current || cameraSnap) cameraRef.current = targetCam;
   const camera = cameraRef.current;
   const targetKey = `${targetCam.x.toFixed(2)} ${targetCam.y.toFixed(2)} ${targetCam.w.toFixed(2)} ${targetCam.h.toFixed(2)}`;
@@ -828,6 +841,13 @@ function HoleMap({
               ? "FLYOVER"
               : `${club.short} ${targetYards}Y · ${remainingYards != null ? `${remainingYards}Y LEFT` : "TEE PLAN"}`}
         </span>
+        {!playback && (
+          <button type="button" className="trip-game-camera-toggle" aria-pressed={wholeHole}
+            aria-label={wholeHole ? "Show current shot" : "Show whole hole"}
+            onClick={() => setWholeHole((value) => !value)}>
+            {wholeHole ? "SHOT VIEW" : "WHOLE HOLE"}
+          </button>
+        )}
         {soundControl}
       </div>
       {liveStatus && <div className="trip-game-live-status">{liveStatus}</div>}
@@ -1148,7 +1168,22 @@ function HoleMap({
           </span>
         </button>
       )}
-      {(intelLeft || intelRight) && (
+      {!intro && !playback && !wholeHole && (
+        <div className="trip-game-hole-inset" aria-label="Whole hole overview with current camera position">
+          <svg viewBox={`0 0 ${projection.width} ${projection.height}`} aria-hidden="true">
+            <rect width={projection.width} height={projection.height} className="trip-game-map-rough" />
+            {projection.features.map((feature, index) => (
+              <path key={index} d={pathFromPoints(feature.points)} className={`trip-game-map-feature trip-game-map-feature--${feature.type}`} />
+            ))}
+            <path d={pathFromPoints(projection.line, false)} className="trip-game-centerline" />
+            <circle cx={projection.tee[0]} cy={projection.tee[1]} r="5" fill="#fff7d6" />
+            <circle cx={projection.pin[0]} cy={projection.pin[1]} r="5" fill="#f47a4d" />
+            <rect x={targetCam.x} y={targetCam.y} width={targetCam.w} height={targetCam.h} className="trip-game-inset-window" />
+          </svg>
+          <span>HOLE {String(hole.number).padStart(2, "0")}</span>
+        </div>
+      )}
+      {!intro && (intelLeft || intelRight) && (
         <div className="trip-game-map-intel">
           <div className="trip-game-map-intel-left">{intelLeft}</div>
           <div className="trip-game-map-intel-right">{intelRight}</div>
@@ -2527,7 +2562,7 @@ export default function TripGame({ data }) {
   // Hole intro card auto-dismisses after a beat.
   useEffect(() => {
     if (!holeIntro) return undefined;
-    const timer = window.setTimeout(() => setHoleIntro(false), 2100);
+    const timer = window.setTimeout(() => setHoleIntro(false), 2800);
     return () => window.clearTimeout(timer);
   }, [holeIntro, setHoleIntro]);
 
