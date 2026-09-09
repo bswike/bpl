@@ -1,0 +1,235 @@
+/* Pocket Color: crisp LCD palette, cartridge menus and layered course terrain.
+   Scoped to the game so the surrounding trip dashboard retains its own theme. */
+.trip-game {
+  --px-ink: #102c29;
+  --px-shell: #203e3b;
+  --px-shell-edge: #729184;
+  --px-panel: #294c43;
+  --px-panel-deep: #16352e;
+  --px-screen: #e4edb1;
+  --px-screen-dark: #a6c878;
+  --px-paper: #fff7d6;
+  --px-muted: #b4c9a6;
+  --px-orange: #f47a4d;
+  --px-gold: #ffda72;
+  --px-red: #f17f68;
+  --px-blue: #79b9d0;
+  font-size: 17px;
+}
+.trip-game-shell {
+  border: 4px solid #102b29;
+  border-radius: 14px 14px 30px 14px;
+  background: #203e38;
+  box-shadow: 0 0 0 2px #89a294, 6px 7px 0 #0b211f, inset 0 0 0 2px #426356;
+}
+/* LCD texture belongs to the screen, never over the letters or controls. */
+.trip-game-shell::after { display: none; }
+.trip-game-console-head {
+  min-height: 36px;
+  background: #294842;
+  border-bottom: 2px solid #112c29;
+  color: #d0ddbe;
+  letter-spacing: .14em;
+}
+.trip-game-console-head > span:first-child::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  background: #d4f78b;
+  box-shadow: 0 0 7px #c8ee7c66;
+}
+.trip-game-setup { padding: 20px; }
+.trip-game-title-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  gap: 16px;
+  align-items: stretch;
+  padding: 24px;
+  border: 3px solid #102c29;
+  background: #e4edb1;
+  box-shadow: inset 0 0 0 3px #b3c78b, 4px 4px 0 #112c29;
+  text-align: left;
+}
+.trip-game-title-screen::before,
+.trip-game-title-screen::after { display: none; }
+.trip-game-title-copy { align-self: center; min-width: 0; }
+.trip-game-title-screen p { font-size: 13px; letter-spacing: .16em; }
+.trip-game-title-screen h2 {
+  margin: 16px 0;
+  font-size: clamp(22px, 4vw, 38px);
+  line-height: 1.4;
+  color: #204b38;
+  text-shadow: 2px 2px 0 #f9ffdb, 4px 4px 0 #a9bf80;
+  letter-spacing: -.05em;
+}
+.trip-game-title-screen .trip-game-title-star {
+  margin-left: 16px;
+  color: #bb642e;
+  font-size: .85em;
+}
+.trip-game-title-screen .trip-game-title-copy > span { font-size: 14px; letter-spacing: .08em; }
+.trip-game-title-edition {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 5px 8px;
+  background: #244d39;
+  color: #eff4c9;
+  font-size: 12px;
+  letter-spacing: .09em;
+}
+.trip-game-title-edition i { color: #ffda72; font-style: normal; }
+.trip-game-course-preview {
+  display: flex;
+  flex-direction: column;
+  min-height: 180px;
+  border: 3px solid #244d39;
+  background: #487a50;
+  box-shadow: 3px 3px 0 #a1b77c;
+  overflow: hidden;
+}
+.trip-game-course-preview svg { width: 100%; height: 180px; flex: 1; }
+.trip-game-course-preview > span {
+  padding: 5px 2px;
+  color: #f1f6cf;
+  background: #244d39;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-align: center;
+}
+.trip-game-story {
+  margin: 16px 0 20px;
+  padding: 0 0 0 12px;
+  background: transparent;
+  color: #d4dfc2;
+  font-size: 17px;
+}
+.trip-game-setup-block { margin-top: 20px; }
+.trip-game-setup .trip-game-section-label { margin-bottom: 9px; font-size: 13px; }
+.trip-game-course-grid { gap: 10px; }
+.trip-game-course-grid button,
+.trip-game-team-grid button {
+  min-height: 78px;
+  border: 2px solid #102c29;
+  background: #315447;
+  color: #e4ebc6;
+  box-shadow: 3px 3px 0 #102c29, inset 0 2px 0 #62816a;
+  transition: transform 100ms steps(2), background-color 100ms;
+}
+.trip-game-course-grid button { padding: 12px 12px 12px 49px; }
+.trip-game-course-grid b,
+.trip-game-team-grid b { font-size: 19px; white-space: normal; line-height: 1.1; }
+.trip-game-course-grid span,
+.trip-game-team-grid span { font-size: 13px; }
+.trip-game-course-grid small { font-size: 12px; opacity: 1; }
+.trip-game-course-grid .trip-game-course-number {
+  position: absolute;
+  left: 10px;
+  top: 14px;
+  margin: 0;
+  color: #a5c793;
+  font-family: var(--font-display);
+  font-size: 14px;
+}
+.trip-game-course-grid button.is-selected,
+.trip-game-team-grid button.is-selected {
+  border-color: #f5f4c9;
+  background: #e4edb1;
+  color: #173b2d;
+  box-shadow: 3px 3px 0 #102c29, inset 0 -4px 0 #b2cb88;
+}
+.trip-game-course-grid button.is-selected .trip-game-course-number { color: #527343; }
+.trip-game button:focus-visible { outline: 3px solid #ffdb75; outline-offset: 3px; }
+.trip-game-course-grid button:active,
+.trip-game-team-grid button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #102c29; }
+.trip-game-primary-button {
+  background: linear-gradient(#ffdc83 0 8%, #f8bb5b 8% 85%, #da8746 85%);
+  color: #273d2c;
+  text-shadow: 1px 1px 0 #ffe8a5;
+  box-shadow: 4px 4px 0 #102c29, inset 2px 0 0 #ffe7a6;
+}
+.trip-game-start-button { min-height: 54px; }
+.trip-game-model-status { color: #c1d5b3; font-size: 13px; border-color: #607d60; }
+.trip-game-code-row input { background: #142f29; color: #f3edc4; font-family: var(--font-body); font-size: 16px; }
+.trip-game-code-row input::placeholder { color: #b1c6a4; opacity: 1; }
+.trip-game-trophy-case > div { background: #18372f; border-color: #45664f; }
+.trip-game-trophy-case span { font-size: 13px; }
+.trip-game-disclaimer { color: #b1c5a5; font-size: 12px; }
+/* Course: saturated four-tone turf, fringe cuts, inset sand and blue water. */
+.trip-game-map-wrap { background: #487a50; }
+.trip-game-map-rough { fill: #487a50; }
+.trip-game-rough-pixel { fill: #315c3d; opacity: .4; }
+.trip-game-rough-pixel--light { fill: #9ac273; opacity: .4; }
+.trip-game-terrain-collar { fill: #638e50; stroke: #638e50; stroke-width: 9; stroke-linejoin: round; }
+.trip-game-terrain-collar.is-green { fill: #8dbb61; stroke: #8dbb61; stroke-width: 6; }
+.trip-game-map-feature--fairway { fill: #9acb6b; stroke: #325c3b; stroke-width: 1.5; }
+.trip-game-map-feature--green { fill: #c5e88b; stroke: #4d8047; stroke-width: 2; }
+.trip-game-map-feature--tee { fill: #b5d880; stroke: #325c3b; }
+.trip-game-map-feature--bunker { fill: #f6df9c; stroke: #ab874b; stroke-width: 2.5; filter: drop-shadow(0 2px 0 #355b37); }
+.trip-game-map-feature--water { fill: #559fae; stroke: #b1d1a1; stroke-width: 3; filter: drop-shadow(0 3px 0 #2a605b); }
+.trip-game-map-texture--fairway { opacity: .65; }
+.trip-game-fairway-stripe { fill: #477e3a; fill-opacity: .22; }
+.trip-game-fairway-stripe--light { fill: #e4f5a8; fill-opacity: .24; }
+.trip-game-map-texture--green { opacity: .4; }
+.trip-game-water-ripple { stroke: #bde5d5; stroke-width: 1; }
+.trip-game-map-texture--water { opacity: .8; }
+.trip-game-tree-back { fill: #245240; stroke: #183d30; stroke-width: 1.1; }
+.trip-game-tree-front { fill: #6d9f58; }
+.trip-game-tree--1 .trip-game-tree-back { fill: #386641; }
+.trip-game-tree--1 .trip-game-tree-front { fill: #8ab65c; }
+.trip-game-tree--2 .trip-game-tree-back { fill: #224f43; }
+.trip-game-tree--2 .trip-game-tree-front { fill: #4e8b60; }
+.trip-game-tree-shadow { fill: #173d35; opacity: .45; }
+.trip-game-tree-trunk { fill: #c29a64; }
+.trip-game-map-wrap::before { box-shadow: inset 0 0 24px #153d3026; }
+.trip-game-map-wrap.is-flyover::before,
+.trip-game-map-wrap.is-green-zoom::before { box-shadow: inset 0 0 30px #153d3033; }
+.trip-game-map-hud { background: #203f35; color: #e6edc7; }
+.trip-game-scorebar { background: #193c34; }
+.trip-game-score-team.is-south { background: #543f35; color: #ffe0b7; }
+.trip-game-score-team.is-north { background: #294958; color: #d2edf1; }
+.trip-game-hole-box { background: #e4edb1; border-color: #102c29; }
+.trip-game-hole-box small { color: #466642; }
+.trip-game-hole-box b { color: #234a35; text-shadow: 1px 1px 0 #ffffdd; }
+.trip-game-par-pill { border-radius: 3px; }
+.trip-game-map-wrap .trip-game-read-call { background: #274b3c; }
+.trip-game-aim-pad { background: #203e38; }
+@media (max-width: 480px) {
+  .trip-game-setup { padding: 12px; }
+  .trip-game-title-screen { grid-template-columns: minmax(0, 1fr) 82px; gap: 8px; padding: 14px 10px; }
+  .trip-game-title-screen h2 { font-size: clamp(17px, 5vw, 23px); margin: 12px 0; }
+  .trip-game-title-screen p { font-size: 11px; letter-spacing: .04em; }
+  .trip-game-title-screen .trip-game-title-copy > span { font-size: 12px; letter-spacing: 0; }
+  .trip-game-title-edition { font-size: 10px; gap: 5px; padding: 4px; letter-spacing: 0; }
+  .trip-game-course-preview { min-height: 150px; }
+  .trip-game-course-preview svg { height: 150px; }
+  .trip-game-course-preview > span { font-size: 10px; }
+  .trip-game-course-grid button { padding: 10px 8px 10px 35px; }
+  .trip-game-course-grid .trip-game-course-number { left: 7px; font-size: 10px; }
+  .trip-game-course-grid b, .trip-game-team-grid b { font-size: 17px; }
+  .trip-game-course-grid span, .trip-game-team-grid span { font-size: 12px; }
+  .trip-game-setup .trip-game-section-label { font-size: 12px; letter-spacing: .04em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trip-game-course-grid button, .trip-game-team-grid button { transition: none; }
+}
+/* Constrain the SVG's intrinsic aspect ratio inside the title's preview slot. */
+.trip-game-course-preview { height: 210px; min-height: 0; }
+.trip-game-course-preview svg { display: block; height: calc(100% - 25px); min-height: 0; flex: none; }
+.trip-game-title-edition { display: flex; width: fit-content; }
+@media (max-width: 480px) {
+  .trip-game-course-preview { height: 170px; min-height: 0; }
+  .trip-game-course-preview svg { height: calc(100% - 23px); }
+}
+/* Before a swing, show only the readiness badge; the full meter opens on play. */
+.trip-game-kick.is-preview .trip-game-kick-col,
+.trip-game-kick.is-preview .trip-game-kick-acc { display: none; }
+.trip-game-kick.is-preview { bottom: 76px; }
+@media (min-width: 700px) {
+  .trip-game--play .trip-game-console-head { min-height: 28px; padding-block: 4px; }
+  .trip-game--play .trip-game-score-team,
+  .trip-game--play .trip-game-hole-box { min-height: 50px; padding-block: 4px; }
+}

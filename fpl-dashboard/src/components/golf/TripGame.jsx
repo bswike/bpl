@@ -146,6 +146,7 @@ import "./tripgame/css/16-loading-keyframes.css";
 import "./tripgame/css/17-mobile.css";
 import "./tripgame/css/18-play-screen.css";
 import "./tripgame/css/20-arcade.css";
+import "./tripgame/css/21-pocket-color.css";
 import "./tripgame/css/19-reduced-motion.css";
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
@@ -668,7 +669,7 @@ function HoleMap({
             <rect x="2" y="3" width="2" height="2" className="trip-game-rough-pixel" />
             <rect x="9" y="8" width="1.5" height="1.5" className="trip-game-rough-pixel trip-game-rough-pixel--light" />
           </pattern>
-          <pattern id={`${mapId}-fairway`} width="18" height="18" patternUnits="userSpaceOnUse">
+          <pattern id={`${mapId}-fairway`} width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
             <rect width="9" height="18" className="trip-game-fairway-stripe" />
             <rect x="9" width="9" height="18" className="trip-game-fairway-stripe trip-game-fairway-stripe--light" />
           </pattern>
@@ -676,11 +677,11 @@ function HoleMap({
             <path d="M0 8 L8 0 M-2 2 L2 -2 M6 10 L10 6" className="trip-game-green-cut" />
           </pattern>
           <pattern id={`${mapId}-sand`} width="9" height="9" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="3" r="0.8" className="trip-game-sand-grain" />
-            <circle cx="7" cy="6" r="0.55" className="trip-game-sand-grain" />
+            <rect x="2" y="3" width="1" height="1" className="trip-game-sand-grain" />
+            <rect x="6" y="6" width="2" height="1" className="trip-game-sand-grain" />
           </pattern>
           <pattern id={`${mapId}-water`} width="16" height="10" patternUnits="userSpaceOnUse">
-            <path d="M-2 3 Q2 0 6 3 T14 3 T22 3 M3 8 Q7 5 11 8 T19 8" className="trip-game-water-ripple" />
+            <path d="M1 3 H6 V2 H9 M10 8 H15" className="trip-game-water-ripple" />
           </pattern>
           <filter id={`game-pixel-shadow-${hole.number}`} x="-40%" y="-40%" width="180%" height="180%">
             <feDropShadow dx="2" dy="2" stdDeviation="0" floodColor="#07180f" />
@@ -695,8 +696,11 @@ function HoleMap({
             <circle r={2.7} />
           </clipPath>
         </defs>
-        <rect width={projection.width} height={projection.height} className="trip-game-map-rough" />
-        <rect width={projection.width} height={projection.height} fill={`url(#${mapId}-rough)`} />
+        <rect x={-2000} y={-2000} width={projection.width + 4000} height={projection.height + 4000} className="trip-game-map-rough" />
+        <rect x={-2000} y={-2000} width={projection.width + 4000} height={projection.height + 4000} fill={`url(#${mapId}-rough)`} />
+        {projection.features.filter((feature) => ["fairway", "green"].includes(feature.type)).map((feature, index) => (
+          <path key={`collar-${index}`} d={pathFromPoints(feature.points)} className={`trip-game-terrain-collar is-${feature.type}`} />
+        ))}
         <g className="trip-game-tree-layer" aria-hidden="true">
           {trees.map((tree, index) => (
             <g
@@ -1855,6 +1859,24 @@ function TrophyCase({ records, swingMode = "full" }) {
   );
 }
 
+function CoursePreview({ projection, course }) {
+  if (!projection) return null;
+  return (
+    <div className="trip-game-course-preview" aria-label={`${course.label}, opening hole preview`}>
+      <svg viewBox={`0 0 ${projection.width} ${projection.height}`} aria-hidden="true">
+        <rect width={projection.width} height={projection.height} className="trip-game-map-rough" />
+        {projection.features.map((feature, index) => (
+          <path key={index} d={pathFromPoints(feature.points)} className={`trip-game-map-feature trip-game-map-feature--${feature.type}`} />
+        ))}
+        <path d={pathFromPoints(projection.line, false)} className="trip-game-centerline" />
+        <circle cx={projection.tee[0]} cy={projection.tee[1]} r="3" fill="#fff5c5" />
+        <path d={`M${projection.pin[0]} ${projection.pin[1]} v-16 h10 l-3 4 3 4 h-10`} fill="#f77954" stroke="#15392f" strokeWidth="1" />
+      </svg>
+      <span>HOLE 01 · PAR {course.holes[0].par}</span>
+    </div>
+  );
+}
+
 function SetupScreen({
   model,
   courseId,
@@ -1865,6 +1887,7 @@ function SetupScreen({
   setSwingMode,
   archiveState,
   geometryState = {},
+  previewGeometry = null,
   resume = null,
   onResume,
   onStart,
@@ -1874,6 +1897,11 @@ function SetupScreen({
   codeError = null,
   lastCode = null,
 }) {
+  const selectedCourse = model.courses.find((entry) => entry.id === courseId);
+  const previewProjection = useMemo(
+    () => selectedCourse?.holes?.[0] ? projectHole(previewGeometry, selectedCourse.holes[0], { tripYards: selectedCourse.tripYards }) : null,
+    [selectedCourse, previewGeometry],
+  );
   const decoded = decodeCode(code);
   const typedEnough = code.replace(/[^A-Z0-9]/gi, "").length >= 8;
   const decodedCourse = decoded ? model.courses.find((entry) => entry.slug === decoded.slug) : null;
@@ -1885,14 +1913,16 @@ function SetupScreen({
   return (
     <div className="trip-game-setup">
       <div className="trip-game-title-screen">
-        <div className="trip-game-title-flag">★</div>
-        <p>CRYSTAL SPRINGS PRESENTS</p>
-        <h2>CAPTAIN&apos;S CUP</h2>
-        <span>PIXEL GOLF // DATA ENGINE</span>
+        <div className="trip-game-title-copy">
+          <p>CRYSTAL SPRINGS PRESENTS</p>
+          <h2>CAPTAIN&apos;S<br />CUP<span className="trip-game-title-star" aria-hidden="true">★</span></h2>
+          <span>18 HOLES. TWO SIDES. ONE CUP.</span>
+          <div className="trip-game-title-edition">MATCH PLAY <i aria-hidden="true">✦</i> POCKET EDITION</div>
+        </div>
+        {selectedCourse && <CoursePreview projection={previewProjection} course={selectedCourse} />}
       </div>
       <div className="trip-game-story">
-        You are the captain. Secretly pick one golfer per hole, choose a shot plan, then let the trip model roll it against the
-        other side.
+        Pick your course. Captain your side. Choose a golfer and a shot plan for each hole.
       </div>
       <div className="trip-game-setup-block">
         <div className="trip-game-section-label">
@@ -1905,8 +1935,10 @@ function SetupScreen({
               type="button"
               key={course.id}
               className={course.id === courseId ? "is-selected" : ""}
+              aria-pressed={course.id === courseId}
               onClick={() => setCourseId(course.id)}
             >
+              <span className="trip-game-course-number" aria-hidden="true">{String(model.courses.indexOf(course) + 1).padStart(2, "0")}</span>
               <b>{course.label}</b>
               <span>
                 {course.extra
@@ -1938,6 +1970,7 @@ function SetupScreen({
               type="button"
               key={name}
               className={`${name === team ? "is-selected" : ""} is-${name.toLowerCase()}`}
+              aria-pressed={name === team}
               onClick={() => setTeam(name)}
             >
               <b>{name.toUpperCase()}</b>
@@ -1955,6 +1988,7 @@ function SetupScreen({
           <button
             type="button"
             className={swingMode === "full" ? "is-selected" : ""}
+            aria-pressed={swingMode === "full"}
             onClick={() => setSwingMode("full")}
           >
             <b>EVERY SHOT</b>
@@ -1963,6 +1997,7 @@ function SetupScreen({
           <button
             type="button"
             className={swingMode === "single" ? "is-selected" : ""}
+            aria-pressed={swingMode === "single"}
             onClick={() => setSwingMode("single")}
           >
             <b>ONE SWING</b>
@@ -3881,6 +3916,7 @@ export default function TripGame({ data }) {
             setSwingMode={setSwingMode}
             archiveState={archiveState}
             geometryState={geometryState}
+            previewGeometry={geometry}
             resume={resumable}
             onResume={resumeMatch}
             onStart={startRound}
