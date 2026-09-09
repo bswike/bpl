@@ -1,0 +1,119 @@
+/* A dedicated green, with read -> pace -> strike laid out along one sightline. */
+.trip-game-map-wrap.is-putting { background: #7ea952; }
+.trip-game-map-wrap.is-putting > .trip-game-map,
+.trip-game-map-wrap.is-putting > .trip-game-hole-inset,
+.trip-game-map-wrap.is-putting > .trip-game-map-intel { visibility: hidden; }
+.trip-game-map-wrap.is-putting::before { display: none; }
+.trip-game-map-wrap.is-putting .trip-game-putt-scene {
+  z-index: 2;
+  inset: 28px 0 0;
+  background: #82b05d;
+  display: block;
+  overflow: hidden;
+}
+.trip-game-putt-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 60px 0 108px;
+  filter: none;
+  overflow: visible;
+}
+.trip-game-putt-green { fill: #82b05d; stroke: none; }
+.trip-game-putt-stripes rect { fill: #b4d779; fill-opacity: .18; }
+.trip-game-putt-grid path { fill: none; stroke: #e5f1b3; stroke-width: .45; opacity: .35; }
+.trip-game-putt-distance-rings { fill: none; stroke: #f3f6c4; stroke-width: .6; opacity: .4; stroke-dasharray: 1 3; }
+.trip-game-putt-contour { opacity: .3; }
+.trip-game-putt-arrows path { fill: #f1f5bd; stroke: none; }
+.trip-game-putt-arrows.is-mid path { fill: #fff0a6; }
+.trip-game-putt-arrows.is-steep path { fill: #ffcf70; }
+.trip-game-putt-aim-line { stroke: #fffbe1; stroke-width: 1.1; stroke-dasharray: 3 2; }
+.trip-game-putt-aim-marker path { fill: #ffdc70; stroke: #25452e; animation: none; }
+.trip-game-putt-cup-rim { fill: #dcebac; }
+.trip-game-putt-cup-hole { fill: #153f31; }
+.trip-game-putt-pin { fill: #fff6d1; }
+.trip-game-putt-pin-flag { fill: #f87856; }
+.trip-game-putt-hud {
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  transform: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 9px 12px;
+  background: #1d4538;
+  border-color: #d4e39d;
+  color: #fff8cf;
+}
+.trip-game-putt-hud b { font-size: 19px; }
+.trip-game-putt-hud em { color: #e0eac1; font-size: 14px; }
+.trip-game-putt-hud .trip-game-putt-stimp { font-family: var(--font-body); font-size: 13px; animation: none; }
+.trip-game-putt-coach {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 60px;
+  display: grid;
+  gap: 4px;
+  text-align: center;
+  color: #173e2f;
+}
+.trip-game-putt-coach b { font-family: var(--font-display); font-size: 9px; }
+.trip-game-putt-coach span { font-size: 16px; }
+.trip-game-putt-coach small { font-size: 12px; }
+.trip-game-map-wrap.is-putting .trip-game-club-reel.is-aim { z-index: 5; background: #1d4538; border-color: #d4e39d; }
+.trip-game-map-wrap.is-putting .trip-game-kick.is-preview { display: none; }
+.trip-game-putt-for { bottom: 24px; }
+.trip-game-putt-in { top: 40%; font-size: clamp(18px, 4vw, 30px); }
+/* Keep the same deterministic pace and accuracy inputs, but make pace a
+   readable horizontal target band, followed by a centered strike meter. */
+.trip-game .trip-game-kick.is-putt-meter {
+  width: auto;
+  left: 16px;
+  right: 16px;
+  bottom: 10px;
+  padding: 9px 12px;
+  gap: 5px;
+  background: #173e32;
+  border-color: #d4e39d;
+}
+.trip-game .is-putt-meter .trip-game-kick-track {
+  width: 100%;
+  height: 22px;
+  overflow: visible;
+}
+.trip-game .is-putt-meter .trip-game-kick-goodzone {
+  top: 0; bottom: 0; height: auto;
+  border: 2px solid #ffdd75;
+  background: #e8bc5366;
+  z-index: 1;
+}
+.trip-game .is-putt-meter .trip-game-kick-fill {
+  top: 2px; bottom: 2px; left: 0; right: auto; height: auto;
+  background: #a4ce73;
+}
+.trip-game .is-putt-meter .trip-game-kick-track em {
+  top: -3px; bottom: -3px; right: auto;
+  width: 3px; height: auto; margin: 0;
+  background: #fffbe1;
+}
+.trip-game-putt-pace-labels { display: flex; justify-content: space-between; color: #e8d99e; font-size: 12px; }
+.trip-game .is-putt-meter .trip-game-kick-acc:not(.is-live) { display: none; }
+.trip-game .is-putt-meter.is-accuracy .trip-game-kick-col { display: none; }
+.trip-game .is-putt-meter.is-accuracy .trip-game-putt-pace-labels { display: none; }
+.trip-game .is-putt-meter strong { font-size: 10px; }
+.trip-game .is-putt-meter small { font-size: 9px; }
+@media (max-height: 650px) {
+  .trip-game-putt-svg { padding-top: 44px; padding-bottom: 80px; }
+  .trip-game-putt-coach span { font-size: 13px; }
+  .trip-game-putt-coach small { display: none; }
+  .trip-game-putt-hud { padding: 5px 8px; }
+  .trip-game-putt-hud b { font-size: 14px; }
+}
+
+.trip-game-putt-scene.is-meter-active .trip-game-putt-coach { bottom: 125px; }
+@media (prefers-reduced-motion: reduce) {
+  .trip-game-putt-arrows path { animation: none; opacity: .8; }
+}

@@ -57,7 +57,7 @@ import {
   seededUnit,
   sidePoint,
 } from "./tripgame/geometry.js";
-import { buildTreeSprites, projectHole } from "./tripgame/projection.js";
+import { buildCourseWoodland, buildTreeSprites, projectHole } from "./tripgame/projection.js";
 import {
   blendCamera,
   cameraContains,
@@ -147,6 +147,8 @@ import "./tripgame/css/17-mobile.css";
 import "./tripgame/css/18-play-screen.css";
 import "./tripgame/css/20-arcade.css";
 import "./tripgame/css/21-pocket-color.css";
+import "./tripgame/css/22-putting-green.css";
+import "./tripgame/css/23-home-screen.css";
 import "./tripgame/css/19-reduced-motion.css";
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
@@ -387,6 +389,7 @@ function GolferSprite({ at, toward, hat = "red", pose = "idle", putting = false,
 }
 
 function PuttingScene({ shot, phase, frame, side, preview = false, read = null, aimTicks = 0 }) {
+  const greenId = useId().replace(/:/g, "");
   const info = preview ? read : shot?.putt || { breakDir: 0, slope: 0 };
   const breakDir = clamp(info?.breakDir || 0, -1, 1);
   const slope = clamp(info?.slope || 0, -1, 1);
@@ -405,6 +408,7 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
   const t = preview || phase === "swing" ? 0 : phase === "flight" ? clamp((frame || 0) / lastFrame, 0, 1) : 1;
   const eased = 1 - Math.pow(1 - t, 1.75);
   const ball = quadPoint(start, control, end, eased);
+  const trailControl = start.map((value, index) => value + (control[index] - value) * eased);
   const dropped = !preview && shot?.final && phase === "settle";
   const rolled = !preview && phase !== "swing";
   const breakLabel = breakDir > 0.12 ? "L → R" : breakDir < -0.12 ? "R → L" : "STRAIGHT";
@@ -425,19 +429,30 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
     }
   }
   return (
-    <div className="trip-game-putt-scene" aria-hidden="true">
+    <div className={`trip-game-putt-scene${preview ? " is-reading" : " is-rolling"}${preview && phase ? " is-meter-active" : ""}`} role="group" aria-label="Putting green">
       <svg viewBox="0 0 170 128" className="trip-game-putt-svg" role="img" aria-label="Putting green close-up">
         <defs>
-          <clipPath id="trip-putt-green">
-            <ellipse cx="85" cy="64" rx="78" ry="52" />
+          <clipPath id={greenId}>
+            <rect x="-100" y="-100" width="400" height="400" />
           </clipPath>
         </defs>
-        <ellipse cx="85" cy="66" rx="82" ry="55" className="trip-game-putt-fringe" />
-        <ellipse cx="85" cy="64" rx="78" ry="52" className="trip-game-putt-green" />
-        <g clipPath="url(#trip-putt-green)" className="trip-game-putt-stripes">
+        <rect x="-100" y="-100" width="400" height="400" className="trip-game-putt-green" />
+        <g clipPath={`url(#${greenId})`} className="trip-game-putt-stripes">
           {Array.from({ length: 5 }, (_, index) => (
             <rect key={index} x="0" y={12 + index * 22} width="170" height="11" />
           ))}
+        </g>
+        <g className="trip-game-putt-grid" aria-hidden="true">
+          {Array.from({ length: 9 }, (_, index) => (
+            <path key={`row-${index}`} d={`M-30 ${20 + index * 13} Q85 ${20 + index * 13 + slope * 6} 200 ${20 + index * 13}`} />
+          ))}
+          {Array.from({ length: 11 }, (_, index) => (
+            <path key={`col-${index}`} d={`M${15 + index * 14} 8 L${-40 + index * 25} 140`} />
+          ))}
+        </g>
+        <g className="trip-game-putt-distance-rings" aria-hidden="true">
+          <ellipse cx={cup[0]} cy={cup[1]} rx="17" ry="12" />
+          <ellipse cx={cup[0]} cy={cup[1]} rx="34" ry="24" />
         </g>
         <path d="M18,84 Q85,72 152,86" className="trip-game-putt-contour" />
         <path d="M28,48 Q85,58 142,46" className="trip-game-putt-contour" />
@@ -467,10 +482,10 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
             </g>
           </>
         )}
-        {!preview && (
+        {!preview && phase !== "swing" && (
           <path
-            d={`M${start[0].toFixed(1)},${start[1].toFixed(1)} Q${control[0].toFixed(1)},${control[1].toFixed(1)} ${end[0].toFixed(1)},${end[1].toFixed(1)}`}
-            className={`trip-game-putt-line${phase === "swing" ? " is-preview" : ""}`}
+            d={`M${start[0].toFixed(1)},${start[1].toFixed(1)} Q${trailControl[0].toFixed(1)},${trailControl[1].toFixed(1)} ${ball[0].toFixed(1)},${ball[1].toFixed(1)}`}
+            className="trip-game-putt-line"
           />
         )}
         <g transform={`translate(${cup[0]} ${cup[1]})`} className="trip-game-putt-cup">
@@ -518,7 +533,14 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
         </div>
       )}
       {shot?.lip && phase === "settle" && <div className="trip-game-putt-in is-lip">LIP OUT!</div>}
-      {dropped && <div className="trip-game-putt-in">IN!</div>}
+      {dropped && <div className="trip-game-putt-in">DRAINED!</div>}
+      {preview && phase !== "locked" && (
+        <div className="trip-game-putt-coach">
+          <b>{phase === "power" ? "02 · SET THE PACE" : phase === "accuracy" ? "03 · STRIKE THE PUTT" : "01 · READ THE GREEN"}</b>
+          <span>{phase === "power" ? "Stop in the gold band for a smooth roll." : phase === "accuracy" ? "Stop in the center to hold your chosen line." : flowing ? "Moving arrows show the break. Aim against the slope." : "A straight read. Pick your line and trust the pace."}</span>
+          {!phase && <small>SET YOUR LINE BELOW · THEN START YOUR PUTT</small>}
+        </div>
+      )}
     </div>
   );
 }
@@ -658,7 +680,10 @@ function HoleMap({
     const length = Math.hypot(wx, wy) || 1;
     return [wx / length, wy / length];
   })();
-  const trees = projection.trees || buildTreeSprites(projection, hole.number);
+  const trees = useMemo(() => [
+    ...(projection.trees || buildTreeSprites(projection, hole.number)),
+    ...buildCourseWoodland(projection, hole.number),
+  ].sort((a, b) => a.y - b.y), [projection, hole.number]);
   const mapId = `trip-hole-${hole.number}`;
   // Static base of the map (patterns, ground, trees, features, centerline):
   // built once per hole instead of on every frame of every shot.
@@ -703,31 +728,6 @@ function HoleMap({
         {projection.features.filter((feature) => ["fairway", "green"].includes(feature.type)).map((feature, index) => (
           <path key={`collar-${index}`} d={pathFromPoints(feature.points)} className={`trip-game-terrain-collar is-${feature.type}`} />
         ))}
-        <g className="trip-game-tree-layer" aria-hidden="true">
-          {trees.map((tree, index) => (
-            <g
-              key={`${tree.x.toFixed(1)}-${tree.y.toFixed(1)}-${index}`}
-              className={`trip-game-tree trip-game-tree--${tree.variant}`}
-              transform={`translate(${tree.x.toFixed(1)} ${tree.y.toFixed(1)}) scale(${(tree.size / 6).toFixed(2)})`}
-            >
-              {tree.variant === 1 ? (
-                <>
-                  <ellipse className="trip-game-tree-shadow" cx="1.5" cy="5" rx="5" ry="1.8" />
-                  <rect className="trip-game-tree-trunk" x="-1" y="1" width="2" height="4.5" />
-                  <circle className="trip-game-tree-back" cx="0" cy="-2.5" r="5.2" />
-                  <circle className="trip-game-tree-front" cx="-1.4" cy="-3.6" r="3.4" />
-                </>
-              ) : (
-                <>
-                  <ellipse className="trip-game-tree-shadow" cx="1.5" cy="5.5" rx="4.6" ry="1.7" />
-                  <rect className="trip-game-tree-trunk" x="-0.9" y="2" width="1.8" height="3.8" />
-                  <path className="trip-game-tree-back" d="M0,-11 L-5,-4.5 L-2.6,-4.5 L-6,1.5 L6,1.5 L2.6,-4.5 L5,-4.5 Z" />
-                  <path className="trip-game-tree-front" d="M0,-9 L-3.4,-3.5 L-1.8,-3.5 L-4.2,1.5 L0,1.5 Z" />
-                </>
-              )}
-            </g>
-          ))}
-        </g>
         {projection.features.map((feature, index) => (
           <g key={`${feature.type}-${index}`}>
             <path
@@ -743,6 +743,35 @@ function HoleMap({
             )}
           </g>
         ))}
+        <g className="trip-game-tree-layer" aria-hidden="true">
+          {trees.map((tree, index) => (
+            <g
+              key={`${tree.x.toFixed(1)}-${tree.y.toFixed(1)}-${index}`}
+              className={`trip-game-tree trip-game-tree--${tree.variant}`}
+              transform={`translate(${tree.x.toFixed(1)} ${tree.y.toFixed(1)}) scale(${(tree.size / 6).toFixed(2)})`}
+            >
+              {tree.variant === 1 ? (
+                <>
+                  <ellipse className="trip-game-tree-shadow" cx="1.5" cy="5" rx="5" ry="1.8" />
+                  <rect className="trip-game-tree-trunk" x="-1" y="1" width="2" height="4.5" />
+                  <path className="trip-game-tree-back" d="M-3,-10 H2 V-8 H5 V-5 H7 V0 H5 V3 H-4 V1 H-7 V-5 H-5 V-8 H-3 Z" />
+                  <path className="trip-game-tree-front" d="M-3,-8 H2 V-6 H4 V-3 H2 V0 H-3 V-2 H-5 V-5 H-3 Z" />
+                  <path className="trip-game-tree-highlight" d="M-3,-8 H0 V-6 H-3 Z M-5,-4 H-3 V-2 H-5 Z" />
+                  <path className="trip-game-tree-detail" d="M1,1 H4 M4,-3 H6" />
+                </>
+              ) : (
+                <>
+                  <ellipse className="trip-game-tree-shadow" cx="1.5" cy="5.5" rx="4.6" ry="1.7" />
+                  <rect className="trip-game-tree-trunk" x="-0.9" y="2" width="1.8" height="3.8" />
+                  <path className="trip-game-tree-back" d="M-1,-12 H1 V-10 H3 V-7 H5 V-4 H3 V-2 H6 V1 H7 V3 H-7 V1 H-6 V-2 H-3 V-4 H-5 V-7 H-3 V-10 H-1 Z" />
+                  <path className="trip-game-tree-front" d="M-1,-10 H1 V-7 H-1 V-5 H-3 V-4 H0 V-1 H-2 V1 H-5 V0 H-4 V-2 H-2 V-5 H-3 V-7 H-1 Z" />
+                  <path className="trip-game-tree-highlight" d="M-1,-10 H1 V-8 H-1 Z M-3,-5 H-1 V-3 H-3 Z M-5,0 H-2 V1 H-5 Z" />
+                  <path className="trip-game-tree-detail" d="M1,-5 H3 M0,0 H4" />
+                </>
+              )}
+            </g>
+          ))}
+        </g>
         <path d={pathFromPoints(projection.line, false)} className="trip-game-centerline" />
       </>
     ),
@@ -819,7 +848,7 @@ function HoleMap({
   return (
     <div
       ref={wrapRef}
-      className={`trip-game-map-wrap ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}${party > 0 ? ` is-party-${party}` : ""}${partySurge ? " is-party-surge" : ""}`}
+      className={`trip-game-map-wrap${(playback ? activeShot?.kind === "putt" : Boolean(puttPreview)) ? " is-putting" : ""} ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}${party > 0 ? ` is-party-${party}` : ""}${partySurge ? " is-party-surge" : ""}`}
       style={shake ? { "--shake-amp": `${shake.amp}px` } : undefined}
     >
       <div className="trip-game-map-hud">
@@ -1309,11 +1338,11 @@ function KickMeter({ phase, power: previewPower = 0, accuracy: previewAccuracy =
           type="button"
           className="trip-game-kick-catch"
           onClick={onTap}
-          aria-label={phase === "power" ? (mods?.paceBand ? "Tap to lock pace" : "Tap to lock power") : "Tap to lock accuracy"}
+          aria-label={phase === "power" ? (mods?.paceBand ? "Tap to lock pace" : "Tap to lock power") : (mods?.paceBand ? "Tap to strike the putt" : "Tap to lock accuracy")}
         />
       )}
       <div
-        className={`trip-game-kick is-${phase}${judgment ? ` is-judged is-${judgment.tier}` : ""}${streakClass}${redBet ? " is-red-bet" : ""}${mods?.jitters && !mods.jitters.calmed && !locked ? " is-jittery" : ""}`}
+        className={`trip-game-kick${mods?.paceBand ? " is-putt-meter" : ""} is-${phase}${judgment ? ` is-judged is-${judgment.tier}` : ""}${streakClass}${redBet ? " is-red-bet" : ""}${mods?.jitters && !mods.jitters.calmed && !locked ? " is-jittery" : ""}`}
         aria-hidden="true"
       >
         {mods?.jitters &&
@@ -1338,21 +1367,21 @@ function KickMeter({ phase, power: previewPower = 0, accuracy: previewAccuracy =
               style={
                 mods?.paceBand
                   ? {
-                      bottom: `${(mods.paceBand.min / POWER_METER_MAX) * 100}%`,
-                      height: `${((mods.paceBand.max - mods.paceBand.min) / POWER_METER_MAX) * 100}%`,
+                      left: `${(mods.paceBand.min / POWER_METER_MAX) * 100}%`,
+                      width: `${((mods.paceBand.max - mods.paceBand.min) / POWER_METER_MAX) * 100}%`,
                     }
                   : undefined
               }
             />
             <b
               className={`trip-game-kick-fill${inRed && (!powerLocked || redBet) ? " is-red" : ""}`}
-              style={{ height: `${powerPct * 100}%` }}
+              style={mods?.paceBand ? { width: `${powerPct * 100}%` } : { height: `${powerPct * 100}%` }}
             />
-            <em style={{ bottom: `${powerPct * 100}%` }} />
+            <em style={mods?.paceBand ? { left: `${powerPct * 100}%` } : { bottom: `${powerPct * 100}%` }} />
           </div>
         </div>
         <div className={`trip-game-kick-acc ${accLive || locked ? "is-live" : ""}`}>
-          <small>ACC</small>
+          <small>{mods?.paceBand ? "STRIKE" : "ACC"}</small>
           <div className="trip-game-kick-acc-track">
             <i className="trip-game-kick-zone-good" style={zoneStyle(ACC_GOOD, zoneScale)} />
             <i className="trip-game-kick-zone-great" style={zoneStyle(ACC_GREAT, zoneScale)} />
@@ -1365,6 +1394,7 @@ function KickMeter({ phase, power: previewPower = 0, accuracy: previewAccuracy =
             <em>R</em>
           </span>
         </div>
+        {mods?.paceBand && <div className="trip-game-putt-pace-labels"><span>SOFT</span><span>GOLD = GOOD PACE</span><span>FIRM</span></div>}
         <strong>
           {locked
             ? judgment?.label || "..."
@@ -1375,7 +1405,7 @@ function KickMeter({ phase, power: previewPower = 0, accuracy: previewAccuracy =
                   ? "TAP PACE"
                   : "TAP POWER"
                 : mods?.club === "putter"
-                  ? "TAP LINE"
+                  ? "TAP STRIKE"
                   : redBet
                     ? "TAP ACCURACY · RISK ON"
                     : "TAP ACCURACY"}
@@ -1932,6 +1962,7 @@ function SetupScreen({
   codeError = null,
   lastCode = null,
 }) {
+  const extrasRef = useRef(null);
   const selectedCourse = model.courses.find((entry) => entry.id === courseId);
   const previewProjection = useMemo(
     () => selectedCourse?.holes?.[0] ? projectHole(previewGeometry, selectedCourse.holes[0], { tripYards: selectedCourse.tripYards }) : null,
@@ -1950,15 +1981,13 @@ function SetupScreen({
       <div className="trip-game-title-screen">
         <div className="trip-game-title-copy">
           <p>CRYSTAL SPRINGS PRESENTS</p>
-          <h2>CAPTAIN&apos;S<br />CUP<span className="trip-game-title-star" aria-hidden="true">★</span></h2>
+          <h2>CAPTAIN&apos;S{" "}<br />CUP<span className="trip-game-title-star" aria-hidden="true">★</span></h2>
           <span>18 HOLES. TWO SIDES. ONE CUP.</span>
           <div className="trip-game-title-edition">MATCH PLAY <i aria-hidden="true">✦</i> POCKET EDITION</div>
         </div>
         {selectedCourse && <CoursePreview projection={previewProjection} course={selectedCourse} />}
       </div>
-      <div className="trip-game-story">
-        Pick your course. Captain your side. Choose a golfer and a shot plan for each hole.
-      </div>
+
       <div className="trip-game-setup-block">
         <div className="trip-game-section-label">
           <span>1. SELECT COURSE</span>
@@ -2040,6 +2069,8 @@ function SetupScreen({
           </button>
         </div>
       </div>
+      <dialog ref={extrasRef} className="trip-game-home-extras" aria-label="Challenge codes and records">
+        <button type="button" className="trip-game-secondary-button" onClick={() => extrasRef.current.close()}>BACK TO SETUP ✕</button>
       <div className="trip-game-model-status">
         <span className={`trip-game-status-light is-${archiveState}`} />
         {archiveState === "loading"
@@ -2075,6 +2106,15 @@ function SetupScreen({
           CODES LOOK LIKE CS-S-F-1K7Q2
         </p>
       )}
+      <TrophyCase records={records} swingMode={swingMode} />
+      <p className="trip-game-disclaimer">
+        Turf and hazard shapes use OpenStreetMap geometry. Trees and mowing texture are illustrative; unscouted shot shapes remain
+        modeled until player profiles are entered.
+      </p>
+      </dialog>
+      {codeError && <p className="trip-game-home-code-error" role="alert">{codeError} · Open CODES + RECORDS to edit.</p>}
+      <div className="trip-game-home-actions">
+      <button type="button" className="trip-game-secondary-button trip-game-extras-button" onClick={() => extrasRef.current.showModal()}>CODES + RECORDS</button>
       {resume && (
         <button type="button" className="trip-game-primary-button trip-game-start-button trip-game-resume-button" onClick={onResume}>
           RESUME · HOLE {Math.min(18, resume.holeIndex + 1)} · {resumeCall} ▶
@@ -2088,11 +2128,7 @@ function SetupScreen({
       >
         {decoded ? `PLAY CODE ${code.toUpperCase()} ▶` : resume ? "NEW CAPTAIN ROUND ▶" : "START CAPTAIN ROUND ▶"}
       </button>
-      <TrophyCase records={records} swingMode={swingMode} />
-      <p className="trip-game-disclaimer">
-        Turf and hazard shapes use OpenStreetMap geometry. Trees and mowing texture are illustrative; unscouted shot shapes remain
-        modeled until player profiles are entered.
-      </p>
+      </div>
     </div>
   );
 }
@@ -3928,7 +3964,7 @@ export default function TripGame({ data }) {
 
   return (
     <section
-      className={`trip-game${screen === "play" ? " trip-game--play" : ""}`}
+      className={`trip-game${screen === "play" ? " trip-game--play" : screen === "setup" ? " trip-game--home" : ""}`}
       aria-label="Captain's Cup pixel golf game"
     >
       <div className="trip-game-sr-only" role="status" aria-live="assertive">
@@ -4060,7 +4096,7 @@ export default function TripGame({ data }) {
                 livePreview={livePreview}
                 puttPreview={
                   liveInfo && !result && liveRef.current?.feet != null && liveRef.current?.puttRead ? (
-                    <PuttingScene preview read={liveRef.current.puttRead} aimTicks={puttAim} side="human" />
+                    <PuttingScene preview phase={meterPhase} read={liveRef.current.puttRead} aimTicks={puttAim} side="human" />
                   ) : null
                 }
                 clubReel={

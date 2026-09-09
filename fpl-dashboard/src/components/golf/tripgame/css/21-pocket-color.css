@@ -277,3 +277,10 @@
   .trip-game-hole-inset { height: 95px; width: 46px; }
   .trip-game-hole-inset svg { height: 66px; }
 }
+/* Stepped crowns hold their silhouette in the landing-area close-up. */
+.trip-game-tree-back { stroke: #153e32; stroke-width: .65; stroke-linejoin: miter; vector-effect: none; }
+.trip-game-tree-trunk { stroke-width: .5; vector-effect: none; }
+.trip-game-tree-highlight { fill: #a6c76a; opacity: .85; }
+.trip-game-tree--2 .trip-game-tree-highlight { fill: #83b878; }
+.trip-game-tree-detail { fill: none; stroke: #153e32; stroke-width: .7; opacity: .65; }
+.trip-game-tree-shadow { opacity: .3; }

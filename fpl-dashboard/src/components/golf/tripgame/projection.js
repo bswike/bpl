@@ -43,6 +43,45 @@ export function buildTreeSprites(projection, holeNumber) {
   return trees;
 }
 
+// Decorative outer woodland is separate from the established collision trees.
+// Generate once per projection; leave the playable corridor and hazards clear.
+const woodlandCache = new WeakMap();
+export function buildCourseWoodland(projection, holeNumber) {
+  const cached = woodlandCache.get(projection);
+  if (cached?.holeNumber === holeNumber) return cached.trees;
+  const length = polylineLength(projection.line);
+  if (!length) return [];
+  const trees = [];
+  const existing = projection.trees || [];
+  const rows = clamp(Math.ceil(length / 13), 8, 48);
+  for (let row = 0; row < rows; row += 1) {
+    const axis = pointAlongPolyline(projection.line, length * (0.02 + row / rows * 0.96));
+    const perpendicular = [-axis.tangent[1], axis.tangent[0]];
+    for (const side of [-1, 1]) {
+      for (let band = 0; band < 3; band += 1) {
+        const seed = holeNumber * 10007 + row * 197 + band * 31 + (side + 1) * 13;
+        if (seededUnit(seed) < (band === 0 ? 0.3 : 0.16)) continue;
+        const offset = 38 + band * 15 + seededUnit(seed + 1) * 10;
+        const along = (seededUnit(seed + 2) - 0.5) * 15;
+        const x = axis.point[0] + perpendicular[0] * offset * side + axis.tangent[0] * along;
+        const y = axis.point[1] + perpendicular[1] * offset * side + axis.tangent[1] * along;
+        const size = 5.5 + seededUnit(seed + 3) * 3;
+        // Sample the full sprite footprint, not just the trunk, to keep crowns
+        // out of short grass, sand and water. World edges aren't forest edges.
+        const scale = size / 6;
+        const clear = [-6, 0, 6].every((dx) => [-12, -5, 6].every((dy) =>
+          classifyTerrain(projection.features, [x + dx * scale, y + dy * scale]) === "Rough"));
+        if (!clear || Math.hypot(x - projection.tee[0], y - projection.tee[1]) < 24 ||
+            Math.hypot(x - projection.pin[0], y - projection.pin[1]) < 24) continue;
+        if ([...existing, ...trees].some((tree) => Math.hypot(tree.x - x, tree.y - y) < (tree.size + size) * 0.72)) continue;
+        trees.push({ x, y, size, variant: Math.floor(seededUnit(seed + 4) * 3) });
+      }
+    }
+  }
+  woodlandCache.set(projection, { holeNumber, trees });
+  return trees;
+}
+
 export function routeShapeProfile(line, tee, pin) {
   const length = polylineLength(line);
   if (!length) return { preferredShape: "straight", shapeSeverity: 0 };

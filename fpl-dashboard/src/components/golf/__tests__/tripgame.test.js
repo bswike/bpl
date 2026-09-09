@@ -5,7 +5,7 @@ import { computeMapCamera } from "../tripgame/camera.js";
 import { LIVE_CARRY_SWEET, LIVE_CLUBS, defaultLiveClub } from "../tripgame/clubs.js";
 import { polylineLength } from "../tripgame/geometry.js";
 import { judgeSwing } from "../tripgame/meter.js";
-import { fallbackProjection, projectHole } from "../tripgame/projection.js";
+import { buildCourseWoodland, fallbackProjection, projectHole } from "../tripgame/projection.js";
 import { makePuttRead, resolveLivePutt, stimpOf } from "../tripgame/putting.js";
 import { resolveLiveStroke } from "../tripgame/shotPhysics.js";
 import { buildShotSequence } from "../tripgame/shotTheater.js";
@@ -54,6 +54,20 @@ describe("projectHole", () => {
     expect(projection.features.filter((feature) => feature.type === "green")).toHaveLength(1);
     expect(projection.features.some((feature) => feature.type === "water")).toBe(true);
     expect(projection.hasWater).toBe(false); // the neighbour's pond is drawn, but this hole's own read stays honest
+  });
+  it("adds stable outer woodland with clear canopies and unchanged collision trees", () => {
+    const before = JSON.stringify(projection.trees);
+    const trees = buildCourseWoodland(projection, hole.number);
+    expect(trees.length).toBeGreaterThan(0);
+    expect(buildCourseWoodland(projection, hole.number)).toEqual(trees);
+    expect(JSON.stringify(projection.trees)).toBe(before);
+    for (const tree of trees) {
+      for (const dx of [-6, 0, 6]) {
+        for (const dy of [-12, -5, 6]) {
+          expect(classifyTerrain(projection.features, [tree.x + dx * tree.size / 6, tree.y + dy * tree.size / 6])).toBe("Rough");
+        }
+      }
+    }
   });
   it("never plants a tree on the fairway, the green or in the water", () => {
     expect(projection.trees.length).toBeGreaterThan(0);

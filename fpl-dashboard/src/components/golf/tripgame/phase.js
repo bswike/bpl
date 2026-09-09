@@ -35,7 +35,7 @@ export const METER_PHASES = new Set([PHASE.METER_POWER, PHASE.METER_ACCURACY, PH
 /** The big button's label for a phase. */
 export function primaryLabel({ phase, putter = false, judgmentLabel = null, awaitingPutt = false, selectedName = null, pops = null }) {
   if (phase === PHASE.METER_POWER) return putter ? "TAP PACE" : "TAP POWER";
-  if (phase === PHASE.METER_ACCURACY) return putter ? "TAP LINE" : "TAP ACCURACY";
+  if (phase === PHASE.METER_ACCURACY) return putter ? "TAP STRIKE" : "TAP ACCURACY";
   if (phase === PHASE.METER_LOCKED) return judgmentLabel || "...";
   if (phase === PHASE.HUMAN_READY) return awaitingPutt ? "PUTT ▶" : "SWING ▶";
   if (!selectedName) return "PLAY ▶";
