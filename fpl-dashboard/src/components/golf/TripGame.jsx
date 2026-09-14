@@ -149,6 +149,7 @@ import "./tripgame/css/20-arcade.css";
 import "./tripgame/css/21-pocket-color.css";
 import "./tripgame/css/22-putting-green.css";
 import "./tripgame/css/23-home-screen.css";
+import "./tripgame/css/24-matchup.css";
 import "./tripgame/css/19-reduced-motion.css";
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
@@ -1563,7 +1564,17 @@ function PopCall({ pops }) {
   );
 }
 
-function OpponentCard({ opponent, course, team }) {
+function PlayerPortrait({ player, cpu = false }) {
+  const initials = (player?.name || "?").split(/\s+/).map(word => word[0]).slice(0, 2).join("");
+  return (
+    <div className="trip-game-player-portrait" aria-hidden="true">
+      <svg viewBox="-16 -30 32 36"><GolferSprite at={[0, 0]} toward={cpu ? [-10, 0] : [10, 0]} hat={cpu ? "blue" : "red"} scale={1.6} /></svg>
+      <span>{initials}</span>
+    </div>
+  );
+}
+
+function OpponentCard({ opponent, course, team, active = false, wins = 0 }) {
   if (!opponent?.profile) {
     return (
       <div className="trip-game-vs-card">
@@ -1574,21 +1585,25 @@ function OpponentCard({ opponent, course, team }) {
   }
   const player = opponent.profile;
   return (
-    <div className="trip-game-vs-card">
-      <small>VS {team}</small>
-      <b>{lastName(player.name)}</b>
-      <span>CH {courseHandicap(player.hi, course)}</span>
+    <div className={`trip-game-vs-card is-opponent${active ? " is-active-player" : ""}`} role="group" aria-label={`Opponent: ${player.name}, ${team}`}>
+      <small>OPPONENT · {team.toUpperCase()}</small>
+      <PlayerPortrait player={player} cpu />
+      <div className="trip-game-player-identity" key={player.key || player.name}>
+        <b>{player.name}</b>
+        <span>CH {courseHandicap(player.hi, course)} · TEAM {wins}</span>
+      </div>
+      <em className="trip-game-player-state">{active ? "● THEIR SHOT" : "CPU CHALLENGER"}</em>
     </div>
   );
 }
 
-function CaptainWheel({ players, selectedKey, usage, maxUses, disabled, onPick, course, team }) {
+function CaptainWheel({ players, selectedKey, usage, maxUses, disabled, onPick, course, team, active = false, wins = 0 }) {
   const ranked = [...players]
     .filter((player) => (usage[player.key] || 0) < maxUses)
     .sort((left, right) => left.hi - right.hi);
   const list = ranked.length ? ranked : [...players].sort((left, right) => left.hi - right.hi);
   const index = Math.max(0, list.findIndex((player) => player.key === selectedKey));
-  const selected = list[index] || null;
+  const selected = players.find(player => player.key === selectedKey) || null;
   const wheelRef = useRef(null);
   const dragRef = useRef(null);
   const lastTickRef = useRef(0);
@@ -1616,7 +1631,9 @@ function CaptainWheel({ players, selectedKey, usage, maxUses, disabled, onPick, 
   return (
     <div
       ref={wheelRef}
-      className={`trip-game-vs-card is-you ${disabled ? "is-locked" : ""}`}
+      className={`trip-game-vs-card is-you ${disabled ? "is-locked" : ""}${active ? " is-active-player" : ""}`}
+      role="group"
+      aria-label={`Your pick: ${selected?.name || "Choose a golfer"}, ${team}`}
       onPointerDown={(event) => {
         dragRef.current = event.clientY;
       }}
@@ -1631,9 +1648,13 @@ function CaptainWheel({ players, selectedKey, usage, maxUses, disabled, onPick, 
         dragRef.current = null;
       }}
     >
-      <small>YOU {String(team || "").toUpperCase()}</small>
-      <b>{selected ? lastName(selected.name) : "…"}</b>
-      <span>CH {selected && course ? courseHandicap(selected.hi, course) : "—"}</span>
+      <small>YOUR PICK · {String(team || "").toUpperCase()}</small>
+      <PlayerPortrait player={selected} />
+      <div className="trip-game-player-identity" key={selectedKey || "empty"}>
+        <b>{selected?.name || "Pick a golfer"}</b>
+        <span>CH {selected && course ? courseHandicap(selected.hi, course) : "—"} · TEAM {wins}</span>
+      </div>
+      <em className="trip-game-player-state">{active ? "● YOUR SHOT" : disabled ? "LOCKED IN" : "CHOOSE YOUR GOLFER"}</em>
       <div className="trip-game-wheel-controls">
         <button
           type="button"
@@ -1642,7 +1663,7 @@ function CaptainWheel({ players, selectedKey, usage, maxUses, disabled, onPick, 
           onClick={() => step(-1)}
           aria-label="Previous golfer"
         >
-          ▲
+          ◀
         </button>
         <button
           type="button"
@@ -1651,7 +1672,7 @@ function CaptainWheel({ players, selectedKey, usage, maxUses, disabled, onPick, 
           onClick={() => step(1)}
           aria-label="Next golfer"
         >
-          ▼
+          ▶
         </button>
       </div>
     </div>
@@ -2704,6 +2725,11 @@ export default function TripGame({ data }) {
   }, [screen, holeIndex, course?.id, hole?.number]);
 
   const selected = humanRoster.find((player) => player.key === selectedKey) || null;
+  const matchupShot = (resolutionPhase === "liveshot" || resolutionPhase === "playback")
+    ? playbackShots?.[playbackStep.index]
+    : null;
+  const humanTurn = Boolean(selected) && (Boolean(meterPhase) || phase === PHASE.HUMAN_READY || matchupShot?.side === "human");
+  const cpuTurn = matchupShot?.side === "cpu";
   const selectedState = selected ? playerState[selected.key] || DEFAULT_PLAYER_STATE : DEFAULT_PLAYER_STATE;
 
   useEffect(() => {
@@ -4035,28 +4061,31 @@ export default function TripGame({ data }) {
         )}
         {screen === "play" && course && hole && projection && (
           <>
-            <div className="trip-game-scorebar">
-              <div className={`trip-game-score-team is-${captainTeam.toLowerCase()}${scoreDifference > 0 ? " is-leading" : ""}`}>
-                <span>YOU · {captainTeam.toUpperCase()}</span>
-                <em className="trip-game-score-pips" aria-label={`${match.human} holes won`}>
-                  {Array.from({ length: match.human }, (_, index) => (
-                    <i key={index} />
-                  ))}
-                </em>
-              </div>
+            <div className="trip-game-scorebar trip-game-matchup" aria-label="This hole’s matchup">
+              <CaptainWheel
+                players={humanRoster}
+                selectedKey={selectedKey}
+                usage={usage}
+                maxUses={maxUses}
+                disabled={pickLocked || Boolean(meterPhase) || resolutionPhase !== "idle" || Boolean(result)}
+                onPick={pickPlayer}
+                course={course}
+                team={captainTeam}
+                wins={match.human}
+                active={humanTurn}
+              />
               <div className="trip-game-hole-box">
-                <small>HOLE</small>
-                <b>{String(hole.number).padStart(2, "0")}</b>
+                <b className="trip-game-matchup-vs">VS</b>
+                <small>HOLE {String(hole.number).padStart(2, "0")}</small>
                 <span className={`trip-game-par-pill is-par-${hole.par}`}>PAR {hole.par}</span>
               </div>
-              <div className={`trip-game-score-team is-${cpuTeam.toLowerCase()}${scoreDifference < 0 ? " is-leading" : ""}`}>
-                <span>CPU · {cpuTeam.toUpperCase()}</span>
-                <em className="trip-game-score-pips" aria-label={`${match.cpu} holes won`}>
-                  {Array.from({ length: match.cpu }, (_, index) => (
-                    <i key={index} />
-                  ))}
-                </em>
-              </div>
+              <OpponentCard
+                opponent={cpuOpponent}
+                course={course}
+                team={cpuTeam}
+                wins={match.cpu}
+                active={cpuTurn}
+              />
             </div>
             <div className="trip-game-match-state">
               <b
@@ -4244,17 +4273,6 @@ export default function TripGame({ data }) {
               />
               {resolutionPhase === "idle" && !result && (
                 <div className="trip-game-action-bar">
-                  <OpponentCard opponent={cpuOpponent} course={course} team={cpuTeam} />
-                  <CaptainWheel
-                    players={humanRoster}
-                    selectedKey={selectedKey}
-                    usage={usage}
-                    maxUses={maxUses}
-                    disabled={pickLocked || Boolean(meterPhase)}
-                    onPick={pickPlayer}
-                    course={course}
-                    team={captainTeam}
-                  />
                   <PopCall pops={livePops} />
                   <button
                     type="button"

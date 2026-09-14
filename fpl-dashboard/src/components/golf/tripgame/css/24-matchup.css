@@ -1,0 +1,68 @@
+/* The golfers stay visible from selection through the final putt. */
+.trip-game--play .trip-game-matchup {
+  grid-template-columns: minmax(0, 1fr) 66px minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px;
+  flex: none;
+  background: #142f2c;
+}
+.trip-game-matchup .trip-game-vs-card,
+.trip-game-matchup .trip-game-vs-card.is-you {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  align-items: center;
+  align-content: stretch;
+  gap: 5px 10px;
+  min-width: 0;
+  min-height: 112px;
+  padding: 8px 10px;
+  text-align: left;
+  opacity: 1;
+  border: 2px solid #be7961;
+  background: linear-gradient(120deg, #654034, #3e302d);
+  box-shadow: inset 0 3px #f3a17b, 2px 2px #071c1b;
+}
+.trip-game-matchup .trip-game-vs-card.is-opponent {
+  border-color: #629db6;
+  background: linear-gradient(120deg, #294b5d, #243a44);
+  box-shadow: inset 0 3px #8fc9df, 2px 2px #071c1b;
+}
+.trip-game-matchup .trip-game-vs-card > small { grid-column: 1 / -1; color: #ffd7ad; font-size: 12px; letter-spacing: .07em; }
+.trip-game-matchup .is-opponent > small { color: #b8e4f4; }
+.trip-game-player-portrait { position: relative; grid-column: 1; grid-row: 2; height: 49px; border: 1px solid #f6bb8366; background: #f6c08622; }
+.trip-game-player-portrait svg { width: 100%; height: 100%; image-rendering: pixelated; }
+.trip-game-matchup .trip-game-player-portrait > span { position: absolute; bottom: -3px; right: -4px; padding: 1px 3px; font-size: 10px; background: #ffe1a5; color: #3e302d; border: 1px solid #463326; }
+.trip-game-player-identity { grid-column: 2; grid-row: 2; min-width: 0; animation: trip-player-arrive 180ms ease-out; }
+.trip-game-matchup .trip-game-player-identity b { display: block; font-family: var(--font-body); font-size: 25px; line-height: 1; overflow-wrap: anywhere; color: #fff7d6; }
+.trip-game-matchup .trip-game-player-identity > span { display: block; margin-top: 4px; font-size: 13px; color: #e1d8bc; }
+.trip-game-matchup .trip-game-player-state { grid-column: 1 / -1; grid-row: 3; min-width: 0; padding-top: 3px; font-size: 11px; font-style: normal; color: #e5c5ac; letter-spacing: .03em; }
+.trip-game-matchup .is-you .trip-game-player-state { padding-right: 76px; }
+.trip-game-matchup .trip-game-wheel-controls { position: absolute; bottom: 5px; right: 7px; display: flex; gap: 4px; }
+.trip-game-matchup .trip-game-wheel-controls button { width: 32px; min-height: 28px; border: 1px solid #b6916c; background: #253e35; color: #ffe4ad; font-size: 15px; }
+.trip-game-matchup .trip-game-wheel-controls button:disabled { opacity: .3; }
+.trip-game-matchup .trip-game-vs-card.is-active-player { border-color: #ffdf81; box-shadow: inset 0 3px #ffe29b, 0 0 12px #ffdc7144; }
+.trip-game-matchup .is-active-player .trip-game-player-state { color: #ffdf81; }
+.trip-game-matchup .trip-game-hole-box { padding: 2px; border: 0; background: transparent; align-content: center; gap: 9px; }
+.trip-game--play .trip-game-matchup .trip-game-matchup-vs { color: #ffdc81; font-family: var(--font-display); font-size: 21px; text-shadow: 2px 2px #7b482b; transform: rotate(-7deg); }
+.trip-game--play .trip-game-matchup .trip-game-hole-box small { color: #dde5c1; font-size: 11px; letter-spacing: 0; }
+@keyframes trip-player-arrive { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 520px) {
+  .trip-game--play .trip-game-matchup { grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1fr); gap: 4px; padding: 5px; }
+  .trip-game-matchup .trip-game-vs-card,
+  .trip-game-matchup .trip-game-vs-card.is-you { grid-template-columns: 30px minmax(0, 1fr); min-height: 113px; padding: 6px; gap: 4px 5px; }
+  .trip-game-matchup .trip-game-vs-card > small { font-size: 10px; letter-spacing: 0; }
+  .trip-game-player-portrait { height: 40px; }
+  .trip-game-matchup .trip-game-player-identity b { font-size: 18px; }
+  .trip-game-matchup .trip-game-player-identity > span { font-size: 10px; }
+  .trip-game-matchup .trip-game-player-state { font-size: 9px; }
+  .trip-game-matchup .trip-game-player-state { padding-bottom: 30px; }
+  .trip-game-matchup .is-you .trip-game-player-state { padding-right: 0; }
+  .trip-game--play .trip-game-matchup .trip-game-hole-box .trip-game-par-pill { padding: 3px 2px; font-size: 6px; letter-spacing: 0; }
+  .trip-game-matchup .trip-game-wheel-controls { bottom: 3px; left: 6px; right: 6px; }
+  .trip-game-matchup .trip-game-wheel-controls button { flex: 1; min-height: 26px; }
+  .trip-game--play .trip-game-matchup .trip-game-matchup-vs { font-size: 15px; }
+  .trip-game--play .trip-game-matchup .trip-game-hole-box small { font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) { .trip-game-player-identity { animation: none; } }
