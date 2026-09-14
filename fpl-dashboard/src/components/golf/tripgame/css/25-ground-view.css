@@ -1,0 +1,240 @@
+.trip-ground-view {
+  position: absolute;
+  inset: 28px 0 0;
+  z-index: 3;
+  overflow: hidden;
+  background: linear-gradient(#91c4db, #d9e8d4 55%, #70894d);
+  color: #fff;
+  font-family: system-ui, sans-serif;
+}
+.trip-ground-view[hidden] {
+  display: none;
+}
+.trip-ground-render,
+.trip-ground-render canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.trip-ground-view::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    #102c343d,
+    transparent 27%,
+    transparent 72%,
+    #1125179c
+  );
+}
+.trip-ground-heading {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  display: grid;
+  gap: 6px;
+  z-index: 1;
+  text-shadow: 0 2px 8px #18312f80;
+}
+.trip-ground-heading span {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  font-weight: 700;
+}
+.trip-ground-heading b {
+  font-family: Georgia, serif;
+  font-size: 27px;
+  font-weight: 400;
+}
+.trip-ground-heading small {
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  opacity: 0.85;
+}
+.trip-ground-shape {
+  position: absolute;
+  top: 22px;
+  right: 20px;
+  display: grid;
+  gap: 6px;
+  padding: 12px 15px;
+  border: 1px solid #ffffff40;
+  border-radius: 10px;
+  background: #183430b8;
+  backdrop-filter: blur(10px);
+  z-index: 1;
+}
+.trip-ground-shape span {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: #dceadf;
+}
+.trip-ground-shape b {
+  font-size: 23px;
+  color: #fff1a5;
+  letter-spacing: 0.06em;
+}
+.trip-ground-shape.is-draw b {
+  color: #ffc36b;
+}
+.trip-ground-shape.is-cut b {
+  color: #8deaff;
+}
+.trip-ground-shape small {
+  font-size: 10px;
+  color: #e0e9e3;
+}
+.trip-ground-footer {
+  position: absolute;
+  bottom: 20px;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1;
+}
+.trip-ground-footer span {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+.trip-ground-footer b {
+  font-size: 17px;
+  font-weight: 500;
+}
+.trip-game-map-wrap.is-ground-camera > .trip-game-map {
+  visibility: hidden;
+}
+.trip-game-map-wrap.is-ground-camera > .trip-game-map-intel,
+.trip-game-map-wrap.is-ground-camera > .trip-game-hole-inset,
+.trip-game-map-wrap.is-ground-camera > .trip-game-pop-banner,
+.trip-game-map-wrap.is-ground-camera > .trip-game-map-landing {
+  visibility: hidden;
+}
+.trip-game-map-wrap.is-ground-camera > .trip-game-playcap {
+  position: absolute;
+  bottom: 58px;
+  left: 16px;
+  right: 16px;
+  z-index: 4;
+  background: #133029b3;
+  border: 1px solid #ffffff26;
+  border-radius: 5px;
+}
+.trip-game-map-wrap.is-ground-camera::before {
+  display: none;
+}
+@media (max-width: 520px) {
+  .trip-ground-heading {
+    top: 16px;
+    left: 13px;
+  }
+  .trip-ground-heading b {
+    font-size: 20px;
+  }
+  .trip-ground-heading span {
+    font-size: 8px;
+  }
+  .trip-ground-heading small {
+    font-size: 7px;
+  }
+  .trip-ground-shape {
+    top: 88px;
+    right: 12px;
+    padding: 9px 11px;
+  }
+  .trip-ground-shape b {
+    font-size: 19px;
+  }
+  .trip-ground-footer {
+    left: 13px;
+    right: 13px;
+    bottom: 16px;
+  }
+  .trip-ground-footer span {
+    font-size: 7px;
+  }
+  .trip-ground-footer b {
+    font-size: 13px;
+  }
+}
+.trip-game--black-bear.trip-game--play .trip-game-shell {
+  max-width: 1080px;
+}
+.trip-game-map-wrap.is-ground-camera:not(.is-resolving) .trip-ground-view {
+  bottom: 64px;
+}
+.trip-game-map-wrap.is-ground-camera > .trip-game-pad,
+.trip-game-map-wrap.is-ground-camera > .trip-game-club-reel {
+  position: relative;
+  z-index: 4;
+}
+.trip-game-map-wrap.is-ground-camera > .trip-game-playcap,
+.trip-game-map-wrap.is-ground-camera > .trip-game-hole-intro {
+  display: none;
+}
+.trip-game-map-wrap.is-ground-camera.is-resolving .trip-ground-footer {
+  bottom: 70px;
+}
+.trip-game-play-grid:has(.is-ground-camera) .trip-game-stage-overlay {
+  max-height: none;
+}
+.trip-game-play-grid:has(.is-ground-camera) .trip-game-playback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 14px;
+  background: #18352dda;
+  border: 1px solid #d8e9d840;
+  border-radius: 7px;
+  box-shadow: none;
+  backdrop-filter: blur(8px);
+}
+.trip-game-play-grid:has(.is-ground-camera) .trip-game-playback > small,
+.trip-game-play-grid:has(.is-ground-camera) .trip-game-playback > p,
+.trip-game-play-grid:has(.is-ground-camera) .trip-game-playback > em,
+.trip-game-play-grid:has(.is-ground-camera) .trip-game-playback-pips {
+  display: none;
+}
+.trip-game-play-grid:has(.is-ground-camera) .trip-game-playback > b {
+  font-size: 13px;
+  margin: 0;
+}
+.trip-game-play-grid:has(.is-ground-camera) .trip-game-playback > button {
+  margin: 0;
+  min-height: 30px;
+  padding: 6px 10px;
+}
+@media (min-width: 800px) {
+  .trip-game--black-bear.trip-game--play {
+    width: min(1080px, calc(100vw - 64px));
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+.trip-game-map-wrap.is-ground-camera > .trip-game-kick.is-preview {
+  display: none;
+}
+@media (max-width: 520px) {
+  .trip-game--black-bear .trip-game-map-hud {
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .trip-game--black-bear .trip-game-map-hud > span:not([class]) {
+    display: none;
+  }
+  .trip-game--black-bear .trip-game-camera-toggle {
+    margin-left: 0;
+    padding: 4px;
+    font-size: 7px;
+    flex-shrink: 0;
+  }
+  .trip-ground-shape span {
+    max-width: 150px;
+    line-height: 1.4;
+  }
+}

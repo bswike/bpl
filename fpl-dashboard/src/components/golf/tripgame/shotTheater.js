@@ -234,7 +234,7 @@ export function buildShotSequence({ projection, hole, decision, gross, landingLa
     ...makeShot({ from: current, to: pin, kind: "putt", final: true, yardsScale }),
     putt: { ...puttScene(48, current, pin, true), for: forLabelOf(gross - hole.par) },
   });
-  return shots.map((shot) => ({ ...shot, side }));
+  return shots.map((shot, index) => ({ ...shot, side, plannedShape: index === 0 ? decision.shape : null }));
 }
 
 /**

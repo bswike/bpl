@@ -1,0 +1,172 @@
+.trip-elevation {
+  position: absolute;
+  z-index: 6;
+  left: 22px;
+  right: 22px;
+  top: 106px;
+  bottom: 18px;
+  pointer-events: none;
+  font-family: system-ui, sans-serif;
+}
+.trip-game .trip-elevation-toggle {
+  pointer-events: auto;
+  background: #16372ddb;
+  border: 1px solid #d1e6c87a;
+  color: #f0f5e5;
+  border-radius: 5px;
+  padding: 8px 10px;
+  font:
+    600 10px system-ui,
+    sans-serif;
+  letter-spacing: 0.06em;
+}
+.trip-elevation-panel {
+  pointer-events: auto;
+  max-height: 100%;
+  overflow: auto;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 470px;
+  max-width: calc(100vw - 60px);
+  border: 1px solid #d5e4c24d;
+  border-radius: 10px;
+  padding: 16px;
+  background: #102e28f5;
+  color: #ecf2e6;
+}
+.trip-elevation-panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.trip-elevation-panel header small {
+  font-size: 9px;
+  color: #bacdbc;
+  letter-spacing: 0.12em;
+}
+.trip-elevation-panel h3 {
+  margin: 4px 0 14px;
+  font:
+    400 22px Georgia,
+    serif;
+}
+.trip-elevation-panel header button {
+  background: transparent;
+  border: 0;
+  color: #eff7e8;
+  font:
+    25px system-ui,
+    sans-serif;
+  padding: 0 4px;
+}
+.trip-elevation-selects {
+  display: flex;
+  gap: 12px;
+}
+.trip-elevation-selects label {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  color: #bed1c2;
+  font-size: 10px;
+}
+.trip-elevation-selects select {
+  width: 100%;
+  border: 1px solid #6b8775;
+  border-radius: 4px;
+  padding: 7px;
+  background: #214739;
+  color: #f2f4e8;
+  font:
+    12px system-ui,
+    sans-serif;
+}
+.trip-elevation-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+.trip-elevation-stats b {
+  color: #e8cd83;
+  font-size: 23px;
+  font-weight: 500;
+}
+.trip-elevation-stats span {
+  font-size: 10px;
+  color: #c3d2c6;
+  font-weight: 400;
+}
+.trip-elevation-panel svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 8px;
+  overflow: visible;
+}
+.trip-elevation-panel svg text {
+  fill: #c6d4c8;
+  font:
+    11px system-ui,
+    sans-serif;
+}
+.trip-elevation-panel svg .trip-elevation-axis-title {
+  font-size: 10px;
+}
+.trip-elevation-grid {
+  stroke: #91ab9530;
+  stroke-width: 1;
+}
+.trip-elevation-area {
+  fill: #b1c97d24;
+}
+.trip-elevation-line {
+  fill: none;
+  stroke: #e7cd83;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.trip-elevation-panel circle {
+  fill: #eff3d0;
+}
+.trip-elevation-panel p {
+  margin: 4px 0 0;
+  font:
+    10px/1.5 system-ui,
+    sans-serif;
+  color: #b0c4b6;
+}
+.trip-elevation-panel a {
+  color: #d7e4c2;
+  text-decoration: underline;
+}
+@media (max-width: 520px) {
+  .trip-elevation {
+    left: 13px;
+    right: 13px;
+    top: 84px;
+    bottom: 13px;
+  }
+  .trip-elevation-toggle {
+    max-width: 135px;
+  }
+  .trip-elevation-panel {
+    width: calc(100vw - 58px);
+    padding: 12px;
+    max-height: 100%;
+    overflow: auto;
+  }
+  .trip-elevation-panel h3 {
+    font-size: 19px;
+  }
+  .trip-elevation-stats {
+    flex-wrap: wrap;
+  }
+}
+
+.trip-elevation:has(.trip-elevation-panel) > .trip-elevation-toggle {
+  visibility: hidden;
+}

@@ -81,6 +81,7 @@ export function simulateStroke({
   seedSalt = 0,
   wind = null,
   spin = "none",
+  shape = "straight",
 }) {
   const from = ball.pos;
   if (ball.feet != null) {
@@ -143,6 +144,7 @@ export function simulateStroke({
     seedSalt,
     wind,
     spin,
+    shape,
   });
   const teeLanding =
     ball.strokes === 0
@@ -185,6 +187,7 @@ export function simulateStroke({
       ground: res.ground,
     }),
     side,
+    plannedShape: shape,
     kickPower: meter.power,
     shotNumber: next.strokes,
     terrible: judgment.tier === "wild",
@@ -243,7 +246,7 @@ export function cpuPuttAim(read, hi, rng) {
  * One CPU stroke through the shared physics. `cpu` carries the ball plus the
  * golfer's handicap, buzz, tee decision and planned tee target.
  */
-export function simulateCpuStroke({ projection, hole, cpu, yardsScale, rng, seedSalt = 0, wind = null }) {
+export function simulateCpuStroke({ projection, hole, cpu, yardsScale, rng, seedSalt = 0, wind = null, shape = "straight" }) {
   const ball = { ...cpu.ball };
   if (ball.feet != null) {
     const read = makePuttRead({ hole, puttCount: ball.puttCount, feet: ball.feet, sceneCarry: ball.sceneCarry });
@@ -296,5 +299,6 @@ export function simulateCpuStroke({ projection, hole, cpu, yardsScale, rng, seed
     seedSalt,
     wind,
     spin,
+    shape,
   });
 }

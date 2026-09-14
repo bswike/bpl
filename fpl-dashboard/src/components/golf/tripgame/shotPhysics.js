@@ -193,6 +193,7 @@ export function resolveLiveStroke({
   rng = null,
   wind = null,
   spin = "none",
+  shape = "straight",
 }) {
   const pin = projection.pin;
   const scale = yardsScale > 0 ? yardsScale : 1;
@@ -259,7 +260,9 @@ export function resolveLiveStroke({
   ];
   const kind = lie === "Tee" ? (hole.par <= 3 ? "tee" : "drive") : lie === "Bunker" ? "sand" : lie === "Rough" ? "punch" : "approach";
   // Ground balls stay on the dirt; airborne wild ones visibly banana-slice.
-  const bend = groundBall ? 0 : clamp(screenFlip * meter.accuracy * 20 * (wild ? 2.4 : 1) + windDrift * 1.2, -55, 55);
+  const selectedShape = SHAPES.find(item => item.id === shape);
+  const intendedBend = shapeBend(projection, selectedShape) * clamp(carryYards / 220, 0, 1);
+  const bend = groundBall ? 0 : clamp(intendedBend + screenFlip * meter.accuracy * 20 * (wild ? 2.4 : 1) + windDrift * 1.2, -55, 55);
   const shankCaption = caption;
   const yardsOf = (point) => Math.round(Math.hypot(point[0] - from[0], point[1] - from[1]) / scale);
   let rollYards = 0; // signed: negative when backspin pulls the ball back

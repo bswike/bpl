@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
+import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import {
   CLUBS,
   SCORE_BUCKETS,
@@ -151,6 +151,10 @@ import "./tripgame/css/22-putting-green.css";
 import "./tripgame/css/23-home-screen.css";
 import "./tripgame/css/24-matchup.css";
 import "./tripgame/css/19-reduced-motion.css";
+
+import { GROUND_FLIGHT_FRAME_MS, shotPlaybackDuration, playbackSafetyBudget } from "./tripgame/groundView.js";
+
+const GroundShotView = lazy(() => import("./tripgame/GroundShotView.jsx"));
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
 
@@ -565,6 +569,7 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
 }
 
 function HoleMap({
+  courseSlug,
   projection,
   hole,
   decision,
@@ -603,6 +608,9 @@ function HoleMap({
   const wrapRef = useRef(null);
   const [viewAspect, setViewAspect] = useState(null);
   const [wholeHole, setWholeHole] = useState(false);
+  const [groundPreview, setGroundPreview] = useState(false);
+  const [groundFailed, setGroundFailed] = useState(false);
+  const onGroundUnavailable = useCallback(() => setGroundFailed(true), []);
 
   // Measure the on-screen frame so cameras can fill it edge-to-edge.
   useEffect(() => {
@@ -654,6 +662,8 @@ function HoleMap({
   // tee — suppress the tee-planning overlays and focus the camera there.
   const planning = !playback && !result && !livePos;
   const activeShot = playback ? playback.shots[Math.min(playback.index, playback.shots.length - 1)] : null;
+  const groundView = courseSlug === "black-bear" && !groundFailed &&
+    (activeShot ? activeShot.kind !== "putt" : !puttPreview && groundPreview && !result);
   const shotFlipped = activeShot ? activeShot.to[0] < activeShot.from[0] : false;
   const flightFrames = activeShot?.frames || [];
   const flightFrameIndex = playback ? clamp(playback.frame || 0, 0, Math.max(0, flightFrames.length - 1)) : 0;
@@ -867,7 +877,7 @@ function HoleMap({
   return (
     <div
       ref={wrapRef}
-      className={`trip-game-map-wrap${(playback ? activeShot?.kind === "putt" : Boolean(puttPreview)) ? " is-putting" : ""} ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}${party > 0 ? ` is-party-${party}` : ""}${partySurge ? " is-party-surge" : ""}`}
+      className={`trip-game-map-wrap${groundView ? " is-ground-camera" : ""}${(playback ? activeShot?.kind === "putt" : Boolean(puttPreview)) ? " is-putting" : ""} ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}${party > 0 ? ` is-party-${party}` : ""}${partySurge ? " is-party-surge" : ""}`}
       style={shake ? { "--shake-amp": `${shake.amp}px` } : undefined}
     >
       <div className="trip-game-map-hud">
@@ -886,15 +896,19 @@ function HoleMap({
           {onGreenCam
             ? "ON THE GREEN"
             : playback
-              ? "FLYOVER"
+              ? groundView ? "GROUND CAMERA" : "FLYOVER"
               : `${club.short} ${targetYards}Y · ${remainingYards != null ? `${remainingYards}Y LEFT` : "TEE PLAN"}`}
         </span>
         {!playback && (
           <button type="button" className="trip-game-camera-toggle" aria-pressed={wholeHole}
             aria-label={wholeHole ? "Show current shot" : "Show whole hole"}
-            onClick={() => setWholeHole((value) => !value)}>
+            onClick={() => { setGroundPreview(false); setWholeHole((value) => !value); }}>
             {wholeHole ? "SHOT VIEW" : "WHOLE HOLE"}
           </button>
+        )}
+        {courseSlug === "black-bear" && !playback && !puttPreview && !groundFailed && (
+          <button type="button" className="trip-game-camera-toggle" aria-pressed={groundPreview}
+            onClick={() => setGroundPreview(value => !value)}>{groundPreview ? "MAP VIEW" : "GROUND VIEW"}</button>
         )}
         {soundControl}
       </div>
@@ -1202,6 +1216,13 @@ function HoleMap({
           </g>
         )}
       </svg>
+      {courseSlug === "black-bear" && !groundFailed && (
+        <Suspense fallback={null}>
+          <GroundShotView projection={projection} hole={hole} shot={activeShot}
+            phase={playback?.phase} frame={playback?.frame || 0} visible={groundView}
+            origin={livePos || projection.tee} shape={decision.shape} onUnavailable={onGroundUnavailable} />
+        </Suspense>
+      )}
       {playback && activeShot?.kind === "putt" && (
         <PuttingScene shot={activeShot} phase={playback.phase} frame={playback.frame} side={activeShot.side} />
       )}
@@ -1259,7 +1280,7 @@ function HoleMap({
           <YardageTicker
             key={playback.index}
             yards={activeShot.yards}
-            rollMs={Math.max(0, (activeShot.frames?.length || 8) - 1) * FLIGHT_FRAME_MS}
+            rollMs={Math.max(0, (activeShot.frames?.length || 8) - 1) * (groundView ? GROUND_FLIGHT_FRAME_MS : FLIGHT_FRAME_MS)}
           />
         )}
       {canAct && (
@@ -2582,18 +2603,8 @@ export default function TripGame({ data }) {
       return undefined;
     }
     const lastFrame = Math.max(0, (shot.frames?.length || 1) - 1);
-    const duration =
-      playbackStep.phase === "swing"
-        ? shot.kind === "putt"
-          ? 320
-          : 420
-        : playbackStep.phase === "flight"
-          ? FLIGHT_FRAME_MS
-          : shot.kind === "splash"
-            ? 700
-            : shot.final
-              ? 640
-              : 300;
+    const groundShot = courseId?.endsWith("-black-bear") && shot.kind !== "putt";
+    const duration = shotPlaybackDuration(shot, playbackStep.phase, groundShot);
     const timer = window.setTimeout(() => {
       if (playbackStep.phase === "swing") {
         // Club meets ball: crack + screenshake, scaled by how hard they swung.
@@ -2632,7 +2643,7 @@ export default function TripGame({ data }) {
       });
     }, fastForwardRef.current ? Math.min(duration, 40) : duration);
     return () => window.clearTimeout(timer);
-  }, [resolutionPhase, playbackShots, playbackStep, setPlaybackStep]);
+  }, [resolutionPhase, playbackShots, playbackStep, setPlaybackStep, courseId]);
 
   // Hole intro card auto-dismisses after a beat.
   useEffect(() => {
@@ -3423,6 +3434,7 @@ export default function TripGame({ data }) {
       projection,
       hole,
       cpu,
+      shape: course.slug === "black-bear" ? cpu.decision.shape : "straight",
       yardsScale: live.yardsScale,
       rng: cpuRandomRef.current,
       wind,
@@ -3446,6 +3458,7 @@ export default function TripGame({ data }) {
       meter,
       judgment,
       clubId: live.club,
+      shape: course.slug === "black-bear" ? decision.shape : "straight",
       side: "human",
       yardsScale: live.yardsScale,
       hi: selected?.hi ?? 12,
@@ -3864,7 +3877,7 @@ export default function TripGame({ data }) {
     if (resolutionTimerRef.current) window.clearTimeout(resolutionTimerRef.current);
     const safetyMs = Math.max(
       PLAYBACK_SAFETY_MS,
-      shots.reduce((total, shot) => total + 420 + (shot.frames?.length || 8) * FLIGHT_FRAME_MS + 700, 4000),
+      playbackSafetyBudget(shots, course.slug === "black-bear"),
     );
     resolutionTimerRef.current = window.setTimeout(() => finishPlayback(), safetyMs);
   }
@@ -4008,7 +4021,7 @@ export default function TripGame({ data }) {
 
   return (
     <section
-      className={`trip-game${screen === "play" ? " trip-game--play" : screen === "setup" ? " trip-game--home" : ""}`}
+      className={`trip-game${course?.slug === "black-bear" ? " trip-game--black-bear" : ""}${screen === "play" ? " trip-game--play" : screen === "setup" ? " trip-game--home" : ""}`}
       aria-label="Captain's Cup pixel golf game"
     >
       <div className="trip-game-sr-only" role="status" aria-live="assertive">
@@ -4118,6 +4131,7 @@ export default function TripGame({ data }) {
             )}
             <div className="trip-game-play-grid">
               <HoleMap
+                courseSlug={course.slug}
                 projection={projection}
                 hole={hole}
                 decision={decision}
