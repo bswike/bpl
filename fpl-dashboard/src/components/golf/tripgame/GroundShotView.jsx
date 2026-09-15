@@ -1,4 +1,5 @@
 import { createCartoonGolfer } from "./cartoonGolfer.js";
+import { createAnimationClock } from "./animationClock.js";
 import { useEffect, useRef, useState } from "react";
 import { mappedWoodland } from "./woodland.js";
 import { createNaturalWoodland } from "./woodlandRenderer.js";
@@ -17,6 +18,7 @@ import {
   flightCameraFrame,
   groundShotPoint,
   groundShotShape,
+  shotPlaybackDuration,
 } from "./groundView.js";
 import "./css/25-ground-view.css";
 import { nameplateOf } from "./playerLook.js";
@@ -279,7 +281,6 @@ export default function GroundShotView({
       shape,
       plan,
       looks,
-      stamp: performance.now(),
     };
   }, [shot, phase, frame, visible, origin, shape, plan, looks]);
   useEffect(() => {
@@ -300,6 +301,7 @@ export default function GroundShotView({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.autoUpdate = false;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
     node.appendChild(renderer.domElement);
@@ -422,9 +424,10 @@ export default function GroundShotView({
       previousOrigin = null,
       previousTime = 0,
       launchFov = 55,
-      posePhase = null,
-      poseShot = null,
-      poseStarted = 0;
+      lastShadow = -Infinity,
+      cachedShot = null,
+      cachedTrail = [];
+    const animationClock = createAnimationClock();
     const chaseTarget = new THREE.Vector3();
     const chaseEye = new THREE.Vector3();
     const desiredRotation = new THREE.Quaternion();
@@ -454,6 +457,15 @@ export default function GroundShotView({
       const s = current.current;
       if (!s?.visible || document.hidden) return;
       const from = s.shot?.from || s.origin || projection.tee;
+      const animation = animationClock(s, now, {
+        frameMs: GROUND_FLIGHT_FRAME_MS,
+        swingMs: shotPlaybackDuration(
+          s.shot || { kind: "drive" },
+          "swing",
+          true,
+        ),
+        reduced: reduced.matches,
+      });
       const plan = !s.shot && s.plan?.to ? s.plan : null;
       const planKey = plan ? plan.to.join(",") : "";
       if (
@@ -462,9 +474,15 @@ export default function GroundShotView({
         previousPlanKey !== planKey ||
         !base
       ) {
-        // A new lie or shot cuts to its framing; an aim change only re-targets
-        // and the camera eases over below.
-        const cut = previousShot !== s.shot || previousOrigin !== from || !base;
+        // Starting a swing from the current lie should keep the preview's
+        // camera continuity. Only a genuinely new location needs a cut.
+        const cut =
+          !base ||
+          (previousOrigin &&
+            Math.hypot(
+              from[0] - previousOrigin[0],
+              from[1] - previousOrigin[1],
+            ) > 15);
         previousShot = s.shot;
         previousOrigin = from;
         previousPlanKey = planKey;
@@ -473,7 +491,10 @@ export default function GroundShotView({
           s.shot?.carryTo || s.shot?.to || plan?.to || projection.pin,
           heightAt,
         );
-        if (cut) camera.position.fromArray(base.eye);
+        if (cut) {
+          camera.position.fromArray(base.eye);
+          lastShadow = -Infinity;
+        }
         const peakAngle = Math.max(
           0,
           ...(s.shot?.frames || []).map((f, index) =>
@@ -505,10 +526,13 @@ export default function GroundShotView({
           ),
         );
         const pitch = grid
-          ? Math.max(terrainPitch, s.shot || plan ? peakAngle * 0.35 : terrainPitch)
+          ? Math.max(
+              terrainPitch,
+              s.shot || plan ? peakAngle * 0.35 : terrainPitch,
+            )
           : Math.max(0.06, peakAngle * 0.35);
         base.target[1] = base.eye[1] + Math.tan(pitch) * 74;
-        camera.fov = Math.max(
+        launchFov = Math.max(
           55,
           Math.min(
             85,
@@ -518,9 +542,11 @@ export default function GroundShotView({
             ),
           ),
         );
-        launchFov = camera.fov;
-        camera.updateProjectionMatrix();
-        if (cut) camera.lookAt(...base.target);
+        if (cut) {
+          camera.fov = launchFov;
+          camera.updateProjectionMatrix();
+          camera.lookAt(...base.target);
+        }
         golfer.group.position.set(
           from[0] + base.direction[1] * 0.9,
           heightAt(
@@ -533,8 +559,16 @@ export default function GroundShotView({
           -base.direction[0],
           -base.direction[1],
         );
-        golfer.dress(s.shot?.side === "cpu" ? s.looks?.cpu : s.looks?.human, s.shot?.side === "cpu" ? "#3973a6" : "#b94836");
-        golfer.group.scale.y = (s.shot?.side === "cpu" ? s.looks?.cpu : s.looks?.human)?.tall ? 1.06 : 1;
+        golfer.dress(
+          s.shot?.side === "cpu" ? s.looks?.cpu : s.looks?.human,
+          s.shot?.side === "cpu" ? "#3973a6" : "#b94836",
+        );
+        golfer.group.scale.y = (s.shot?.side === "cpu"
+          ? s.looks?.cpu
+          : s.looks?.human
+        )?.tall
+          ? 1.06
+          : 1;
         const end = s.shot?.carryTo || projection.pin;
         ghostGeometry.setFromPoints(
           Array.from({ length: 81 }, (_, i) => {
@@ -545,19 +579,7 @@ export default function GroundShotView({
         );
         ghost.computeLineDistances();
       }
-      const last = Math.max(0, (s.shot?.frames?.length || 1) - 1);
-      const progress =
-        s.phase === "settle"
-          ? last
-          : s.phase === "flight"
-            ? Math.min(
-                last,
-                s.frame +
-                  (reduced.matches
-                    ? 0
-                    : Math.min(1, (now - s.stamp) / GROUND_FLIGHT_FRAME_MS)),
-              )
-            : 0;
+      const progress = animation.progress;
       const point = s.shot
         ? groundShotPoint(s.shot, progress, heightAt)
         : [from[0], heightAt(...from) + 0.12, from[1]];
@@ -582,13 +604,15 @@ export default function GroundShotView({
         camera.fov += (fov - camera.fov) * (1 - Math.exp(-4 * delta));
         camera.updateProjectionMatrix();
       }
-      if (!s.shot && base && !reduced.matches) {
+      if ((!s.shot || s.phase === "swing") && base && !reduced.matches) {
         chaseEye.fromArray(base.eye);
         camera.position.lerp(chaseEye, 1 - Math.exp(-6 * delta));
         chaseTarget.fromArray(base.target);
         lookMatrix.lookAt(camera.position, chaseTarget, camera.up);
         desiredRotation.setFromRotationMatrix(lookMatrix);
         camera.quaternion.slerp(desiredRotation, 1 - Math.exp(-8 * delta));
+        camera.fov += (launchFov - camera.fov) * (1 - Math.exp(-6 * delta));
+        camera.updateProjectionMatrix();
       } else if (!s.shot && base) {
         camera.position.fromArray(base.eye);
         camera.lookAt(...base.target);
@@ -601,8 +625,14 @@ export default function GroundShotView({
       ball.position.y += (apparent - 1) * 0.085;
       const trail = [];
       if (s.shot && progress > 0) {
-        for (let t = 0; t < progress; t += 0.2)
-          trail.push(...groundShotPoint(s.shot, t, heightAt));
+        if (cachedShot !== s.shot) {
+          cachedShot = s.shot;
+          cachedTrail = [];
+          for (let t = 0; t <= s.shot.frames.length - 1; t += 0.2)
+            cachedTrail.push(groundShotPoint(s.shot, t, heightAt));
+        }
+        for (let i = 0; i < Math.ceil(progress / 0.2); i++)
+          trail.push(...cachedTrail[i]);
         trail.push(...point);
       } else if (plan) {
         // The planned arc: the map's curve with the theater's lift on top.
@@ -623,12 +653,20 @@ export default function GroundShotView({
             x = u * u * from[0] + 2 * u * t * control[0] + t * t * to[0],
             z = u * u * from[1] + 2 * u * t * control[1] + t * t * to[1],
             lift = 4 * t * u * (plan.apex || 0) * 0.55;
-          trail.push(x, 0.12 + Math.max(heightAt(x, z), y0 + (y1 - y0) * t + lift), z);
+          trail.push(
+            x,
+            0.12 + Math.max(heightAt(x, z), y0 + (y1 - y0) * t + lift),
+            z,
+          );
         }
       }
       landingRing.visible = Boolean(plan);
       if (plan) {
-        landingRing.position.set(plan.to[0], heightAt(...plan.to) + 0.15, plan.to[1]);
+        landingRing.position.set(
+          plan.to[0],
+          heightAt(...plan.to) + 0.15,
+          plan.to[1],
+        );
         const breathe = 1 + 0.12 * Math.sin(now / 420);
         landingRing.scale.setScalar(breathe);
       }
@@ -641,8 +679,8 @@ export default function GroundShotView({
         const starts = tracerGeometry.attributes.instanceStart,
           ends = tracerGeometry.attributes.instanceEnd;
         for (let i = 0; i < trail.length / 3 - 1; i++) {
-          starts.setXYZ(i, ...trail.slice(i * 3, i * 3 + 3));
-          ends.setXYZ(i, ...trail.slice(i * 3 + 3, i * 3 + 6));
+          starts.setXYZ(i, trail[i * 3], trail[i * 3 + 1], trail[i * 3 + 2]);
+          ends.setXYZ(i, trail[i * 3 + 3], trail[i * 3 + 4], trail[i * 3 + 5]);
         }
         starts.data.needsUpdate = true;
         tracerGeometry.instanceCount = trail.length / 3 - 1;
@@ -663,31 +701,39 @@ export default function GroundShotView({
             ? "#8deaff"
             : "#fff1a5",
       );
-      if (posePhase !== s.phase || poseShot !== s.shot) {
-        posePhase = s.phase;
-        poseShot = s.shot;
-        poseStarted = now;
-      }
-      const poseElapsed = (now - poseStarted) / 700;
-      const poseTime =
-        s.phase === "swing"
-          ? Math.min(1, poseElapsed)
-          : s.phase === "flight"
-            ? 1 + poseElapsed
-            : s.phase === "settle"
-              ? 2.25
-              : 0;
       golfer.pose(
-        reduced.matches ? (poseTime >= 1 ? 2.25 : 0) : poseTime,
+        animation.poseTime,
         !s.shot && !reduced.matches ? Math.sin(now * 0.0018) * 0.008 : 0,
+        s.shot?.kind,
       );
+      // The course and forest are static. Updating their shadow map throughout
+      // flight wastes GPU time; refresh while the golfer moves and at rest.
+      if (
+        (s.shot && animation.poseTime < 2.25 && now - lastShadow > 32) ||
+        now - lastShadow > 500
+      ) {
+        renderer.shadowMap.needsUpdate = true;
+        lastShadow = now;
+      }
       // The nameplate rides above the golfer's head.
       if (plate.current) {
-        headPoint.set(golfer.group.position.x, golfer.group.position.y + 1.9, golfer.group.position.z).project(camera);
-        const onScreen = headPoint.z < 1 && Math.abs(headPoint.x) < 1.2 && Math.abs(headPoint.y) < 1.2;
+        headPoint
+          .set(
+            golfer.group.position.x,
+            golfer.group.position.y + 1.9,
+            golfer.group.position.z,
+          )
+          .project(camera);
+        const onScreen =
+          headPoint.z < 1 &&
+          Math.abs(headPoint.x) < 1.2 &&
+          Math.abs(headPoint.y) < 1.2;
         plate.current.hidden = !onScreen || !golfer.group.visible;
         if (onScreen) {
-          const px = Math.min(node.clientWidth - 76, Math.max(76, ((headPoint.x + 1) / 2) * node.clientWidth)),
+          const px = Math.min(
+              node.clientWidth - 76,
+              Math.max(76, ((headPoint.x + 1) / 2) * node.clientWidth),
+            ),
             py = Math.max(52, ((1 - headPoint.y) / 2) * node.clientHeight);
           plate.current.style.transform = `translate(-50%, -100%) translate(${px.toFixed(1)}px, ${(py - 6).toFixed(1)}px)`;
         }
@@ -737,10 +783,18 @@ export default function GroundShotView({
           className={`trip-ground-nameplate${cpuSide ? " is-cpu" : ""}${plateClickable ? " is-clickable" : ""}`}
           onClick={plateClickable ? onCycleGolfer : undefined}
           tabIndex={plateClickable ? 0 : -1}
-          aria-label={plateClickable ? `${plateName}: tap for the next golfer` : plateName}
+          aria-label={
+            plateClickable ? `${plateName}: tap for the next golfer` : plateName
+          }
         >
           <span>{nameplateOf(plateName)}</span>
-          <small>{cpuSide ? "OPPONENT" : plateClickable ? "TAP TO SWAP" : "YOUR PICK"}</small>
+          <small>
+            {cpuSide
+              ? "OPPONENT"
+              : plateClickable
+                ? "TAP TO SWAP"
+                : "YOUR PICK"}
+          </small>
         </button>
       )}
       <div className="trip-ground-heading">
@@ -755,7 +809,9 @@ export default function GroundShotView({
             ? "FLIGHT CAMERA"
             : "GROUND CAMERA"}{" "}
           · PAR {hole.par}
-          {terrainData.holes.some((entry) => entry.number === hole.number) ? " · LIDAR TERRAIN" : ""}
+          {terrainData.holes.some((entry) => entry.number === hole.number)
+            ? " · LIDAR TERRAIN"
+            : ""}
         </small>
       </div>
       {!shot && (

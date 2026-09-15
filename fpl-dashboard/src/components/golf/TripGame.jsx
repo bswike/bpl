@@ -2834,8 +2834,10 @@ export default function TripGame({ data }) {
           pure: humanTee && latestFx?.tier === "pure",
         });
         if (humanTee && shot.kind !== "putt") {
-          setShakeFx({ amp: Math.round(3 + clamp(kickPower, 0, 1.15) * 5), id: Date.now() });
-          window.setTimeout(() => setShakeFx(null), 320);
+          if (!groundShot) {
+            setShakeFx({ amp: Math.round(3 + clamp(kickPower, 0, 1.15) * 5), id: Date.now() });
+            window.setTimeout(() => setShakeFx(null), 320);
+          }
           // A flushed drive gets the gallery murmuring while it hangs up there.
           if (latestFx?.tier === "pure" || latestFx?.tier === "great") {
             crowdSwell(latestFx.tier === "pure" ? 1 : 0.55);

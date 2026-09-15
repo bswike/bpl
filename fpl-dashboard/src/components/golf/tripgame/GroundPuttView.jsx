@@ -6,6 +6,9 @@ import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { clamp } from "./geometry.js";
 import { PUTT_TICK_UNITS } from "./putting.js";
 import { createCartoonGolfer } from "./cartoonGolfer.js";
+import { createAnimationClock } from "./animationClock.js";
+import { shotPlaybackDuration } from "./groundView.js";
+import { FLIGHT_FRAME_MS } from "./shotTheater.js";
 import "./css/26-ground-putt.css";
 import { nameplateOf } from "./playerLook.js";
 
@@ -102,7 +105,7 @@ export default function GroundPuttView({
     current = useRef(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
-    current.current = { read, shot, phase, frame, aimTicks, side, visible, looks, stamp: performance.now() };
+    current.current = { read, shot, phase, frame, aimTicks, side, visible, looks };
   }, [read, shot, phase, frame, aimTicks, side, visible, looks]);
   useEffect(() => {
     const node = host.current;
@@ -265,8 +268,7 @@ export default function GroundPuttView({
       raf = 0,
       previousTime = 0,
       previousStart = "",
-      strokeKey = "",
-      strokeStarted = 0,
+      previousAim = "",
       lastInfo = null;
     const chaseEye = new THREE.Vector3(),
       chaseTarget = new THREE.Vector3(),
@@ -305,6 +307,7 @@ export default function GroundPuttView({
     };
     renderer.domElement.addEventListener("webglcontextlost", onLost);
 
+    const animationClock = createAnimationClock();
     function draw(now) {
       raf = requestAnimationFrame(draw);
       const delta = Math.min(0.05, Math.max(0, (now - previousTime) / 1000));
@@ -312,6 +315,11 @@ export default function GroundPuttView({
       const s = current.current;
       if (!s?.visible || document.hidden) return;
       const preview = !s.shot;
+      const animation = animationClock(s, now, {
+        frameMs: FLIGHT_FRAME_MS,
+        swingMs: shotPlaybackDuration({kind: "putt"}, "swing", true),
+        reduced: reduced.matches,
+      });
       // Between strokes the last read holds the frame rather than a blank.
       const info = (preview ? s.read : s.shot?.putt) || lastInfo;
       if (!info) return;
@@ -341,12 +349,12 @@ export default function GroundPuttView({
               (start[1] + end[1]) / 2 + 2,
             ];
       const lastFrame = Math.max(1, (s.shot?.frames?.length || 8) - 1);
-      const t = preview || s.phase === "swing" ? 0 : s.phase === "flight" ? clamp((s.frame || 0) / lastFrame, 0, 1) : 1;
+      const t = preview || s.phase === "swing" ? 0 : clamp(animation.progress / lastFrame, 0, 1);
       const eased = 1 - Math.pow(1 - t, 1.75 + slope * 0.45);
       const scenePos = quadPoint(start, control, end, eased);
       const [bx, bz] = toWorld(scenePos);
       const dropped = !preview && s.shot?.final && s.phase === "settle";
-      const sink = dropped ? Math.min(1, (now - s.stamp) / 400) * 1.2 : 0;
+      const sink = dropped ? Math.min(1, animation.elapsed / 400) * 1.2 : 0;
       ball.position.set(bx, heightAt(bx, bz) + 0.3 - sink, bz);
       ball.visible = !(dropped && sink >= 1.2);
 
@@ -377,14 +385,18 @@ export default function GroundPuttView({
       if (aimShown) {
         const [sx, sz] = toWorld(start);
         const [ax, az] = toWorld(aimTarget);
-        const pts = [];
-        for (let i = 0; i <= 24; i++) {
-          const x = sx + ((ax - sx) * i) / 24,
-            z = sz + ((az - sz) * i) / 24;
-          pts.push(new THREE.Vector3(x, heightAt(x, z) + 0.3, z));
+        const aimKey = `${sx}|${sz}|${ax}|${az}|${surfaceKey}`;
+        if (aimKey !== previousAim) {
+          previousAim = aimKey;
+          const pts = [];
+          for (let i = 0; i <= 24; i++) {
+            const x = sx + ((ax - sx) * i) / 24,
+              z = sz + ((az - sz) * i) / 24;
+            pts.push(new THREE.Vector3(x, heightAt(x, z) + 0.3, z));
+          }
+          aimGeometry.setFromPoints(pts);
+          aimLine.computeLineDistances();
         }
-        aimGeometry.setFromPoints(pts);
-        aimLine.computeLineDistances();
         aimMarker.position.set(ax, heightAt(ax, az) + 0.6, az);
         aimMarker.rotation.y = now / 900;
       }
@@ -442,20 +454,7 @@ export default function GroundPuttView({
       const look = s.side === "cpu" ? s.looks?.cpu : s.looks?.human;
       golfer.dress(look, s.side === "cpu" ? "#3973a6" : "#b94836");
       golfer.group.scale.y = 3.1 * (look?.tall ? 1.06 : 1);
-      const thisStroke = `${s.shot ? "shot" : "read"}|${s.phase}`;
-      if (thisStroke !== strokeKey) {
-        strokeKey = thisStroke;
-        strokeStarted = now;
-      }
-      const strokeElapsed = (now - strokeStarted) / 600;
-      // A putting stroke is a short takeaway and a smooth release.
-      const strokeTime =
-        !s.shot || reduced.matches
-          ? 0
-          : s.phase === "swing"
-            ? Math.min(0.24, strokeElapsed < 0.5 ? strokeElapsed * 0.48 : 0.24 - (strokeElapsed - 0.5) * 0.48)
-            : 0;
-      golfer.pose(Math.max(0, strokeTime), !s.shot && !reduced.matches ? Math.sin(now * 0.0018) * 0.008 : 0);
+      golfer.pose(animation.poseTime, !s.shot && !reduced.matches ? Math.sin(now * 0.0018) * 0.008 : 0, "putt");
       chaseTarget.set(lookX, heightAt(lookX, lookZ) + 0.5, lookZ);
       const startKey = `${sx.toFixed(1)},${sz.toFixed(1)}`;
       if (startKey !== previousStart || reduced.matches) {

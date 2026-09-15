@@ -5,6 +5,17 @@ export const GROUND_FLIGHT_FRAME_MS = 145;
 // Keep the 3D theater in the same horizontal coordinates as the game.
 // Airborne shots bridge launch/landing elevation; rollout follows the surface.
 const flatGround = () => 0;
+const flightEnds = new WeakMap();
+function flightEnd(shot) {
+  if (!flightEnds.has(shot)) {
+    const firstRoll = shot.frames.findIndex((f) => f.rolling);
+    flightEnds.set(
+      shot,
+      firstRoll < 0 ? shot.frames.length - 1 : firstRoll - 1,
+    );
+  }
+  return flightEnds.get(shot);
+}
 export function groundShotPoint(shot, progress, heightAt = flatGround) {
   const frames = shot?.frames || [];
   if (!frames.length) {
@@ -15,25 +26,52 @@ export function groundShotPoint(shot, progress, heightAt = flatGround) {
   const a = frames[Math.floor(index)];
   const b = frames[Math.min(frames.length - 1, Math.floor(index) + 1)];
   const t = index % 1;
-  const x = a.gx + (b.gx - a.gx) * t;
-  const z = a.gy + (b.gy - a.gy) * t;
+  let x = a.gx + (b.gx - a.gx) * t;
+  let z = a.gy + (b.gy - a.gy) * t;
   const from = shot.from || [frames[0].gx, frames[0].gy];
   const end = shot.carryTo || shot.to || [frames.at(-1).gx, frames.at(-1).gy];
   const dx = end[0] - from[0],
     dz = end[1] - from[1];
-  const fraction = Math.max(
+  let fraction = Math.max(
     0,
     Math.min(
       1,
       ((x - from[0]) * dx + (z - from[1]) * dz) / (dx * dx + dz * dz || 1),
     ),
   );
+  let lift = (a.lift + (b.lift - a.lift) * t) * 0.55;
+  const landingFrame = flightEnd(shot);
+  if (
+    shot.air &&
+    shot.control &&
+    Number.isFinite(shot.apex) &&
+    landingFrame > 0 &&
+    index <= landingFrame
+  ) {
+    // Evaluate the actual Bezier and parabola, not straight segments between
+    // sparse game frames. This preserves both the scored path and its tangent.
+    fraction = index / landingFrame;
+    const u = 1 - fraction;
+    x =
+      u * u * from[0] +
+      2 * u * fraction * shot.control[0] +
+      fraction * fraction * end[0];
+    z =
+      u * u * from[1] +
+      2 * u * fraction * shot.control[1] +
+      fraction * fraction * end[1];
+    lift = 4 * fraction * u * shot.apex * 0.55;
+  } else if (index > landingFrame && shot.air && shot.control) {
+    const roll = (index - landingFrame) / (frames.length - 1 - landingFrame);
+    const eased = 1 - (1 - roll) ** 1.7;
+    x = end[0] + (shot.to[0] - end[0]) * eased;
+    z = end[1] + (shot.to[1] - end[1]) * eased;
+  }
   const ground = heightAt(x, z);
   const baseline =
-    a.rolling || !shot.air
+    index > landingFrame || !shot.air
       ? ground
       : heightAt(...from) + (heightAt(...end) - heightAt(...from)) * fraction;
-  const lift = (a.lift + (b.lift - a.lift) * t) * 0.55;
   return [x, 0.12 + Math.max(ground, baseline + lift), z];
 }
 
@@ -106,7 +144,13 @@ export function flightCameraFrame(shot, progress, base, heightAt = flatGround) {
 export function shotPlaybackDuration(shot, phase, ground = false) {
   const groundShot = ground && shot.kind !== "putt";
   if (phase === "swing")
-    return shot.kind === "putt" ? 320 : groundShot ? 700 : 420;
+    return shot.kind === "putt"
+      ? 480
+      : groundShot
+        ? shot.kind === "chip" || shot.kind === "punch"
+          ? 720
+          : 960
+        : 420;
   if (phase === "flight")
     return groundShot ? GROUND_FLIGHT_FRAME_MS : FLIGHT_FRAME_MS;
   return shot.kind === "splash"

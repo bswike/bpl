@@ -36,11 +36,12 @@ export function createCartoonGolfer(scene) {
     return m;
   }
   const up = new THREE.Vector3(0, 1, 0),
-    delta = new THREE.Vector3();
+    delta = new THREE.Vector3(),
+    direction = new THREE.Vector3();
   function link(mesh, a, b) {
     delta.copy(b).sub(a);
     mesh.position.copy(a).add(b).multiplyScalar(0.5);
-    mesh.quaternion.setFromUnitVectors(up, delta.clone().normalize());
+    mesh.quaternion.setFromUnitVectors(up, direction.copy(delta).normalize());
     mesh.scale.set(
       mesh.userData.radius,
       delta.length() / 3,
@@ -137,6 +138,7 @@ export function createCartoonGolfer(scene) {
   shaft.castShadow = true;
   const grip = limb(dark, 0.032);
   const clubhead = blob(group, dark, [0, 0, 0], [0.135, 0.075, 0.11]);
+  clubhead.name = "clubhead";
   const shoulder = new THREE.Vector3(),
     hand = new THREE.Vector3(),
     elbow = new THREE.Vector3(),
@@ -144,12 +146,19 @@ export function createCartoonGolfer(scene) {
     axis = new THREE.Vector3();
   const hip = new THREE.Vector3(),
     knee = new THREE.Vector3(),
-    ankle = new THREE.Vector3();
-  function pose(time, idle = 0) {
-    const p = golferPose(time);
+    ankle = new THREE.Vector3(),
+    clubEnd = new THREE.Vector3(),
+    gripEnd = new THREE.Vector3();
+  function pose(time, idle = 0, kind = "drive") {
+    const p = golferPose(time, kind);
     torso.position.set(p.shift, 1.16 + idle, 0);
     torso.rotation.set(-p.lean * 1.6, p.turn, 0);
-    head.rotation.set(-0.16, -p.turn * 0.58, -p.shift * 0.3);
+    const watch = Math.max(0, Math.min(1, (time - 1.12) / 0.65));
+    head.rotation.set(
+      -0.16 + watch * 0.14,
+      -p.turn * (0.58 - watch * 0.24),
+      -p.shift * 0.3,
+    );
     torso.updateMatrix();
     legs.forEach((leg, i) => {
       const side = leg.side,
@@ -161,8 +170,14 @@ export function createCartoonGolfer(scene) {
       link(leg.calf, knee, ankle);
       leg.knee.position.copy(knee);
       leg.sock.position.copy(ankle);
-      shoes[i].position.set(side * 0.24, heel * 0.4, 0);
-      shoes[i].rotation.x = -heel * 2.5;
+      // Pivot around the toe, keeping the planted toe from sliding upward.
+      const footAngle = -heel * 2.5;
+      shoes[i].position.set(
+        side * 0.24,
+        -Math.sin(footAngle) * 0.24,
+        (Math.cos(footAngle) - 1) * 0.24,
+      );
+      shoes[i].rotation.x = footAngle;
       shoes[i].rotation.y = p.turn * (side > 0 ? 0.35 : 0.12);
     });
     arms.forEach((a) => {
@@ -192,13 +207,18 @@ export function createCartoonGolfer(scene) {
     });
     hand.set(p.hands[2], p.hands[1], -p.hands[0]);
     delta.set(p.club[2], p.club[1], -p.club[0]).normalize();
-    const end = hand.clone().addScaledVector(delta, 1.05);
+    const end = clubEnd.copy(hand).addScaledVector(delta, 1.05);
     shaft.position.copy(hand).add(end).multiplyScalar(0.5);
     shaft.quaternion.setFromUnitVectors(up, delta);
     shaft.scale.y = 1.05;
-    link(grip, hand, hand.clone().addScaledVector(delta, 0.19));
+    link(grip, hand, gripEnd.copy(hand).addScaledVector(delta, 0.19));
     clubhead.position.copy(end);
-    clubhead.rotation.set(0, p.turn, 0.1);
+    clubhead.quaternion.copy(shaft.quaternion);
+    clubhead.scale.set(
+      kind === "putt" ? 0.16 : 0.135,
+      kind === "putt" ? 0.045 : 0.075,
+      kind === "putt" ? 0.06 : 0.11,
+    );
   }
   pose(0);
   // Team colour lives on the cap; the rest takes each golfer's own look.
