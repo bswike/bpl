@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { mappedWoodland } from "./woodland.js";
+import { createNaturalWoodland } from "./woodlandRenderer.js";
+import terrainData from "./data/blackBearTerrain.json";
+import { createTerrainSampler } from "./elevationTerrain.js";
 import ElevationProfile from "./ElevationProfile.jsx";
 import * as THREE from "three";
 import { Line2 } from "three/addons/lines/Line2.js";
@@ -82,66 +86,90 @@ function courseTexture(projection) {
   return { texture, extent };
 }
 
-function createCourse(scene, projection, holeNumber) {
+function createCourse(scene, projection, holeNumber, heightAt, surveyed) {
   const { texture, extent } = courseTexture(projection);
+  const segments = surveyed ? Math.ceil(extent / 3) : 1;
+  const surface = new THREE.PlaneGeometry(extent, extent, segments, segments);
+  surface.rotateX(-Math.PI / 2);
+  const positions = surface.attributes.position;
+  for (let i = 0; i < positions.count; i++) {
+    positions.setY(
+      i,
+      heightAt(
+        positions.getX(i) + projection.width / 2,
+        positions.getZ(i) + projection.height / 2,
+      ),
+    );
+  }
+  surface.computeVertexNormals();
   const turf = new THREE.Mesh(
-    new THREE.PlaneGeometry(extent, extent),
+    surface,
     new THREE.MeshStandardMaterial({ map: texture, roughness: 1 }),
   );
-  turf.rotation.x = -Math.PI / 2;
   turf.position.set(projection.width / 2, 0, projection.height / 2);
   turf.receiveShadow = true;
   scene.add(turf);
-  const trees = [
-    ...(projection.trees || buildTreeSprites(projection, holeNumber)),
-    ...buildCourseWoodland(projection, holeNumber),
-  ];
-  const trunk = new THREE.InstancedMesh(
-    new THREE.CylinderGeometry(0.28, 0.48, 1, 5),
-    new THREE.MeshStandardMaterial({ color: "#675444", roughness: 1 }),
-    trees.length,
-  );
-  const crowns = new THREE.InstancedMesh(
-    new THREE.IcosahedronGeometry(1, 1),
-    new THREE.MeshStandardMaterial({
-      color: "#ffffff",
-      roughness: 1,
-      flatShading: true,
-    }),
-    trees.length * 3,
-  );
-  const matrix = new THREE.Object3D();
-  trees.forEach((tree, i) => {
-    const height = tree.size * 1.8;
-    matrix.position.set(tree.x, height * 0.3, tree.y);
-    matrix.scale.set(1, height * 0.6, 1);
-    matrix.updateMatrix();
-    trunk.setMatrixAt(i, matrix.matrix);
-    for (let j = 0; j < 3; j++) {
-      matrix.position.set(
-        tree.x + (j - 1) * tree.size * 0.28,
-        height * (0.65 + j * 0.08),
-        tree.y + Math.sin(i + j) * tree.size * 0.25,
-      );
-      matrix.scale.set(tree.size * 0.55, height * 0.33, tree.size * 0.52);
-      matrix.rotation.y = i * 2.1 + j;
+  let disposeWoodland = () => {};
+  if (surveyed) {
+    disposeWoodland = createNaturalWoodland(
+      scene,
+      mappedWoodland(projection, holeNumber),
+      heightAt,
+      projection.tee,
+    );
+  } else {
+    const trees = [
+      ...(projection.trees || buildTreeSprites(projection, holeNumber)),
+      ...buildCourseWoodland(projection, holeNumber),
+    ];
+    const trunk = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.28, 0.48, 1, 5),
+      new THREE.MeshStandardMaterial({ color: "#675444", roughness: 1 }),
+      trees.length,
+    );
+    const crowns = new THREE.InstancedMesh(
+      new THREE.IcosahedronGeometry(1, 1),
+      new THREE.MeshStandardMaterial({
+        color: "#ffffff",
+        roughness: 1,
+        flatShading: true,
+      }),
+      trees.length * 3,
+    );
+    const matrix = new THREE.Object3D();
+    trees.forEach((tree, i) => {
+      const height = tree.size * 1.8;
+      const ground = heightAt(tree.x, tree.y);
+      matrix.position.set(tree.x, ground + height * 0.3, tree.y);
+      matrix.scale.set(1, height * 0.6, 1);
       matrix.updateMatrix();
-      crowns.setMatrixAt(i * 3 + j, matrix.matrix);
-      crowns.setColorAt(
-        i * 3 + j,
-        new THREE.Color().setHSL(
-          0.23 + seededUnit(i + holeNumber) * 0.06,
-          0.32,
-          0.22 + seededUnit(i * 7 + j) * 0.13,
-        ),
-      );
-    }
-  });
-  crowns.castShadow = true;
-  trunk.castShadow = true;
-  scene.add(trunk, crowns);
+      trunk.setMatrixAt(i, matrix.matrix);
+      for (let j = 0; j < 3; j++) {
+        matrix.position.set(
+          tree.x + (j - 1) * tree.size * 0.28,
+          ground + height * (0.65 + j * 0.08),
+          tree.y + Math.sin(i + j) * tree.size * 0.25,
+        );
+        matrix.scale.set(tree.size * 0.55, height * 0.33, tree.size * 0.52);
+        matrix.rotation.y = i * 2.1 + j;
+        matrix.updateMatrix();
+        crowns.setMatrixAt(i * 3 + j, matrix.matrix);
+        crowns.setColorAt(
+          i * 3 + j,
+          new THREE.Color().setHSL(
+            0.23 + seededUnit(i + holeNumber) * 0.06,
+            0.32,
+            0.22 + seededUnit(i * 7 + j) * 0.13,
+          ),
+        );
+      }
+    });
+    crowns.castShadow = true;
+    trunk.castShadow = true;
+    scene.add(trunk, crowns);
+  }
   // Distant wooded ridges are scenery, never gameplay or surveyed topography.
-  for (let i = 0; i < 26; i++) {
+  for (let i = 0; i < (surveyed ? 0 : 26); i++) {
     const a = (i / 26) * Math.PI * 2,
       radius = extent * 0.85;
     const hill = new THREE.Mesh(
@@ -160,7 +188,11 @@ function createCourse(scene, projection, holeNumber) {
     scene.add(hill);
   }
   const pin = new THREE.Group();
-  pin.position.set(projection.pin[0], 0, projection.pin[1]);
+  pin.position.set(
+    projection.pin[0],
+    heightAt(...projection.pin),
+    projection.pin[1],
+  );
   const pole = new THREE.Mesh(
     new THREE.CylinderGeometry(0.045, 0.045, 3.4, 6),
     new THREE.MeshStandardMaterial({ color: "#fff7de" }),
@@ -176,7 +208,7 @@ function createCourse(scene, projection, holeNumber) {
   flag.position.set(0.6, 3.05, 0);
   pin.add(pole, flag);
   scene.add(pin);
-  return texture;
+  return { texture, disposeWoodland };
 }
 
 function createGolfer(scene) {
@@ -357,7 +389,15 @@ export default function GroundShotView({
     sun.shadow.bias = -0.001;
     sun.target.position.set(projection.width / 2, 0, projection.height / 2);
     scene.add(sun, sun.target);
-    const texture = createCourse(scene, projection, holeNumber);
+    const grid = terrainData.holes.find((entry) => entry.number === holeNumber);
+    const heightAt = createTerrainSampler(projection, grid);
+    const { texture, disposeWoodland } = createCourse(
+      scene,
+      projection,
+      holeNumber,
+      heightAt,
+      Boolean(grid),
+    );
     const golfer = createGolfer(scene);
     const ball = new THREE.Mesh(
       new THREE.SphereGeometry(0.085, 12, 8),
@@ -372,7 +412,7 @@ export default function GroundShotView({
         linewidth: 3,
         transparent: true,
         opacity: 0.92,
-        depthTest: false,
+        depthTest: Boolean(grid),
       }),
     );
     tracer.renderOrder = 5;
@@ -424,18 +464,28 @@ export default function GroundShotView({
         base = groundCameraFrame(
           from,
           s.shot?.carryTo || s.shot?.to || projection.pin,
+          heightAt,
         );
         camera.position.fromArray(base.eye);
         const peakAngle = Math.max(
           0,
-          ...(s.shot?.frames || []).map((f) =>
+          ...(s.shot?.frames || []).map((f, index) =>
             Math.atan2(
-              f.lift * 0.55 - base.eye[1],
+              groundShotPoint(s.shot, index, heightAt)[1] - base.eye[1],
               Math.hypot(f.gx - base.eye[0], f.gy - base.eye[2]),
             ),
           ),
         );
-        const pitch = Math.max(0.06, peakAngle * 0.35);
+        const terrainPitch = Math.atan2(
+          heightAt(...(s.shot?.carryTo || projection.pin)) + 3 - base.eye[1],
+          Math.hypot(
+            (s.shot?.carryTo || projection.pin)[0] - from[0],
+            (s.shot?.carryTo || projection.pin)[1] - from[1],
+          ),
+        );
+        const pitch = grid
+          ? Math.max(terrainPitch, s.shot ? peakAngle * 0.35 : terrainPitch)
+          : Math.max(0.06, peakAngle * 0.35);
         base.target[1] = base.eye[1] + Math.tan(pitch) * 74;
         camera.fov = Math.max(
           55,
@@ -451,7 +501,10 @@ export default function GroundShotView({
         camera.lookAt(...base.target);
         golfer.group.position.set(
           from[0] + base.direction[1] * 0.9,
-          0,
+          heightAt(
+            from[0] + base.direction[1] * 0.9,
+            from[1] - base.direction[0] * 0.9,
+          ),
           from[1] - base.direction[0] * 0.9,
         );
         golfer.group.rotation.y = Math.atan2(
@@ -460,10 +513,13 @@ export default function GroundShotView({
         );
         golfer.shirt.color.set(s.shot?.side === "cpu" ? "#3973a6" : "#b94836");
         const end = s.shot?.carryTo || projection.pin;
-        ghostGeometry.setFromPoints([
-          new THREE.Vector3(from[0], 0.15, from[1]),
-          new THREE.Vector3(end[0], 0.15, end[1]),
-        ]);
+        ghostGeometry.setFromPoints(
+          Array.from({ length: 81 }, (_, i) => {
+            const x = from[0] + ((end[0] - from[0]) * i) / 80;
+            const z = from[1] + ((end[1] - from[1]) * i) / 80;
+            return new THREE.Vector3(x, heightAt(x, z) + 0.18, z);
+          }),
+        );
         ghost.computeLineDistances();
       }
       const last = Math.max(0, (s.shot?.frames?.length || 1) - 1);
@@ -480,8 +536,8 @@ export default function GroundShotView({
               )
             : 0;
       const point = s.shot
-        ? groundShotPoint(s.shot, progress)
-        : [from[0], 0.12, from[1]];
+        ? groundShotPoint(s.shot, progress, heightAt)
+        : [from[0], heightAt(...from) + 0.12, from[1]];
       ball.position.fromArray(point);
       // Keep the camera at human height. A restrained pan follows the ball;
       // it never turns into an overhead or chase camera.
@@ -501,7 +557,7 @@ export default function GroundShotView({
       const trail = [];
       if (s.shot && progress > 0) {
         for (let t = 0; t < progress; t += 0.2)
-          trail.push(...groundShotPoint(s.shot, t));
+          trail.push(...groundShotPoint(s.shot, t, heightAt));
         trail.push(...point);
       }
       tracer.visible = trail.length >= 6;
@@ -550,6 +606,7 @@ export default function GroundShotView({
           : [obj.material];
         materials.forEach((m) => m?.dispose());
       });
+      disposeWoodland();
       texture.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
@@ -570,7 +627,10 @@ export default function GroundShotView({
       <div className="trip-ground-heading">
         <span>BLACK BEAR / {String(hole.number).padStart(2, "0")}</span>
         <b>From the fairway</b>
-        <small>GROUND CAMERA · PAR {hole.par}</small>
+        <small>
+          GROUND CAMERA · PAR {hole.par}
+          {hole.number <= 3 ? " · LIDAR TERRAIN" : ""}
+        </small>
       </div>
       {!shot && (
         <ElevationProfile holeNumber={hole.number} teeYards={hole.yards} />

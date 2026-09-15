@@ -1,3 +1,5 @@
+import { mappedWoodland } from "./woodland.js";
+
 // OSM geometry -> hole projection (SVG space, pin up, trees, hazards).
 
 import {
@@ -283,10 +285,15 @@ export function projectHole(geometry, hole, options = {}) {
     hazardLabel,
     hazardSeverity,
     ...routeShape,
+    georeference: { tee: teeRaw, cos, sin, minX, maxY, metersPerDegreeLng },
     official: sourceHole,
     teeYards: Number(tripTee?.yards) || null,
     elevation: Number(sourceHole.elevM) || null,
     source: "OpenStreetMap / ODbL",
   };
+  if (geometry.course === "Black Bear GC" && hole.number <= 3) {
+    const trees = mappedWoodland(projected, hole.number).filter(t => t.x >= 0 && t.x <= width && t.y >= 0 && t.y <= height);
+    return { ...projected, trees };
+  }
   return withTrees(projected, hole.number);
 }

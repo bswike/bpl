@@ -3,19 +3,38 @@ import { FLIGHT_FRAME_MS } from "./shotTheater.js";
 export const GROUND_FLIGHT_FRAME_MS = 145;
 
 // Keep the 3D theater in the same horizontal coordinates as the game.
-// Height is illustrative: the source course polygons contain no elevation.
-export function groundShotPoint(shot, progress) {
+// Airborne shots bridge launch/landing elevation; rollout follows the surface.
+const flatGround = () => 0;
+export function groundShotPoint(shot, progress, heightAt = flatGround) {
   const frames = shot?.frames || [];
-  if (!frames.length) return [shot?.from?.[0] || 0, 0.12, shot?.from?.[1] || 0];
+  if (!frames.length) {
+    const [x, z] = shot?.from || [0, 0];
+    return [x, heightAt(x, z) + 0.12, z];
+  }
   const index = Math.max(0, Math.min(frames.length - 1, progress));
   const a = frames[Math.floor(index)];
   const b = frames[Math.min(frames.length - 1, Math.floor(index) + 1)];
   const t = index % 1;
-  return [
-    a.gx + (b.gx - a.gx) * t,
-    0.12 + (a.lift + (b.lift - a.lift) * t) * 0.55,
-    a.gy + (b.gy - a.gy) * t,
-  ];
+  const x = a.gx + (b.gx - a.gx) * t;
+  const z = a.gy + (b.gy - a.gy) * t;
+  const from = shot.from || [frames[0].gx, frames[0].gy];
+  const end = shot.carryTo || shot.to || [frames.at(-1).gx, frames.at(-1).gy];
+  const dx = end[0] - from[0],
+    dz = end[1] - from[1];
+  const fraction = Math.max(
+    0,
+    Math.min(
+      1,
+      ((x - from[0]) * dx + (z - from[1]) * dz) / (dx * dx + dz * dz || 1),
+    ),
+  );
+  const ground = heightAt(x, z);
+  const baseline =
+    a.rolling || !shot.air
+      ? ground
+      : heightAt(...from) + (heightAt(...end) - heightAt(...from)) * fraction;
+  const lift = (a.lift + (b.lift - a.lift) * t) * 0.55;
+  return [x, 0.12 + Math.max(ground, baseline + lift), z];
 }
 
 export function groundShotShape(shot) {
@@ -30,13 +49,15 @@ export function groundShotShape(shot) {
   return Math.abs(bend) < 0.6 ? "straight" : bend > 0 ? "draw" : "cut";
 }
 
-export function groundCameraFrame(from, to) {
+export function groundCameraFrame(from, to, heightAt = flatGround) {
   const distance = Math.hypot(to[0] - from[0], to[1] - from[1]) || 1;
   const dx = (to[0] - from[0]) / distance,
     dz = (to[1] - from[1]) / distance;
+  const eyeX = from[0] - dx * 9 - dz * 2.8,
+    eyeZ = from[1] - dz * 9 + dx * 2.8;
   return {
-    eye: [from[0] - dx * 9 - dz * 2.8, 3.1, from[1] - dz * 9 + dx * 2.8],
-    target: [from[0] + dx * 65, 5, from[1] + dz * 65],
+    eye: [eyeX, Math.max(heightAt(eyeX, eyeZ), heightAt(...from)) + 3.1, eyeZ],
+    target: [from[0] + dx * 65, heightAt(...from) + 5, from[1] + dz * 65],
     direction: [dx, dz],
   };
 }
