@@ -617,6 +617,7 @@ function HoleMap({
   puttInfo = null,
   onGreen = false,
   golferNames = null,
+  golferLooks = null,
   onCycleGolfer = null,
   playerHi = 12,
   onAimStep,
@@ -1338,7 +1339,7 @@ function HoleMap({
           <GroundShotView projection={projection} hole={hole} shot={activeShot}
             phase={playback?.phase} frame={playback?.frame || 0} visible={groundView}
             origin={livePos || projection.tee} shape={decision.shape} plan={groundPlan} onUnavailable={onGroundUnavailable}
-            names={golferNames} onCycleGolfer={onCycleGolfer} />
+            names={golferNames} looks={golferLooks} onCycleGolfer={onCycleGolfer} />
         </Suspense>
       )}
       {playback && activeShot?.kind === "putt" && (
@@ -1356,6 +1357,7 @@ function HoleMap({
             visible={groundPutt}
             holeNumber={hole.number}
             names={golferNames}
+            looks={golferLooks}
             onCycleGolfer={onCycleGolfer}
             onUnavailable={onGroundUnavailable}
           />
@@ -3210,6 +3212,12 @@ export default function TripGame({ data }) {
     pickPlayer(pool[(index + 1) % pool.length]);
   }
 
+  // The 3D golfer wears the same look as the portrait in the header.
+  const golferLooks = useMemo(
+    () => ({ human: playerLook(selected), cpu: playerLook(cpuOpponent?.profile) }),
+    [selected, cpuOpponent],
+  );
+
   function stepAim(direction) {
     if (!selected || result || resolutionPhase !== "idle" || meterPhase) return;
     setDecision((current) => ({
@@ -4415,6 +4423,7 @@ export default function TripGame({ data }) {
                 }
                 onGreen={swingMode === "full" && !result && liveRef.current?.feet != null}
                 golferNames={{ human: selected?.name || null, cpu: cpuOpponent?.profile?.name || null }}
+                golferLooks={golferLooks}
                 onCycleGolfer={
                   !pickLocked && !meterPhase && resolutionPhase === "idle" && !result ? cycleGolfer : null
                 }

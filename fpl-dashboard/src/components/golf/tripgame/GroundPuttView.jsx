@@ -93,6 +93,7 @@ export default function GroundPuttView({
   visible = false,
   holeNumber = 1,
   names = null,
+  looks = null,
   onCycleGolfer = null,
   onUnavailable,
 }) {
@@ -101,8 +102,8 @@ export default function GroundPuttView({
     current = useRef(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
-    current.current = { read, shot, phase, frame, aimTicks, side, visible, stamp: performance.now() };
-  }, [read, shot, phase, frame, aimTicks, side, visible]);
+    current.current = { read, shot, phase, frame, aimTicks, side, visible, looks, stamp: performance.now() };
+  }, [read, shot, phase, frame, aimTicks, side, visible, looks]);
   useEffect(() => {
     const node = host.current;
     if (!node) return undefined;
@@ -438,7 +439,9 @@ export default function GroundPuttView({
         gz = sz - ux * 3.2;
       golfer.group.position.set(gx, heightAt(gx, gz), gz);
       golfer.group.rotation.y = Math.atan2(-ux, -uz);
-      golfer.shirt.color.set(s.side === "cpu" ? "#3973a6" : "#b94836");
+      const look = s.side === "cpu" ? s.looks?.cpu : s.looks?.human;
+      golfer.dress(look, s.side === "cpu" ? "#3973a6" : "#b94836");
+      golfer.group.scale.y = 3.1 * (look?.tall ? 1.06 : 1);
       const thisStroke = `${s.shot ? "shot" : "read"}|${s.phase}`;
       if (thisStroke !== strokeKey) {
         strokeKey = thisStroke;

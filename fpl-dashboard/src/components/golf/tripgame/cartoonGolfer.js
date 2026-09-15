@@ -11,6 +11,7 @@ export function createCartoonGolfer(scene) {
     new THREE.MeshStandardMaterial({ color, roughness });
   const skin = material("#eab58a"),
     shirt = material("#c9473c"),
+    cap = material("#c9473c"),
     pants = material("#e8dbc0"),
     white = material("#fff5e4"),
     dark = material("#293546"),
@@ -95,8 +96,8 @@ export function createCartoonGolfer(scene) {
     hair,
   );
   head.add(mouth);
-  blob(head, shirt, [0, 0.225, 0.015], [0.315, 0.155, 0.29]);
-  blob(head, shirt, [0, 0.19, -0.205], [0.32, 0.038, 0.245]);
+  blob(head, cap, [0, 0.225, 0.015], [0.315, 0.155, 0.29]);
+  blob(head, cap, [0, 0.19, -0.205], [0.32, 0.038, 0.245]);
   blob(head, white, [0, 0.258, -0.251], [0.048, 0.042, 0.015]);
   const shoes = [],
     legs = [];
@@ -200,5 +201,12 @@ export function createCartoonGolfer(scene) {
     clubhead.rotation.set(0, p.turn, 0.1);
   }
   pose(0);
-  return { group: placement, shirt, pose };
+  // Team colour lives on the cap; the rest takes each golfer's own look.
+  function dress(look, teamColor) {
+    cap.color.set(look?.visor ? "#fff5e4" : teamColor);
+    shirt.color.set(look?.shirt || teamColor);
+    skin.color.set(look?.skin || "#eab58a");
+    pants.color.set(look?.legs || "#e8dbc0");
+  }
+  return { group: placement, shirt, cap, skin, pants, pose, dress };
 }

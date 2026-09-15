@@ -259,6 +259,7 @@ export default function GroundShotView({
   shape = "straight",
   plan = null,
   names = null,
+  looks = null,
   onCycleGolfer = null,
   onUnavailable,
 }) {
@@ -277,9 +278,10 @@ export default function GroundShotView({
       origin,
       shape,
       plan,
+      looks,
       stamp: performance.now(),
     };
-  }, [shot, phase, frame, visible, origin, shape, plan]);
+  }, [shot, phase, frame, visible, origin, shape, plan, looks]);
   useEffect(() => {
     const node = host.current;
     if (!node) return;
@@ -531,7 +533,8 @@ export default function GroundShotView({
           -base.direction[0],
           -base.direction[1],
         );
-        golfer.shirt.color.set(s.shot?.side === "cpu" ? "#3973a6" : "#b94836");
+        golfer.dress(s.shot?.side === "cpu" ? s.looks?.cpu : s.looks?.human, s.shot?.side === "cpu" ? "#3973a6" : "#b94836");
+        golfer.group.scale.y = (s.shot?.side === "cpu" ? s.looks?.cpu : s.looks?.human)?.tall ? 1.06 : 1;
         const end = s.shot?.carryTo || projection.pin;
         ghostGeometry.setFromPoints(
           Array.from({ length: 81 }, (_, i) => {
