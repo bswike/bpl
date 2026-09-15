@@ -13,6 +13,7 @@ import { seededUnit } from "./geometry.js";
 import {
   GROUND_FLIGHT_FRAME_MS,
   groundCameraFrame,
+  flightCameraFrame,
   groundShotPoint,
   groundShotShape,
 } from "./groundView.js";
@@ -434,7 +435,13 @@ export default function GroundShotView({
     let raf = 0,
       previousShot = null,
       base = null,
-      previousOrigin = null;
+      previousOrigin = null,
+      previousTime = 0,
+      launchFov = 55;
+    const chaseTarget = new THREE.Vector3();
+    const chaseEye = new THREE.Vector3();
+    const desiredRotation = new THREE.Quaternion();
+    const lookMatrix = new THREE.Matrix4();
     const resize = () => {
       const { width, height } = node.getBoundingClientRect();
       if (width && height) {
@@ -455,6 +462,8 @@ export default function GroundShotView({
     renderer.domElement.addEventListener("webglcontextlost", onLost);
     function draw(now) {
       raf = requestAnimationFrame(draw);
+      const delta = Math.min(0.05, Math.max(0, (now - previousTime) / 1000));
+      previousTime = now;
       const s = current.current;
       if (!s?.visible || document.hidden) return;
       const from = s.shot?.from || s.origin || projection.tee;
@@ -497,6 +506,7 @@ export default function GroundShotView({
             ),
           ),
         );
+        launchFov = camera.fov;
         camera.updateProjectionMatrix();
         camera.lookAt(...base.target);
         golfer.group.position.set(
@@ -539,21 +549,32 @@ export default function GroundShotView({
         ? groundShotPoint(s.shot, progress, heightAt)
         : [from[0], heightAt(...from) + 0.12, from[1]];
       ball.position.fromArray(point);
-      // Keep the camera at human height. A restrained pan follows the ball;
-      // it never turns into an overhead or chase camera.
-      if (s.phase === "flight" && !reduced.matches) {
-        const target = new THREE.Vector3(...base.target).lerp(
-          new THREE.Vector3(...point),
-          Math.min(0.18, (progress / Math.max(1, last)) * 0.18),
+      if (
+        s.shot?.air &&
+        (s.phase === "flight" || s.phase === "settle") &&
+        !reduced.matches
+      ) {
+        const follow = flightCameraFrame(s.shot, progress, base, heightAt);
+        chaseEye.fromArray(follow.eye);
+        camera.position.lerp(chaseEye, 1 - Math.exp(-5 * delta));
+        camera.position.y = Math.max(
+          camera.position.y,
+          heightAt(camera.position.x, camera.position.z) + 3.1,
         );
-        target.y = base.target[1];
-        camera.lookAt(target);
+        chaseTarget.fromArray(follow.target);
+        lookMatrix.lookAt(camera.position, chaseTarget, camera.up);
+        desiredRotation.setFromRotationMatrix(lookMatrix);
+        camera.quaternion.slerp(desiredRotation, 1 - Math.exp(-9 * delta));
+        const fov = launchFov + (58 - launchFov) * follow.blend;
+        camera.fov += (fov - camera.fov) * (1 - Math.exp(-4 * delta));
+        camera.updateProjectionMatrix();
       }
       const apparent = Math.max(
         1,
-        camera.position.distanceTo(ball.position) / 35,
+        camera.position.distanceTo(ball.position) / 14,
       );
       ball.scale.setScalar(apparent);
+      ball.position.y += (apparent - 1) * 0.085;
       const trail = [];
       if (s.shot && progress > 0) {
         for (let t = 0; t < progress; t += 0.2)
@@ -626,9 +647,16 @@ export default function GroundShotView({
       <div className="trip-ground-render" ref={host} />
       <div className="trip-ground-heading">
         <span>BLACK BEAR / {String(hole.number).padStart(2, "0")}</span>
-        <b>From the fairway</b>
+        <b>
+          {shot?.air && (phase === "flight" || phase === "settle")
+            ? "Ride the flight"
+            : "From the fairway"}
+        </b>
         <small>
-          GROUND CAMERA · PAR {hole.par}
+          {shot?.air && (phase === "flight" || phase === "settle")
+            ? "FLIGHT CAMERA"
+            : "GROUND CAMERA"}{" "}
+          · PAR {hole.par}
           {hole.number <= 3 ? " · LIDAR TERRAIN" : ""}
         </small>
       </div>

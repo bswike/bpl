@@ -62,6 +62,45 @@ export function groundCameraFrame(from, to, heightAt = flatGround) {
   };
 }
 
+// Follow a delayed point on the arc with a little lateral separation. Keeping
+// the launch heading (rather than steering into every bend) reveals shot shape.
+export function flightCameraFrame(shot, progress, base, heightAt = flatGround) {
+  const last = Math.max(1, (shot.frames?.length || 1) - 1);
+  const p = Math.max(0, Math.min(last, progress));
+  const ball = groundShotPoint(shot, p, heightAt);
+  const lag = groundShotPoint(
+    shot,
+    Math.max(0, p - Math.min(6, last * 0.18, p * 0.6)),
+    heightAt,
+  );
+  const [dx, dz] = base.direction;
+  const length = Math.hypot(
+    (shot.to?.[0] || 0) - shot.from[0],
+    (shot.to?.[1] || 0) - shot.from[1],
+  );
+  const distance =
+    9 + (Math.max(10, Math.min(25, length * 0.1)) - 9) * Math.min(1, p / 12);
+  const along = (lag[0] - shot.from[0]) * dx + (lag[2] - shot.from[1]) * dz;
+  const axisX = shot.from[0] + dx * along;
+  const axisZ = shot.from[1] + dz * along;
+  const side = groundShotShape(shot) === "draw" ? -1 : 1;
+  const eye = [
+    axisX + (lag[0] - axisX) * 0.25 - dx * distance - dz * 5 * side,
+    lag[1] + 7,
+    axisZ + (lag[2] - axisZ) * 0.25 - dz * distance + dx * 5 * side,
+  ];
+  const launch = Math.max(0, Math.min(1, p / Math.min(7, last * 0.3)));
+  const blend = launch * launch * (3 - 2 * launch);
+  const position = eye.map((v, i) => base.eye[i] + (v - base.eye[i]) * blend);
+  position[1] = Math.max(position[1], heightAt(position[0], position[2]) + 3.1);
+  const look = [ball[0] + dx * 2, ball[1] - 0.6, ball[2] + dz * 2];
+  return {
+    eye: position,
+    target: look.map((v, i) => base.target[i] + (v - base.target[i]) * blend),
+    blend,
+  };
+}
+
 // Shared by the animation clock and watchdog: longer 3D flights must not
 // cause the watchdog to skip the rest of a hole before its putts.
 export function shotPlaybackDuration(shot, phase, ground = false) {
