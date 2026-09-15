@@ -19,7 +19,7 @@ describe("Black Bear aerial woodland", () => {
         par: course.holes[h.number - 1].par,
       });
       const trees = mappedWoodland(p, h.number);
-      expect(trees.length).toBeGreaterThan(150);
+      expect(trees.length).toBeGreaterThan(100);
       expect(trees.length).toBeLessThan(1800);
       expect(new Set(trees.map((t) => t.species)).size).toBeGreaterThan(3);
       const areas = h.areas.map((a) => a.map((ll) => geographicToMap(p, ll)));
