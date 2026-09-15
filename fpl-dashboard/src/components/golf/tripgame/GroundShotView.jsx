@@ -755,7 +755,7 @@ export default function GroundShotView({
             ? "FLIGHT CAMERA"
             : "GROUND CAMERA"}{" "}
           · PAR {hole.par}
-          {hole.number <= 3 ? " · LIDAR TERRAIN" : ""}
+          {terrainData.holes.some((entry) => entry.number === hole.number) ? " · LIDAR TERRAIN" : ""}
         </small>
       </div>
       {!shot && (

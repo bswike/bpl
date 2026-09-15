@@ -7,6 +7,10 @@ export function geographicToMap(projection, [lat, lng]) {
     y = (lat - g.tee[0]) * 111320;
   return [x * g.cos - y * g.sin - g.minX, g.maxY - (x * g.sin + y * g.cos)];
 }
+/** Whether a hole has hand-traced woodland (and so counts as surveyed). */
+export function hasWoodlandSurvey(holeNumber) {
+  return data.holes.some((h) => h.number === holeNumber);
+}
 /** The traced wooded areas for a hole in map units, for drawing the canopy. */
 export function woodlandAreas(projection, holeNumber) {
   const source = data.holes.find((h) => h.number === holeNumber);

@@ -10,8 +10,18 @@ const course = JSON.parse(
 const metadata = await (await fetch(`${service}?f=json`)).json();
 if (metadata.heightModelInfo?.heightUnit !== "us-foot")
   throw new Error("Unexpected elevation units");
-const holes = [];
-for (const hole of course.holes.slice(0, 3)) {
+// Which holes to survey: `node scripts/fetch-black-bear-terrain.mjs 4 5`
+// adds or refreshes those holes and keeps the rest of the file as it is.
+const output = new URL(
+  "../src/components/golf/tripgame/data/blackBearTerrain.json",
+  import.meta.url,
+);
+const wanted = process.argv.slice(2).map(Number).filter(Number.isFinite);
+const existing = await readFile(output, "utf8")
+  .then((text) => JSON.parse(text))
+  .catch(() => null);
+const holes = (existing?.holes || []).filter((h) => !wanted.includes(h.number));
+for (const hole of course.holes.filter((h) => (wanted.length ? wanted.includes(h.num) : h.num <= 3))) {
   const points = [
     ...hole.line,
     ...hole.tees.map((t) => t.pos),
@@ -90,11 +100,9 @@ for (const hole of course.holes.slice(0, 3)) {
     `Hole ${hole.num}: ${cols} × ${rows} terrain grid (${heights.length} samples)`,
   );
 }
+holes.sort((a, b) => a.number - b.number);
 await writeFile(
-  new URL(
-    "../src/components/golf/tripgame/data/blackBearTerrain.json",
-    import.meta.url,
-  ),
+  output,
   JSON.stringify({
     schemaVersion: 1,
     course: "black-bear",

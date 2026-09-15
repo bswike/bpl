@@ -1,4 +1,4 @@
-import { mappedWoodland } from "./woodland.js";
+import { hasWoodlandSurvey, mappedWoodland } from "./woodland.js";
 
 // OSM geometry -> hole projection (SVG space, pin up, trees, hazards).
 
@@ -323,7 +323,7 @@ export function projectHole(geometry, hole, options = {}) {
     elevation: Number(sourceHole.elevM) || null,
     source: "OpenStreetMap / ODbL",
   };
-  if (geometry.course === "Black Bear GC" && hole.number <= 3) {
+  if (geometry.course === "Black Bear GC" && hasWoodlandSurvey(hole.number)) {
     const trees = mappedWoodland(projected, hole.number).filter(t => t.x >= 0 && t.x <= width && t.y >= 0 && t.y <= height);
     // Surveyed holes carry their own traced woodland; the generic corridor filler stays off them.
     return { ...projected, trees, surveyed: true };

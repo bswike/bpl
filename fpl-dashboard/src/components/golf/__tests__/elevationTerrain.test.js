@@ -19,8 +19,8 @@ const terrain = JSON.parse(
 );
 
 describe("Black Bear terrain", () => {
-  it("contains complete, finite six-meter grids for only the opening three holes", () => {
-    expect(terrain.holes.map((h) => h.number)).toEqual([1, 2, 3]);
+  it("contains complete, finite six-meter grids for the surveyed opening holes", () => {
+    expect(terrain.holes.map((h) => h.number)).toEqual([1, 2, 3, 4]);
     for (const grid of terrain.holes) {
       expect(grid.heights).toHaveLength(grid.rows * grid.cols);
       expect(
