@@ -1,3 +1,4 @@
+import { createCartoonGolfer } from "./cartoonGolfer.js";
 import { useEffect, useRef, useState } from "react";
 import { mappedWoodland } from "./woodland.js";
 import { createNaturalWoodland } from "./woodlandRenderer.js";
@@ -212,82 +213,6 @@ function createCourse(scene, projection, holeNumber, heightAt, surveyed) {
   return { texture, disposeWoodland };
 }
 
-function createGolfer(scene) {
-  const group = new THREE.Group();
-  scene.add(group);
-  const skin = new THREE.MeshStandardMaterial({
-    color: "#d6a17c",
-    roughness: 1,
-  });
-  const shirt = new THREE.MeshStandardMaterial({
-    color: "#b94836",
-    roughness: 1,
-  });
-  const pants = new THREE.MeshStandardMaterial({
-    color: "#e3d9bc",
-    roughness: 1,
-  });
-  const part = (geometry, material, x, y, z, parent = group) => {
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, y, z);
-    mesh.castShadow = true;
-    parent.add(mesh);
-    return mesh;
-  };
-  part(new THREE.CylinderGeometry(0.26, 0.21, 0.65, 8), shirt, 0, 1.12, 0);
-  part(new THREE.SphereGeometry(0.19, 12, 8), skin, 0, 1.66, 0);
-  part(new THREE.CylinderGeometry(0.22, 0.22, 0.09, 12), shirt, 0, 1.83, 0);
-  part(new THREE.BoxGeometry(0.3, 0.04, 0.22), shirt, 0, 1.8, -0.15);
-  for (const x of [-0.16, 0.16]) {
-    part(new THREE.CylinderGeometry(0.1, 0.085, 0.72, 7), pants, x, 0.48, 0);
-    part(
-      new THREE.BoxGeometry(0.18, 0.12, 0.33),
-      new THREE.MeshStandardMaterial({ color: "#f0eee2" }),
-      x,
-      0.09,
-      -0.07,
-    );
-  }
-  const swing = new THREE.Group();
-  swing.position.set(0, 1.4, 0);
-  group.add(swing);
-  const arm = part(
-    new THREE.CylinderGeometry(0.065, 0.06, 0.65, 7),
-    skin,
-    0.2,
-    -0.24,
-    -0.18,
-    swing,
-  );
-  arm.rotation.x = -0.6;
-  const club = part(
-    new THREE.CylinderGeometry(0.018, 0.018, 1.1, 6),
-    new THREE.MeshStandardMaterial({
-      color: "#aebbc0",
-      metalness: 0.7,
-      roughness: 0.2,
-    }),
-    0.2,
-    -0.83,
-    -0.38,
-    swing,
-  );
-  club.rotation.x = -0.25;
-  part(
-    new THREE.BoxGeometry(0.17, 0.1, 0.22),
-    new THREE.MeshStandardMaterial({
-      color: "#28343a",
-      metalness: 0.6,
-      roughness: 0.3,
-    }),
-    0.2,
-    -1.36,
-    -0.51,
-    swing,
-  );
-  return { group, swing, shirt };
-}
-
 export default function GroundShotView({
   projection,
   hole,
@@ -399,7 +324,7 @@ export default function GroundShotView({
       heightAt,
       Boolean(grid),
     );
-    const golfer = createGolfer(scene);
+    const golfer = createCartoonGolfer(scene);
     const ball = new THREE.Mesh(
       new THREE.SphereGeometry(0.085, 12, 8),
       new THREE.MeshBasicMaterial({ color: "#ffffff" }),
@@ -437,7 +362,10 @@ export default function GroundShotView({
       base = null,
       previousOrigin = null,
       previousTime = 0,
-      launchFov = 55;
+      launchFov = 55,
+      posePhase = null,
+      poseShot = null,
+      poseStarted = 0;
     const chaseTarget = new THREE.Vector3();
     const chaseEye = new THREE.Vector3();
     const desiredRotation = new THREE.Quaternion();
@@ -603,14 +531,24 @@ export default function GroundShotView({
             ? "#8deaff"
             : "#fff1a5",
       );
-      golfer.swing.rotation.z =
+      if (posePhase !== s.phase || poseShot !== s.shot) {
+        posePhase = s.phase;
+        poseShot = s.shot;
+        poseStarted = now;
+      }
+      const poseElapsed = (now - poseStarted) / 700;
+      const poseTime =
         s.phase === "swing"
-          ? reduced.matches
-            ? 0
-            : Math.sin(now * 0.008) * 0.8
-          : s.phase === "flight" || s.phase === "settle"
-            ? -1.6
-            : 0;
+          ? Math.min(1, poseElapsed)
+          : s.phase === "flight"
+            ? 1 + poseElapsed
+            : s.phase === "settle"
+              ? 2.25
+              : 0;
+      golfer.pose(
+        reduced.matches ? (poseTime >= 1 ? 2.25 : 0) : poseTime,
+        !s.shot && !reduced.matches ? Math.sin(now * 0.0018) * 0.008 : 0,
+      );
       renderer.render(scene, camera);
     }
     raf = requestAnimationFrame(draw);
