@@ -407,10 +407,19 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
   const effFeet = info?.effFeet || feet;
   const stimp = info?.stimp || null;
   const startDist = Math.hypot(start[0] - cup[0], start[1] - cup[1]);
-  const control = [
-    (start[0] + end[0]) / 2 + breakDir * clamp(startDist * 0.45, 2, 24),
-    (start[1] + end[1]) / 2 + 2,
-  ];
+  // A rolled putt leaves on the chosen line and the slope bends it to the
+  // finish, so the control point sits up the aim line when the aim is known.
+  const rolledTicks = preview
+    ? aimTicks
+    : (info?.aimTicks ?? (info?.requiredTicks != null ? Math.round(info.requiredTicks) : null));
+  const rolledAim = [cup[0] + (rolledTicks || 0) * PUTT_TICK_UNITS, cup[1]];
+  const control =
+    rolledTicks != null
+      ? [start[0] + (rolledAim[0] - start[0]) * 0.66, start[1] + (rolledAim[1] - start[1]) * 0.66]
+      : [
+          (start[0] + end[0]) / 2 + breakDir * clamp(startDist * 0.45, 2, 24),
+          (start[1] + end[1]) / 2 + 2,
+        ];
   const lastFrame = Math.max(1, (shot?.frames?.length || 8) - 1);
   const t = preview || phase === "swing" ? 0 : phase === "flight" ? clamp((frame || 0) / lastFrame, 0, 1) : 1;
   // Uphill rolls lose pace sooner; downhill rolls keep their speed longer.
@@ -604,6 +613,7 @@ function HoleMap({
   clubReel,
   puttPreview,
   puttInfo = null,
+  onGreen = false,
   playerHi = 12,
   onAimStep,
   onCycle,
@@ -711,9 +721,11 @@ function HoleMap({
   const planning = !playback && !result && !livePos;
   const activeShot = playback ? playback.shots[Math.min(playback.index, playback.shots.length - 1)] : null;
   const groundView = courseSlug === "black-bear" && !groundFailed &&
-    (activeShot ? activeShot.kind !== "putt" : !puttPreview && groundPreview && !result);
-  // Putts get the 3D green, with the 2D read shrunk into the corner card.
-  const puttingNow = playback ? activeShot?.kind === "putt" : Boolean(puttPreview);
+    (activeShot ? activeShot.kind !== "putt" : !puttPreview && !onGreen && groundPreview && !result);
+  // Putts get the 3D green, with the 2D read shrunk into the corner card. A
+  // ball on the green holds that view between strokes, so nothing flashes
+  // while the next read is prepared.
+  const puttingNow = playback ? activeShot?.kind === "putt" : Boolean(puttPreview) || onGreen;
   const groundPutt = groundAvailable && puttingNow;
   const shotFlipped = activeShot ? activeShot.to[0] < activeShot.from[0] : false;
   const flightFrames = activeShot?.frames || [];
@@ -2969,6 +2981,17 @@ export default function TripGame({ data }) {
           };
         })()
       : null;
+  // The green read exists as soon as the ball is on the green, so the aim
+  // reel, the corner card and the 3D green never wait for the first swing.
+  const liveRead =
+    liveRef.current?.feet != null && hole
+      ? (liveRef.current.puttRead ||= makePuttRead({
+          hole,
+          puttCount: liveRef.current.puttCount,
+          feet: liveRef.current.feet,
+          sceneCarry: liveRef.current.sceneCarry,
+        }))
+      : null;
 
   function initializePlayerState() {
     return Object.fromEntries(model.players.map((player) => [player.key, { buzz: 0, morale: 50 }]));
@@ -4279,15 +4302,14 @@ export default function TripGame({ data }) {
                 playerHi={selected?.hi ?? 12}
                 livePreview={livePreview}
                 puttPreview={
-                  liveInfo && !result && liveRef.current?.feet != null && liveRef.current?.puttRead ? (
-                    <PuttingScene preview phase={meterPhase} read={liveRef.current.puttRead} aimTicks={puttAim} side="human" />
+                  liveInfo && !result && liveRead ? (
+                    <PuttingScene preview phase={meterPhase} read={liveRead} aimTicks={puttAim} side="human" />
                   ) : null
                 }
                 puttInfo={
-                  liveInfo && !result && liveRef.current?.feet != null && liveRef.current?.puttRead
-                    ? { read: liveRef.current.puttRead, aimTicks: puttAim, phase: meterPhase }
-                    : null
+                  liveInfo && !result && liveRead ? { read: liveRead, aimTicks: puttAim, phase: meterPhase } : null
                 }
+                onGreen={swingMode === "full" && !result && liveRef.current?.feet != null}
                 clubReel={
                   liveInfo && !result && liveRef.current?.awaitingHuman && liveRef.current?.feet != null ? (
                     <div className="trip-game-club-reel is-aim" role="group" aria-label="Putt aim">

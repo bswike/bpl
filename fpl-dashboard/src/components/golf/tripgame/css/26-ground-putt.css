@@ -48,12 +48,13 @@
   pointer-events: none;
   background: linear-gradient(180deg, #102c343d, transparent 27%, transparent 72%, #1125179c);
 }
-/* The read sits under the corner card, clear of the aim reel below. */
+/* The read sits under the heading on the left, clear of the corner card,
+   the judgment call in the middle and the aim reel below. */
 .trip-ground-putt-read {
   position: absolute;
-  right: 12px;
-  top: calc(46px + var(--pip-h, 200px) * 0.78);
-  max-width: 46%;
+  left: 22px;
+  top: 118px;
+  max-width: 50%;
   z-index: 1;
   display: grid;
   gap: 3px;
@@ -74,6 +75,16 @@
   color: #e0e9e3;
 }
 
+/* The 3D green owns the frame: the map's own inset and intel step aside. */
+.trip-game-map-wrap.is-ground-putt > .trip-game-map,
+.trip-game-map-wrap.is-ground-putt > .trip-game-hole-inset,
+.trip-game-map-wrap.is-ground-putt > .trip-game-map-intel,
+.trip-game-map-wrap.is-ground-putt > .trip-game-map-landing {
+  visibility: hidden;
+}
+.trip-game-map-wrap.is-ground-putt::before {
+  display: none;
+}
 /* Corner card: the 2D read at a glance, its HUD hidden at that size. */
 .trip-game-map-wrap.is-ground-putt > .trip-game-putt-scene {
   z-index: 5;
@@ -110,6 +121,8 @@
 }
 @media (max-width: 520px) {
   .trip-ground-putt-read {
+    left: 13px;
+    top: 100px;
     padding: 8px 11px;
   }
   .trip-ground-putt-read b {
@@ -124,5 +137,14 @@
   .trip-game-map-wrap.is-ground-putt > .trip-game-putt-scene {
     transition: none;
     animation: none;
+  }
+}
+
+.trip-game-map-wrap:has(> .trip-game-live-status) .trip-ground-putt-read {
+  top: 134px;
+}
+@media (max-width: 520px) {
+  .trip-game-map-wrap:has(> .trip-game-live-status) .trip-ground-putt-read {
+    top: 116px;
   }
 }

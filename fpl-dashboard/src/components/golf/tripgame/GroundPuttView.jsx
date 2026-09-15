@@ -5,6 +5,7 @@ import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { clamp } from "./geometry.js";
 import { PUTT_TICK_UNITS } from "./putting.js";
+import { createCartoonGolfer } from "./cartoonGolfer.js";
 import "./css/26-ground-putt.css";
 
 // The 3D green shares the 2D putting scene's coordinates: the cup sits at
@@ -27,33 +28,51 @@ function surfaceFor(breakDir, slope) {
   return (x, z) => tilt(x, z) + roll(x, z);
 }
 
-// Mown stripes plus contour lines drawn from the surface itself, so the eye
-// can read the same tilt the beads drift down.
+// The green is a bounded oval with a collar and rough beyond it, so the
+// eye has an edge to judge distance by. The longest read still fits inside.
+const GREEN = { cx: 0, cz: 16, rx: 46, rz: 66 };
+const COLLAR = 5;
+const EXTENT = 260;
+function greenDistance(x, z) {
+  return Math.hypot((x - GREEN.cx) / GREEN.rx, (z - GREEN.cz) / GREEN.rz);
+}
+// Mown stripes shaded by height: the high side reads lighter, the low side
+// darker, the same cue the 2D scene paints with its slope gradient.
 function greenTexture(heightAt) {
-  const size = 512,
-    extent = 260;
+  const size = 512;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#7fae57";
-  ctx.fillRect(0, 0, size, size);
-  ctx.fillStyle = "#8dbb62";
-  for (let i = 0; i < size; i += 28) ctx.fillRect(0, i, size, 14);
-  const image = ctx.getImageData(0, 0, size, size);
+  const image = ctx.createImageData(size, size);
   const data = image.data;
+  const collarEdge = 1 + COLLAR / GREEN.rx;
   for (let py = 0; py < size; py++) {
     for (let px = 0; px < size; px++) {
-      const x = (px / size - 0.5) * extent,
-        z = (py / size - 0.5) * extent;
-      const h = heightAt(x, z) / 0.7;
-      const band = h - Math.floor(h);
-      if (band < 0.07 || band > 0.93) {
-        const i = (py * size + px) * 4;
-        data[i] = 232;
-        data[i + 1] = 241;
-        data[i + 2] = 188;
-        data[i + 3] = 255;
+      const x = (px / size - 0.5) * EXTENT,
+        z = (py / size - 0.5) * EXTENT;
+      const d = greenDistance(x, z);
+      const shade = clamp(1 + heightAt(x, z) * 0.045, 0.82, 1.18);
+      let r, g, b;
+      if (d <= 1) {
+        const stripe = Math.floor(z / 6) % 2 === 0 ? 1.06 : 0.96;
+        r = 128 * stripe * shade;
+        g = 178 * stripe * shade;
+        b = 92 * stripe * shade;
+      } else if (d <= collarEdge) {
+        r = 110 * shade;
+        g = 158 * shade;
+        b = 82 * shade;
+      } else {
+        const mottle = 0.94 + 0.12 * Math.sin(x * 0.9) * Math.cos(z * 1.1);
+        r = 92 * mottle;
+        g = 134 * mottle;
+        b = 66 * mottle;
       }
+      const i = (py * size + px) * 4;
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = 255;
     }
   }
   ctx.putImageData(image, 0, 0);
@@ -108,9 +127,8 @@ export default function GroundPuttView({
     const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 800);
 
     // Surface: rebuilt whenever the read changes.
-    const extent = 260,
-      segments = 120;
-    const geometry = new THREE.PlaneGeometry(extent, extent, segments, segments);
+    const segments = 120;
+    const geometry = new THREE.PlaneGeometry(EXTENT, EXTENT, segments, segments);
     geometry.rotateX(-Math.PI / 2);
     const material = new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 });
     const turf = new THREE.Mesh(geometry, material);
@@ -119,11 +137,46 @@ export default function GroundPuttView({
     // Rough beyond the green, so the edge of the world is not a hard line.
     const fringe = new THREE.Mesh(
       new THREE.CircleGeometry(700, 48),
-      new THREE.MeshStandardMaterial({ color: "#5f8a45", roughness: 1 }),
+      new THREE.MeshStandardMaterial({ color: "#5c8443", roughness: 1 }),
     );
     fringe.rotation.x = -Math.PI / 2;
-    fringe.position.y = -6;
+    fringe.position.y = -3;
     scene.add(fringe);
+    // A ring of trees past the rough gives the green its scale.
+    const treeCount = 48;
+    const trunks = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.5, 0.7, 1, 6),
+      new THREE.MeshStandardMaterial({ color: "#5a4636", roughness: 1 }),
+      treeCount,
+    );
+    const crowns = new THREE.InstancedMesh(
+      new THREE.SphereGeometry(1, 10, 8),
+      new THREE.MeshStandardMaterial({ color: "#3f6b3a", roughness: 1, flatShading: true }),
+      treeCount,
+    );
+    const treeMatrix = new THREE.Object3D();
+    for (let i = 0; i < treeCount; i++) {
+      const a = (i / treeCount) * Math.PI * 2 + Math.sin(i * 7.3) * 0.08;
+      const radius = 150 + Math.sin(i * 3.1) * 26;
+      const x = Math.cos(a) * radius,
+        z = Math.sin(a) * radius;
+      const height = 17 + Math.sin(i * 5.7) * 5;
+      treeMatrix.position.set(x, height * 0.3 - 3, z);
+      treeMatrix.scale.set(1, height * 0.6, 1);
+      treeMatrix.updateMatrix();
+      trunks.setMatrixAt(i, treeMatrix.matrix);
+      treeMatrix.position.set(x, height * 0.72 - 3, z);
+      const spread = 6 + Math.sin(i * 2.3) * 2;
+      treeMatrix.scale.set(spread, height * 0.42, spread);
+      treeMatrix.updateMatrix();
+      crowns.setMatrixAt(i, treeMatrix.matrix);
+      crowns.setColorAt(i, new THREE.Color().setHSL(0.27 + Math.sin(i) * 0.02, 0.36, 0.26 + Math.sin(i * 1.7) * 0.05));
+    }
+    scene.add(trunks, crowns);
+    // The golfer, standing to the ball. Metres in the model; scaled to the
+    // green's exaggerated units.
+    const golfer = createCartoonGolfer(scene);
+    golfer.group.scale.setScalar(3.1);
 
     // Cup and flag.
     const cup = new THREE.Group();
@@ -206,7 +259,10 @@ export default function GroundPuttView({
       surfaceKey = "",
       raf = 0,
       previousTime = 0,
-      previousStart = "";
+      previousStart = "",
+      strokeKey = "",
+      strokeStarted = 0,
+      lastInfo = null;
     const chaseEye = new THREE.Vector3(),
       chaseTarget = new THREE.Vector3(),
       desiredRotation = new THREE.Quaternion(),
@@ -250,8 +306,10 @@ export default function GroundPuttView({
       const s = current.current;
       if (!s?.visible || document.hidden) return;
       const preview = !s.shot;
-      const info = preview ? s.read : s.shot?.putt;
+      // Between strokes the last read holds the frame rather than a blank.
+      const info = (preview ? s.read : s.shot?.putt) || lastInfo;
       if (!info) return;
+      lastInfo = info;
       const breakDir = clamp(info.breakDir || 0, -1, 1),
         slope = clamp(info.slope || 0, -1, 1);
       const key = `${breakDir.toFixed(3)}|${slope.toFixed(3)}`;
@@ -262,10 +320,20 @@ export default function GroundPuttView({
       const start = info.start || [85, 96];
       const end = preview ? CUP : info.end || (s.shot?.final ? CUP : [CUP[0] - breakDir * 2.5, CUP[1] + 7]);
       const startDist = Math.hypot(start[0] - CUP[0], start[1] - CUP[1]);
-      const control = [
-        (start[0] + end[0]) / 2 + breakDir * clamp(startDist * 0.45, 2, 24),
-        (start[1] + end[1]) / 2 + 2,
-      ];
+      // The ball leaves on the player's line and the slope bends it to the
+      // finish: the control point sits well up the aim line.
+      // A shot with no explicit aim was putted at the read's required line.
+      const ticks = preview
+        ? s.aimTicks
+        : (info.aimTicks ?? (info.requiredTicks != null ? Math.round(info.requiredTicks) : null));
+      const aimTarget = [CUP[0] + (ticks || 0) * PUTT_TICK_UNITS, CUP[1]];
+      const control =
+        ticks != null
+          ? [start[0] + (aimTarget[0] - start[0]) * 0.66, start[1] + (aimTarget[1] - start[1]) * 0.66]
+          : [
+              (start[0] + end[0]) / 2 + breakDir * clamp(startDist * 0.45, 2, 24),
+              (start[1] + end[1]) / 2 + 2,
+            ];
       const lastFrame = Math.max(1, (s.shot?.frames?.length || 8) - 1);
       const t = preview || s.phase === "swing" ? 0 : s.phase === "flight" ? clamp((s.frame || 0) / lastFrame, 0, 1) : 1;
       const eased = 1 - Math.pow(1 - t, 1.75 + slope * 0.45);
@@ -297,13 +365,12 @@ export default function GroundPuttView({
       }
 
       // Aim line from the ball through the aim point, as on the 2D green.
-      const ticks = preview ? s.aimTicks : info.aimTicks;
       const aimShown = preview || (info.aimTicks != null && !dropped);
       aimLine.visible = aimShown;
       aimMarker.visible = aimShown;
       if (aimShown) {
         const [sx, sz] = toWorld(start);
-        const [ax, az] = toWorld([CUP[0] + (ticks || 0) * PUTT_TICK_UNITS, CUP[1]]);
+        const [ax, az] = toWorld(aimTarget);
         const pts = [];
         for (let i = 0; i <= 24; i++) {
           const x = sx + ((ax - sx) * i) / 24,
@@ -325,7 +392,10 @@ export default function GroundPuttView({
         const [sx, sz] = toWorld(start);
         const duration = 2.8 - clamp(Math.hypot(breakDir, slope), 0, 1.3) * 1.5;
         beadSeeds.forEach((seed, i) => {
-              const near = Math.hypot(seed.x, seed.z) < 5 || Math.hypot(seed.x - sx, seed.z - sz) < 4;
+              const near =
+            Math.hypot(seed.x, seed.z) < 5 ||
+            Math.hypot(seed.x - sx, seed.z - sz) < 4 ||
+            greenDistance(seed.x, seed.z) > 0.96;
           const h = 0.5;
           const gx = -(heightAt(seed.x + h, seed.z) - heightAt(seed.x - h, seed.z)) / (2 * h);
           const gz = -(heightAt(seed.x, seed.z + h) - heightAt(seed.x, seed.z - h)) / (2 * h);
@@ -352,12 +422,32 @@ export default function GroundPuttView({
         len = Math.hypot(dx, dz) || 1;
       const ux = dx / len,
         uz = dz / len;
-      const back = clamp(16 + len * 0.3, 20, 46);
-      const eyeX = sx - ux * back + uz * 4,
-        eyeZ = sz - uz * back - ux * 4;
-      chaseEye.set(eyeX, heightAt(eyeX, eyeZ) + 6.5 + len * 0.1, eyeZ);
+      const back = clamp(20 + len * 0.3, 24, 48);
+      const eyeX = sx - ux * back - uz * 3.5,
+        eyeZ = sz - uz * back + ux * 3.5;
+      chaseEye.set(eyeX, heightAt(eyeX, eyeZ) + 10 + len * 0.14, eyeZ);
       const lookX = sx + ux * len * 0.5,
         lookZ = sz + uz * len * 0.5;
+      // Golfer at address beside the ball, facing across the line.
+      const gx = sx + uz * 3.2,
+        gz = sz - ux * 3.2;
+      golfer.group.position.set(gx, heightAt(gx, gz), gz);
+      golfer.group.rotation.y = Math.atan2(-ux, -uz);
+      golfer.shirt.color.set(s.side === "cpu" ? "#3973a6" : "#b94836");
+      const thisStroke = `${s.shot ? "shot" : "read"}|${s.phase}`;
+      if (thisStroke !== strokeKey) {
+        strokeKey = thisStroke;
+        strokeStarted = now;
+      }
+      const strokeElapsed = (now - strokeStarted) / 600;
+      // A putting stroke is a short takeaway and a smooth release.
+      const strokeTime =
+        !s.shot || reduced.matches
+          ? 0
+          : s.phase === "swing"
+            ? Math.min(0.24, strokeElapsed < 0.5 ? strokeElapsed * 0.48 : 0.24 - (strokeElapsed - 0.5) * 0.48)
+            : 0;
+      golfer.pose(Math.max(0, strokeTime), !s.shot && !reduced.matches ? Math.sin(now * 0.0018) * 0.008 : 0);
       chaseTarget.set(lookX, heightAt(lookX, lookZ) + 0.5, lookZ);
       const startKey = `${sx.toFixed(1)},${sz.toFixed(1)}`;
       if (startKey !== previousStart || reduced.matches) {
@@ -408,10 +498,12 @@ export default function GroundPuttView({
         <b>{shot ? (side === "cpu" ? "Their putt" : "Your putt") : "On the green"}</b>
         <small>GREEN CAMERA{feet ? ` · ${feet} FT` : ""}{info?.stimp ? ` · ${info.stimp} GREEN` : ""}</small>
       </div>
-      <div className="trip-ground-putt-read">
-        <b>{breakAdvice}</b>
-        <span>{slopeAdvice}</span>
-      </div>
+      {info && (
+        <div className="trip-ground-putt-read">
+          <b>{breakAdvice}</b>
+          <span>{slopeAdvice}</span>
+        </div>
+      )}
       {shot && !dropped && side === "cpu" && info?.for && (
         <div className={`trip-game-putt-for is-${info.for.tone}`}>
           <span>{info.for.text}</span>
