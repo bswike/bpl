@@ -66,3 +66,107 @@
   .trip-game--play .trip-game-matchup .trip-game-hole-box small { font-size: 9px; }
 }
 @media (prefers-reduced-motion: reduce) { .trip-game-player-identity { animation: none; } }
+
+/* Full size while the hole opens, then folded to a strip for the rest of
+   the hole so the overhead and ground views get the screen. Tap to unfold. */
+.trip-game--play .trip-game-matchup {
+  max-height: 220px;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    max-height 640ms cubic-bezier(0.32, 0.72, 0, 1),
+    padding 640ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.trip-game--play .trip-game-matchup .trip-game-vs-card,
+.trip-game--play .trip-game-matchup .trip-game-vs-card.is-you {
+  transition:
+    min-height 640ms cubic-bezier(0.32, 0.72, 0, 1),
+    padding 640ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.trip-game--play .trip-game-matchup .trip-game-player-portrait,
+.trip-game--play .trip-game-matchup .trip-game-player-identity b,
+.trip-game--play .trip-game-matchup .trip-game-matchup-vs {
+  transition:
+    height 640ms cubic-bezier(0.32, 0.72, 0, 1),
+    font-size 640ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.trip-game--play .trip-game-matchup.is-compact {
+  max-height: 52px;
+  padding: 4px 8px;
+  grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
+  gap: 6px;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-vs-card,
+.trip-game--play .trip-game-matchup.is-compact .trip-game-vs-card.is-you {
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  grid-template-rows: auto;
+  min-height: 0;
+  padding: 4px 8px;
+  gap: 0 8px;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-vs-card > small,
+.trip-game--play .trip-game-matchup.is-compact .trip-game-player-state,
+.trip-game--play .trip-game-matchup.is-compact .trip-game-hole-box small,
+.trip-game--play .trip-game-matchup.is-compact .trip-game-hole-box .trip-game-par-pill {
+  display: none;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-player-portrait {
+  grid-column: 1;
+  grid-row: 1;
+  height: 26px;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-player-portrait > span {
+  display: none;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-player-identity {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-player-identity b {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-player-identity > span {
+  margin-top: 0;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-wheel-controls {
+  position: static;
+  grid-column: 3;
+  grid-row: 1;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-wheel-controls button {
+  flex: none;
+  width: 24px;
+  min-height: 22px;
+  font-size: 12px;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-hole-box {
+  gap: 0;
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-matchup-vs {
+  font-size: 14px;
+}
+@media (max-width: 520px) {
+  /* On a phone the strip keeps the name; unfold it to change the pick. */
+  .trip-game--play .trip-game-matchup.is-compact .trip-game-player-identity > span,
+  .trip-game--play .trip-game-matchup.is-compact .trip-game-wheel-controls {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trip-game--play .trip-game-matchup,
+  .trip-game--play .trip-game-matchup .trip-game-vs-card,
+  .trip-game--play .trip-game-matchup .trip-game-player-portrait,
+  .trip-game--play .trip-game-matchup .trip-game-player-identity b,
+  .trip-game--play .trip-game-matchup .trip-game-matchup-vs {
+    transition: none;
+  }
+}

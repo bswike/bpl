@@ -2716,6 +2716,15 @@ export default function TripGame({ data }) {
     const timer = window.setTimeout(() => setHoleIntro(false), 2800);
     return () => window.clearTimeout(timer);
   }, [holeIntro, setHoleIntro]);
+  // The matchup opens each hole full size, then folds to a strip once the
+  // overhead has had its beat, so the views get the screen. Tap to unfold.
+  const [matchupCompact, setMatchupCompact] = useState(false);
+  useEffect(() => {
+    setMatchupCompact(false);
+    if (screen !== "play") return undefined;
+    const timer = window.setTimeout(() => setMatchupCompact(true), OVERHEAD_BEAT_MS + 300);
+    return () => window.clearTimeout(timer);
+  }, [holeIndex, screen]);
 
   const historicalData = useMemo(
     () => archive.filter((dataset) => dataset.trip?.id !== data.trip?.id),
@@ -4139,7 +4148,14 @@ export default function TripGame({ data }) {
         )}
         {screen === "play" && course && hole && projection && (
           <>
-            <div className="trip-game-scorebar trip-game-matchup" aria-label="This hole’s matchup">
+            <div
+              className={`trip-game-scorebar trip-game-matchup${matchupCompact ? " is-compact" : ""}`}
+              aria-label="This hole’s matchup"
+              onClick={(event) => {
+                if (event.target.closest("button")) return;
+                setMatchupCompact((value) => !value);
+              }}
+            >
               <CaptainWheel
                 players={humanRoster}
                 selectedKey={selectedKey}
