@@ -325,7 +325,8 @@ export function projectHole(geometry, hole, options = {}) {
   };
   if (geometry.course === "Black Bear GC" && hole.number <= 3) {
     const trees = mappedWoodland(projected, hole.number).filter(t => t.x >= 0 && t.x <= width && t.y >= 0 && t.y <= height);
-    return { ...projected, trees };
+    // Surveyed holes carry their own traced woodland; the generic corridor filler stays off them.
+    return { ...projected, trees, surveyed: true };
   }
   return withTrees(projected, hole.number);
 }

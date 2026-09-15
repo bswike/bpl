@@ -712,7 +712,7 @@ function HoleMap({
   })();
   const trees = useMemo(() => [
     ...(projection.trees || buildTreeSprites(projection, hole.number)),
-    ...buildCourseWoodland(projection, hole.number),
+    ...(projection.surveyed ? [] : buildCourseWoodland(projection, hole.number)),
   ].sort((a, b) => a.y - b.y), [projection, hole.number]);
   const mapId = `trip-hole-${hole.number}`;
   // Your traced woodland edges for the holes that have them; OSM forest fills the rest.
