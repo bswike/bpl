@@ -3063,7 +3063,7 @@ export default function TripGame({ data }) {
       }
       return computeMeterMods({ club: liveClubId || live.club, lie: live.lie, context: "approach" });
     }
-    if (!live && !liveInfo) return computeMeterMods({ club: decision.club, context: "tee" });
+    if ((!live || live.teeOpen) && !liveInfo) return computeMeterMods({ club: decision.club, context: "tee" });
     return null;
   })();
   const livePreview =
@@ -3217,6 +3217,21 @@ export default function TripGame({ data }) {
     () => ({ human: playerLook(selected), cpu: playerLook(cpuOpponent?.profile) }),
     [selected, cpuOpponent],
   );
+
+  // Their honours in shot-by-shot play: once the hole card is down they tee
+  // off on their own, and the tee comes back to you as an open plan.
+  const autoTeeRef = useRef(null);
+  useEffect(() => {
+    if (screen !== "play" || swingMode !== "full" || holeIntro || result || eventOffer) return;
+    if (resolutionPhase !== "idle" || liveRef.current || !selected || !cpuOpponent || !hole || !projection || !course) return;
+    const lastWinner = [...history].reverse().find((row) => row.winner !== "tie")?.winner;
+    if (lastWinner !== "cpu" || autoTeeRef.current === holeIndex) return;
+    autoTeeRef.current = holeIndex;
+    setupLiveHole();
+    if (liveRef.current) playNextCpuShot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires once per hole when the card drops
+  }, [screen, swingMode, holeIndex, holeIntro, resolutionPhase, result, eventOffer, selected, cpuOpponent, hole, projection, course]);
+
 
   function stepAim(direction) {
     if (!selected || result || resolutionPhase !== "idle" || meterPhase) return;
@@ -3532,8 +3547,8 @@ export default function TripGame({ data }) {
       teeLanding: null,
       remainingUnits: null,
       conceded: false,
+      teeOpen: false,
     };
-    setPickLocked(true);
     setLiveInfo(liveStatusOf());
   }
 
@@ -3628,15 +3643,17 @@ export default function TripGame({ data }) {
     if (!live || !projection) return;
     if (live.strokes === 0) {
       // Your honors: PLAY was just pressed, so the meter arms straight away.
-      // Their honors: their drive just landed; wait for SWING like any other stroke.
+      // Their honors: their drive just landed; the tee is yours to plan, pick
+      // and PLAY exactly as if you had it first.
       if (!live.cpuHonors) {
         startNextLiveSwing();
         return;
       }
       live.club = decision.club;
-      live.awaitingHuman = true;
+      live.awaitingHuman = false;
+      live.teeOpen = true;
       setLiveClubId(null);
-      setLiveInfo(liveStatusOf());
+      setLiveInfo(null);
       return;
     }
     if (live.feet != null) {
@@ -3943,6 +3960,32 @@ export default function TripGame({ data }) {
     completeLiveHole();
   }
 
+  // The tee-box offers (cart girl, fireball, a bought round) fire on PLAY.
+  // Returns true when one was put up and the press should stop there.
+  function offerTeeEvent() {
+    if (CART_GIRL_HOLES.has(hole.number) && !eventHandled[holeIndex]) {
+      setEventOffer({ type: "cart-girl", playerKey: selected.key, player: selected });
+      return true;
+    }
+    const seanInGroup = humanRoster.some((player) => player.key === "sean wilson");
+    if (
+      seanInGroup &&
+      selected.key !== "sean wilson" &&
+      FIREBALL_HOLES.has(hole.number) &&
+      !eventHandled[holeIndex]
+    ) {
+      setEventOffer({ type: "fireball", playerKey: selected.key, player: selected });
+      return true;
+    }
+    // Blowing them out? They'll offer to buy a round — a trap either way.
+    if (scoreDifference >= 2 && !buyRoundRef.current && cpuOpponent) {
+      buyRoundRef.current = true;
+      setEventOffer({ type: "buy-round", playerKey: selected.key, player: selected });
+      return true;
+    }
+    return false;
+  }
+
   function playHole() {
     if (meterPhase) {
       tapMeter();
@@ -3950,6 +3993,15 @@ export default function TripGame({ data }) {
     }
     if (liveRef.current && !result) {
       if (liveRef.current.awaitingHuman) {
+        startNextLiveSwing();
+        return;
+      }
+      if (liveRef.current.teeOpen) {
+        // Their drive is down; this PLAY is your tee shot, same as with honours.
+        if (!selected || !hole || !course || resolutionPhase !== "idle") return;
+        if (offerTeeEvent()) return;
+        liveRef.current.teeOpen = false;
+        setPickLocked(true);
         startNextLiveSwing();
         return;
       }
@@ -3962,27 +4014,9 @@ export default function TripGame({ data }) {
       return;
     }
     if (!selected || !odds || !hole || !course || result || resolutionPhase !== "idle") return;
-    if (CART_GIRL_HOLES.has(hole.number) && !eventHandled[holeIndex]) {
-      setEventOffer({ type: "cart-girl", playerKey: selected.key, player: selected });
-      return;
-    }
-    const seanInGroup = humanRoster.some((player) => player.key === "sean wilson");
-    if (
-      seanInGroup &&
-      selected.key !== "sean wilson" &&
-      FIREBALL_HOLES.has(hole.number) &&
-      !eventHandled[holeIndex]
-    ) {
-      setEventOffer({ type: "fireball", playerKey: selected.key, player: selected });
-      return;
-    }
-    // Blowing them out? They'll offer to buy a round — a trap either way.
-    if (scoreDifference >= 2 && !buyRoundRef.current && cpuOpponent) {
-      buyRoundRef.current = true;
-      setEventOffer({ type: "buy-round", playerKey: selected.key, player: selected });
-      return;
-    }
+    if (offerTeeEvent()) return;
     if (swingMode === "full") {
+      setPickLocked(true);
       setupLiveHole();
       advanceMatchFlow();
       return;
@@ -4402,7 +4436,7 @@ export default function TripGame({ data }) {
                 liveStatus={liveInfo && !result ? liveInfo.label : null}
                 livePos={liveInfo && !result && liveRef.current ? liveRef.current.pos : null}
                 cpuLive={
-                  liveInfo && !result && liveRef.current?.cpu
+                  !result && liveRef.current?.cpu && (liveInfo || liveRef.current.teeOpen)
                     ? {
                         pos: liveRef.current.cpu.ball.pos,
                         strokes: liveRef.current.cpu.ball.strokes,

@@ -26,7 +26,9 @@ export function phaseOf({ screen, meterPhase, resolutionPhase, result, eventOffe
   if (resolutionPhase === "playback") return PHASE.PLAYBACK;
   if (resolutionPhase === "liveshot") return activeSide === "cpu" ? PHASE.CPU_SHOT : PHASE.SHOT;
   if (eventOffer) return PHASE.EVENT;
-  if (live) return PHASE.HUMAN_READY;
+  // A live hole with the tee still open (their honours, their drive played)
+  // is back in the plan: the player picks, aims and presses PLAY as usual.
+  if (live && !live.teeOpen) return PHASE.HUMAN_READY;
   return PHASE.PLAN;
 }
 
