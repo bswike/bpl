@@ -678,6 +678,28 @@ function HoleMap({
   const previewTarget = [target[0] + perpendicular[0] * drift, target[1] + perpendicular[1] * drift];
   const bend = shapeBend(projection, shape);
   const shotPath = curvedPath(projection.tee, previewTarget, bend);
+  // The same plan for the ground camera: where the ball should come down,
+  // how it bends, and how high it flies (the theater's apex rule).
+  const groundPlan = useMemo(() => {
+    if (playback || result) return null;
+    if (!livePos) {
+      const distance = Math.hypot(previewTarget[0] - projection.tee[0], previewTarget[1] - projection.tee[1]);
+      return { to: previewTarget, bend, apex: clamp(distance * 0.62, 18, 78) };
+    }
+    if (!livePreview) return null;
+    const scale = hole.yards && lineLength ? lineLength / hole.yards : 1;
+    const carryUnits = livePreview.carryYards * scale;
+    const dx = projection.pin[0] - livePos[0];
+    const dy = projection.pin[1] - livePos[1];
+    const norm = Math.hypot(dx, dy) || 1;
+    const reach = Math.min(carryUnits, norm);
+    return {
+      to: [livePos[0] + (dx / norm) * reach, livePos[1] + (dy / norm) * reach],
+      bend: bend * clamp(reach / Math.max(1, lineLength), 0.2, 1),
+      apex: clamp(reach * 0.62, 12, 78),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- previewTarget is rebuilt each render; its coordinates stand in
+  }, [playback, result, livePos, livePreview, previewTarget[0], previewTarget[1], bend, projection, hole.yards, lineLength]);
   // A hole played shot by shot knows exactly where the tee ball finished.
   const landing = result
     ? result.teeLanding?.point || placeTeeLanding(projection, hole, shotDecision, result.humanLanding).point
@@ -1285,7 +1307,7 @@ function HoleMap({
         <Suspense fallback={null}>
           <GroundShotView projection={projection} hole={hole} shot={activeShot}
             phase={playback?.phase} frame={playback?.frame || 0} visible={groundView}
-            origin={livePos || projection.tee} shape={decision.shape} onUnavailable={onGroundUnavailable} />
+            origin={livePos || projection.tee} shape={decision.shape} plan={groundPlan} onUnavailable={onGroundUnavailable} />
         </Suspense>
       )}
       {playback && activeShot?.kind === "putt" && (

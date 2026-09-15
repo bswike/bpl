@@ -256,6 +256,7 @@ export default function GroundShotView({
   visible,
   origin,
   shape = "straight",
+  plan = null,
   onUnavailable,
 }) {
   const holeNumber = hole.number;
@@ -271,9 +272,10 @@ export default function GroundShotView({
       visible,
       origin,
       shape,
+      plan,
       stamp: performance.now(),
     };
-  }, [shot, phase, frame, visible, origin, shape]);
+  }, [shot, phase, frame, visible, origin, shape, plan]);
   useEffect(() => {
     const node = host.current;
     if (!node) return;
@@ -389,10 +391,26 @@ export default function GroundShotView({
       }),
     );
     scene.add(ghost);
+    // Where the planned shot comes down: a ring that breathes on the turf.
+    const landingRing = new THREE.Mesh(
+      new THREE.RingGeometry(1.5, 2.1, 40),
+      new THREE.MeshBasicMaterial({
+        color: "#fff1a5",
+        transparent: true,
+        opacity: 0.85,
+        depthTest: false,
+        side: THREE.DoubleSide,
+      }),
+    );
+    landingRing.rotation.x = -Math.PI / 2;
+    landingRing.renderOrder = 6;
+    landingRing.visible = false;
+    scene.add(landingRing);
     const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2200);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     let raf = 0,
       previousShot = null,
+      previousPlanKey = "",
       base = null,
       previousOrigin = null,
       previousTime = 0,
@@ -429,15 +447,26 @@ export default function GroundShotView({
       const s = current.current;
       if (!s?.visible || document.hidden) return;
       const from = s.shot?.from || s.origin || projection.tee;
-      if (previousShot !== s.shot || previousOrigin !== from || !base) {
+      const plan = !s.shot && s.plan?.to ? s.plan : null;
+      const planKey = plan ? plan.to.join(",") : "";
+      if (
+        previousShot !== s.shot ||
+        previousOrigin !== from ||
+        previousPlanKey !== planKey ||
+        !base
+      ) {
+        // A new lie or shot cuts to its framing; an aim change only re-targets
+        // and the camera eases over below.
+        const cut = previousShot !== s.shot || previousOrigin !== from || !base;
         previousShot = s.shot;
         previousOrigin = from;
+        previousPlanKey = planKey;
         base = groundCameraFrame(
           from,
-          s.shot?.carryTo || s.shot?.to || projection.pin,
+          s.shot?.carryTo || s.shot?.to || plan?.to || projection.pin,
           heightAt,
         );
-        camera.position.fromArray(base.eye);
+        if (cut) camera.position.fromArray(base.eye);
         const peakAngle = Math.max(
           0,
           ...(s.shot?.frames || []).map((f, index) =>
@@ -446,6 +475,20 @@ export default function GroundShotView({
               Math.hypot(f.gx - base.eye[0], f.gy - base.eye[2]),
             ),
           ),
+          // The planned arc's apex, so the preview tracer fits the frame too.
+          ...(plan
+            ? [
+                Math.atan2(
+                  (heightAt(...from) + heightAt(...plan.to)) / 2 +
+                    (plan.apex || 0) * 0.55 -
+                    base.eye[1],
+                  Math.hypot(
+                    (from[0] + plan.to[0]) / 2 - base.eye[0],
+                    (from[1] + plan.to[1]) / 2 - base.eye[2],
+                  ),
+                ),
+              ]
+            : []),
         );
         const terrainPitch = Math.atan2(
           heightAt(...(s.shot?.carryTo || projection.pin)) + 3 - base.eye[1],
@@ -455,7 +498,7 @@ export default function GroundShotView({
           ),
         );
         const pitch = grid
-          ? Math.max(terrainPitch, s.shot ? peakAngle * 0.35 : terrainPitch)
+          ? Math.max(terrainPitch, s.shot || plan ? peakAngle * 0.35 : terrainPitch)
           : Math.max(0.06, peakAngle * 0.35);
         base.target[1] = base.eye[1] + Math.tan(pitch) * 74;
         camera.fov = Math.max(
@@ -470,7 +513,7 @@ export default function GroundShotView({
         );
         launchFov = camera.fov;
         camera.updateProjectionMatrix();
-        camera.lookAt(...base.target);
+        if (cut) camera.lookAt(...base.target);
         golfer.group.position.set(
           from[0] + base.direction[1] * 0.9,
           heightAt(
@@ -531,6 +574,17 @@ export default function GroundShotView({
         camera.fov += (fov - camera.fov) * (1 - Math.exp(-4 * delta));
         camera.updateProjectionMatrix();
       }
+      if (!s.shot && base && !reduced.matches) {
+        chaseEye.fromArray(base.eye);
+        camera.position.lerp(chaseEye, 1 - Math.exp(-6 * delta));
+        chaseTarget.fromArray(base.target);
+        lookMatrix.lookAt(camera.position, chaseTarget, camera.up);
+        desiredRotation.setFromRotationMatrix(lookMatrix);
+        camera.quaternion.slerp(desiredRotation, 1 - Math.exp(-8 * delta));
+      } else if (!s.shot && base) {
+        camera.position.fromArray(base.eye);
+        camera.lookAt(...base.target);
+      }
       const apparent = Math.max(
         1,
         camera.position.distanceTo(ball.position) / 14,
@@ -542,7 +596,36 @@ export default function GroundShotView({
         for (let t = 0; t < progress; t += 0.2)
           trail.push(...groundShotPoint(s.shot, t, heightAt));
         trail.push(...point);
+      } else if (plan) {
+        // The planned arc: the map's curve with the theater's lift on top.
+        const to = plan.to,
+          dx = to[0] - from[0],
+          dz = to[1] - from[1],
+          len = Math.hypot(dx, dz) || 1,
+          bend = plan.bend || 0,
+          control = [
+            (from[0] + to[0]) / 2 + (-dz / len) * bend,
+            (from[1] + to[1]) / 2 + (dx / len) * bend,
+          ],
+          y0 = heightAt(...from),
+          y1 = heightAt(...to);
+        for (let i = 0; i <= 48; i++) {
+          const t = i / 48,
+            u = 1 - t,
+            x = u * u * from[0] + 2 * u * t * control[0] + t * t * to[0],
+            z = u * u * from[1] + 2 * u * t * control[1] + t * t * to[1],
+            lift = 4 * t * u * (plan.apex || 0) * 0.55;
+          trail.push(x, 0.12 + Math.max(heightAt(x, z), y0 + (y1 - y0) * t + lift), z);
+        }
       }
+      landingRing.visible = Boolean(plan);
+      if (plan) {
+        landingRing.position.set(plan.to[0], heightAt(...plan.to) + 0.15, plan.to[1]);
+        const breathe = 1 + 0.12 * Math.sin(now / 420);
+        landingRing.scale.setScalar(breathe);
+      }
+      tracer.material.linewidth = plan ? 2.2 : 3;
+      tracer.material.opacity = plan ? 0.62 : 0.92;
       tracer.visible = trail.length >= 6;
       if (tracer.visible) {
         if (!tracerGeometry.attributes.instanceStart)
@@ -557,7 +640,14 @@ export default function GroundShotView({
         tracerGeometry.instanceCount = trail.length / 3 - 1;
         tracer.frustumCulled = false;
       }
-      const shotShape = groundShotShape(s.shot);
+      const shotShape = s.shot ? groundShotShape(s.shot) : s.shape;
+      landingRing.material.color.set(
+        shotShape === "draw"
+          ? "#ffc36b"
+          : shotShape === "cut"
+            ? "#8deaff"
+            : "#fff1a5",
+      );
       tracer.material.color.set(
         shotShape === "draw"
           ? "#ffc36b"
