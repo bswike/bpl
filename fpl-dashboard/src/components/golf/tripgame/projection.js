@@ -270,9 +270,37 @@ export function projectHole(geometry, hole, options = {}) {
     ? `${primaryHazard === "water" ? "WATER" : "BUNKERS"}${dangerSide ? ` ${dangerSide.toUpperCase()}` : ""}`
     : "NO MAJOR HAZARD";
 
+  // Context that is drawn but never played: the woods and cart paths that
+  // surround the hole, and the neighbouring fairways, greens and tees.
+  // A wood polygon can cover the whole frame without a single vertex inside it,
+  // so overlap is judged by bounding boxes, with a margin for the map's edge.
+  const nearFrame = (points) => {
+    let px0 = Infinity;
+    let px1 = -Infinity;
+    let py0 = Infinity;
+    let py1 = -Infinity;
+    for (const point of points) {
+      if (point[0] < px0) px0 = point[0];
+      if (point[0] > px1) px1 = point[0];
+      if (point[1] < py0) py0 = point[1];
+      if (point[1] > py1) py1 = point[1];
+    }
+    return px1 >= minX - 40 && px0 <= maxX + 40 && py1 >= minY - 40 && py0 <= maxY + 40;
+  };
+  const project = (coords) => coords.map(transformRaw).filter((point) => point.every(Number.isFinite));
+  const woods = (geometry.context?.woods || []).map(project).filter((ring) => ring.length >= 3 && nearFrame(ring)).map((ring) => ring.map(toSvg));
+  const paths = (geometry.context?.paths || []).map(project).filter((line) => line.length >= 2 && nearFrame(line)).map((line) => line.map(toSvg));
+  const context = (geometry.features || [])
+    .filter((feature) => Number(feature.hole) !== hole.number && ["fairway", "green", "tee"].includes(feature.type) && Array.isArray(feature.coords) && feature.coords.length >= 3)
+    .map(projectFeature)
+    .filter((feature) => feature.points.length >= 3 && nearFrame(feature.points))
+    .map((feature) => ({ type: feature.type, points: feature.points.map(toSvg) }));
   const projected = {
     width,
     height,
+    woods,
+    paths,
+    context,
     features: [...rawFeatures, ...neighbourHazards]
       .map((feature) => ({ ...feature, points: feature.points.map(toSvg) }))
       .sort((a, b) => (FEATURE_ORDER[a.type] ?? 9) - (FEATURE_ORDER[b.type] ?? 9)),

@@ -754,6 +754,24 @@ function HoleMap({
         </defs>
         <rect x={-2000} y={-2000} width={projection.width + 4000} height={projection.height + 4000} className="trip-game-map-rough" />
         <rect x={-2000} y={-2000} width={projection.width + 4000} height={projection.height + 4000} fill={`url(#${mapId}-rough)`} />
+        {projection.woods?.length > 0 && (
+          <g className="trip-game-canopy-layer" aria-hidden="true">
+            {projection.woods.map((ring, index) => (
+              <path key={`wood-${index}`} d={pathFromPoints(ring)} className="trip-game-canopy" />
+            ))}
+          </g>
+        )}
+        {projection.context?.length > 0 && (
+          <g className="trip-game-context-layer" aria-hidden="true">
+            {projection.context.map((feature, index) => (
+              <path
+                key={`ctx-${index}`}
+                d={pathFromPoints(feature.points)}
+                className={`trip-game-map-feature trip-game-map-feature--${feature.type} is-context`}
+              />
+            ))}
+          </g>
+        )}
         {projection.features.filter((feature) => ["fairway", "green"].includes(feature.type)).map((feature, index) => (
           <path key={`collar-${index}`} d={pathFromPoints(feature.points)} className={`trip-game-terrain-collar is-${feature.type}`} />
         ))}
@@ -772,6 +790,13 @@ function HoleMap({
             )}
           </g>
         ))}
+        {projection.paths?.length > 0 && (
+          <g className="trip-game-path-layer" aria-hidden="true">
+            {projection.paths.map((line, index) => (
+              <path key={`path-${index}`} d={pathFromPoints(line, false)} className="trip-game-cart-path" />
+            ))}
+          </g>
+        )}
         <g className="trip-game-tree-layer" aria-hidden="true">
           {trees.map((tree, index) => (
             <g

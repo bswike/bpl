@@ -157,3 +157,26 @@
 .trip-game-map-wrap.is-resolving.is-shaking {
   animation: trip-game-shake 0.28s linear;
 }
+
+/* surroundings: woods, cart paths and the neighbouring holes (drawn, not played) */
+
+.trip-game-canopy {
+  fill: #1e3d27;
+  stroke: #152c1c;
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.trip-game-map-feature.is-context {
+  opacity: 0.55;
+  stroke-width: 1;
+}
+
+.trip-game-cart-path {
+  fill: none;
+  stroke: #cfcabb;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
