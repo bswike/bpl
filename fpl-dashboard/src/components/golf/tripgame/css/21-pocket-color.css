@@ -287,5 +287,5 @@
 
 /* Surroundings in the Pocket palette: deep canopy, pale asphalt paths, muted neighbours. */
 .trip-game-canopy { fill: #223f2a; stroke: #17301f; }
-.trip-game-map-feature.is-context { opacity: 0.5; }
+.trip-game-map-feature.is-context { opacity: 0.8; }
 .trip-game-cart-path { stroke: #d9d2bf; }
