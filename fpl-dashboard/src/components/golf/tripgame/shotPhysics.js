@@ -10,10 +10,10 @@ import {
 } from "./geometry.js";
 import { buildTreeSprites } from "./projection.js";
 import { pointNearGreen } from "./camera.js";
+import { classifyTerrain, nearestFeaturePoint, onPuttingSurface } from "./terrain.js";
 import { LIVE_CARRY_SWEET, liveClubOf } from "./clubs.js";
 import { ACC_GOOD } from "./meter.js";
 import { windEffect } from "./wind.js";
-import { classifyTerrain, nearestFeaturePoint } from "./terrain.js";
 import { CLUBS, SHAPES, aimOffsetOf } from "../tripGameEngine.js";
 export function computeShotTarget(projection, hole, decision) {
   const club = CLUBS.find((item) => item.id === decision.club) || CLUBS[0];
@@ -166,11 +166,35 @@ export function carryProfile({ clubId, lie, carryBoost = 1, fireball = false, sp
   return { centerCarry, pattern };
 }
 
+// The short clubs are touch shots: below the sweet spot the carry scales
+// with the power itself, so a chip can be a five-yard bump or a full pitch.
+export const TOUCH_CLUBS = new Set(["chip", "sandwedge", "wedge"]);
+export const TOUCH_MIN_POWER = 0.12;
+
+/** The carry the meter's power produces with this profile. */
+export function carryForPower(profile, power, clubId = null) {
+  if (TOUCH_CLUBS.has(clubId) && power < 0.87) {
+    return profile.centerCarry * (Math.max(TOUCH_MIN_POWER, power) / 0.87);
+  }
+  const depthNorm = clamp((power - 0.87) / 0.09, -1.6, 1.6);
+  return profile.centerCarry + (depthNorm < 0 ? depthNorm * profile.pattern.short : depthNorm * profile.pattern.long);
+}
+
 /** The meter power that carries `yards` with this profile (the sweet spot is 0.87; each 0.09 is one oval depth). */
-export function powerForCarry(profile, yards) {
+export function powerForCarry(profile, yards, clubId = null) {
+  if (TOUCH_CLUBS.has(clubId) && yards < profile.centerCarry) {
+    return clamp((0.87 * yards) / profile.centerCarry, TOUCH_MIN_POWER, 0.87);
+  }
   const gap = yards - profile.centerCarry;
   const depthNorm = clamp(gap / (gap < 0 ? profile.pattern.short : profile.pattern.long), -1.6, 1.6);
   return clamp(0.87 + depthNorm * 0.09, 0.55, 1.1);
+}
+
+/** A pace band for a touch shot: the power that lands it, with a little give. */
+export function touchPaceBand(profile, yards, clubId) {
+  if (!TOUCH_CLUBS.has(clubId) || yards >= profile.centerCarry) return null;
+  const centre = powerForCarry(profile, yards, clubId);
+  return { min: Math.max(TOUCH_MIN_POWER, centre - 0.055), max: Math.min(1.02, centre + 0.055) };
 }
 
 export function resolveLiveStroke({
@@ -223,9 +247,10 @@ export function resolveLiveStroke({
     // The meter places the ball inside the oval: dead-center taps land dead
     // center; edge-of-good taps ride the oval's edge.
     const lineNorm = clamp(meter.accuracy / (ACC_GOOD * (zoneScale || 1)), -1, 1);
-    const depthNorm = clamp((power - 0.87) / 0.09, -1.6, 1.6);
-    lateralYards = lineNorm * pattern.lateral;
-    carryYards = centerCarry + (depthNorm < 0 ? depthNorm * pattern.short : depthNorm * pattern.long);
+    // Lateral miss shrinks with the shot: a bumped chip cannot go ten yards wide.
+    const touch = TOUCH_CLUBS.has(clubId) && power < 0.87 ? Math.max(TOUCH_MIN_POWER, power) / 0.87 : 1;
+    lateralYards = lineNorm * pattern.lateral * touch;
+    carryYards = carryForPower({ centerCarry, pattern }, power, clubId);
   } else {
     // Shank table: a wild tap is a real mishit — top, duff, or the big miss.
     const side = meter.accuracy >= 0 ? 1 : -1;
@@ -360,7 +385,9 @@ export function resolveLiveStroke({
   // Sand beside the green is still sand; only then does green proximity count.
   if (restTerrain === "Bunker") return finish(rest, { nextLie: "Bunker" });
   const pinDist = Math.hypot(rest[0] - pin[0], rest[1] - pin[1]);
-  if (pointNearGreen(rest, projection)) {
+  // Only the putting surface itself putts: greenside rough and the fairway
+  // short of the green are chips, however close the flag.
+  if (onPuttingSurface(rest, projection)) {
     const feet = clamp(Math.round((pinDist / scale) * 3), 2, 60);
     // Proximity call-outs for anything that flew in from off the green.
     if (!groundBall && kind !== "putt" && !caption) {

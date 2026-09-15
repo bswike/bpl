@@ -71,11 +71,13 @@ import {
   liveClubOf,
 } from "./tripgame/clubs.js";
 import {
+  carryProfile,
   computeShotTarget,
   placeTeeLanding,
   shapeBend,
   shapeDrift,
   shotPatternFor,
+  touchPaceBand,
 } from "./tripgame/shotPhysics.js";
 import {
   FLIGHT_FRAME_MS,
@@ -3061,7 +3063,12 @@ export default function TripGame({ data }) {
           context: "putt",
         });
       }
-      return computeMeterMods({ club: liveClubId || live.club, lie: live.lie, context: "approach" });
+      return computeMeterMods({
+        club: liveClubId || live.club,
+        lie: live.lie,
+        paceBand: touchBandFor(live, liveClubId || live.club),
+        context: "approach",
+      });
     }
     if ((!live || live.teeOpen) && !liveInfo) return computeMeterMods({ club: decision.club, context: "tee" });
     return null;
@@ -3828,6 +3835,15 @@ export default function TripGame({ data }) {
     resolutionTimerRef.current = window.setTimeout(() => advanceMatchFlow(), fastForwardRef.current ? 120 : 700);
   }
 
+  // Inside the short clubs' full carry the meter shows the pace that lands
+  // it, the way a putt shows its band.
+  function touchBandFor(live, clubId) {
+    if (!live || !projection || live.strokes === 0 || live.feet != null) return null;
+    const remaining = Math.hypot(projection.pin[0] - live.pos[0], projection.pin[1] - live.pos[1]) / (live.yardsScale || 1);
+    const profile = carryProfile({ clubId, lie: live.lie, carryBoost: decision.carryBoost || 1, hi: selected?.hi ?? 12 });
+    return touchPaceBand(profile, remaining, clubId);
+  }
+
   function startNextLiveSwing() {
     const live = liveRef.current;
     if (!live || result || live.holed || live.strokes >= hole.par + 4) return;
@@ -3847,7 +3863,7 @@ export default function TripGame({ data }) {
     startKickMeter({
       club: clubId,
       lie: live.feet != null ? "Green" : live.lie,
-      paceBand: live.feet != null ? live.puttRead?.paceBand : null,
+      paceBand: live.feet != null ? live.puttRead?.paceBand : touchBandFor(live, clubId),
       needle: live.feet != null ? live.puttRead?.needle : 1,
       context: live.strokes === 0 ? "tee" : live.feet != null ? "putt" : "approach",
     });

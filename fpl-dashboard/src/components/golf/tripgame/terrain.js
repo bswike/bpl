@@ -93,3 +93,34 @@ export function nearestFeaturePoint(features, types, target, maxDist) {
   }
   return best;
 }
+
+/**
+ * The putting surface proper: inside this hole's green (the one holding the
+ * pin, else the nearest to it) with a little fringe. Rough past the green,
+ * sand beside it and fairway short of it are chips, however close the pin.
+ * Without a traced green, a tight radius on short grass stands in.
+ */
+export function onPuttingSurface(point, projection, fringe = 1.5) {
+  const pin = projection?.pin;
+  if (!pin) return false;
+  const greens = (projection.features || []).filter(
+    (feature) => feature.type === "green" && feature.points?.length >= 3,
+  );
+  if (!greens.length) {
+    return (
+      Math.hypot(point[0] - pin[0], point[1] - pin[1]) < 10 &&
+      classifyTerrain(projection.features, point) === "Fairway"
+    );
+  }
+  const green =
+    greens.find((feature) => pointInPolygon(pin, feature.points)) ||
+    greens.reduce((best, feature) => {
+      const centre = polygonCentroid(feature.points);
+      const distance = Math.hypot(centre[0] - pin[0], centre[1] - pin[1]);
+      return !best || distance < best.distance ? { feature, distance } : best;
+    }, null).feature;
+  if (classifyTerrain(projection.features, point) === "Bunker") return false;
+  if (pointInPolygon(point, green.points)) return true;
+  const edge = nearestEdgePoint(green.points, point);
+  return Boolean(edge) && edge.distance <= fringe;
+}

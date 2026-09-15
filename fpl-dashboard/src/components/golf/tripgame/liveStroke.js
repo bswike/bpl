@@ -276,7 +276,7 @@ export function simulateCpuStroke({ projection, hole, cpu, yardsScale, rng, seed
       : defaultLiveClub(needed / (carryBoost * (spin === "back" ? 0.97 : 1) * (ball.lie === "Rough" ? 0.88 : ball.lie === "Bunker" ? 0.8 : 1)), ball.lie);
   const profile = carryProfile({ clubId, lie: ball.lie, carryBoost, fireball: Boolean(cpu.decision.fireball), spin, hi: cpu.hi });
   const fullSend = ball.strokes === 0 && hole.par > 3;
-  const powerCenter = fullSend ? 0.87 : powerForCarry(profile, needed);
+  const powerCenter = fullSend ? 0.87 : powerForCarry(profile, needed, clubId);
   const zoneScale = meterZoneFor({ clubId, lie: ball.lie, hi: cpu.hi, buzz: cpu.buzz });
   const meter = cpuMeterSample({ hi: cpu.hi, rng, zoneScale, powerCenter });
   const judgment = judgeSwing(meter.power, meter.accuracy, { zoneScale });

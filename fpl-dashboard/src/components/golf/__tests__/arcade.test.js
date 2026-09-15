@@ -3,6 +3,8 @@ import { polylineLength } from "../tripgame/geometry.js";
 import { projectHole } from "../tripgame/projection.js";
 import { EMPTY_RECORDS, noteRecord } from "../tripgame/records.js";
 import { resolveLiveStroke } from "../tripgame/shotPhysics.js";
+import { onPuttingSurface } from "../tripgame/terrain.js";
+import { carryProfile, powerForCarry } from "../tripgame/shotPhysics.js";
 import { makeShot } from "../tripgame/shotTheater.js";
 import { windEffect, windFor, windLabel } from "../tripgame/wind.js";
 
@@ -160,5 +162,40 @@ describe("records at the bar", () => {
     expect(loadRecords(angry)).toEqual({ ...EMPTY_RECORDS });
     expect(() => saveRecords(angry, EMPTY_RECORDS)).not.toThrow();
     expect(loadRecords(null)).toEqual({ ...EMPTY_RECORDS });
+  });
+});
+
+describe("putting surface", () => {
+  const pin = projection.pin;
+  it("is the green itself, with a little fringe", () => {
+    expect(onPuttingSurface([pin[0], pin[1] + 5], projection)).toBe(true);
+    expect(onPuttingSurface([pin[0] + 13, pin[1]], projection)).toBe(true);
+    expect(onPuttingSurface([pin[0] + 15, pin[1]], projection)).toBe(true); // a metre onto the fringe
+  });
+  it("is not the rough just past the green, nor the fairway short of it", () => {
+    expect(onPuttingSurface([pin[0], pin[1] - 20], projection)).toBe(false); // 5 m over the back
+    expect(onPuttingSurface([pin[0] + 18, pin[1]], projection)).toBe(false); // 4 m wide
+    expect(onPuttingSurface([pin[0], pin[1] + 20], projection)).toBe(false); // fairway short
+  });
+  it("never counts sand beside the green", () => {
+    const sandy = { ...projection, features: [...projection.features, { type: "bunker", points: [[pin[0] - 20, pin[1] - 4], [pin[0] - 16, pin[1] - 4], [pin[0] - 16, pin[1] + 4], [pin[0] - 20, pin[1] + 4]] }] };
+    expect(onPuttingSurface([pin[0] - 18, pin[1]], sandy)).toBe(false);
+  });
+});
+
+describe("short game touch", () => {
+  it("a soft chip from just off the green finds the surface instead of flying it", () => {
+    const from = [projection.pin[0], projection.pin[1] + 24]; // 9 m short of the green, in the fairway
+    const profile = carryProfile({ clubId: "chip", lie: "Fairway", carryBoost: 1, hi: 8 });
+    const power = powerForCarry(profile, 24 / yardsScale, "chip");
+    expect(power).toBeLessThan(0.75);
+    // A GREAT strike (a PURE one this close would jar it).
+    const res = resolveLiveStroke({ projection, hole, from, lie: "Fairway", meter: { power, accuracy: 0 }, judgment: { tier: "great" }, clubId: "chip", carryBoost: 1, yardsScale, hi: 8 });
+    expect(res.nextLie).toBe("Green");
+    expect(res.feet).toBeLessThanOrEqual(12);
+  });
+  it("a full chip still carries its full number", () => {
+    const profile = carryProfile({ clubId: "chip", lie: "Fairway", carryBoost: 1, hi: 8 });
+    expect(powerForCarry(profile, profile.centerCarry, "chip")).toBeCloseTo(0.87, 2);
   });
 });

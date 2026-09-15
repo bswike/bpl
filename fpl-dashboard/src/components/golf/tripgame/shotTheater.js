@@ -6,7 +6,7 @@ import {
   quadPoint,
   seededUnit,
 } from "./geometry.js";
-import { pointNearGreen } from "./camera.js";
+import { onPuttingSurface } from "./terrain.js";
 import {
   computeShotTarget,
   dryDropPoint,
@@ -151,7 +151,7 @@ export function buildShotSequence({ projection, hole, decision, gross, landingLa
 
   // On the green already (drove a par 4, reached in regulation, etc.):
   // everything left is putts — nobody chips off the putting surface.
-  const teeBallOnGreen = landingType !== "Penalty area" && landingType !== "Bunker" && pointNearGreen(current, projection);
+  const teeBallOnGreen = landingType !== "Penalty area" && landingType !== "Bunker" && onPuttingSurface(current, projection);
   let putts;
   if (teeBallOnGreen) {
     putts = remaining;
@@ -170,7 +170,7 @@ export function buildShotSequence({ projection, hole, decision, gross, landingLa
   const greenEntry = [pin[0] + jitter(1, 10), pin[1] + 5 + jitter(2, 4)];
   for (let index = 0; index < approaches; index += 1) {
     // An earlier shot already found the green — putt out from here instead.
-    if (pointNearGreen(current, projection)) {
+    if (onPuttingSurface(current, projection)) {
       putts += approaches - index;
       break;
     }
