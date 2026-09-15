@@ -731,6 +731,15 @@ function HoleMap({
   // while the next read is prepared.
   const puttingNow = playback ? activeShot?.kind === "putt" : Boolean(puttPreview) || onGreen;
   const groundPutt = groundAvailable && puttingNow;
+  // The corner card's scale is fixed when the ground view opens, so later
+  // frame changes (the header folding, a status strip) never retarget the
+  // shrink mid-flight.
+  const [pipBasis, setPipBasis] = useState(0);
+  useEffect(() => {
+    if (groundView) setPipBasis(frameHeight);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- captured once per entry
+  }, [groundView]);
+  const pipFrame = (groundView && pipBasis) || frameHeight;
   const shotFlipped = activeShot ? activeShot.to[0] < activeShot.from[0] : false;
   const flightFrames = activeShot?.frames || [];
   const flightFrameIndex = playback ? clamp(playback.frame || 0, 0, Math.max(0, flightFrames.length - 1)) : 0;
@@ -983,8 +992,8 @@ function HoleMap({
       style={{
         ...(shake ? { "--shake-amp": `${shake.amp}px` } : {}),
         // The overhead shrinks to a corner card between 150 and 220px tall.
-        "--pip-scale": frameHeight ? clamp(150, frameHeight * 0.3, 220) / frameHeight : 0.27,
-        "--pip-h": `${frameHeight ? clamp(150, frameHeight * 0.3, 220) : 200}px`,
+        "--pip-scale": pipFrame ? clamp(150, pipFrame * 0.3, 220) / pipFrame : 0.27,
+        "--pip-h": `${pipFrame ? clamp(150, pipFrame * 0.3, 220) : 200}px`,
       }}
     >
       <div className="trip-game-map-hud">
@@ -2859,7 +2868,9 @@ export default function TripGame({ data }) {
   useEffect(() => {
     setMatchupCompact(false);
     if (screen !== "play") return undefined;
-    const timer = window.setTimeout(() => setMatchupCompact(true), OVERHEAD_BEAT_MS + 300);
+    // Fold while the hole card is still up, so the frame is settled before
+    // the overhead starts its shrink.
+    const timer = window.setTimeout(() => setMatchupCompact(true), OVERHEAD_BEAT_MS - 1000);
     return () => window.clearTimeout(timer);
   }, [holeIndex, screen]);
 
