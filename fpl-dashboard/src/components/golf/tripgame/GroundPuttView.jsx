@@ -7,6 +7,7 @@ import { clamp } from "./geometry.js";
 import { PUTT_TICK_UNITS } from "./putting.js";
 import { createCartoonGolfer } from "./cartoonGolfer.js";
 import "./css/26-ground-putt.css";
+import { nameplateOf } from "./playerLook.js";
 
 // The 3D green shares the 2D putting scene's coordinates: the cup sits at
 // (85, 36) and the ball below it, in scene units (roughly 1.3 per foot).
@@ -91,8 +92,11 @@ export default function GroundPuttView({
   side = "human",
   visible = false,
   holeNumber = 1,
+  names = null,
+  onCycleGolfer = null,
   onUnavailable,
 }) {
+  const plate = useRef(null);
   const host = useRef(null),
     current = useRef(null);
   const [failed, setFailed] = useState(false);
@@ -268,6 +272,7 @@ export default function GroundPuttView({
       desiredRotation = new THREE.Quaternion(),
       lookMatrix = new THREE.Matrix4();
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const headPoint = new THREE.Vector3();
 
     function rebuildSurface(breakDir, slope) {
       heightAt = surfaceFor(breakDir, slope);
@@ -461,6 +466,17 @@ export default function GroundPuttView({
         camera.quaternion.slerp(desiredRotation, 1 - Math.exp(-7 * delta));
       }
       flag.rotation.y = Math.sin(now / 700) * 0.25;
+      // The nameplate rides above the golfer's head.
+      if (plate.current) {
+        headPoint.set(golfer.group.position.x, golfer.group.position.y + 1.9 * 3.1, golfer.group.position.z).project(camera);
+        const onScreen = headPoint.z < 1 && Math.abs(headPoint.x) < 1.2 && Math.abs(headPoint.y) < 1.2;
+        plate.current.hidden = !onScreen || !golfer.group.visible;
+        if (onScreen) {
+          const px = Math.min(node.clientWidth - 76, Math.max(76, ((headPoint.x + 1) / 2) * node.clientWidth)),
+            py = Math.max(52, ((1 - headPoint.y) / 2) * node.clientHeight);
+          plate.current.style.transform = `translate(-50%, -100%) translate(${px.toFixed(1)}px, ${(py - 6).toFixed(1)}px)`;
+        }
+      }
       renderer.render(scene, camera);
     }
     raf = requestAnimationFrame(draw);
@@ -490,9 +506,26 @@ export default function GroundPuttView({
   const slopeAdvice = slope > 0.12 ? "Uphill · give it more" : slope < -0.12 ? "Downhill · a softer touch" : "Level putt";
   const feet = info?.feet ? Math.round(info.feet) : null;
   const dropped = Boolean(shot?.final) && phase === "settle";
+  const cpuSide = side === "cpu";
+  const plateName = cpuSide ? names?.cpu : names?.human;
+  const plateClickable = !cpuSide && !shot && Boolean(onCycleGolfer);
   return (
     <div className={`trip-ground-putt${visible ? " is-live" : ""}`} aria-hidden={!visible}>
       <div className="trip-ground-render" ref={host} />
+      {plateName && (
+        <button
+          ref={plate}
+          type="button"
+          hidden
+          className={`trip-ground-nameplate${cpuSide ? " is-cpu" : ""}${plateClickable ? " is-clickable" : ""}`}
+          onClick={plateClickable ? onCycleGolfer : undefined}
+          tabIndex={plateClickable ? 0 : -1}
+          aria-label={plateClickable ? `${plateName}: tap for the next golfer` : plateName}
+        >
+          <span>{nameplateOf(plateName)}</span>
+          <small>{cpuSide ? "OPPONENT" : plateClickable ? "TAP TO SWAP" : "YOUR PICK"}</small>
+        </button>
+      )}
       <div className="trip-ground-heading">
         <span>BLACK BEAR / {String(holeNumber).padStart(2, "0")}</span>
         <b>{shot ? (side === "cpu" ? "Their putt" : "Your putt") : "On the green"}</b>

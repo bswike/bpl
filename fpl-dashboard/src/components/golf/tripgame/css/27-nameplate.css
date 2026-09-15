@@ -1,0 +1,211 @@
+@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&display=swap");
+
+/* ---------- Broadcast nameplate over the golfer's head (3D views) ---------- */
+.trip-ground-nameplate {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: 700 17px/1 Oswald, "Arial Narrow", Impact, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 #0d1f18, 0 2px 8px #0d1f18a0;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  will-change: transform;
+  transition: opacity 200ms ease;
+}
+.trip-ground-nameplate[hidden] {
+  display: none;
+}
+.trip-ground-nameplate > span {
+  display: block;
+  padding: 3px 10px 2px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #b94836, #8f2f23);
+  box-shadow: inset 0 1px 0 #ffffff40, 0 2px 6px #0d1f1880;
+}
+.trip-ground-nameplate.is-cpu > span {
+  background: linear-gradient(180deg, #3973a6, #2a557d);
+}
+.trip-ground-nameplate > small {
+  display: block;
+  margin-top: 2px;
+  font: 600 9px/1 Oswald, "Arial Narrow", sans-serif;
+  letter-spacing: 0.22em;
+  color: #fff1a5;
+  opacity: 0.9;
+}
+.trip-ground-nameplate::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  border-top-color: #8f2f23;
+  margin-top: -1px;
+}
+.trip-ground-nameplate.is-cpu::after {
+  border-top-color: #2a557d;
+}
+.trip-ground-nameplate.is-clickable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.trip-ground-nameplate.is-clickable:hover > span,
+.trip-ground-nameplate.is-clickable:focus-visible > span {
+  outline: 2px solid #fff1a5;
+  outline-offset: 1px;
+}
+
+/* ---------- Header card: tap the portrait to cycle, the name to choose ---------- */
+.trip-game-matchup .trip-game-portrait-button,
+.trip-game-matchup .trip-game-name-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  min-width: 0;
+  cursor: pointer;
+}
+.trip-game-matchup .trip-game-portrait-button {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: center;
+}
+.trip-game-matchup .trip-game-portrait-button .trip-game-player-portrait {
+  grid-column: auto;
+  grid-row: auto;
+}
+.trip-game-matchup .trip-game-portrait-button:not(:disabled):hover .trip-game-player-portrait,
+.trip-game-matchup .trip-game-portrait-button:focus-visible .trip-game-player-portrait {
+  outline: 2px solid #ffdf81;
+  outline-offset: 1px;
+}
+.trip-game-matchup .trip-game-portrait-button:not(:disabled):active .trip-game-player-portrait {
+  transform: translateY(1px);
+}
+.trip-game-matchup .trip-game-name-button {
+  display: block;
+  width: 100%;
+}
+.trip-game-matchup .trip-game-name-button:not(:disabled) b {
+  text-decoration: underline dotted #ffd7ad80;
+  text-underline-offset: 4px;
+}
+.trip-game-matchup .trip-game-name-button:not(:disabled):hover b,
+.trip-game-matchup .trip-game-name-button[aria-expanded="true"] b {
+  color: #ffe29b;
+}
+.trip-game-matchup .trip-game-name-button:disabled {
+  cursor: default;
+}
+.trip-game-matchup .trip-game-player-identity {
+  position: relative;
+}
+.trip-game-roster-menu {
+  position: absolute;
+  z-index: 30;
+  left: -6px;
+  top: calc(100% + 6px);
+  min-width: 190px;
+  max-height: 232px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 2px solid #ffd7ad;
+  background: #2b1f1b;
+  box-shadow: 3px 3px 0 #071c1b;
+}
+.trip-game-roster-menu button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 8px;
+  border: 0;
+  background: none;
+  color: #fff7d6;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.trip-game-roster-menu button:hover,
+.trip-game-roster-menu button:focus-visible {
+  background: #4b3129;
+  outline: none;
+}
+.trip-game-roster-menu button.is-current {
+  color: #ffe29b;
+}
+.trip-game-roster-menu button.is-spent {
+  opacity: 0.45;
+}
+.trip-game-roster-menu button small {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: #e1d8bc;
+}
+/* In the folded strip the menu opens below the strip. */
+.trip-game--play .trip-game-matchup.is-compact .trip-game-roster-menu {
+  top: calc(100% + 10px);
+}
+.trip-game--play .trip-game-matchup.is-compact .trip-game-portrait-button {
+  grid-column: 1;
+  grid-row: 1;
+}
+.trip-game--play .trip-game-matchup:has(.trip-game-roster-menu) {
+  overflow: visible;
+}
+
+/* ---------- Per-player looks on the pixel portraits ---------- */
+.trip-game-player-portrait .trip-game-golfer-skin {
+  fill: var(--golfer-skin, #f0c896);
+}
+.trip-game-player-portrait .trip-game-golfer-shirt {
+  fill: var(--golfer-shirt, #e8ecf2);
+}
+.trip-game-player-portrait .trip-game-golfer-legs {
+  fill: var(--golfer-legs, #33556e);
+}
+.trip-game-player-portrait.is-visor .trip-game-golfer-cap {
+  fill: #fff5e4;
+}
+.trip-game-player-portrait.is-visor .trip-game-golfer-cap.is-blue {
+  fill: #fff5e4;
+}
+.trip-game-player-portrait.is-tall svg {
+  transform: scaleY(1.08);
+  transform-origin: 50% 100%;
+}
+.trip-game-player-portrait .trip-game-golfer-visor-band {
+  fill: var(--px-red);
+}
+.trip-game-player-portrait.is-cpu .trip-game-golfer-visor-band {
+  fill: #3d7ec8;
+}
+
+@media (max-width: 520px) {
+  .trip-ground-nameplate {
+    font-size: 14px;
+  }
+  .trip-game-roster-menu {
+    min-width: 160px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trip-ground-nameplate {
+    transition: none;
+  }
+}

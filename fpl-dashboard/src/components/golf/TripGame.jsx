@@ -84,6 +84,7 @@ import {
   mergeMatchPlayShots,
 } from "./tripgame/shotTheater.js";
 import { PUTT_TICK_UNITS, makePuttRead } from "./tripgame/putting.js";
+import { playerLook } from "./tripgame/playerLook.js";
 import {
   ACC_GOOD,
   ACC_GREAT,
@@ -152,6 +153,7 @@ import "./tripgame/css/22-putting-green.css";
 import "./tripgame/css/23-home-screen.css";
 import "./tripgame/css/24-matchup.css";
 import "./tripgame/css/19-reduced-motion.css";
+import "./tripgame/css/27-nameplate.css";
 
 import { GROUND_FLIGHT_FRAME_MS, shotPlaybackDuration, playbackSafetyBudget } from "./tripgame/groundView.js";
 
@@ -614,6 +616,8 @@ function HoleMap({
   puttPreview,
   puttInfo = null,
   onGreen = false,
+  golferNames = null,
+  onCycleGolfer = null,
   playerHi = 12,
   onAimStep,
   onCycle,
@@ -1324,7 +1328,8 @@ function HoleMap({
         <Suspense fallback={null}>
           <GroundShotView projection={projection} hole={hole} shot={activeShot}
             phase={playback?.phase} frame={playback?.frame || 0} visible={groundView}
-            origin={livePos || projection.tee} shape={decision.shape} plan={groundPlan} onUnavailable={onGroundUnavailable} />
+            origin={livePos || projection.tee} shape={decision.shape} plan={groundPlan} onUnavailable={onGroundUnavailable}
+            names={golferNames} onCycleGolfer={onCycleGolfer} />
         </Suspense>
       )}
       {playback && activeShot?.kind === "putt" && (
@@ -1341,6 +1346,8 @@ function HoleMap({
             side={playback && activeShot ? activeShot.side : "human"}
             visible={groundPutt}
             holeNumber={hole.number}
+            names={golferNames}
+            onCycleGolfer={onCycleGolfer}
             onUnavailable={onGroundUnavailable}
           />
         </Suspense>
@@ -1706,9 +1713,17 @@ function PopCall({ pops }) {
 
 function PlayerPortrait({ player, cpu = false }) {
   const initials = (player?.name || "?").split(/\s+/).map(word => word[0]).slice(0, 2).join("");
+  const look = playerLook(player);
   return (
-    <div className="trip-game-player-portrait" aria-hidden="true">
-      <svg viewBox="-16 -30 32 36"><GolferSprite at={[0, 0]} toward={cpu ? [-10, 0] : [10, 0]} hat={cpu ? "blue" : "red"} scale={1.6} /></svg>
+    <div
+      className={`trip-game-player-portrait${look.visor ? " is-visor" : ""}${look.tall ? " is-tall" : ""}${cpu ? " is-cpu" : ""}`}
+      style={{ "--golfer-skin": look.skin, "--golfer-shirt": look.shirt, "--golfer-legs": look.legs }}
+      aria-hidden="true"
+    >
+      <svg viewBox="-16 -30 32 36">
+        <GolferSprite at={[0, 0]} toward={cpu ? [-10, 0] : [10, 0]} hat={cpu ? "blue" : "red"} scale={1.6} />
+        {look.visor && <rect className="trip-game-golfer-visor-band" x={cpu ? -7.9 : -4.9} y="-27.2" width="9.9" height="1.4" />}
+      </svg>
       <span>{initials}</span>
     </div>
   );
@@ -1747,6 +1762,25 @@ function CaptainWheel({ players, selectedKey, usage, maxUses, disabled, onPick, 
   const wheelRef = useRef(null);
   const dragRef = useRef(null);
   const lastTickRef = useRef(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const close = (event) => {
+      if (!wheelRef.current?.contains(event.target)) setMenuOpen(false);
+    };
+    const onKey = (event) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+  useEffect(() => {
+    if (disabled) setMenuOpen(false);
+  }, [disabled]);
 
   function step(direction) {
     if (disabled || list.length < 2) return;
@@ -1789,10 +1823,59 @@ function CaptainWheel({ players, selectedKey, usage, maxUses, disabled, onPick, 
       }}
     >
       <small>YOUR PICK · {String(team || "").toUpperCase()}</small>
-      <PlayerPortrait player={selected} />
+      <button
+        type="button"
+        className="trip-game-portrait-button"
+        disabled={disabled || list.length < 2}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={() => step(1)}
+        aria-label="Next golfer"
+        title="Tap to cycle golfers"
+      >
+        <PlayerPortrait player={selected} />
+      </button>
       <div className="trip-game-player-identity" key={selectedKey || "empty"}>
-        <b>{selected?.name || "Pick a golfer"}</b>
-        <span>CH {selected && course ? courseHandicap(selected.hi, course) : "—"} · TEAM {wins}</span>
+        <button
+          type="button"
+          className="trip-game-name-button"
+          disabled={disabled || list.length < 2}
+          aria-haspopup="listbox"
+          aria-expanded={menuOpen}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => setMenuOpen((value) => !value)}
+          title="Tap to choose a golfer"
+        >
+          <b>{selected?.name || "Pick a golfer"}</b>
+          <span>CH {selected && course ? courseHandicap(selected.hi, course) : "—"} · TEAM {wins}</span>
+        </button>
+        {menuOpen && (
+          <ul className="trip-game-roster-menu" role="listbox" aria-label="Choose your golfer">
+            {[...players]
+              .sort((left, right) => left.hi - right.hi)
+              .map((player) => {
+                const spent = (usage[player.key] || 0) >= maxUses;
+                return (
+                  <li key={player.key} role="presentation">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={player.key === selectedKey}
+                      className={`${player.key === selectedKey ? "is-current" : ""}${spent ? " is-spent" : ""}`}
+                      disabled={spent}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={() => {
+                        onPick(player);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <span>{player.name}</span>
+                      <small>CH {course ? courseHandicap(player.hi, course) : "—"}{spent ? " · USED" : ""}</small>
+                    </button>
+                  </li>
+                );
+              })}
+          </ul>
+        )}
       </div>
       <em className="trip-game-player-state">{active ? "● YOUR SHOT" : disabled ? "LOCKED IN" : "CHOOSE YOUR GOLFER"}</em>
       <div className="trip-game-wheel-controls">
@@ -3106,6 +3189,16 @@ export default function TripGame({ data }) {
     haptic(8);
   }
 
+  // Tap the golfer's nameplate in the 3D views to move to the next pick.
+  function cycleGolfer() {
+    if (result || pickLocked || resolutionPhase !== "idle" || meterPhase) return;
+    const ranked = humanRoster.filter((player) => (usage[player.key] || 0) < maxUses).sort((a, b) => a.hi - b.hi);
+    const pool = ranked.length ? ranked : [...humanRoster].sort((a, b) => a.hi - b.hi);
+    if (pool.length < 2) return;
+    const index = Math.max(0, pool.findIndex((player) => player.key === selectedKey));
+    pickPlayer(pool[(index + 1) % pool.length]);
+  }
+
   function stepAim(direction) {
     if (!selected || result || resolutionPhase !== "idle" || meterPhase) return;
     setDecision((current) => ({
@@ -4310,6 +4403,10 @@ export default function TripGame({ data }) {
                   liveInfo && !result && liveRead ? { read: liveRead, aimTicks: puttAim, phase: meterPhase } : null
                 }
                 onGreen={swingMode === "full" && !result && liveRef.current?.feet != null}
+                golferNames={{ human: selected?.name || null, cpu: cpuOpponent?.profile?.name || null }}
+                onCycleGolfer={
+                  !pickLocked && !meterPhase && resolutionPhase === "idle" && !result ? cycleGolfer : null
+                }
                 clubReel={
                   liveInfo && !result && liveRef.current?.awaitingHuman && liveRef.current?.feet != null ? (
                     <div className="trip-game-club-reel is-aim" role="group" aria-label="Putt aim">

@@ -19,6 +19,7 @@ import {
   groundShotShape,
 } from "./groundView.js";
 import "./css/25-ground-view.css";
+import { nameplateOf } from "./playerLook.js";
 
 function courseTexture(projection) {
   const extent = Math.max(projection.width, projection.height) + 240;
@@ -257,9 +258,12 @@ export default function GroundShotView({
   origin,
   shape = "straight",
   plan = null,
+  names = null,
+  onCycleGolfer = null,
   onUnavailable,
 }) {
   const holeNumber = hole.number;
+  const plate = useRef(null);
   const host = useRef(null),
     state = useRef(null),
     current = useRef(null);
@@ -408,6 +412,7 @@ export default function GroundShotView({
     scene.add(landingRing);
     const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2200);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const headPoint = new THREE.Vector3();
     let raf = 0,
       previousShot = null,
       previousPlanKey = "",
@@ -673,6 +678,17 @@ export default function GroundShotView({
         reduced.matches ? (poseTime >= 1 ? 2.25 : 0) : poseTime,
         !s.shot && !reduced.matches ? Math.sin(now * 0.0018) * 0.008 : 0,
       );
+      // The nameplate rides above the golfer's head.
+      if (plate.current) {
+        headPoint.set(golfer.group.position.x, golfer.group.position.y + 1.9, golfer.group.position.z).project(camera);
+        const onScreen = headPoint.z < 1 && Math.abs(headPoint.x) < 1.2 && Math.abs(headPoint.y) < 1.2;
+        plate.current.hidden = !onScreen || !golfer.group.visible;
+        if (onScreen) {
+          const px = Math.min(node.clientWidth - 76, Math.max(76, ((headPoint.x + 1) / 2) * node.clientWidth)),
+            py = Math.max(52, ((1 - headPoint.y) / 2) * node.clientHeight);
+          plate.current.style.transform = `translate(-50%, -100%) translate(${px.toFixed(1)}px, ${(py - 6).toFixed(1)}px)`;
+        }
+      }
       renderer.render(scene, camera);
     }
     raf = requestAnimationFrame(draw);
@@ -700,6 +716,9 @@ export default function GroundShotView({
   const flightShape = shot ? groundShotShape(shot) : shape;
   const plannedShape = shot ? shot.plannedShape : shape;
   if (failed) return null;
+  const cpuSide = shot?.side === "cpu";
+  const plateName = cpuSide ? names?.cpu : names?.human;
+  const plateClickable = !cpuSide && !shot && Boolean(onCycleGolfer);
   return (
     <div
       className={`trip-ground-view${visible ? " is-live" : ""}`}
@@ -707,6 +726,20 @@ export default function GroundShotView({
       aria-label={`Black Bear hole ${hole.number}, ground-level shot camera`}
     >
       <div className="trip-ground-render" ref={host} />
+      {plateName && (
+        <button
+          ref={plate}
+          type="button"
+          hidden
+          className={`trip-ground-nameplate${cpuSide ? " is-cpu" : ""}${plateClickable ? " is-clickable" : ""}`}
+          onClick={plateClickable ? onCycleGolfer : undefined}
+          tabIndex={plateClickable ? 0 : -1}
+          aria-label={plateClickable ? `${plateName}: tap for the next golfer` : plateName}
+        >
+          <span>{nameplateOf(plateName)}</span>
+          <small>{cpuSide ? "OPPONENT" : plateClickable ? "TAP TO SWAP" : "YOUR PICK"}</small>
+        </button>
+      )}
       <div className="trip-ground-heading">
         <span>BLACK BEAR / {String(hole.number).padStart(2, "0")}</span>
         <b>
