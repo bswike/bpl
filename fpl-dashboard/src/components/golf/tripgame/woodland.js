@@ -50,6 +50,17 @@ export function mappedWoodland(projection, holeNumber) {
       species === "poplar"
         ? height * 0.19
         : height * ((individual ? 0.3 : 0.24) + seededUnit(seed + 7) * 0.08);
+    // Keep the crown off sand, water and greens; the stem alone was hiding
+    // the left fairway bunker on the 1st.
+    const hazards = projection.features.filter((f) =>
+      ["bunker", "water", "green"].includes(f.type),
+    );
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2,
+        px = x + Math.cos(a) * radius,
+        py = y + Math.sin(a) * radius;
+      if (hazards.some((f) => pointInPolygon([px, py], f.points))) return;
+    }
     trees.push({
       x,
       y,
