@@ -33,6 +33,27 @@ function courseTexture(projection) {
   ctx.save();
   ctx.scale(scale, scale);
   ctx.translate(ox, oz);
+  const tracePath = (ring) => {
+    ring.forEach(([x, z], i) => (i ? ctx.lineTo(x, z) : ctx.moveTo(x, z)));
+    ctx.closePath();
+  };
+  // Forest floor under the surveyed and OSM woods, with clearings cut out.
+  for (const wood of projection.woods || []) {
+    ctx.beginPath();
+    [wood.outer, ...wood.inners].forEach(tracePath);
+    ctx.fillStyle = "#3c5a2c";
+    ctx.fill("evenodd");
+  }
+  // Neighbouring holes read as mown ground, a shade duller than this hole.
+  for (const feature of projection.context || []) {
+    if (feature.points.length < 3) continue;
+    ctx.beginPath();
+    tracePath(feature.points);
+    ctx.fillStyle =
+      { fairway: "#6f8e45", green: "#8fab5d", tee: "#7f9b4f" }[feature.type] ||
+      "#517338";
+    ctx.fill();
+  }
   for (const feature of projection.features) {
     if (feature.points.length < 3) continue;
     ctx.save();
@@ -71,6 +92,19 @@ function courseTexture(projection) {
       }
     }
     ctx.restore();
+  }
+  // Cart paths sit on top of everything, as poured concrete does.
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const line of projection.paths || []) {
+    ctx.beginPath();
+    line.forEach(([x, z], i) => (i ? ctx.lineTo(x, z) : ctx.moveTo(x, z)));
+    ctx.strokeStyle = "#8f8b7b";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.strokeStyle = "#cfc9b8";
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
   }
   ctx.restore();
   for (let i = 0; i < 85000; i++) {
