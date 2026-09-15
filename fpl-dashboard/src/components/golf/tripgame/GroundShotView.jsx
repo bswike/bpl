@@ -612,8 +612,8 @@ export default function GroundShotView({
   if (failed) return null;
   return (
     <div
-      className="trip-ground-view"
-      hidden={!visible}
+      className={`trip-ground-view${visible ? " is-live" : ""}`}
+      aria-hidden={!visible}
       aria-label={`Black Bear hole ${hole.number}, ground-level shot camera`}
     >
       <div className="trip-ground-render" ref={host} />

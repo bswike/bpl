@@ -569,6 +569,10 @@ function PuttingScene({ shot, phase, frame, side, preview = false, read = null, 
   );
 }
 
+// How long every hole holds the overhead before the map shrinks into the
+// corner and the ground camera takes the frame.
+const OVERHEAD_BEAT_MS = 2800;
+
 function HoleMap({
   courseSlug,
   projection,
@@ -611,7 +615,9 @@ function HoleMap({
   const [wholeHole, setWholeHole] = useState(false);
   const [groundPreview, setGroundPreview] = useState(false);
   const [groundFailed, setGroundFailed] = useState(false);
+  const [frameHeight, setFrameHeight] = useState(0);
   const onGroundUnavailable = useCallback(() => setGroundFailed(true), []);
+  const groundAvailable = courseSlug === "black-bear" && !groundFailed;
 
   // Measure the on-screen frame so cameras can fill it edge-to-edge.
   useEffect(() => {
@@ -619,7 +625,10 @@ function HoleMap({
     if (!node || typeof ResizeObserver === "undefined") return undefined;
     const observer = new ResizeObserver((entries) => {
       const box = entries[0]?.contentRect;
-      if (box && box.height > 0) setViewAspect(box.width / box.height);
+      if (box && box.height > 0) {
+        setViewAspect(box.width / box.height);
+        setFrameHeight(box.height);
+      }
     });
     observer.observe(node);
     return () => observer.disconnect();
@@ -646,7 +655,21 @@ function HoleMap({
   useEffect(() => {
     cameraRef.current = null;
     setWholeHole(false);
+    setGroundPreview(false);
   }, [hole.number]);
+  // Every hole opens on the overhead for a beat; then the map shrinks into
+  // the corner and the ground camera takes the frame. Playback, putting and
+  // a settled result keep whatever view they are in.
+  const latestView = useRef({});
+  latestView.current = { playback, puttPreview, result };
+  useEffect(() => {
+    if (!groundAvailable) return undefined;
+    const timer = window.setTimeout(() => {
+      const view = latestView.current;
+      if (!view.playback && !view.puttPreview && !view.result) setGroundPreview(true);
+    }, OVERHEAD_BEAT_MS);
+    return () => window.clearTimeout(timer);
+  }, [hole.number, groundAvailable]);
 
   const shotDecision = result?.shotDecision || decision;
   const shape = SHAPES.find((item) => item.id === shotDecision.shape) || SHAPES[1];
@@ -861,7 +884,7 @@ function HoleMap({
     flightFrame,
     liveFocus: livePos || null,
     aspect: viewAspect,
-    wholeHole: wholeHole || intro,
+    wholeHole: wholeHole || intro || groundView,
     planningTarget: planning ? previewTarget : livePos && livePreview
       ? (() => {
           const distance = livePreview.carryYards * (hole.yards && lineLength ? lineLength / hole.yards : 1);
@@ -914,7 +937,12 @@ function HoleMap({
     <div
       ref={wrapRef}
       className={`trip-game-map-wrap${groundView ? " is-ground-camera" : ""}${(playback ? activeShot?.kind === "putt" : Boolean(puttPreview)) ? " is-putting" : ""} ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}${party > 0 ? ` is-party-${party}` : ""}${partySurge ? " is-party-surge" : ""}`}
-      style={shake ? { "--shake-amp": `${shake.amp}px` } : undefined}
+      style={{
+        ...(shake ? { "--shake-amp": `${shake.amp}px` } : {}),
+        // The overhead shrinks to a corner card between 150 and 220px tall.
+        "--pip-scale": frameHeight ? clamp(150, frameHeight * 0.3, 220) / frameHeight : 0.27,
+        "--pip-h": `${frameHeight ? clamp(150, frameHeight * 0.3, 220) : 200}px`,
+      }}
     >
       <div className="trip-game-map-hud">
         <span className={`trip-game-par-pill is-par-${hole.par}`}>PAR {hole.par}</span>
@@ -981,8 +1009,9 @@ function HoleMap({
         className="trip-game-map"
         viewBox={`${camera.x.toFixed(2)} ${camera.y.toFixed(2)} ${camera.w.toFixed(2)} ${camera.h.toFixed(2)}`}
         preserveAspectRatio={fullFramed ? "xMidYMid meet" : "xMidYMid slice"}
-        aria-label={`Top-down map of hole ${hole.number}`}
-        role="img"
+        aria-label={groundView && !playback ? `Overhead of hole ${hole.number}; tap to return to the map` : `Top-down map of hole ${hole.number}`}
+        role={groundView && !playback ? "button" : "img"}
+        onClick={groundView && !playback ? () => setGroundPreview(false) : undefined}
       >
         {base}
         {planning && (
