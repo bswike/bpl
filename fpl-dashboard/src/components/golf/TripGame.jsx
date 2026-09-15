@@ -156,6 +156,7 @@ import "./tripgame/css/19-reduced-motion.css";
 import { GROUND_FLIGHT_FRAME_MS, shotPlaybackDuration, playbackSafetyBudget } from "./tripgame/groundView.js";
 
 const GroundShotView = lazy(() => import("./tripgame/GroundShotView.jsx"));
+const GroundPuttView = lazy(() => import("./tripgame/GroundPuttView.jsx"));
 
 const ARCHIVE_FILES = ["/data/golftrip-nj26.json", "/data/golftrip-2025.json"];
 
@@ -602,6 +603,7 @@ function HoleMap({
   livePreview,
   clubReel,
   puttPreview,
+  puttInfo = null,
   playerHi = 12,
   onAimStep,
   onCycle,
@@ -710,6 +712,9 @@ function HoleMap({
   const activeShot = playback ? playback.shots[Math.min(playback.index, playback.shots.length - 1)] : null;
   const groundView = courseSlug === "black-bear" && !groundFailed &&
     (activeShot ? activeShot.kind !== "putt" : !puttPreview && groundPreview && !result);
+  // Putts get the 3D green, with the 2D read shrunk into the corner card.
+  const puttingNow = playback ? activeShot?.kind === "putt" : Boolean(puttPreview);
+  const groundPutt = groundAvailable && puttingNow;
   const shotFlipped = activeShot ? activeShot.to[0] < activeShot.from[0] : false;
   const flightFrames = activeShot?.frames || [];
   const flightFrameIndex = playback ? clamp(playback.frame || 0, 0, Math.max(0, flightFrames.length - 1)) : 0;
@@ -958,7 +963,7 @@ function HoleMap({
   return (
     <div
       ref={wrapRef}
-      className={`trip-game-map-wrap${groundView ? " is-ground-camera" : ""}${(playback ? activeShot?.kind === "putt" : Boolean(puttPreview)) ? " is-putting" : ""} ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}${party > 0 ? ` is-party-${party}` : ""}${partySurge ? " is-party-surge" : ""}`}
+      className={`trip-game-map-wrap${groundView ? " is-ground-camera" : ""}${groundPutt ? " is-ground-putt" : ""}${(playback ? activeShot?.kind === "putt" : Boolean(puttPreview)) ? " is-putting" : ""} ${playback ? "is-resolving is-flyover" : ""} ${onGreenCam ? "is-green-zoom" : ""}${shake ? " is-shaking" : ""}${clutch ? " is-clutch" : ""}${party > 0 ? ` is-party-${party}` : ""}${partySurge ? " is-party-surge" : ""}`}
       style={{
         ...(shake ? { "--shake-amp": `${shake.amp}px` } : {}),
         // The overhead shrinks to a corner card between 150 and 220px tall.
@@ -1312,6 +1317,21 @@ function HoleMap({
       )}
       {playback && activeShot?.kind === "putt" && (
         <PuttingScene shot={activeShot} phase={playback.phase} frame={playback.frame} side={activeShot.side} />
+      )}
+      {groundAvailable && (
+        <Suspense fallback={null}>
+          <GroundPuttView
+            read={puttInfo?.read || null}
+            shot={playback && activeShot?.kind === "putt" ? activeShot : null}
+            phase={playback ? playback.phase : puttInfo?.phase || null}
+            frame={playback?.frame || 0}
+            aimTicks={puttInfo?.aimTicks || 0}
+            side={playback && activeShot ? activeShot.side : "human"}
+            visible={groundPutt}
+            holeNumber={hole.number}
+            onUnavailable={onGroundUnavailable}
+          />
+        </Suspense>
       )}
       {!playback && puttPreview}
       {!playback && clubReel}
@@ -4262,6 +4282,11 @@ export default function TripGame({ data }) {
                   liveInfo && !result && liveRef.current?.feet != null && liveRef.current?.puttRead ? (
                     <PuttingScene preview phase={meterPhase} read={liveRef.current.puttRead} aimTicks={puttAim} side="human" />
                   ) : null
+                }
+                puttInfo={
+                  liveInfo && !result && liveRef.current?.feet != null && liveRef.current?.puttRead
+                    ? { read: liveRef.current.puttRead, aimTicks: puttAim, phase: meterPhase }
+                    : null
                 }
                 clubReel={
                   liveInfo && !result && liveRef.current?.awaitingHuman && liveRef.current?.feet != null ? (

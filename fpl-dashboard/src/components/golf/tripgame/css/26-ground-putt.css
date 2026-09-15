@@ -1,0 +1,128 @@
+/* The 3D green: takes the frame for putts while the 2D read shrinks into
+   the corner card, the same move the overhead makes for full shots. */
+.trip-ground-putt {
+  position: absolute;
+  inset: 28px 0 0;
+  z-index: 3;
+  overflow: hidden;
+  background: linear-gradient(#a9cfe0, #cfe2c9 45%, #7fae57);
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(1.06);
+  transform-origin: 50% 60%;
+  transition:
+    opacity 620ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 820ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 0s linear 620ms;
+}
+.trip-ground-putt.is-live {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s;
+}
+.trip-ground-putt .trip-ground-render,
+.trip-ground-putt .trip-ground-render canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* The rolling caption sits low, clear of the corner card. */
+.trip-game-map-wrap.is-ground-putt > .trip-game-playcap {
+  position: absolute;
+  bottom: 58px;
+  left: 16px;
+  right: 16px;
+  z-index: 4;
+  background: #133029b3;
+  border: 1px solid #ffffff26;
+  border-radius: 5px;
+}
+.trip-ground-putt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, #102c343d, transparent 27%, transparent 72%, #1125179c);
+}
+/* The read sits under the corner card, clear of the aim reel below. */
+.trip-ground-putt-read {
+  position: absolute;
+  right: 12px;
+  top: calc(46px + var(--pip-h, 200px) * 0.78);
+  max-width: 46%;
+  z-index: 1;
+  display: grid;
+  gap: 3px;
+  padding: 10px 14px;
+  border: 1px solid #ffffff40;
+  border-radius: 10px;
+  background: #183430b8;
+  backdrop-filter: blur(10px);
+  text-shadow: 0 1px 6px #18312f80;
+}
+.trip-ground-putt-read b {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff1a5;
+}
+.trip-ground-putt-read span {
+  font-size: 12px;
+  color: #e0e9e3;
+}
+
+/* Corner card: the 2D read at a glance, its HUD hidden at that size. */
+.trip-game-map-wrap.is-ground-putt > .trip-game-putt-scene {
+  z-index: 5;
+  inset: auto 12px auto auto;
+  top: 40px;
+  width: calc(var(--pip-h, 200px) * 0.66);
+  height: calc(var(--pip-h, 200px) * 0.78);
+  border-radius: 14px;
+  outline: 2px solid #e4edb1;
+  box-shadow: 0 10px 34px #06150f99;
+  overflow: hidden;
+  pointer-events: none;
+  animation: trip-ground-putt-card-in 780ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes trip-ground-putt-card-in {
+  from {
+    opacity: 0;
+    transform: scale(1.4) translate(20px, -20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.trip-game-map-wrap.is-ground-putt > .trip-game-putt-scene .trip-game-putt-svg {
+  padding: 0;
+}
+.trip-game-map-wrap.is-ground-putt > .trip-game-putt-scene .trip-game-green-read,
+.trip-game-map-wrap.is-ground-putt > .trip-game-putt-scene .trip-game-putt-coach,
+.trip-game-map-wrap.is-ground-putt > .trip-game-putt-scene .trip-game-putt-hud,
+.trip-game-map-wrap.is-ground-putt > .trip-game-putt-scene .trip-game-putt-for,
+.trip-game-map-wrap.is-ground-putt > .trip-game-putt-scene .trip-game-putt-in {
+  display: none;
+}
+@media (max-width: 520px) {
+  .trip-ground-putt-read {
+    padding: 8px 11px;
+  }
+  .trip-ground-putt-read b {
+    font-size: 14px;
+  }
+  .trip-ground-putt-read span {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trip-ground-putt,
+  .trip-game-map-wrap.is-ground-putt > .trip-game-putt-scene {
+    transition: none;
+    animation: none;
+  }
+}

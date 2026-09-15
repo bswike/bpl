@@ -283,3 +283,14 @@
     line-height: 1.4;
   }
 }
+
+/* The live status strip stays readable over the 3D views, and their
+   headings step down out from under it. */
+.trip-game-map-wrap.is-ground-camera > .trip-game-live-status,
+.trip-game-map-wrap.is-ground-putt > .trip-game-live-status {
+  position: relative;
+  z-index: 4;
+}
+.trip-game-map-wrap:has(> .trip-game-live-status) .trip-ground-heading {
+  top: 44px;
+}
