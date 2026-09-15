@@ -288,7 +288,11 @@ export function projectHole(geometry, hole, options = {}) {
     return px1 >= minX - 40 && px0 <= maxX + 40 && py1 >= minY - 40 && py0 <= maxY + 40;
   };
   const project = (coords) => coords.map(transformRaw).filter((point) => point.every(Number.isFinite));
-  const woods = (geometry.context?.woods || []).map(project).filter((ring) => ring.length >= 3 && nearFrame(ring)).map((ring) => ring.map(toSvg));
+  const woods = (geometry.context?.woods || [])
+    .map((wood) => (Array.isArray(wood) ? { outer: wood, inners: [] } : wood))
+    .map((wood) => ({ outer: project(wood.outer), inners: (wood.inners || []).map(project).filter((ring) => ring.length >= 3) }))
+    .filter((wood) => wood.outer.length >= 3 && nearFrame(wood.outer))
+    .map((wood) => ({ outer: wood.outer.map(toSvg), inners: wood.inners.map((ring) => ring.map(toSvg)) }));
   const paths = (geometry.context?.paths || []).map(project).filter((line) => line.length >= 2 && nearFrame(line)).map((line) => line.map(toSvg));
   const context = (geometry.features || [])
     .filter((feature) => Number(feature.hole) !== hole.number && ["fairway", "green", "tee"].includes(feature.type) && Array.isArray(feature.coords) && feature.coords.length >= 3)

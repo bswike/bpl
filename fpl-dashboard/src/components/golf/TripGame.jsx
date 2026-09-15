@@ -123,6 +123,7 @@ import {
   simulateStroke,
 } from "./tripgame/liveStroke.js";
 import { INITIAL_MATCH, matchReducer } from "./tripgame/matchState.js";
+import { woodlandAreas } from "./tripgame/woodland.js";
 import { METER_PHASES, PHASE, phaseOf, primaryLabel } from "./tripgame/phase.js";
 import { windEffect, windFor, windLabel } from "./tripgame/wind.js";
 import { EMPTY_RECORDS, loadRecords, noteRecord, saveRecords } from "./tripgame/records.js";
@@ -714,6 +715,8 @@ function HoleMap({
     ...buildCourseWoodland(projection, hole.number),
   ].sort((a, b) => a.y - b.y), [projection, hole.number]);
   const mapId = `trip-hole-${hole.number}`;
+  // Your traced woodland edges for the holes that have them; OSM forest fills the rest.
+  const tracedWoods = useMemo(() => woodlandAreas(projection, hole.number), [projection, hole.number]);
   // Static base of the map (patterns, ground, trees, features, centerline):
   // built once per hole instead of on every frame of every shot.
   const base = useMemo(
@@ -754,10 +757,18 @@ function HoleMap({
         </defs>
         <rect x={-2000} y={-2000} width={projection.width + 4000} height={projection.height + 4000} className="trip-game-map-rough" />
         <rect x={-2000} y={-2000} width={projection.width + 4000} height={projection.height + 4000} fill={`url(#${mapId}-rough)`} />
-        {projection.woods?.length > 0 && (
+        {(projection.woods?.length > 0 || tracedWoods.length > 0) && (
           <g className="trip-game-canopy-layer" aria-hidden="true">
-            {projection.woods.map((ring, index) => (
-              <path key={`wood-${index}`} d={pathFromPoints(ring)} className="trip-game-canopy" />
+            {tracedWoods.map((ring, index) => (
+              <path key={`traced-${index}`} d={pathFromPoints(ring)} className="trip-game-canopy" />
+            ))}
+            {projection.woods.map((wood, index) => (
+              <path
+                key={`wood-${index}`}
+                d={[wood.outer, ...wood.inners].map((ring) => pathFromPoints(ring)).join(" ")}
+                fillRule="evenodd"
+                className="trip-game-canopy"
+              />
             ))}
           </g>
         )}
@@ -829,7 +840,7 @@ function HoleMap({
         <path d={pathFromPoints(projection.line, false)} className="trip-game-centerline" />
       </>
     ),
-    [projection, mapId, trees, hole.number],
+    [projection, mapId, trees, tracedWoods, hole.number],
   );
   const ballPoint = flightFrame ? [flightFrame.gx, flightFrame.gy] : activeShot ? (playback.phase === "settle" ? activeShot.to : activeShot.from) : null;
   const onGreenCam = Boolean(

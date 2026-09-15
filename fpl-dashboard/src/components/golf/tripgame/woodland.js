@@ -7,6 +7,13 @@ export function geographicToMap(projection, [lat, lng]) {
     y = (lat - g.tee[0]) * 111320;
   return [x * g.cos - y * g.sin - g.minX, g.maxY - (x * g.sin + y * g.cos)];
 }
+/** The traced wooded areas for a hole in map units, for drawing the canopy. */
+export function woodlandAreas(projection, holeNumber) {
+  const source = data.holes.find((h) => h.number === holeNumber);
+  if (!source || !projection.georeference) return [];
+  return source.areas.map((p) => p.map((v) => geographicToMap(projection, v)));
+}
+
 const cache = new WeakMap();
 export function mappedWoodland(projection, holeNumber) {
   if (cache.has(projection)) return cache.get(projection);

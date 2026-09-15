@@ -32,11 +32,13 @@ for (const el of data.elements) {
   if (el.type === "way" && el.tags?.golf === "cartpath" && el.geometry) paths.push(el.geometry.map((g) => [g.lat, g.lon]));
   else if (el.type === "way" && (el.tags?.natural === "wood" || el.tags?.landuse === "forest") && el.geometry) {
     const ring = el.geometry.map((g) => [g.lat, g.lon]);
-    if (ring.length >= 3) woods.push(ring);
+    if (ring.length >= 3) woods.push({ outer: ring, inners: [] });
   } else if (el.type === "relation" && el.tags?.natural === "wood") {
-    for (const m of el.members || []) if (m.role === "outer" && m.geometry?.length >= 3) woods.push(m.geometry.map((g) => [g.lat, g.lon]));
+    // A forest with the course cut out of it: keep the clearings as inner rings.
+    const inners = (el.members || []).filter((m) => m.role === "inner" && m.geometry?.length >= 3).map((m) => m.geometry.map((g) => [g.lat, g.lon]));
+    for (const m of el.members || []) if (m.role === "outer" && m.geometry?.length >= 3) woods.push({ outer: m.geometry.map((g) => [g.lat, g.lon]), inners });
   }
 }
 course.context = { source: `OpenStreetMap (ODbL) via Overpass, fetched ${new Date().toISOString().slice(0, 10)}`, paths, woods };
 await writeFile(file, JSON.stringify(course));
-console.log(`${slug}: ${paths.length} cart paths (${paths.reduce((s, p) => s + p.length, 0)} pts), ${woods.length} wooded areas (${woods.reduce((s, w) => s + w.length, 0)} pts)`);
+console.log(`${slug}: ${paths.length} cart paths (${paths.reduce((s, p) => s + p.length, 0)} pts), ${woods.length} wooded areas (${woods.reduce((s, w) => s + w.outer.length, 0)} outer pts, ${woods.reduce((s, w) => s + w.inners.length, 0)} clearings)`);
