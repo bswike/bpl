@@ -647,7 +647,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323220333,2012-11-17,12,Regular,,333,Alabama,2717,Western Carolina,False,Home,W,49,0,49,False,4,,False,,,,0.9517,0.0483,0.0,33.02,49,0,41
 2012,323290333,2012-11-24,13,Regular,,333,Alabama,2,Auburn,True,Home,W,49,0,49,False,2,,False,,,,0.9353,0.0647,0.0,32.28,49,0,41
 2012,323360061,2012-12-01,14,Regular,SEC FOOTBALL CHAMPIONSHIP GAME,333,Alabama,61,Georgia,True,Neutral,W,32,28,4,False,2,,True,5,,,0.1358,0.3,0.5642,-2.38,4,11,4
-2012,400434780,2012-12-01,14,Regular,SEC Championship Game,333,Alabama,61,Georgia,True,Neutral,W,32,28,4,,2,,True,5,,,,,,,,,
 2012,330070333,2013-01-07,1,Postseason,DISCOVER BCS NATIONAL CHAMPIONSHIP,333,Alabama,87,Notre Dame,True,Neutral,W,42,14,28,False,2,,True,4,,,0.9508,0.0492,0.0,22.26,35,0,28
 2013,332430259,2013-08-31,1,Regular,AT ATLANTA,333,Alabama,259,Virginia Tech,True,Neutral,W,35,10,25,False,1,,True,,,,0.9725,0.0275,0.0,16.38,25,0,25
 2013,332570245,2013-09-14,3,Regular,,333,Alabama,245,Texas A&M,True,Away,W,49,42,7,False,1,,True,18,,,0.6486,0.1331,0.2183,6.7,21,14,7
@@ -1306,7 +1305,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2008,282570009,2008-09-13,3,Regular,,9,Arizona State,2439,UNLV,True,Home,L,20,23,-3,True,15,,False,,,,0.855,0.145,0.0,5.5,10,3,-3
 2008,282640009,2008-09-20,4,Regular,,9,Arizona State,61,Georgia,True,Home,L,10,27,-17,False,,,True,13,,,0.0,0.2517,0.7483,-9.68,0,18,-17
 2008,282780025,2008-10-04,6,Regular,,9,Arizona State,25,California,True,Away,L,14,24,-10,False,,,True,,,,0.0,0.0903,0.9097,-10.05,0,17,-10
-2008,400361396,2008-10-04,6,Regular,,9,Arizona State,25,California,True,Away,L,14,24,-10,,,,True,,,,,,,,,,
 2008,282850030,2008-10-11,7,Regular,,9,Arizona State,30,USC,True,Away,L,0,28,-28,False,,,True,3,,,0.0,0.0539,0.9461,-15.88,0,28,-27
 2008,282990009,2008-10-25,9,Regular,,9,Arizona State,2483,Oregon,True,Home,L,20,54,-34,False,,,True,10,,,0.0,0.035,0.965,-21.53,0,41,-36
 2008,283060204,2008-11-01,10,Regular,,9,Arizona State,204,Oregon State,True,Away,L,25,27,-2,False,,,True,18,,,0.1269,0.0781,0.795,-2.67,6,8,-2
@@ -2174,7 +2172,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323080349,2012-11-03,10,Regular,,349,Army,2005,Air Force,True,Home,W,41,21,20,False,,,False,,,,0.7342,0.2658,0.0,11.31,28,0,27
 2012,323150164,2012-11-10,11,Regular,,349,Army,164,Rutgers,True,Away,L,7,28,-21,False,,,True,,,,0.1953,0.6578,0.1469,-0.49,7,21,-21
 2012,323220349,2012-11-17,12,Regular,,349,Army,218,Temple,True,Home,L,32,63,-31,False,,,False,,,,0.0,0.0969,0.9031,-14.15,0,31,-30
-2012,400368353,2012-11-17,12,Regular,,349,Army,218,Temple,True,Home,L,32,63,-31,,,,False,,,,,,,,,,
 2012,323430349,2012-12-08,15,Regular,AT PHILADELPHIA,349,Army,2426,Navy,True,Neutral,L,13,17,-4,False,,,False,,,,0.0683,0.6311,0.3006,-1.15,3,7,-4
 2013,332420349,2013-08-30,1,Regular,,349,Army,2415,Morgan State,False,Home,W,28,12,16,False,,,False,,,,0.8547,0.1453,0.0,13.83,22,0,16
 2013,332502050,2013-09-07,2,Regular,,349,Army,2050,Ball State,True,Away,L,14,40,-26,False,,,False,,,,0.0553,0.12,0.8247,-16.13,7,30,-28
@@ -4590,7 +4587,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2008,282570120,2008-09-13,3,Regular,,25,California,120,Maryland,True,Away,L,27,35,-8,False,23,,True,,,,0.0,0.0658,0.9342,-15.58,0,22,-21
 2008,282710025,2008-09-27,5,Regular,,25,California,36,Colorado State,True,Home,W,42,7,35,False,,,False,,,,0.8317,0.1683,0.0,19.38,35,0,28
 2008,282780025,2008-10-04,6,Regular,,25,California,9,Arizona State,True,Home,W,24,14,10,False,,,True,,,,0.9097,0.0903,0.0,10.05,17,0,10
-2008,400361396,2008-10-04,6,Regular,,25,California,9,Arizona State,True,Home,W,24,14,10,,,,True,,,,,,,,,,
 2008,282920012,2008-10-18,8,Regular,,25,California,12,Arizona,True,Away,L,27,42,-15,False,25,,False,,,,0.3686,0.1933,0.4381,-2.95,10,15,-15
 2008,282990025,2008-10-25,9,Regular,,25,California,26,UCLA,True,Home,W,41,20,21,False,,,True,,,,0.8661,0.0861,0.0478,7.38,28,4,28
 2008,283060025,2008-11-01,10,Regular,,25,California,2483,Oregon,True,Home,W,26,16,10,False,,,True,10,,,0.9044,0.0333,0.0622,4.47,10,6,10
@@ -8299,7 +8295,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323220120,2012-11-17,12,Regular,,52,Florida State,120,Maryland,True,Away,W,41,14,27,False,10,,False,,,,0.9044,0.0956,0.0,20.36,34,0,27
 2012,323290052,2012-11-24,13,Regular,,52,Florida State,57,Florida,True,Home,L,26,37,-11,False,10,,True,9,,,0.2081,0.0964,0.6956,-3.58,7,17,-11
 2012,323360059,2012-12-01,14,Regular,DR PEPPER ACC FOOTBALL CHAMPIONSHIP,52,Florida State,59,Georgia Tech,True,Neutral,W,21,15,6,False,13,,False,,,,0.9292,0.0708,0.0,10.72,18,0,6
-2012,400434085,2012-12-01,14,Regular,Dr Pepper ACC Championship Game,52,Florida State,59,Georgia Tech,True,Neutral,W,21,15,6,,13,,False,,,,,,,,,,
 2012,330010052,2013-01-01,1,Postseason,DISCOVER ORANGE BOWL,52,Florida State,2459,Northern Illinois,True,Neutral,W,31,10,21,False,13,,True,22,,,0.8411,0.1589,0.0,8.48,21,0,21
 2013,332450221,2013-09-02,1,Regular,,52,Florida State,221,Pittsburgh,True,Away,W,41,13,28,False,11,,False,,,,0.7281,0.1611,0.1108,11.93,28,7,27
 2013,332570052,2013-09-14,3,Regular,,52,Florida State,2440,Nevada,True,Home,W,62,7,55,False,10,,False,,,,0.7192,0.1447,0.1361,19.06,55,4,30
@@ -8520,7 +8515,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2008,282642649,2008-09-20,4,Regular,,278,Fresno State,2649,Toledo,True,Away,W,55,54,1,True,25,,False,,,,0.8278,0.0294,0.1428,4.79,10,4,1
 2008,282710026,2008-09-27,5,Regular,,278,Fresno State,26,UCLA,True,Away,W,36,31,5,False,25,,True,,,,0.5825,0.2008,0.2167,2.4,14,3,5
 2008,282780278,2008-10-04,6,Regular,,278,Fresno State,62,Hawai'i,True,Home,L,29,32,-3,True,22,,False,,,,0.0036,0.2367,0.7597,-6.63,3,17,-3
-2008,400361791,2008-10-04,6,Regular,,278,Fresno State,62,Hawai'i,True,Home,L,29,32,-3,,22,,False,,,,,,,,,,
 2008,282850278,2008-10-11,7,Regular,,278,Fresno State,70,Idaho,True,Home,W,45,32,13,False,,,False,,,,0.8219,0.0828,0.0953,11.41,25,3,18
 2008,282990328,2008-10-25,9,Regular,,278,Fresno State,328,Utah State,True,Away,W,30,28,2,False,,,False,,,,0.5589,0.2853,0.1558,2.43,11,7,2
 2008,283062348,2008-11-01,10,Regular,,278,Fresno State,2348,Louisiana Tech,True,Away,L,35,38,-3,False,,,False,,,,0.3783,0.3508,0.2708,0.91,7,10,-3
@@ -8861,7 +8855,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323220061,2012-11-17,12,Regular,,61,Georgia,290,Georgia Southern,False,Home,W,45,14,31,False,5,,False,,,,0.8481,0.1519,0.0,13.8,31,0,30
 2012,323290061,2012-11-24,13,Regular,,61,Georgia,59,Georgia Tech,True,Home,W,42,10,32,False,3,,False,,,,0.9825,0.0175,0.0,24.21,39,0,31
 2012,323360061,2012-12-01,14,Regular,SEC FOOTBALL CHAMPIONSHIP GAME,61,Georgia,333,Alabama,True,Neutral,L,28,32,-4,False,3,,True,1,,,0.5642,0.3,0.1358,2.38,11,4,-4
-2012,400434780,2012-12-01,14,Regular,SEC Championship Game,61,Georgia,333,Alabama,True,Neutral,L,28,32,-4,,3,,True,1,,,,,,,,,
 2012,330010158,2013-01-01,1,Postseason,CAPITAL ONE BOWL,61,Georgia,158,Nebraska,True,Neutral,W,45,31,14,False,6,,True,25,,,0.6103,0.1819,0.2078,4.11,14,8,14
 2013,332430228,2013-08-31,1,Regular,,61,Georgia,228,Clemson,True,Away,L,35,38,-3,False,5,,True,8,,,0.1525,0.3806,0.4669,-1.62,7,10,-3
 2013,332500061,2013-09-07,2,Regular,,61,Georgia,2579,South Carolina,True,Home,W,41,30,11,False,11,,True,4,,,0.6981,0.2686,0.0333,5.54,14,3,11
@@ -8876,7 +8869,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2013,333270061,2013-11-23,13,Regular,,61,Georgia,96,Kentucky,True,Home,W,59,17,42,False,,,False,,,,1.0,0.0,0.0,30.34,49,0,32
 2013,333340059,2013-11-30,14,Regular,,61,Georgia,59,Georgia Tech,True,Away,W,41,34,7,True,,,False,,,,0.0,0.1044,0.8956,-9.91,7,20,7
 2013,340010061,2014-01-01,1,Postseason,TAXSLAYER.com GATOR BOWL,61,Georgia,158,Nebraska,True,Neutral,L,19,24,-5,False,23,,True,,,,0.0256,0.3231,0.6514,-3.31,3,12,-5
-2013,400521191,2014-01-01,1,Postseason,TAXSLAYER.com GATOR BOWL,61,Georgia,158,Nebraska,True,Neutral,L,19,24,-5,,23,,True,,,,,,,,,,
 2014,400547740,2014-08-30,1,Regular,,61,Georgia,228,Clemson,True,Home,W,45,21,24,False,12,,True,15,,,0.4694,0.4575,0.0731,4.15,24,7,24
 2014,400548392,2014-09-13,3,Regular,,61,Georgia,2579,South Carolina,True,Away,L,35,38,-3,False,6,,True,,,,0.0847,0.1178,0.7975,-4.86,3,11,-3
 2014,400548385,2014-09-20,4,Regular,,61,Georgia,2653,Troy,True,Home,W,66,0,66,False,13,,False,,,,0.8831,0.1169,0.0,37.73,66,0,38
@@ -9468,7 +9460,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323220059,2012-11-17,12,Regular,,59,Georgia Tech,150,Duke,True,Home,W,42,24,18,False,,,False,,,,0.6681,0.3319,0.0,5.39,18,0,18
 2012,323290061,2012-11-24,13,Regular,,59,Georgia Tech,61,Georgia,True,Away,L,10,42,-32,False,,,True,5,,,0.0,0.0175,0.9825,-24.21,0,39,-31
 2012,323360059,2012-12-01,14,Regular,DR PEPPER ACC FOOTBALL CHAMPIONSHIP,59,Georgia Tech,52,Florida State,True,Neutral,L,15,21,-6,False,,,True,10,,,0.0,0.0708,0.9292,-10.72,0,18,-6
-2012,400434085,2012-12-01,14,Regular,Dr Pepper ACC Championship Game,59,Georgia Tech,52,Florida State,True,Neutral,L,15,21,-6,,,,True,10,,,,,,,,,
 2012,323660059,2012-12-31,1,Postseason,HYUNDAI SUN BOWL,59,Georgia Tech,30,USC,True,Neutral,W,21,7,14,False,,,True,,,,0.6208,0.3792,0.0,5.88,14,0,14
 2013,332430059,2013-08-31,1,Regular,,59,Georgia Tech,2210,Elon,False,Home,W,70,0,70,False,,,False,,,,0.9661,0.0339,0.0,43.15,70,0,42
 2013,332570150,2013-09-14,3,Regular,,59,Georgia Tech,150,Duke,True,Away,W,38,14,24,False,,,True,23,,,0.8981,0.0492,0.0528,11.86,24,4,29
@@ -9688,7 +9679,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2008,282570204,2008-09-13,3,Regular,,62,Hawai'i,204,Oregon State,True,Away,L,7,45,-38,False,,,True,18,,,0.1225,0.1397,0.7378,-15.38,7,38,-30
 2008,282710062,2008-09-28,5,Regular,,62,Hawai'i,23,San Jose State,True,Home,L,17,20,-3,False,,,False,,,,0.5678,0.3739,0.0583,4.07,10,7,-3
 2008,282780278,2008-10-04,6,Regular,,62,Hawai'i,278,Fresno State,True,Away,W,32,29,3,True,,,True,,,,0.7597,0.2367,0.0036,6.63,17,3,3
-2008,400361791,2008-10-04,6,Regular,,62,Hawai'i,278,Fresno State,True,Away,W,32,29,3,,,,True,,,,,,,,,,
 2008,282850062,2008-10-12,7,Regular,,62,Hawai'i,2348,Louisiana Tech,True,Home,W,24,14,10,False,,,False,,,,0.7981,0.2019,0.0,10.61,17,0,10
 2008,282910068,2008-10-17,8,Regular,,62,Hawai'i,68,Boise State,True,Away,L,7,27,-20,False,,,True,11,,,0.0,0.2208,0.7792,-9.27,0,20,-20
 2008,282990062,2008-10-26,9,Regular,,62,Hawai'i,2440,Nevada,True,Home,W,38,31,7,False,,,False,,,,0.6919,0.3081,0.0,4.94,14,0,7
@@ -12213,7 +12203,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323220189,2012-11-17,12,Regular,,2309,Kent State,189,Bowling Green,True,Away,W,31,24,7,False,25,,False,,,,0.2772,0.6719,0.0508,1.08,10,7,7
 2012,323282309,2012-11-23,13,Regular,,2309,Kent State,195,Ohio,True,Home,W,28,6,22,False,23,,True,,,,0.9672,0.0328,0.0,16.16,22,0,22
 2012,323352309,2012-11-30,14,Regular,MARATHON MAC FOOTBALL CHAMPIONSHIP,2309,Kent State,2459,Northern Illinois,True,Neutral,L,37,44,-7,True,18,,True,22,,,0.215,0.2231,0.5619,-3.83,10,14,-7
-2012,400433825,2012-11-30,14,Regular,Marathon MAC Football Championship Game,2309,Kent State,2459,Northern Illinois,True,Neutral,L,37,44,-7,,18,,True,22,,,,,,,,,
 2012,330062032,2013-01-06,1,Postseason,GODADDY.com BOWL,2309,Kent State,2032,Arkansas State,True,Neutral,L,13,17,-4,False,25,,False,,,,0.1083,0.3714,0.5203,-1.71,7,7,-4
 2013,332412309,2013-08-29,1,Regular,,2309,Kent State,2335,Liberty,False,Home,W,17,10,7,False,,,False,,,,0.5664,0.31,0.1236,3.07,7,3,7
 2013,332502309,2013-09-07,2,Regular,,2309,Kent State,189,Bowling Green,True,Home,L,22,41,-19,False,,,False,,,,0.2431,0.0772,0.6797,-5.75,5,19,-19
@@ -12691,7 +12680,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2007,273350099,2007-12-01,14,Regular,SEC CHAMPIONSHIP AT ATLANTA GA,99,LSU,2633,Tennessee,True,Home,W,21,14,7,False,5,,True,12,,,0.3103,0.05,0.6397,0.77,7,7,7
 2007,280070194,2008-01-07,1,Postseason,ALLSTATE BCS NATIONAL CHAMPIONSHIP GAME AT NEW ORLEANS LA,99,LSU,194,Ohio State,True,Away,W,38,24,14,False,2,,True,5,,,0.6236,0.1169,0.2594,7.28,21,10,14
 2008,282430099,2008-08-30,1,Regular,,99,LSU,2026,App State,False,Home,W,41,13,28,False,7,,False,,,,0.9481,0.0519,0.0,21.34,31,0,33
-2008,400361387,2008-08-30,1,Regular,,99,LSU,2026,App State,False,Home,W,41,13,28,,7,,False,,,,,,,,,,
 2008,282570099,2008-09-13,3,Regular,,99,LSU,249,North Texas,True,Home,W,41,3,38,False,7,,False,,,,0.9406,0.0594,0.0,22.68,38,0,30
 2008,282640002,2008-09-20,4,Regular,,99,LSU,2,Auburn,True,Away,W,26,21,5,False,6,,True,,,,0.2914,0.2161,0.4925,-1.88,6,11,5
 2008,282710099,2008-09-27,5,Regular,,99,LSU,344,Mississippi State,True,Home,W,34,24,10,False,5,,False,,,,0.7675,0.1964,0.0361,9.23,17,3,10
@@ -13028,7 +13016,7 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2004,242552348,2004-09-11,3,Regular,,309,Louisiana,2348,Louisiana Tech,True,Away,L,20,24,-4,,,,False,,,,,,,,,,
 2004,242622306,2004-09-18,4,Regular,,309,Louisiana,2306,Kansas State,True,Away,L,20,40,-20,False,,,True,,,,0.0,0.0639,0.9361,-12.3,0,23,-20
 2004,242690309,2004-09-25,5,Regular,,309,Louisiana,2393,Middle Tennessee,True,Home,W,24,17,7,,,,False,,,,,,,,,,
-2004,242762229,2004-10-02,6,Regular,,309,Louisiana,2229,Florida Intl,False,Away,W,43,34,9,,,,False,,,,,,,,,,
+2004,242762229,2004-10-02,6,Regular,,309,Louisiana,2229,Florida International,False,Away,W,43,34,9,,,,False,,,,,,,,,,
 2004,242830166,2004-10-09,7,Regular,,309,Louisiana,166,New Mexico State,True,Away,L,32,35,-3,,,,False,,,,,,,,,,
 2004,242900070,2004-10-16,8,Regular,,309,Louisiana,70,Idaho,True,Away,L,25,38,-13,,,,False,,,,,,,,,,
 2004,242970309,2004-10-23,9,Regular,,309,Louisiana,2032,Arkansas State,True,Home,W,27,24,3,,,,False,,,,,,,,,,
@@ -13145,7 +13133,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2013,333340309,2013-11-30,14,Regular,,309,Louisiana,2433,Louisiana Monroe,True,Home,L,28,31,-3,False,,,False,,,,0.5756,0.1347,0.2897,1.75,14,10,-3
 2013,333410006,2013-12-07,15,Regular,,309,Louisiana,6,South Alabama,True,Away,L,8,30,-22,False,,,False,,,,0.0,0.1519,0.8481,-20.77,0,30,-30
 2013,333550309,2013-12-21,1,Postseason,R+L CARRIERS NEW ORLEANS BOWL,309,Louisiana,2655,Tulane,True,Neutral,W,24,21,3,False,,,False,,,,0.8053,0.1947,0.0,7.75,21,0,3
-2013,400520954,2013-12-21,1,Postseason,R+L CARRIERS NEW ORLEANS BOWL,309,Louisiana,2655,Tulane,True,Away,W,24,21,3,,,,False,,,,,,,,,,
 2014,400548406,2014-08-30,1,Regular,,309,Louisiana,2582,Southern,False,Home,W,45,6,39,False,,,False,,,,0.8533,0.1467,0.0,19.7,39,0,25
 2014,400548014,2014-09-06,2,Regular,,309,Louisiana,2348,Louisiana Tech,True,Home,L,20,48,-28,False,,,False,,,,0.0,0.3489,0.6511,-13.25,0,34,-24
 2014,400548390,2014-09-13,3,Regular,,309,Louisiana,145,Ole Miss,True,Away,L,15,56,-41,False,,,True,17,,,0.0,0.0833,0.9167,-25.42,0,43,-29
@@ -13307,7 +13294,7 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2004,242692433,2004-09-25,5,Regular,,2433,Louisiana Monroe,2032,Arkansas State,True,Home,L,21,28,-7,,,,False,,,,,,,,,,
 2004,242762751,2004-10-02,6,Regular,,2433,Louisiana Monroe,2751,Wyoming,True,Away,L,10,31,-21,,,,False,,,,,,,,,,
 2004,242830070,2004-10-09,7,Regular,,2433,Louisiana Monroe,70,Idaho,True,Away,W,16,14,2,,,,False,,,,,,,,,,
-2004,242902433,2004-10-16,8,Regular,,2433,Louisiana Monroe,2229,Florida Intl,False,Home,W,28,20,8,,,,False,,,,,,,,,,
+2004,242902433,2004-10-16,8,Regular,,2433,Louisiana Monroe,2229,Florida International,False,Home,W,28,20,8,,,,False,,,,,,,,,,
 2004,242972226,2004-10-23,9,Regular,,2433,Louisiana Monroe,2226,Florida Atlantic,False,Away,W,17,13,4,,,,False,,,,,,,,,,
 2004,243040249,2004-10-30,10,Regular,,2433,Louisiana Monroe,249,North Texas,True,Away,L,30,45,-15,,,,False,,,,,,,,,,
 2004,243112433,2004-11-06,11,Regular,,2433,Louisiana Monroe,328,Utah State,True,Home,W,32,25,7,,,,False,,,,,,,,,,
@@ -13520,7 +13507,7 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2007,273352440,2007-12-01,14,Regular,,2348,Louisiana Tech,2440,Nevada,True,Away,L,10,49,-39,,,,False,,,,,,,,,,
 2008,282432348,2008-08-30,1,Regular,,2348,Louisiana Tech,344,Mississippi State,True,Home,W,22,14,8,False,,,False,,,,0.3581,0.145,0.4969,-0.67,8,11,8
 2008,282502305,2008-09-06,2,Regular,,2348,Louisiana Tech,2305,Kansas,True,Away,L,0,29,-29,False,,,True,,,,0.0,0.0728,0.9272,-14.33,0,29,-29
-2008,282642348,2008-09-20,4,Regular,,2348,Louisiana Tech,2545,Southeastern Louisiana,False,Home,W,41,26,15,False,,,False,,,,0.8972,0.0656,0.0372,7.51,15,3,15
+2008,282642348,2008-09-20,4,Regular,,2348,Louisiana Tech,2545,SE Louisiana,False,Home,W,41,26,15,False,,,False,,,,0.8972,0.0656,0.0372,7.51,15,3,15
 2008,282750068,2008-10-01,6,Regular,,2348,Louisiana Tech,68,Boise State,True,Away,L,3,38,-35,False,,,True,11,,,0.0,0.1211,0.8789,-17.97,0,35,-28
 2008,282850062,2008-10-12,7,Regular,,2348,Louisiana Tech,62,Hawai'i,True,Away,L,14,24,-10,False,,,False,,,,0.0,0.2019,0.7981,-10.61,0,17,-10
 2008,282922348,2008-10-18,8,Regular,,2348,Louisiana Tech,70,Idaho,True,Home,W,46,14,32,False,,,False,,,,0.7861,0.0375,0.1764,15.61,32,7,29
@@ -16693,7 +16680,7 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2007,273270344,2007-11-23,13,Regular,,344,Mississippi State,145,Ole Miss,True,Home,W,17,14,3,False,,,False,,,,0.0033,0.0406,0.9561,-8.38,3,14,3
 2007,273630344,2007-12-29,1,Postseason,AUTOZONE LIBERTY BOWL AT MEMPHIS TN,344,Mississippi State,2116,UCF,True,Home,W,10,3,7,False,,,False,,,,0.0317,0.8719,0.0964,-0.07,7,3,7
 2008,282432348,2008-08-30,1,Regular,,344,Mississippi State,2348,Louisiana Tech,True,Away,L,14,22,-8,False,,,False,,,,0.4969,0.145,0.3581,0.67,11,8,-8
-2008,282500344,2008-09-06,2,Regular,,344,Mississippi State,2545,Southeastern Louisiana,False,Home,W,34,10,24,False,,,False,,,,0.8442,0.1317,0.0242,15.41,31,3,31
+2008,282500344,2008-09-06,2,Regular,,344,Mississippi State,2545,SE Louisiana,False,Home,W,34,10,24,False,,,False,,,,0.8442,0.1317,0.0242,15.41,31,3,31
 2008,282570344,2008-09-13,3,Regular,,344,Mississippi State,2,Auburn,True,Home,L,2,3,-1,False,,,True,,,,0.0,0.3728,0.6272,-1.65,0,3,-1
 2008,282640059,2008-09-20,4,Regular,,344,Mississippi State,59,Georgia Tech,True,Away,L,7,38,-31,False,,,True,22,,,0.0,0.0847,0.9153,-21.4,0,38,-28
 2008,282710099,2008-09-27,5,Regular,,344,Mississippi State,99,LSU,True,Away,L,24,34,-10,False,,,True,,,,0.0361,0.1964,0.7675,-9.23,3,17,-10
@@ -17884,7 +17871,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323220158,2012-11-17,12,Regular,,158,Nebraska,135,Minnesota,True,Home,W,38,14,24,False,16,,False,,,,0.9469,0.0531,0.0,20.66,38,0,30
 2012,323282294,2012-11-23,13,Regular,,158,Nebraska,2294,Iowa,True,Away,W,13,7,6,False,17,,False,,,,0.4092,0.1358,0.455,0.63,6,4,6
 2012,323360275,2012-12-01,14,Regular,BIG TEN CHAMPIONSHIP GAME,158,Nebraska,275,Wisconsin,True,Neutral,L,31,70,-39,False,14,,True,,,,0.0,0.0331,0.9669,-27.83,0,46,-32
-2012,400434615,2012-12-01,14,Regular,Big Ten Championship Game,158,Nebraska,275,Wisconsin,True,Neutral,L,31,70,-39,,14,,True,,,,,,,,,,
 2012,330010158,2013-01-01,1,Postseason,CAPITAL ONE BOWL,158,Nebraska,61,Georgia,True,Neutral,L,31,45,-14,False,23,,True,5,,,0.2078,0.1819,0.6103,-4.11,8,14,-14
 2013,332430158,2013-08-31,1,Regular,,158,Nebraska,2751,Wyoming,True,Home,W,37,34,3,False,18,,False,,,,0.7422,0.1033,0.1544,5.29,17,7,3
 2013,332500158,2013-09-07,2,Regular,,158,Nebraska,2572,Southern Mississippi,True,Home,W,56,13,43,False,22,,False,,,,0.9797,0.0203,0.0,25.84,43,0,34
@@ -17899,7 +17885,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2013,333270213,2013-11-23,13,Regular,,158,Nebraska,213,Penn State,True,Away,W,23,20,3,True,,,False,,,,0.4692,0.3156,0.2153,-0.24,4,6,3
 2013,333330158,2013-11-29,14,Regular,,158,Nebraska,2294,Iowa,True,Home,L,17,38,-21,False,,,False,,,,0.0,0.2456,0.7544,-8.45,0,21,-21
 2013,340010061,2014-01-01,1,Postseason,TAXSLAYER.com GATOR BOWL,158,Nebraska,61,Georgia,True,Neutral,W,24,19,5,False,,,True,,,,0.6514,0.3231,0.0256,3.31,12,3,5
-2013,400521191,2014-01-01,1,Postseason,TAXSLAYER.com GATOR BOWL,158,Nebraska,61,Georgia,True,Neutral,W,24,19,5,,,,True,,,,,,,,,,
 2014,400547968,2014-08-30,1,Regular,,158,Nebraska,2226,Florida Atlantic,True,Home,W,55,7,48,False,22,,False,,,,0.8458,0.1542,0.0,24.03,48,0,31
 2014,400547969,2014-09-06,2,Regular,,158,Nebraska,2377,McNeese,False,Home,W,31,24,7,False,19,,False,,,,0.6606,0.3111,0.0283,4.05,10,7,7
 2014,400547970,2014-09-13,3,Regular,,158,Nebraska,278,Fresno State,True,Away,W,55,19,36,False,,,False,,,,0.9706,0.0294,0.0,22.28,36,0,36
@@ -18591,7 +18576,7 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2004,242762638,2004-10-02,6,Regular,,166,New Mexico State,2638,UTEP,True,Away,L,0,45,-45,,,,True,,,,,,,,,,
 2004,242830166,2004-10-09,7,Regular,,166,New Mexico State,309,Louisiana,True,Home,W,35,32,3,,,,False,,,,,,,,,,
 2004,242970249,2004-10-23,9,Regular,,166,New Mexico State,249,North Texas,True,Away,L,26,36,-10,,,,False,,,,,,,,,,
-2004,243040166,2004-10-30,10,Regular,,166,New Mexico State,2229,Florida Intl,False,Home,W,56,31,25,,,,False,,,,,,,,,,
+2004,243040166,2004-10-30,10,Regular,,166,New Mexico State,2229,Florida International,False,Home,W,56,31,25,,,,False,,,,,,,,,,
 2004,243110166,2004-11-06,11,Regular,,166,New Mexico State,2393,Middle Tennessee,True,Home,W,44,10,34,,,,False,,,,,,,,,,
 2004,243182226,2004-11-13,12,Regular,,166,New Mexico State,2226,Florida Atlantic,False,Away,W,35,7,28,,,,False,,,,,,,,,,
 2004,243250328,2004-11-20,13,Regular,,166,New Mexico State,328,Utah State,True,Away,L,25,34,-9,,,,False,,,,,,,,,,
@@ -19508,7 +19493,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323192459,2012-11-14,12,Regular,,2459,Northern Illinois,2649,Toledo,True,Home,W,31,24,7,False,,,True,,,,0.4072,0.2206,0.3722,1.32,17,7,7
 2012,323282199,2012-11-23,13,Regular,,2459,Northern Illinois,2199,Eastern Michigan,True,Away,W,49,7,42,False,24,,False,,,,0.8389,0.1611,0.0,17.63,42,0,28
 2012,323352309,2012-11-30,14,Regular,MARATHON MAC FOOTBALL CHAMPIONSHIP,2459,Northern Illinois,2309,Kent State,True,Neutral,W,44,37,7,True,19,,True,,,,0.5619,0.2231,0.215,3.83,14,10,7
-2012,400433825,2012-11-30,14,Regular,Marathon MAC Football Championship Game,2459,Northern Illinois,2309,Kent State,True,Neutral,W,44,37,7,,19,,True,,,,,,,,,,
 2012,330010052,2013-01-01,1,Postseason,DISCOVER ORANGE BOWL,2459,Northern Illinois,52,Florida State,True,Neutral,L,10,31,-21,False,16,,True,10,,,0.0,0.1589,0.8411,-8.48,0,21,-21
 2013,332432294,2013-08-31,1,Regular,,2459,Northern Illinois,2294,Iowa,True,Away,W,30,27,3,False,,,False,,,,0.2369,0.2878,0.4753,-1.75,10,7,3
 2013,332570070,2013-09-14,3,Regular,,2459,Northern Illinois,70,Idaho,True,Away,W,45,35,10,False,,,False,,,,0.2836,0.2669,0.4494,-1.17,10,14,10
@@ -25654,7 +25638,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323222483,2012-11-17,12,Regular,,24,Stanford,2483,Oregon,True,Away,W,17,14,3,True,14,,True,2,,,0.1536,0.5131,0.3333,-1.26,7,7,3
 2012,323290026,2012-11-24,13,Regular,,24,Stanford,26,UCLA,True,Away,W,35,17,18,False,11,,True,,,,0.6728,0.3272,0.0,10.71,25,0,18
 2012,323350024,2012-11-30,14,Regular,PAC-12 FOOTBALL CHAMPIONSHIP GAME,24,Stanford,26,UCLA,True,Home,W,27,24,3,False,8,,True,,,,0.2247,0.5103,0.265,-1.18,3,7,3
-2012,400434781,2012-11-30,14,Regular,Pac-12 Championship Game,24,Stanford,26,UCLA,True,Home,W,27,24,3,,8,,True,,,,,,,,,,
 2012,330010024,2013-01-01,1,Postseason,ROSE BOWL GAME PRESENTED BY VIZIO,24,Stanford,275,Wisconsin,True,Neutral,W,20,14,6,False,8,,True,,,,0.94,0.06,0.0,6.54,14,0,6
 2013,332500024,2013-09-07,2,Regular,,24,Stanford,23,San Jose State,True,Home,W,34,13,21,False,5,,False,,,,0.92,0.08,0.0,12.2,21,0,21
 2013,332570349,2013-09-14,3,Regular,,24,Stanford,349,Army,True,Away,W,34,20,14,False,5,,False,,,,0.7589,0.0536,0.1875,7.89,21,6,14
@@ -26469,7 +26452,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323080097,2012-11-03,10,Regular,,218,Temple,97,Louisville,True,Away,L,17,45,-28,False,,,True,13,,,0.0878,0.2178,0.6944,-11.96,7,28,-28
 2012,323150218,2012-11-10,11,Regular,,218,Temple,2132,Cincinnati,True,Home,L,10,34,-24,False,,,True,,,,0.0,0.1253,0.8747,-14.38,0,24,-24
 2012,323220349,2012-11-17,12,Regular,,218,Temple,349,Army,True,Away,W,63,32,31,False,,,False,,,,0.9031,0.0969,0.0,14.15,31,0,30
-2012,400368353,2012-11-17,12,Regular,,218,Temple,349,Army,True,Away,W,63,32,31,,,,False,,,,,,,,,,
 2012,323280218,2012-11-23,13,Regular,,218,Temple,183,Syracuse,True,Home,L,20,38,-18,False,,,False,,,,0.35,0.0694,0.5806,-2.79,10,18,-18
 2013,332430087,2013-08-31,1,Regular,,218,Temple,87,Notre Dame,True,Away,L,6,28,-22,False,,,True,20,,,0.0,0.0239,0.9761,-16.17,0,22,-22
 2013,332500218,2013-09-07,2,Regular,,218,Temple,248,Houston,True,Home,L,13,22,-9,False,,,False,,,,0.1697,0.2953,0.535,-1.06,4,9,-9
@@ -28583,7 +28565,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2013,333272655,2013-11-23,13,Regular,,2655,Tulane,2638,UTEP,True,Home,W,45,3,42,False,,,False,,,,0.9569,0.0431,0.0,28.44,42,0,32
 2013,333340242,2013-11-30,14,Regular,,2655,Tulane,242,Rice,True,Away,L,13,17,-4,False,,,False,,,,0.0558,0.1747,0.7694,-6.81,3,14,-4
 2013,333550309,2013-12-21,1,Postseason,R+L CARRIERS NEW ORLEANS BOWL,2655,Tulane,309,Louisiana,True,Neutral,L,21,24,-3,False,,,False,,,,0.0,0.1947,0.8053,-7.75,0,21,-3
-2013,400520954,2013-12-21,1,Postseason,R+L CARRIERS NEW ORLEANS BOWL,2655,Tulane,309,Louisiana,True,Home,L,21,24,-3,,,,False,,,,,,,,,,
 2014,400547647,2014-08-28,1,Regular,,2655,Tulane,202,Tulsa,True,Away,L,31,38,-7,True,,,False,,,,0.7639,0.2361,0.0,5.56,14,7,-7
 2014,400547656,2014-09-06,2,Regular,,2655,Tulane,59,Georgia Tech,True,Home,L,21,38,-17,False,,,True,8,,,0.3186,0.1811,0.5003,-2.57,7,17,-17
 2014,400547664,2014-09-13,3,Regular,,2655,Tulane,2545,SE Louisiana,False,Home,W,35,20,15,False,,,False,,,,0.825,0.175,0.0,15.09,25,0,22
@@ -28855,7 +28836,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323220202,2012-11-17,12,Regular,,202,Tulsa,2116,UCF,True,Home,W,23,21,2,False,,,False,,,,0.7711,0.1353,0.0936,3.76,10,4,2
 2012,323292567,2012-11-24,13,Regular,,202,Tulsa,2567,SMU,True,Away,L,27,35,-8,False,,,False,,,,0.0,0.2211,0.7789,-14.59,0,29,-19
 2012,323360202,2012-12-01,14,Regular,CONFERENCE USA FOOTBALL CHAMPIONSHIP GAME,202,Tulsa,2116,UCF,True,Home,W,33,27,6,True,,,False,,,,0.3822,0.3758,0.2419,0.98,7,7,6
-2012,400434775,2012-12-01,14,Regular,Conference USA Championship,202,Tulsa,2116,UCF,True,Home,W,33,27,6,,,,False,,,,,,,,,,
 2012,323660202,2012-12-31,1,Postseason,AutoZone LIBERTY BOWL,202,Tulsa,66,Iowa State,True,Neutral,W,31,17,14,False,,,False,,,,0.6861,0.0703,0.2436,3.78,14,10,14
 2013,332410189,2013-08-29,1,Regular,,202,Tulsa,189,Bowling Green,True,Away,L,7,34,-27,False,,,False,,,,0.0,0.1919,0.8081,-9.61,0,34,-26
 2013,332500202,2013-09-07,2,Regular,,202,Tulsa,36,Colorado State,True,Home,W,30,27,3,False,,,False,,,,0.1361,0.2322,0.6317,-2.45,7,10,3
@@ -29370,7 +29350,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323220202,2012-11-17,12,Regular,,2116,UCF,202,Tulsa,True,Away,L,21,23,-2,False,,,False,,,,0.0936,0.1353,0.7711,-3.76,4,10,-2
 2012,323292116,2012-11-24,13,Regular,,2116,UCF,5,UAB,True,Home,W,49,24,25,False,,,False,,,,0.9611,0.0389,0.0,18.25,32,0,35
 2012,323360202,2012-12-01,14,Regular,CONFERENCE USA FOOTBALL CHAMPIONSHIP GAME,2116,UCF,202,Tulsa,True,Away,L,27,33,-6,True,,,False,,,,0.2419,0.3758,0.3822,-0.98,7,7,-6
-2012,400434775,2012-12-01,14,Regular,Conference USA Championship,2116,UCF,202,Tulsa,True,Away,L,27,33,-6,,,,False,,,,,,,,,,
 2012,323562116,2012-12-21,1,Postseason,BEEF 'O' BRADY'S BOWL ST. PETERSBURG,2116,UCF,2050,Ball State,True,Neutral,W,38,17,21,False,,,False,,,,0.8742,0.1258,0.0,15.55,28,0,25
 2013,332412116,2013-08-29,1,Regular,,2116,UCF,2006,Akron,True,Home,W,38,7,31,False,,,False,,,,0.9839,0.0161,0.0,23.09,38,0,30
 2013,332492229,2013-09-06,2,Regular,,2116,UCF,2229,Florida Intl,True,Away,W,38,0,38,False,,,False,,,,0.8672,0.1328,0.0,21.93,38,0,31
@@ -29650,7 +29629,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323220026,2012-11-17,12,Regular,,26,UCLA,30,USC,True,Home,W,38,28,10,False,17,,True,,,,0.9775,0.0225,0.0,10.83,24,0,10
 2012,323290026,2012-11-24,13,Regular,,26,UCLA,24,Stanford,True,Home,L,17,35,-18,False,15,,True,7,,,0.0,0.3272,0.6728,-10.71,0,25,-18
 2012,323350024,2012-11-30,14,Regular,PAC-12 FOOTBALL CHAMPIONSHIP GAME,26,UCLA,24,Stanford,True,Away,L,24,27,-3,False,17,,True,7,,,0.265,0.5103,0.2247,1.18,7,3,-3
-2012,400434781,2012-11-30,14,Regular,Pac-12 Championship Game,26,UCLA,24,Stanford,True,Away,L,24,27,-3,,17,,True,7,,,,,,,,,
 2012,323620026,2012-12-27,1,Postseason,BRIDGEPOINT EDUCATION HOLIDAY BOWL,26,UCLA,239,Baylor,True,Neutral,L,26,49,-23,False,17,,True,,,,0.0,0.1164,0.8836,-19.23,0,30,-28
 2013,332430026,2013-08-31,1,Regular,,26,UCLA,2440,Nevada,True,Home,W,58,20,38,False,21,,False,,,,0.9272,0.0728,0.0,14.24,38,0,29
 2013,332570158,2013-09-14,3,Regular,,26,UCLA,158,Nebraska,True,Away,W,41,21,20,False,16,,True,,,,0.3506,0.0875,0.5619,-0.55,20,18,20
@@ -34072,7 +34050,6 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2012,323220275,2012-11-17,12,Regular,,275,Wisconsin,194,Ohio State,True,Home,L,14,21,-7,True,,,True,3,,,0.0,0.2194,0.7806,-5.92,0,14,-7
 2012,323290213,2012-11-24,13,Regular,,275,Wisconsin,213,Penn State,True,Away,L,21,24,-3,True,,,False,,,,0.7136,0.0658,0.2206,2.61,7,7,-3
 2012,323360275,2012-12-01,14,Regular,BIG TEN CHAMPIONSHIP GAME,275,Wisconsin,158,Nebraska,True,Neutral,W,70,31,39,False,,,True,25,,,0.9669,0.0331,0.0,27.83,46,0,32
-2012,400434615,2012-12-01,14,Regular,Big Ten Championship Game,275,Wisconsin,158,Nebraska,True,Neutral,W,70,31,39,,,,True,25,,,,,,,,,
 2012,330010024,2013-01-01,1,Postseason,ROSE BOWL GAME PRESENTED BY VIZIO,275,Wisconsin,24,Stanford,True,Neutral,L,14,20,-6,False,,,True,7,,,0.0,0.06,0.94,-6.54,0,14,-6
 2013,332430275,2013-08-31,1,Regular,,275,Wisconsin,113,Massachusetts,True,Home,W,45,0,45,False,23,,False,,,,0.9581,0.0419,0.0,23.08,45,0,30
 2013,332500275,2013-09-07,2,Regular,,275,Wisconsin,2635,Tennessee Tech,False,Home,W,48,0,48,False,21,,False,,,,0.9481,0.0519,0.0,24.13,48,0,28

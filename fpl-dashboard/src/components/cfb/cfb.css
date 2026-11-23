@@ -145,3 +145,6 @@
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
   mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
 }
+
+/* conference record beside the conference name */
+.cfb .conf-rec { font-size: 0.8em; color: #777; }

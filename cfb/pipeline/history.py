@@ -94,6 +94,15 @@ def fill_missing_games(season, sched):
     alt = alt[(alt.completed == True) & alt.season_type.isin(["regular", "postseason"])  # noqa: E712
               & alt.home_points.notna() & alt.away_points.notna()]
     alt = alt[~alt.game_id.astype(int).isin(set(sched.id.astype(int)))]
+    # cfb_schedules sometimes lists a game the raw schedule has under a second, newer id (2008 Cal-Arizona State,
+    # 2012 SEC title game): skip games whose two teams already met within a day of that date
+    day = lambda col: pd.to_datetime(col, utc=True, format="ISO8601").dt.normalize()
+    have = set()
+    for h, a, d in zip(sched.home_id.astype(int), sched.away_id.astype(int), day(sched.date)):
+        for k in (-1, 0, 1):
+            have.add((min(h, a), max(h, a), d + pd.Timedelta(days=k)))
+    dup = [(min(h, a), max(h, a), d) in have for h, a, d in zip(alt.home_id.astype(int), alt.away_id.astype(int), day(alt.start_date))]
+    alt = alt[[not x for x in dup]]
     if alt.empty:
         return sched, 0
     lines = pd.read_parquet(lines_path)
@@ -125,6 +134,21 @@ def build_season(season, talent_lists):
     sched, filled = fill_missing_games(season, sched)
     if filled:
         notes["games_filled_from_second_source"] = filled
+    # ESPN lists a few games twice under two ids (2008 Cal-Arizona State, 2012 SEC title game, 2013 New Orleans Bowl
+    # with home and away swapped): same two teams, day and score. Keep the older id.
+    before = len(sched)
+    hi, ai = sched.home_id.astype(int), sched.away_id.astype(int)
+    hs_, as2 = pd.to_numeric(sched.home_score, errors="coerce"), pd.to_numeric(sched.away_score, errors="coerce")
+    swap = hi > ai
+    sched = sched.assign(
+        _k=list(zip(hi.where(~swap, ai), ai.where(~swap, hi), pd.to_datetime(sched.date, utc=True, format="ISO8601").dt.date,
+                    hs_.where(~swap, as2), as2.where(~swap, hs_))))
+    sched = sched.sort_values("id")
+    # only completed games: unplayed ones have no score to match on
+    keep = ~sched.duplicated("_k") | sched.home_score.isna()
+    sched = sched[keep].drop(columns="_k")
+    if len(sched) < before:
+        notes["duplicate_games_dropped"] = before - len(sched)
 
     # ------------------------------------------------------------ FBS teams and names
     # is_fbs also flags all-star teams; they have no conference.
@@ -270,9 +294,23 @@ def build_season(season, talent_lists):
     no_control = sorted(set(done.id.astype(int)) - set(gc_games.game_id.astype(int)))
     notes["game_control"] = {**gc_notes, "games_without_control": len(no_control)}
 
+    # ------------------------------------------------------------ conference games
+    # Regular-season games between two teams of the same conference, as standings count them: not conference
+    # championship games, and not the odd scheduled non-conference game between league mates (2025 NC State-Virginia),
+    # which cfb_schedules flags.
+    conf_flag = {}
+    if alt_path.exists():
+        cg = pd.read_parquet(alt_path, columns=["game_id", "conference_game"])
+        conf_flag = dict(zip(cg.game_id.astype(int), cg.conference_game))
+
+    def conf_game(gid, team, opp, post, note):
+        c = conf.get(team)
+        return (not post and c is not None and c != "Ind" and c == conf.get(opp)
+                and not (note and "champ" in note.lower()) and conf_flag.get(gid) is not False)
+
     # ------------------------------------------------------------ records and game log
     def blank():
-        return dict(n=0, w=0, l=0, pw=0, pl=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]},
+        return dict(n=0, w=0, l=0, pw=0, pl=0, fw=0, fl=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]},
                     margin=0, cn=0, lead=0.0, tied=0.0, trail=0.0, avg=0.0, ng=0.0, nt=0, cb=0, bl=0)
 
     season_tot, by_site, rows = {}, {}, []
@@ -291,11 +329,14 @@ def build_season(season, talent_lists):
                 continue
             win = pf > pa
             c = gc.get((gid, team))
+            in_conf = conf_game(gid, team, opp, post, note)
             for b in (season_tot.setdefault(team, blank()), by_site.setdefault((team, site), blank())):
                 b["n"] += 1
                 b["w" if win else "l"] += 1
                 if post:
                     b["pw" if win else "pl"] += 1
+                if in_conf:
+                    b["fw" if win else "fl"] += 1
                 b[("r" if opp in ever_ranked else "u") + ("w" if win else "l")] += 1
                 if opp in cur_rank:
                     b["c" + ("w" if win else "l")] += 1
@@ -353,6 +394,7 @@ def build_season(season, talent_lists):
             "season": season, "team_id": t, "team": name[t], "conference": conf[t],
             "in_power_set": conf[t] in power or t == NOTRE_DAME,
             "wins": s["w"], "losses": s["l"], "post_w": s["pw"], "post_l": s["pl"],
+            "conf_w": s["fw"] if conf[t] != "Ind" else None, "conf_l": s["fl"] if conf[t] != "Ind" else None,
             "ap_pre_rank": pre.get(t), "ap_final_rank": final_ap.get(t), "ap_best_rank": min(ranks) if ranks else None,
             "ap_polls_ranked": len(ranks), "ever_ap_ranked": t in ever_ranked, "cfp_final_rank": cfp_final.get(t),
             "talent_rank": talent_rank.get(t), "talent_tier": tier(t),
@@ -385,7 +427,7 @@ def main():
               f"no control: {notes['game_control']['games_without_control']}")
     ts = pd.concat(seasons, ignore_index=True)
     gm = pd.concat(games, ignore_index=True).sort_values(["team", "season", "date"]).reset_index(drop=True)
-    nullable = ["ap_pre_rank", "ap_final_rank", "ap_best_rank", "cfp_final_rank", "talent_rank", "lead_pct_rank",
+    nullable = ["conf_w", "conf_l", "ap_pre_rank", "ap_final_rank", "ap_best_rank", "cfp_final_rank", "talent_rank", "lead_pct_rank",
                 "opp_talent_rank", "opp_cur_rank", "ap_rank_in", "cfp_rank_in", "biggest_lead", "biggest_deficit", "ng_margin"]
     for df in (ts, gm):
         for c in nullable:

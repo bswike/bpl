@@ -102,3 +102,13 @@ export function SeasonStrip({ seasons, season, hrefFor, extra = null }) {
     </p>
   );
 }
+
+/** Conference name with the conference record in small grey text (none for independents). */
+export function ConfCell({ conf, w, l }) {
+  return (
+    <>
+      {conf}
+      {w != null && <small className="conf-rec"> {w}-{l}</small>}
+    </>
+  );
+}

@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { fmtDate, pct, rec, signed, useCfb } from './data';
 import SortTable from './SortTable';
 import { colT50, colTeam, teamStatCols } from './columns';
-import { SeasonStrip, Status } from './ui';
+import { ConfCell, SeasonStrip, Status } from './ui';
 
 const SPLIT_HEAD = ['', 'G', 'W-L', 'Vs. Currently\nRanked', 'Yes', 'No', '1-25', '26-50', '51-75', '76+', 'Lead%', 'Tied%', 'Trail%', 'AvgLead', 'NG Marg'];
 const AP_GROUP = 'Opp. AP-ranked at least\nonce this season';
@@ -220,7 +220,7 @@ function HistoryTable({ rows, id, season, site = 'All', hrefFor }) {
               <td className="l">
                 {r.season === season ? <b>{r.season}{r.current ? '*' : ''}</b> : <Link to={hrefFor ? hrefFor(r.season) : teamHref(id, r.season)}>{r.season}{r.current ? '*' : ''}</Link>}
               </td>
-              <td className="l">{r.conference}</td>
+              <td className="l"><ConfCell conf={r.conference} w={r.conf_w} l={r.conf_l} /></td>
               <td>{rec(r.wins, r.losses)}</td>
               {all && <td>{r.current ? '' : rec(r.post_w, r.post_l)}</td>}
               <td>{r.ap_pre_rank ?? ''}</td>

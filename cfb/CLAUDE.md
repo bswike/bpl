@@ -110,6 +110,8 @@ error if a computed record disagrees with the standings feed, and warns when a h
   has 25th). Past talent ranks come from 247's own pages, read in a browser: 247 blocks scripted requests with a
   JavaScript challenge, so curl gets nothing.
 - The raw 2022 schedule lacks weeks 3 and 12; `history.py` fills missing games from `cfb_schedules` plus `linescores`.
+- ESPN lists a few past games twice under two ids (2008, 2012, 2013); `history.py` keeps one per pair of teams, day and score.
+- Conference records (`conf_w`/`conf_l`) count regular-season conference games only, no title games; `build.py` asserts they match ESPN's standings.
 
 ## Before publishing
 

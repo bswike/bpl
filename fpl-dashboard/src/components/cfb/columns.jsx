@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { fmtDate, num, pct, rec, recKey, signed, teamHref } from './data';
-import { T50, TeamLink } from './ui';
+import { ConfCell, T50, TeamLink } from './ui';
 
 // Column definitions shared by the table pages. `basis` lookups come from teams.json (top50_basis).
 
@@ -22,7 +22,14 @@ export const colTeam = {
   render: (r) => <TeamLink id={r.team_id}>{r.team}</TeamLink>,
 };
 
-export const colConf = (confOf = (r) => r.conference) => ({ key: 'conf', label: 'Conf', left: true, value: confOf });
+export const colConf = (confOf = (r) => r.conference) => ({
+  key: 'conf',
+  label: 'Conf',
+  left: true,
+  title: 'Conference, with the conference record (regular season, title games not included)',
+  value: confOf,
+  render: (r) => <ConfCell conf={confOf(r)} w={r.conf_w} l={r.conf_l} />,
+});
 
 export const colRecord = (key, label, w, l, extra = {}) => ({
   key,

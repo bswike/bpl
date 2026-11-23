@@ -24,6 +24,8 @@ One row per FBS team (138) with identity, rankings, every record split and game 
 | `wins` | Wins in completed regular-season games. |
 | `losses` | Losses in completed regular-season games. |
 | `win_pct` | wins / (wins + losses). |
+| `conf_w` | Conference wins: regular-season games ESPN flags as conference games, title games excluded (matches ESPN's standings). Null for independents. |
+| `conf_l` | Conference losses, counted the same way. Null for independents. |
 | `ap_rank` | Rank in the latest AP Top 25, empty if unranked. |
 | `ap_points` | Voting points in the latest AP poll, for ranked teams and others receiving votes. |
 | `ap_status` | Top 25, Receiving votes, or empty. |

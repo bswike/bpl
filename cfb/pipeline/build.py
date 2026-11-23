@@ -40,17 +40,20 @@ def warn(msg):
     print(f"WARNING: {msg}", file=sys.stderr)
 
 
-def collect_standings(node, found):
-    """Walk ESPN's standings JSON and collect team id -> overall record text."""
+def collect_standings(node, found, conf_found=None):
+    """Walk ESPN's standings JSON and collect team id -> overall record text (and -> conference record text)."""
     if isinstance(node, dict):
         if "team" in node and isinstance(node.get("stats"), list):
             stats = {s.get("name") or s.get("type"): s for s in node["stats"]}
             found[int(node["team"]["id"])] = (stats.get("overall") or {}).get("displayValue")
+            if conf_found is not None:
+                vs = next((s for s in node["stats"] if s.get("type") == "vsconf"), None)
+                conf_found[int(node["team"]["id"])] = vs.get("displayValue") if vs else None
         for v in node.values():
-            collect_standings(v, found)
+            collect_standings(v, found, conf_found)
     elif isinstance(node, list):
         for v in node:
-            collect_standings(v, found)
+            collect_standings(v, found, conf_found)
 
 
 def main():
@@ -59,8 +62,8 @@ def main():
     published = json.loads((MANUAL / "published.json").read_text())
     talent_in = pd.read_csv(MANUAL / f"talent_composite_{SEASON}.csv")
     votes_in = pd.read_csv(MANUAL / "ap_receiving_votes.csv")
-    fbs = {}
-    collect_standings(json.loads((RAW / f"fbs_standings_{SEASON}.json").read_text()), fbs)
+    fbs, fbs_conf = {}, {}
+    collect_standings(json.loads((RAW / f"fbs_standings_{SEASON}.json").read_text()), fbs, fbs_conf)
 
     # ---------------------------------------------------------------- teams
     info = {}
@@ -199,7 +202,7 @@ def main():
 
     # ---------------------------------------------------------------- records and the game log
     def blank():
-        return dict(n=0, w=0, l=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]},
+        return dict(n=0, w=0, l=0, fw=0, fl=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]},
                     lead=0.0, tied=0.0, trail=0.0, avg=0.0, ng=0.0, margin=0.0)
 
     season, by_site, game_rows = {}, {}, []
@@ -208,9 +211,14 @@ def main():
         hs, as_ = int(g.home_score), int(g.away_score)
         date = dt.datetime.strptime(g.date, "%Y-%m-%dT%H:%MZ").replace(tzinfo=dt.timezone.utc).astimezone(ET).date().isoformat()
         neutral = bool(g.neutral_site)
+        # conference games as standings count them: ESPN's conference flag, regular season, not a title game
+        note = g.notes_headline if isinstance(g.notes_headline, str) else ""
+        in_conf = bool(g.conference_competition) and int(g.season_type) == 2 and "champ" not in note.lower()
         for team, opp, pf, pa, site in ((home, away, hs, as_, "Neutral" if neutral else "Home"), (away, home, as_, hs, "Neutral" if neutral else "Away")):
             win = pf > pa
             c = gc[(gid, team)]
+            if in_conf:
+                season.setdefault(team, blank())["f" + ("w" if win else "l")] += 1
             for bucket in (season.setdefault(team, blank()), by_site.setdefault((team, site), blank())):
                 bucket["n"] += 1
                 bucket["w" if win else "l"] += 1
@@ -235,6 +243,9 @@ def main():
                     avg_lead=round(c.avg_lead, 2), biggest_lead=int(c.max_lead), biggest_deficit=int(c.max_deficit), ng_margin=int(c.ng_margin)))
     for t, rec_text in fbs.items():  # every FBS record must match ESPN's standings feed
         assert f"{season[t]['w']}-{season[t]['l']}" == rec_text, f"{name[t]}: computed {season[t]['w']}-{season[t]['l']}, standings say {rec_text}"
+        if conf(t) != "Ind":
+            got = f"{season[t]['fw']}-{season[t]['fl']}"
+            assert got == fbs_conf.get(t), f"{name[t]}: computed conference record {got}, standings say {fbs_conf.get(t)}"
     games = pd.DataFrame(game_rows).sort_values(["team", "date"]).reset_index(drop=True)
 
     # ---------------------------------------------------------------- model and the full ranking (named top50 for history)
@@ -322,6 +333,7 @@ def main():
             "conference": conf(t), "group": group(t), "in_power_set": group(t) != "Other FBS",
             "color": d.get("color"), "alt_color": d.get("alt_color"), "logo": d.get("logo"), "logo_dark": d.get("logo_dark"),
             "wins": s["w"], "losses": s["l"], "win_pct": round(s["w"] / s["n"], 3),
+            "conf_w": s["fw"] if conf(t) != "Ind" else None, "conf_l": s["fl"] if conf(t) != "Ind" else None,
             "ap_rank": ap_rank_now.get(t), "ap_points": ap_points.get(t),
             "ap_status": "Top 25" if t in ap_rank_now else "Receiving votes" if t in ap_points else None,
             "ap_polls_ranked": int(history["count"].get(t, 0)), "ap_best_rank": int(history["min"][t]) if t in ever_ranked else None,
@@ -356,7 +368,7 @@ def main():
     # ---------------------------------------------------------------- write
     tables = {"team_summary": summary, "top50": top50, "home_away_splits": splits, "games": games,
               "ap_polls": ap_polls, "ap_receiving_votes": ap_receiving, "cfp_rankings": cfp_rankings, "upcoming": upcoming}
-    nullable_ints = {"ap_rank", "ap_points", "ap_best_rank", "cfp_rank", "top50_rank", "biggest_deficit_overcome", "biggest_lead_lost",
+    nullable_ints = {"conf_w", "conf_l", "ap_rank", "ap_points", "ap_best_rank", "cfp_rank", "top50_rank", "biggest_deficit_overcome", "biggest_lead_lost",
                      "opp_talent_rank", "opp_cur_rank", "opp_id", "ap_rank_in", "cfp_rank_in", "points", "first_place_votes"}
     OUT_CSV.mkdir(parents=True, exist_ok=True)
     OUT_JSON.mkdir(parents=True, exist_ok=True)

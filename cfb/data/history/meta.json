@@ -1,9 +1,10 @@
 {
-  "built_at_utc": "2026-11-23T14:17Z",
+  "built_at_utc": "2026-11-23T18:27Z",
   "seasons": {
     "2004": {
       "season": 2004,
       "games_filled_from_second_source": 595,
+      "duplicate_games_dropped": 14,
       "conference_fixes": 26,
       "fbs_teams": 117,
       "talent_last_updated": null,
@@ -106,11 +107,12 @@
     "2008": {
       "season": 2008,
       "games_filled_from_second_source": 674,
+      "duplicate_games_dropped": 3,
       "conference_fixes": 15,
       "fbs_teams": 120,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
-      "completed_games": 807,
+      "completed_games": 804,
       "ap_preseason_source": "poll feed",
       "ap_polls": 17,
       "ap_final": "post-bowl poll",
@@ -125,7 +127,7 @@
         "untimed_points": 515,
         "overtime_games": 31,
         "skipped_games": [],
-        "games_without_control": 31
+        "games_without_control": 28
       }
     },
     "2009": {
@@ -209,11 +211,12 @@
     "2012": {
       "season": 2012,
       "games_filled_from_second_source": 594,
+      "duplicate_games_dropped": 7,
       "conference_fixes": 4,
       "fbs_teams": 124,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
-      "completed_games": 847,
+      "completed_games": 840,
       "ap_preseason_source": "poll feed",
       "ap_polls": 16,
       "ap_final": "post-bowl poll",
@@ -231,17 +234,18 @@
           322520052,
           322870008
         ],
-        "games_without_control": 24
+        "games_without_control": 17
       }
     },
     "2013": {
       "season": 2013,
       "games_filled_from_second_source": 786,
+      "duplicate_games_dropped": 2,
       "conference_fixes": 0,
       "fbs_teams": 126,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
-      "completed_games": 857,
+      "completed_games": 855,
       "ap_preseason_source": "poll feed",
       "ap_polls": 17,
       "ap_final": "post-bowl poll",
@@ -256,7 +260,7 @@
         "untimed_points": 126,
         "overtime_games": 35,
         "skipped_games": [],
-        "games_without_control": 2
+        "games_without_control": 0
       }
     },
     "2014": {
@@ -416,6 +420,7 @@
     "2020": {
       "season": 2020,
       "games_filled_from_second_source": 25,
+      "duplicate_games_dropped": 6,
       "conference_fixes": 0,
       "fbs_teams": 127,
       "talent_last_updated": "2020-11-09",
@@ -554,6 +559,7 @@
     "2025": {
       "season": 2025,
       "games_filled_from_second_source": 2895,
+      "duplicate_games_dropped": 1,
       "conference_fixes": 0,
       "fbs_teams": 136,
       "talent_last_updated": "2025-08-27",
