@@ -1,4 +1,4 @@
-// "Bar spiel": a one- or two-sentence argument for an agenda, built from the teams' actual results and the answers
+// "Your narrative" (shown on the page): a one- or two-sentence argument for an agenda, built from the teams' actual results and the answers
 // the user leaned on hardest. Every claim is a fact from the data; the answers only decide which facts lead.
 import { PLAYOFF, QUESTIONS } from './resumeModel.js';
 

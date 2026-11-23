@@ -11,7 +11,7 @@ export default function Resume() {
   const { data, error } = useCfb('resume', 'teams', 'resume_agendas');
   const [goals, setGoals] = useState({ love: '', hate: '', loveConf: '', hateConf: '' }); // agenda dropdowns
   const [agenda, setAgenda] = useState(null); // { s, parts, working } for the agenda last applied
-  const [showSpiel, setShowSpiel] = useState(false); // the bar spiel is hidden until asked for
+  const [showSpiel, setShowSpiel] = useState(false); // the narrative is hidden until asked for
   const [params, setParams] = useSearchParams();
   const [showAll, setShowAll] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -140,7 +140,7 @@ export default function Resume() {
             {agenda && !agenda.working && (
               <div className="spiel">
                 <button type="button" className="linkbtn" onClick={() => setShowSpiel((x) => !x)} aria-expanded={showSpiel}>
-                  {showSpiel ? 'Your bar spiel ▾' : 'Your bar spiel ▸'}
+                  {showSpiel ? 'Your narrative ▾' : 'Your narrative ▸'}
                 </button>
                 {showSpiel && <p>{barSpiel({ goals, answers, ranked, teams: d.teams, groups: CONF_GROUPS })}</p>}
               </div>
