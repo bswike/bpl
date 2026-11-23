@@ -37,6 +37,7 @@
   cursor: pointer;
   user-select: none;
   vertical-align: bottom;
+  white-space: pre;
 }
 .cfb-t th.on { background: #c3ccd7; }
 .cfb-t tr.grp th { cursor: default; font-weight: normal; font-size: 11px; text-align: center; white-space: nowrap; line-height: 1.15; }

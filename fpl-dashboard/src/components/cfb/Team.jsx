@@ -3,9 +3,8 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { fmtDate, pct, rec, signed, useCfb } from './data';
 import { Status } from './ui';
 
-const SPLIT_HEAD = ['', 'G', 'W-L', 'Yes', 'No', null, '1-25', '26-50', '51+', 'Lead%', 'Tied%', 'Trail%', 'AvgLead', 'NG Marg'];
+const SPLIT_HEAD = ['', 'G', 'W-L', 'Vs. Currently\nRanked', 'Yes', 'No', '1-25', '26-50', '51+', 'Lead%', 'Tied%', 'Trail%', 'AvgLead', 'NG Marg'];
 const AP_GROUP = 'Opp. AP-ranked at least\nonce this season';
-const CUR_GROUP = 'Opp. ranked in\nlatest poll';
 const siteMark = { Home: 'vs', Away: '@', Neutral: 'n' };
 const CURRENT = 2026;
 
@@ -20,9 +19,9 @@ function SplitRow({ label, r, games }) {
       <td className="l">{label}</td>
       <td>{games}</td>
       <td>{rec(r.wins, r.losses)}</td>
+      <td>{rec(r.vs_cur_ranked_w, r.vs_cur_ranked_l)}</td>
       <td>{rec(r.vs_ap_ranked_w, r.vs_ap_ranked_l)}</td>
       <td>{rec(r.vs_ap_unranked_w, r.vs_ap_unranked_l)}</td>
-      <td>{rec(r.vs_cur_ranked_w, r.vs_cur_ranked_l)}</td>
       <td>{rec(r.vs_talent_t1_w, r.vs_talent_t1_l)}</td>
       <td>{rec(r.vs_talent_t2_w, r.vs_talent_t2_l)}</td>
       <td>{rec(r.vs_talent_t3_w, r.vs_talent_t3_l)}</td>
@@ -35,19 +34,18 @@ function SplitRow({ label, r, games }) {
   );
 }
 
-function SplitsTable({ all, sites, curLabel }) {
+function SplitsTable({ all, sites }) {
   return (
     <div className="cfb-scroll">
       <table className="cfb-t">
         <thead>
           <tr className="grp">
-            <th className="blank" colSpan={3} />
+            <th className="blank" colSpan={4} />
             <th className="g" colSpan={2}><div>{AP_GROUP}</div></th>
-            <th className="g"><div>{CUR_GROUP}</div></th>
             <th className="g" colSpan={3}><div>vs. opp. 247 talent rank</div></th>
             <th className="g" colSpan={5}><div>Game control</div></th>
           </tr>
-          <tr>{SPLIT_HEAD.map((h, i) => <th key={i} className={i === 0 ? 'l' : undefined}>{h ?? curLabel}</th>)}</tr>
+          <tr>{SPLIT_HEAD.map((h, i) => <th key={i} className={i === 0 ? 'l' : undefined}>{h}</th>)}</tr>
         </thead>
         <tbody>
           <SplitRow label="All" r={all} games={all.wins + all.losses} />
@@ -112,7 +110,7 @@ function GameLog({ games, season }) {
 // ---- season-by-season table ----------------------------------------------------
 
 function HistoryTable({ rows, id, season }) {
-  const head = ['Season', 'Conf', 'W-L', 'Post', 'AP Pre', 'AP Final', 'CFP', 'Talent', 'Yes', 'No', 'Latest', '1-25', '26-50', '51+', 'Home', 'Away', 'Neut', 'Lead%', 'AvgLead', 'NG Marg'];
+  const head = ['Season', 'Conf', 'W-L', 'Post', 'AP Pre', 'AP Final', 'CFP', 'Talent', 'Vs. Currently\nRanked', 'Yes', 'No', '1-25', '26-50', '51+', 'Home', 'Away', 'Neut', 'Lead%', 'AvgLead', 'NG Marg'];
   return (
     <div className="cfb-scroll">
       <table className="cfb-t">
@@ -120,8 +118,8 @@ function HistoryTable({ rows, id, season }) {
           <tr className="grp">
             <th className="blank" colSpan={4} />
             <th className="g" colSpan={4}><div>Rankings</div></th>
+            <th className="blank" />
             <th className="g" colSpan={2}><div>{AP_GROUP}</div></th>
-            <th className="g"><div>{CUR_GROUP}</div></th>
             <th className="g" colSpan={3}><div>vs. opp. 247 talent rank</div></th>
             <th className="g" colSpan={3}><div>Site</div></th>
             <th className="g" colSpan={3}><div>Game control</div></th>
@@ -141,9 +139,9 @@ function HistoryTable({ rows, id, season }) {
               <td>{r.ap_final_rank ?? ''}</td>
               <td>{r.cfp_final_rank ?? ''}</td>
               <td>{r.talent_rank ?? '–'}</td>
+              <td>{rec(r.vs_cur_ranked_w, r.vs_cur_ranked_l)}</td>
               <td>{rec(r.vs_ap_ranked_w, r.vs_ap_ranked_l)}</td>
               <td>{rec(r.vs_ap_unranked_w, r.vs_ap_unranked_l)}</td>
-              <td>{rec(r.vs_cur_ranked_w, r.vs_cur_ranked_l)}</td>
               <td>{rec(r.vs_talent_t1_w, r.vs_talent_t1_l)}</td>
               <td>{rec(r.vs_talent_t2_w, r.vs_talent_t2_l)}</td>
               <td>{rec(r.vs_talent_t3_w, r.vs_talent_t3_l)}</td>
@@ -224,8 +222,8 @@ export default function Team() {
             *{CURRENT} is the regular season through {fmtDate(meta.games_through)}; AP Final and CFP are the latest
             rankings ({fmtDate(meta.ap_poll.released)} and {fmtDate(meta.cfp.released)}). Past seasons include bowls and
             the playoff (Post = postseason record), use that season’s final AP poll and final CFP ranking, and count an
-            opponent as AP-ranked if it appeared in any AP poll that season. Latest = record against opponents ranked in the
-            most recent poll: for {CURRENT}, the {meta.latest_poll.poll === 'CFP' ? 'CFP ranking' : 'AP poll'} of {fmtDate(meta.latest_poll.released)} (AP
+            opponent as AP-ranked if it appeared in any AP poll that season. Vs. Currently Ranked = record against opponents ranked in
+            the most recent poll: for {CURRENT}, the {meta.latest_poll.poll === 'CFP' ? 'CFP ranking' : 'AP poll'} of {fmtDate(meta.latest_poll.released)} (AP
             or CFP, whichever came out last); for past seasons, the final post-bowl AP poll, the last poll of the season. Talent = 247Sports Team Talent Composite rank
             among FBS teams that season (– = not listed by 247). Small numbers rank Lead% among FBS teams that season.
           </p>
@@ -264,7 +262,7 @@ export default function Team() {
         </table>
 
         <h3>Splits</h3>
-        <SplitsTable all={s} sites={sites} curLabel="Final AP" />
+        <SplitsTable all={s} sites={sites} />
         <p className="note">
           Wins never trailing: {s.games_never_trailed} · Wins after trailing by 10+: {s.comeback_wins_10} · Losses after
           leading by 10+: {s.blown_leads_10}
@@ -302,7 +300,7 @@ export default function Team() {
       </table>
 
       <h3>Splits</h3>
-      <SplitsTable all={t} sites={sites} curLabel={`${meta.latest_poll.poll} ${fmtDate(meta.latest_poll.released)}`} />
+      <SplitsTable all={t} sites={sites} />
       <p className="note">
         Wins never trailing: {t.games_never_trailed} · Wins after trailing by 10+: {t.comeback_wins_10} · Losses after
         leading by 10+: {t.blown_leads_10}
