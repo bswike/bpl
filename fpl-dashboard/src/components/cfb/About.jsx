@@ -31,6 +31,13 @@ export default function About() {
           last (now the {m.latest_poll.poll === 'CFP' ? 'CFP ranking' : 'AP poll'} of {fmtDate(m.latest_poll.released, true)}). It counts for every game
           against that team, whatever its rank on game day. For past seasons the last poll is the final, post-bowl AP poll.
         </dd>
+        <dt>Resume Builder</dt>
+        <dd>
+          Each game earns points: a win starts at +1, a loss at −1, and your answers add or take away from that. Ranked
+          wins count more the higher the opponent was ranked. A win is always worth at least +0.25 and a loss always costs
+          at least 0.5, so no loss outscores a win. Scores are scaled to 11 games. “Starting QB” is the passer who led a
+          team in attempts in most of its games.
+        </dd>
         <dt>Talent tiers</dt>
         <dd>The opponent’s rank in the 247Sports Composite: 1-25, 26-50, 51-75, 76+. FCS opponents are in 76+.</dd>
         <dt>Rk</dt>
