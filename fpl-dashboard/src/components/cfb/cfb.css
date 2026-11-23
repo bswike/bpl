@@ -130,5 +130,7 @@
 .cfb-t tbody tr.secrow td { background: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #666; padding-top: 8px; border-bottom: 1px solid #ccc; }
 .cfb-t td.bestcell { font-weight: bold; }
 .cfb .compare-games { display: flex; flex-wrap: wrap; gap: 0 18px; align-items: flex-start; }
-.cfb .resume .agenda select { font: inherit; font-size: 12px; max-width: 100%; }
+.cfb .resume .agenda select { font: inherit; font-size: 12px; width: 100%; margin-top: 2px; }
+.cfb .resume .agenda-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: 12px; color: #444; }
+.cfb .resume .agenda-grid label { display: flex; flex-direction: column; }
 .cfb .resume .agenda { padding-bottom: 8px; border-bottom: 1px solid #ddd; }
