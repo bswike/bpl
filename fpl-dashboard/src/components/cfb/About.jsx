@@ -34,7 +34,7 @@ export default function About() {
         <dt>Resume Builder</dt>
         <dd>
           Each game earns points: a win starts at +1, a loss at −1, and your answers add or take away from that. Ranked
-          wins count more the higher the opponent was ranked; wins over bad teams count less the worse their record, and home losses cost extra. Schedule credit rates opponents by SRS (margin adjusted for
+          wins count more the higher the opponent was ranked; wins over bad teams count less the worse their record, and home losses and late-season losses cost extra. Margin is scored in bands (1-3 points, one score, two scores, 17+), so close losses hurt less and blowouts count more. Schedule credit rates opponents by SRS (margin adjusted for
           who they played), so a good record in a weak conference doesn’t pass for a strong opponent. A win is always worth at least +0.25 and a loss always costs
           at least 0.5, so no loss outscores a win. Scores are scaled to 11 games. “Starting QB” is the passer who led a
           team in attempts in most of its games.

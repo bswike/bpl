@@ -14,29 +14,36 @@ export const QUESTIONS = [
   { sec: 'Wins', key: 'fcs', q: 'How much should a win over an FCS team count?', lo: 'not at all', hi: 'fully', vals: [0, 0.25, 0.5, 0.75, 1] },
   { sec: 'Losses', key: 'lossBad', q: 'How much more should a loss to a team with a losing record (or FCS) hurt?', lo: 'no more', hi: 'a lot more', vals: [0, 0.375, 0.75, 1.125, 1.5] },
   { sec: 'Losses', key: 'homeLoss', q: 'How much more should a home loss hurt?', lo: 'no more', hi: 'a lot more', vals: [0, 0.25, 0.5, 0.75, 1] },
+  { sec: 'Losses', key: 'lateLoss', q: 'How much more should a late-season loss hurt than an early one?', lo: 'no more', hi: 'a lot more', vals: [0, 0.1, 0.2, 0.3, 0.4] },
   { sec: 'Losses', key: 'goodLoss', q: 'How much should a loss to a ranked team hurt?', lo: 'much less', hi: 'like any loss', vals: [0.4, 0.55, 0.7, 0.85, 1] },
   { sec: 'Schedule', key: 'sos', q: 'How much credit for a tough schedule, win or lose?', lo: 'none', hi: 'a lot', vals: [0, 0.125, 0.25, 0.375, 0.5] },
   { sec: 'Full strength', key: 'qb', q: 'How much less should a win count if the opponent’s starting QB was out?', lo: 'the same', hi: 'much less', vals: [1, 0.9, 0.8, 0.65, 0.5] },
   { sec: 'Full strength', key: 'ownQb', q: 'How much less should a loss hurt if your own starting QB was out?', lo: 'the same', hi: 'much less', vals: [1, 0.8, 0.6, 0.425, 0.25] },
-  { sec: 'Margin', key: 'margin', q: 'How much should margin of victory (or defeat) matter?', lo: 'only W/L', hi: 'a lot', vals: [0, 0.25, 0.5, 0.75, 1] },
+  { sec: 'Margin', key: 'margin', q: 'How much should margin of victory (or defeat) matter?', lo: 'only W/L', hi: 'a lot', vals: [0, 0.2, 0.4, 0.6, 0.8] },
 ];
 export const SCALE = 5;
 export const DEFAULT = QUESTIONS.map(() => 2);
 export const PLAYOFF = 12;
 
-// Question order of earlier links (before weakWin and homeLoss were added); their new questions get the default.
+// Question order of earlier links; questions added since then get the default.
 const LEGACY_KEYS = ['winGood', 'ranked', 'faded', 'talent', 'road', 'fcs', 'lossBad', 'goodLoss', 'sos', 'qb', 'ownQb', 'margin'];
-const fromLegacy = (vals) => {
-  const byKey = Object.fromEntries(LEGACY_KEYS.map((k, i) => [k, vals[i]]));
+const LAYOUTS = [
+  LEGACY_KEYS,
+  ['winGood', 'ranked', 'faded', 'talent', 'weakWin', 'road', 'fcs', 'lossBad', 'homeLoss', 'goodLoss', 'sos', 'qb', 'ownQb', 'margin'],
+];
+const fromLayout = (keys, vals) => {
+  const byKey = Object.fromEntries(keys.map((k, i) => [k, vals[i]]));
   return QUESTIONS.map((q, i) => byKey[q.key] ?? DEFAULT[i]);
 };
+const fromLegacy = (vals) => fromLayout(LEGACY_KEYS, vals);
 
 /** Answers from the ?s= digits (1-5 per question); older 12-question links carry over; anything else gives defaults. */
 export function parseAnswers(s) {
   if (!s || !/^[1-5]+$/.test(s)) return [...DEFAULT];
   const a = [...s].map((c) => Number(c) - 1);
   if (a.length === QUESTIONS.length) return a;
-  if (a.length === LEGACY_KEYS.length) return fromLegacy(a);
+  const layout = LAYOUTS.find((keys) => keys.length === a.length);
+  if (layout) return fromLayout(layout, a);
   return [...DEFAULT];
 }
 
@@ -59,7 +66,15 @@ const WIN_FLOOR = 0.25;
 const LOSS_FLOOR = -0.5;
 
 /** Value of one game for the team's resume under the chosen answers. */
-export function gameValue(g, w, oppById) {
+// Margin in football terms, centered on a one-score game: 1-3 points (coin flip) -0.5, 4-8 (one score) 0,
+// 9-16 (two scores) +0.5, 17+ (blowout) +1. Times the margin answer, it raises or lowers a win's value and a loss's cost.
+export function marginBand(margin) {
+  const a = Math.abs(margin);
+  return a <= 3 ? -0.5 : a <= 8 ? 0 : a <= 16 ? 0.5 : 1;
+}
+
+/** Value of one game. when = how late in the team's season it was, 0 (first game) to 1 (latest). */
+export function gameValue(g, w, oppById, when = 0) {
   const [oppId, , result, margin, site, apThen, oppQbOut, ownQbOut] = g;
   const opp = oppById.get(oppId); // undefined for FCS
   const fcs = !opp;
@@ -69,7 +84,7 @@ export function gameValue(g, w, oppById) {
   // a team that was ranked when played but isn't now counts as ranked by the share the user chose (w.faded, 0-1)
   const byRank = (r) => 0.5 + (26 - r) / 25;
   const rankedFactor = rankedNow ? byRank(opp.ap) : rankedThen ? byRank(apThen) * w.faded : 0;
-  const m = Math.min(Math.abs(margin), 21) / 21;
+  const m = marginBand(margin);
   // schedule credit for every game, from -1 to +1 by opponent strength. Strength is the opponent's SRS rating (margin,
   // adjusted for who it played), so a good record in a weak conference does not pass for a strong opponent; +-12 points
   // (about the top and bottom tenth of FBS) reaches the ends. FCS opponents are -1. Without SRS, win% stands in.
@@ -89,6 +104,8 @@ export function gameValue(g, w, oppById) {
     return Math.max(v + sched, WIN_FLOOR);
   }
   let p = 1 + (fcs || opp.pct < 0.5 ? w.lossBad : 0) + w.margin * m;
+  // later losses cost more: up to (1 + lateLoss) for the most recent game
+  p *= 1 + w.lateLoss * when;
   if (rankedFactor > 0) p *= w.goodLoss;
   if (ownQbOut) p *= w.ownQb;
   // a home loss costs extra on top, untouched by the softening above
@@ -109,7 +126,8 @@ export function rankTeams(teams, answers) {
   const counts = teams.map((t) => t.games.length).sort((a, b) => a - b);
   const typical = counts[Math.floor(counts.length / 2)] || 1;
   const rows = teams.map((t) => {
-    const vals = t.games.map((g) => ({ g, v: gameValue(g, w, oppById) }));
+    const last = Math.max(t.games.length - 1, 1); // games are in date order
+    const vals = t.games.map((g, k) => ({ g, v: gameValue(g, w, oppById, k / last) }));
     const wins = vals.filter((x) => x.g[2] === 'W').sort((a, b) => b.v - a.v);
     const losses = vals.filter((x) => x.g[2] === 'L').sort((a, b) => a.v - b.v);
     const total = vals.reduce((s, x) => s + x.v, 0);

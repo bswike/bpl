@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT, QUESTIONS, SCALE, answersToParam, gameValue, migrateOldAnswers, parseAnswers, rankTeams, weightsFor } from '../resumeModel.js';
+import { DEFAULT, QUESTIONS, SCALE, answersToParam, gameValue, marginBand, migrateOldAnswers, parseAnswers, rankTeams, weightsFor } from '../resumeModel.js';
 
 // game: [opp_id, opp, result, margin, site, opp_ap_then, opp_qb_out, own_qb_out]
 const team = (id, pct, ap, tal, games) => ({ id, team: `T${id}`, w: 0, l: 0, pct, ap, cfp: null, tal, games });
@@ -42,6 +42,16 @@ describe('resume model', () => {
     expect(gameValue([9, 'X', 'L', -7, 'H', null, 0, 0], w, opp(0.6))).toBeLessThan(gameValue([9, 'X', 'L', -7, 'A', null, 0, 0], w, opp(0.6)));
   });
 
+  it('scores margin in football bands and charges more for late losses', () => {
+    expect([1, 3, 4, 8, 9, 16, 17, 40].map(marginBand)).toEqual([-0.5, -0.5, 0, 0, 0.5, 0.5, 1, 1]);
+    const w = weightsFor(QUESTIONS.map((q, i) => (q.key === 'margin' ? SCALE - 1 : DEFAULT[i])));
+    const opp = new Map([[9, { pct: 0.6, ap: null, tal: 90, srs: 0 }]]);
+    const loss = (margin, when = 0) => gameValue([9, 'X', 'L', margin, 'A', null, 0, 0], w, opp, when);
+    expect(loss(-3)).toBeGreaterThan(loss(-8)); // a 3-point loss hurts less than an 8-point one
+    expect(loss(-8)).toBeGreaterThan(loss(-24));
+    expect(loss(-8, 1)).toBeLessThan(loss(-8, 0)); // the same loss late in the season hurts more
+  });
+
   it('counts a win over a higher-ranked team for more', () => {
     const w = weightsFor(DEFAULT);
     const beat = (rank) => gameValue([9, 'X', 'W', 7, 'H', rank, 0, 0], w, new Map([[9, { pct: 0.8, ap: rank, tal: 60 }]]));
@@ -58,15 +68,16 @@ describe('resume model', () => {
 
   it('has the expected default weights and converts old three-option links', () => {
     const w = weightsFor(DEFAULT);
-    expect(w).toMatchObject({ winGood: 0.5, ranked: 0.75, faded: 0.5, talent: 0.3, weakWin: 0.4, road: 0.25, fcs: 0.5, lossBad: 0.75, homeLoss: 0.5, goodLoss: 0.7, sos: 0.25, qb: 0.8, ownQb: 0.6, margin: 0.5 });
+    expect(w).toMatchObject({ winGood: 0.5, ranked: 0.75, faded: 0.5, talent: 0.3, weakWin: 0.4, road: 0.25, fcs: 0.5, lossBad: 0.75, homeLoss: 0.5, lateLoss: 0.2, goodLoss: 0.7, sos: 0.25, qb: 0.8, ownQb: 0.6, margin: 0.4 });
     expect(migrateOldAnswers('111111111111')).toEqual(DEFAULT);
     // every old third option maps to 5, except the three questions whose old options ran biggest-effect-first
     // (faded: "not a ranked win", fcs: "don't count", goodLoss: "hurt much less"), which map to 1
-    expect(answersToParam(migrateOldAnswers('222222222222'))).toBe('55153515315555');
+    expect(answersToParam(migrateOldAnswers('222222222222'))).toBe('551535153315555');
     // and their old first options ("still a ranked win", "count fully", "hurt like any loss") map to 5
-    expect(answersToParam(migrateOldAnswers('110110101111'))).toBe('33533353353333');
-    // a 12-question ?s= link keeps its answers and gets the default (3) for the two newer questions
-    expect(answersToParam(parseAnswers('512345123451'))).toBe('51233451323451');
+    expect(answersToParam(migrateOldAnswers('110110101111'))).toBe('335333533353333');
+    // 12- and 14-question ?s= links keep their answers and get the default (3) for questions added since
+    expect(answersToParam(parseAnswers('512345123451'))).toBe('512334513323451');
+    expect(answersToParam(parseAnswers('11111111111111'))).toBe('111111111311111');
     expect(migrateOldAnswers('11')).toBeNull();
   });
 });
