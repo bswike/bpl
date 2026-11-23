@@ -119,3 +119,14 @@
 .cfb button.linkbtn { font: inherit; background: none; border: none; padding: 0; color: #0645ad; cursor: pointer; }
 .cfb button.linkbtn:hover { text-decoration: underline; }
 .cfb-t tbody tr.inrow td { background: #e6f0e0; }
+
+/* resume comparison */
+.cfb .compare { margin-top: 18px; border-top: 1px solid #ddd; }
+.cfb .compare-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cfb .compare-pick .chip { border: 1px solid #b8c0ca; border-radius: 2px; padding: 1px 6px; background: #f4f6f9; }
+.cfb .compare-pick select { font: inherit; font-size: 12px; width: auto; max-width: 12em; }
+.cfb .compare-t th:not(.st), .cfb .compare-t td:not(.st) { text-align: center; min-width: 7em; }
+.cfb .compare-t td.st { min-width: 11em; max-width: none; width: auto; }
+.cfb-t tbody tr.secrow td { background: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #666; padding-top: 8px; border-bottom: 1px solid #ccc; }
+.cfb-t td.bestcell { font-weight: bold; }
+.cfb .compare-games { display: flex; flex-wrap: wrap; gap: 0 18px; align-items: flex-start; }

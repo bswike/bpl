@@ -24,5 +24,6 @@ fetch cfbfastR-cfb-raw  "cfb/schedules/csv/cfb_schedule_${SEASON}.csv"          
 fetch cfbfastR-cfb-raw  "cfb/standings/json/fbs/${SEASON}.json"                           "fbs_standings_${SEASON}.json"
 fetch cfbfastR-cfb-data "cfb/poll_analytics/parquet/cfb_poll_analytics_${SEASON}.parquet" "cfb_poll_analytics_${SEASON}.parquet"
 fetch cfbfastR-cfb-data "cfb/pbp/parquet/play_by_play_${SEASON}.parquet"                  "play_by_play_${SEASON}.parquet"
+fetch cfbfastR-cfb-data "cfb/fpi_weekly/parquet/cfb_fpi_weekly_${SEASON}.parquet"        "cfb_fpi_weekly_${SEASON}.parquet"
 
 echo "Done. Now update data/manual/ if a new AP poll or CFP ranking is out, then run: python pipeline/build.py"

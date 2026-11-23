@@ -82,7 +82,7 @@ export function weightsFor(answers) {
   return Object.fromEntries(QUESTIONS.map((q, i) => [q.key, q.vals[answers[i]] ?? q.vals[DEFAULT[i]]]));
 }
 
-/** Every team with its score, best win, worst loss and rank under the answers. */
+/** Every team with its score, best win, worst loss, per-game values ({g, v}) and rank under the answers. */
 export function rankTeams(teams, answers) {
   const oppById = new Map(teams.map((t) => [t.id, t]));
   const w = weightsFor(answers);
@@ -94,7 +94,7 @@ export function rankTeams(teams, answers) {
     const wins = vals.filter((x) => x.g[2] === 'W').sort((a, b) => b.v - a.v);
     const losses = vals.filter((x) => x.g[2] === 'L').sort((a, b) => a.v - b.v);
     const total = vals.reduce((s, x) => s + x.v, 0);
-    return { ...t, score: vals.length ? (total * typical) / vals.length : 0, best: wins[0]?.g[1], worst: losses[0]?.g[1] };
+    return { ...t, score: vals.length ? (total * typical) / vals.length : 0, best: wins[0]?.g[1], worst: losses[0]?.g[1], vals };
   });
   rows.sort((a, b) => b.score - a.score || (a.ap ?? 99) - (b.ap ?? 99) || b.pct - a.pct);
   rows.forEach((r, i) => { r.rank = i + 1; });

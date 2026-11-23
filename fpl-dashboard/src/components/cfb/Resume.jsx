@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fmtDate, rec, useCfb } from './data';
 import { DEFAULT, PLAYOFF, QUESTIONS, SCALE, answersToParam, migrateOldAnswers, parseAnswers, rankTeams } from './resumeModel';
+import Compare from './Compare';
 import { Status } from './ui';
 
 export default function Resume() {
-  const { data, error } = useCfb('resume');
+  const { data, error } = useCfb('resume', 'teams');
   const [params, setParams] = useSearchParams();
   const [showAll, setShowAll] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -29,6 +30,8 @@ export default function Resume() {
 
   if (!data) return <Status error={error} />;
   const d = data.resume;
+  const teamsById = new Map(data.teams.map((t) => [t.team_id, t]));
+  const fpiAsOf = d.fpi_as_of ? fmtDate(d.fpi_as_of) : null;
 
   const choose = (qi, oi) => setAnswers((a) => a.map((x, i) => (i === qi ? oi : x)));
   const copyLink = async () => {
@@ -79,6 +82,9 @@ export default function Resume() {
                   <th title="Sum of game values under your answers">Score</th>
                   <th title={`AP poll of ${fmtDate(d.ap_released)}`}>AP</th>
                   <th title={`CFP ranking of ${fmtDate(d.cfp_released)}`}>CFP</th>
+                  <th title={`ESPN Football Power Index${fpiAsOf ? `, as of ${fpiAsOf}` : ''}`}>FPI</th>
+                  <th title={`ESPN strength of record rank${fpiAsOf ? `, as of ${fpiAsOf}` : ''}`}>SOR</th>
+                  <th title={`ESPN strength of schedule rank (games played)${fpiAsOf ? `, as of ${fpiAsOf}` : ''}`}>SOS</th>
                   <th className="l">Best win</th>
                   <th className="l">Worst loss</th>
                 </tr>
@@ -92,6 +98,9 @@ export default function Resume() {
                     <td>{r.score.toFixed(1)}</td>
                     <td>{r.ap ?? ''}</td>
                     <td>{r.cfp ?? ''}</td>
+                    <td>{r.fpi == null ? '' : r.fpi.toFixed(1)}{r.fpi_rank != null && <span className="rk">{r.fpi_rank}</span>}</td>
+                    <td>{r.sor ?? ''}</td>
+                    <td>{r.sos ?? ''}</td>
                     <td className="l">{r.best ?? ''}</td>
                     <td className="l">{r.worst ?? ''}</td>
                   </tr>
@@ -100,11 +109,12 @@ export default function Resume() {
             </table>
           </div>
           <p className="note">
-            Shaded = your top {PLAYOFF}.{' '}
+            Shaded = your top {PLAYOFF}. FPI, SOR, SOS: ESPN{fpiAsOf ? `, as of ${fpiAsOf}` : ''}.{' '}
             <button type="button" className="linkbtn" onClick={() => setShowAll((x) => !x)}>{showAll ? 'Show top 25' : `Show all ${ranked.length}`}</button>
           </p>
         </div>
       </div>
+      <Compare ranked={ranked} teamsById={teamsById} fpiAsOf={fpiAsOf} />
     </>
   );
 }
