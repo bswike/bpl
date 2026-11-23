@@ -342,7 +342,7 @@ export default function Team() {
       const o = teamsById.get(g.opp_id);
       return { ...g, opp_cur_rank: curRankOf(o), opp_talent_rank: o?.talent_rank ?? null, opp_ever_ap_ranked: !!o?.ever_ap_ranked };
     });
-  const basisLabel = t.top50_basis === 'Projected' ? 'projected by this site’s model, not a published ranking' : t.top50_basis;
+  const basisLabel = t.top50_basis === 'Projected' ? 'projected (site model)' : t.top50_basis;
 
   return (
     <>
@@ -355,7 +355,7 @@ export default function Team() {
           <tr><th>Record</th><td>{rec(t.wins, t.losses)}</td></tr>
           <tr><th>AP</th><td>{t.ap_rank ? `#${t.ap_rank}` : t.ap_status || 'Unranked'}{t.ap_points ? ` (${t.ap_points} pts)` : ''} <span className="muted">{fmtDate(meta.ap_poll.released)}</span></td></tr>
           <tr><th>CFP</th><td>{t.cfp_rank ? `#${t.cfp_rank}` : 'Unranked'} <span className="muted">{fmtDate(meta.cfp.released)}</span></td></tr>
-          <tr><th>Top 50</th><td>{t.top50_rank ? <>#{t.top50_rank} <span className={t.top50_basis === 'Projected' ? 'proj' : 'muted'}>{basisLabel}</span></> : 'Not on the list'}</td></tr>
+          <tr><th>Rank</th><td>{t.top50_rank ? <>#{t.top50_rank} <span className={t.top50_basis === 'Projected' ? 'proj' : 'muted'}>{basisLabel}</span></> : 'Not on the list'}</td></tr>
           <tr><th>247 talent</th><td>{rk(t.talent_rank)} of 138 <span className="muted">preseason</span></td></tr>
           <tr><th>Model*</th><td>{rk(t.model_rank)} of 138 <span className="muted">site estimate</span></td></tr>
           <tr><th>AP history</th><td>{ap.length ? ap.map((p) => `${p.poll_week === 1 ? 'Pre' : `W${p.poll_week}`} ${p.rank}`).join(' · ') : 'Not ranked in any 2026 AP poll'}</td></tr>

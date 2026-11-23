@@ -9,7 +9,7 @@ export function Status({ error }) {
   return <p className="muted">Loading…</p>;
 }
 
-/** Top-50 rank cell. Projected ranks carry a "p" and the row is shaded (see ProjectedNote). */
+/** Rank cell. Projected ranks carry a "p" and the row is shaded (see ProjectedNote). */
 export function T50({ rank, basis }) {
   if (rank == null) return '';
   if (basis === 'Projected') return <span className="proj" title="Projected by this site's model, not a published ranking">{rank}p</span>;

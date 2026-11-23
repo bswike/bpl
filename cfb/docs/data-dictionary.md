@@ -37,8 +37,8 @@ One row per FBS team (138) with identity, rankings, every record split and game 
 | `model_score` | Model score: 0.7 x Colley z-score + 0.3 x capped-margin SRS z-score. |
 | `colley` | Colley rating (schedule-adjusted wins and losses). |
 | `srs` | Simple rating system value in points (margin capped at 24, opponent-adjusted). |
-| `top50_rank` | Rank on the top-50 list, empty if not on it. |
-| `top50_basis` | Why the team sits where it does on the top 50: AP Top 25, AP receiving votes, or Projected. |
+| `top50_rank` | Rank on the full FBS ranking (1-138): AP Top 25, then other AP vote-getters, then the model. The name dates from when it stopped at 50. |
+| `top50_basis` | Why the team sits where it does on the ranking: AP Top 25, AP receiving votes, or Projected. |
 | `vs_ap_ranked_w` | Wins against opponents that appeared in at least one 2026 AP Top 25 (preseason through the latest poll), whenever the game was played. |
 | `vs_ap_ranked_l` | Losses against opponents that appeared in at least one 2026 AP Top 25 (preseason through the latest poll), whenever the game was played. |
 | `vs_ap_unranked_w` | Wins against opponents never in the 2026 AP Top 25, FCS opponents included. |
@@ -73,13 +73,13 @@ One row per FBS team (138) with identity, rankings, every record split and game 
 
 ## top50
 
-The top-50 list: latest AP Top 25, then other teams receiving AP votes in order of points, then the project's model for the remaining spots.
+The full FBS ranking (named top50 from when it stopped at 50): latest AP Top 25, then other teams receiving AP votes in order of points, then the project's model for every remaining team.
 
-50 rows.
+138 rows.
 
 | Column | Meaning |
 |---|---|
-| `rank` | 1-50. |
+| `rank` | 1 to the number of FBS teams. |
 | `basis` | AP Top 25, AP receiving votes, or Projected (model). Projected rows are an estimate, not a published ranking. |
 | `team_id` | ESPN team id. |
 | `team` | Short team name. |
@@ -102,7 +102,7 @@ Every category split by where the game was played. One row per FBS team per site
 | `team_id` | ESPN team id. |
 | `team` | Short team name. |
 | `conference` | 2026 conference. |
-| `top50_rank` | Rank on the top-50 list, empty if not on it. |
+| `top50_rank` | Rank on the full FBS ranking (1-138): AP Top 25, then other AP vote-getters, then the model. The name dates from when it stopped at 50. |
 | `site` | Home, Away or Neutral. |
 | `games` | Games played at that kind of site. |
 | `wins` | Wins at that kind of site. |

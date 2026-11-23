@@ -136,7 +136,7 @@ def main():
         warn(f"published.json checks AP week {pub_ap.get('week')} but the feed's latest is week {last_ap_week}; update data/manual/published.json")
     votes = votes_in[votes_in.poll_week == last_ap_week].sort_values("points", ascending=False)
     if votes.empty:
-        warn(f"no 'receiving votes' entries for AP week {last_ap_week}; the top 50 will go straight from the AP Top 25 to the model. Update data/manual/ap_receiving_votes.csv")
+        warn(f"no 'receiving votes' entries for AP week {last_ap_week}; the ranking will go straight from the AP Top 25 to the model. Update data/manual/ap_receiving_votes.csv")
     for r in votes.itertuples():
         assert int(r.team_id) not in ap_rank_now, f"{r.team} is both ranked and receiving votes"
         ap_points[int(r.team_id)] = int(r.points)
@@ -224,7 +224,7 @@ def main():
         assert f"{season[t]['w']}-{season[t]['l']}" == rec_text, f"{name[t]}: computed {season[t]['w']}-{season[t]['l']}, standings say {rec_text}"
     games = pd.DataFrame(game_rows).sort_values(["team", "date"]).reset_index(drop=True)
 
-    # ---------------------------------------------------------------- model and the top 50
+    # ---------------------------------------------------------------- model and the full ranking (named top50 for history)
     now, home_edge = ratings(done, fbs, cap=MARGIN_CAP)
     fcs_srs = now.attrs["fcs_srs"]
     now["score"] = W_COLLEY * now.z_colley + (1 - W_COLLEY) * now.z_srs
@@ -244,9 +244,8 @@ def main():
     top = [(rk, t, "AP Top 25") for t, rk in sorted(ap_rank_now.items(), key=lambda kv: kv[1])]
     top += [(len(top) + 1 + k, int(r.team_id), "AP receiving votes") for k, r in enumerate(votes.itertuples())]
     used = {t for _, t, _ in top}
-    fill = [int(t) for t in now.id if int(t) not in used][: max(0, 50 - len(top))]
+    fill = [int(t) for t in now.id if int(t) not in used]  # every remaining FBS team, in model order
     top += [(len(top) + 1 + k, t, "Projected") for k, t in enumerate(fill)]
-    top = top[:50]
     top50_rank = {t: rk for rk, t, _ in top}
     top50_basis = {t: b for _, t, b in top}
     top50 = pd.DataFrame([dict(rank=rk, basis=b, team_id=t, team=name[t], conference=conf(t), wins=season[t]["w"], losses=season[t]["l"],

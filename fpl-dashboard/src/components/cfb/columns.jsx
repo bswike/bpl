@@ -6,7 +6,7 @@ import { T50, TeamLink } from './ui';
 export const colT50 = (basisOf) => ({
   key: 't50',
   label: 'Rk',
-  title: 'Top-50 rank: AP Top 25, then teams receiving AP votes, then projected (p)',
+  title: 'Rank: AP Top 25, then teams receiving AP votes, then projected by the model (p)',
   value: (r) => r.top50_rank ?? null,
   render: (r) => <T50 rank={r.top50_rank} basis={basisOf(r)} />,
   sticky: '0',

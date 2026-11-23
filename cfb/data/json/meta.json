@@ -1,6 +1,6 @@
 {
   "season": 2026,
-  "built_at_utc": "2026-11-23T13:18Z",
+  "built_at_utc": "2026-11-23T13:44Z",
   "games_through": "2026-11-21",
   "completed_games": 822,
   "fbs_teams": 138,
@@ -35,8 +35,8 @@
   },
   "top50": {
     "basis_counts": {
+      "Projected": 101,
       "AP Top 25": 25,
-      "Projected": 13,
       "AP receiving votes": 12
     },
     "note": "Projected rows are this project's estimate, not a published ranking."

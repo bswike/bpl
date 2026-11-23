@@ -65,8 +65,9 @@ error if a computed record disagrees with the standings feed, and warns when a h
   Past seasons use the final post-bowl AP poll. Like the AP split, it applies to every game against that opponent.
 - **Talent tiers**: opponent's 247Sports talent rank, 1-25, 26-50, 51+. FCS opponents fall in 51+.
   `talent_tier` is stored as 1, 2, 3.
-- **Top 50**: ranks 1-25 are the AP Top 25; the next ranks are the other teams receiving AP votes, by
-  points; the rest are filled by this project's model. Rows with basis `Projected` are an estimate, not a
+- **Ranking (Rk)**: every FBS team is ranked. 1-25 are the AP Top 25; the next ranks are the other teams receiving
+  AP votes, by points; every remaining team is placed by this project's model. The table and fields are still
+  named `top50`/`top50_rank` from when the list stopped at 50. Rows with basis `Projected` are an estimate, not a
   published ranking, and must be labelled that way wherever they appear.
 - **Game control**: share of regulation time leading, tied and trailing; average lead across regulation;
   margin with garbage time removed (lead of 38+ in Q2, 28+ in Q3, 22+ in Q4). Overtime counts toward

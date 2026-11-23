@@ -10,7 +10,7 @@ import { ConfFilter, ProjectedNote, Status } from './ui';
 const basisOf = (r) => r.top50_basis;
 const projRow = (r) => (r.top50_basis === 'Projected' ? 'projrow' : undefined);
 
-// Teams off the top 50 follow in model order, but show no rank.
+// Every team has a rank; model order breaks any gap.
 const defaultOrder = (r) => r.top50_rank ?? 100 + r.model_rank;
 
 // ---- Ratings (landing page) --------------------------------------------------

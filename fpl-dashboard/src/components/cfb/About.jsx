@@ -33,7 +33,7 @@ export default function About() {
         </dd>
         <dt>Talent tiers</dt>
         <dd>The opponent’s rank in the 247Sports Composite: 1-25, 26-50, 51+. FCS opponents are in 51+.</dd>
-        <dt>Rk (top 50)</dt>
+        <dt>Rk</dt>
         <dd>
           1-25 are the latest AP Top 25. The next spots go to the other teams receiving AP votes, by points. The remaining spots are filled by this site’s
           model and marked <span className="proj">p</span>. Those are an estimate, not a published ranking.
