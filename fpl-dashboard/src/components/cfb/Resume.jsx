@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fmtDate, rec, useCfb } from './data';
-import { DEFAULT, PLAYOFF, QUESTIONS, parseAnswers, rankTeams } from './resumeModel';
+import { DEFAULT, PLAYOFF, QUESTIONS, SCALE, answersToParam, migrateOldAnswers, parseAnswers, rankTeams } from './resumeModel';
 import { Status } from './ui';
 
 export default function Resume() {
@@ -9,12 +9,15 @@ export default function Resume() {
   const [params, setParams] = useSearchParams();
   const [showAll, setShowAll] = useState(false);
   const [copied, setCopied] = useState(false);
-  // answers live in state (so quick clicks never drop one) and are mirrored to ?r= for sharing
-  const [answers, setAnswers] = useState(() => parseAnswers(params.get('r')));
+  // answers live in state (so quick clicks never drop one) and are mirrored to ?s= for sharing;
+  // an older three-option link (?r=) is converted once
+  const [answers, setAnswers] = useState(() =>
+    params.get('s') ? parseAnswers(params.get('s')) : migrateOldAnswers(params.get('r')) ?? [...DEFAULT]);
   useEffect(() => {
     setParams((prev) => {
       const next = new URLSearchParams(prev);
-      next.set('r', answers.join(''));
+      next.delete('r');
+      next.set('s', answersToParam(answers));
       return next;
     }, { replace: true });
   }, [answers, setParams]);
@@ -47,12 +50,14 @@ export default function Resume() {
             <div key={q.key} className="q">
               {(qi === 0 || QUESTIONS[qi - 1].sec !== q.sec) && <div className="q-sec">{q.sec}</div>}
               <div className="q-text">{qi + 1}. {q.q}</div>
-              <div className="q-opts">
-                {q.opts.map(([label], oi) => (
-                  <button key={label} type="button" className={answers[qi] === oi ? 'on' : undefined} onClick={() => choose(qi, oi)}>
-                    {label}
+              <div className="q-scale">
+                <span className="q-lo">{q.lo}</span>
+                {Array.from({ length: SCALE }, (_, oi) => (
+                  <button key={oi} type="button" className={answers[qi] === oi ? 'on' : undefined} onClick={() => choose(qi, oi)} aria-label={`${oi + 1} of ${SCALE}`}>
+                    {oi + 1}
                   </button>
                 ))}
+                <span className="q-hi">{q.hi}</span>
               </div>
             </div>
           ))}
