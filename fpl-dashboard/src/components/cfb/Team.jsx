@@ -1,6 +1,8 @@
 import { Fragment, useEffect } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { fmtDate, pct, rec, signed, useCfb } from './data';
+import SortTable from './SortTable';
+import { colT50, colTeam, teamStatCols } from './columns';
 import { Status } from './ui';
 
 const SPLIT_HEAD = ['', 'G', 'W-L', 'Vs. Currently\nRanked', 'Yes', 'No', '1-25', '26-50', '51+', 'Lead%', 'Tied%', 'Trail%', 'AvgLead', 'NG Marg'];
@@ -10,6 +12,8 @@ const CURRENT = 2026;
 
 const teamHref = (id, season) => (season && season !== CURRENT ? `/cfb/team/${id}?season=${season}` : `/cfb/team/${id}`);
 const rk = (n) => (n == null ? '' : `#${n}`);
+/** Spread from the team's side: negative = favored, PK = pick'em. */
+const fmtSpread = (x) => (x == null ? '' : x === 0 ? 'PK' : `${x > 0 ? '+' : ''}${x}`);
 
 // ---- shared tables -------------------------------------------------------------
 
@@ -56,7 +60,7 @@ function SplitsTable({ all, sites }) {
   );
 }
 
-function GameLog({ games, season }) {
+function GameLog({ games, season, upcoming = [] }) {
   const past = season !== CURRENT;
   return (
     <>
@@ -64,7 +68,7 @@ function GameLog({ games, season }) {
         <table className="cfb-t">
           <thead>
             <tr>
-              {['Date', 'Wk', '', 'Opponent', 'Opp Tal', 'Result', 'Led%', 'Tied%', 'Trail%', 'AvgLead', 'BigLead', 'BigDef', 'NG Marg', ...(past ? ['Game'] : [])].map((h, i) => (
+              {['Date', 'Wk', '', 'Opponent', 'Opp Tal', 'Result', 'Led%', 'Tied%', 'Trail%', 'AvgLead', 'BigLead', 'BigDef', 'NG Marg', 'Game'].map((h, i) => (
                 <th key={i} className={i === 3 || i === 13 ? 'l' : undefined}>{h}</th>
               ))}
             </tr>
@@ -91,7 +95,25 @@ function GameLog({ games, season }) {
                 <td>{g.biggest_lead ?? ''}</td>
                 <td>{g.biggest_deficit ?? ''}</td>
                 <td>{g.ng_margin == null ? '' : signed(g.ng_margin, 0)}</td>
-                {past && <td className="l">{g.note || ''}</td>}
+                <td className="l">{g.note || ''}</td>
+              </tr>
+            ))}
+            {upcoming.map((g) => (
+              <tr key={g.game_id} className="nextrow">
+                <td>{fmtDate(g.date)}</td>
+                <td>{g.season_type === 'Postseason' ? 'P' : g.week}</td>
+                <td title={g.venue}>{siteMark[g.site]}</td>
+                <td className="l">
+                  {g.opp_cur_rank != null && <span className="orank" title="Rank in the latest poll">{g.opp_cur_rank}</span>}
+                  {g.opp_id == null ? 'TBD' : g.opp_is_fbs ? <Link to={teamHref(g.opp_id)}>{g.opp}</Link> : <>{g.opp} <span className="muted">(FCS)</span></>}
+                  {g.opp_ever_ap_ranked && <span className="dag" title="AP-ranked at least once this season">†</span>}
+                </td>
+                <td>{g.opp_talent_rank ?? ''}</td>
+                <td className="proj" title={g.proj_margin == null ? 'Opponent not yet known' : `Projected margin ${signed(g.proj_margin)} (this site's model)`}>
+                  {g.proj_spread == null ? '' : `Proj ${fmtSpread(g.proj_spread)}`}
+                </td>
+                <td colSpan={7} />
+                <td className="l">{g.note || ''}</td>
               </tr>
             ))}
           </tbody>
@@ -102,6 +124,55 @@ function GameLog({ games, season }) {
         opponent is its rank in {past ? 'that season’s final (post-bowl) AP poll' : 'the latest poll'}. vs home · @ away · n neutral.
         Opp Tal = opponent’s 247Sports talent rank among FBS teams. Time shares are regulation only.
         {past && ' P = postseason (shaded). Blank game-control cells: no play-by-play for that game.'}
+        {upcoming.length > 0 && ' Proj = projected spread from this site’s model for games not yet played (negative = favored; not a betting line).'}
+      </p>
+    </>
+  );
+}
+
+// ---- remaining schedule: each upcoming game with the opponent's full stat line ----
+
+function RemainingSchedule({ upcoming, teamsById, meta }) {
+  const known = upcoming.filter((g) => g.opp_is_fbs && teamsById.has(g.opp_id));
+  const other = upcoming.filter((g) => !(g.opp_is_fbs && teamsById.has(g.opp_id)));
+  const rows = known.map((g) => ({ ...teamsById.get(g.opp_id), _g: g }));
+  const columns = [
+    colT50((r) => r.top50_basis),
+    { ...colTeam, label: 'Opponent' },
+    { key: 'date', label: 'Date', value: (r) => r._g.kickoff_utc, render: (r) => fmtDate(r._g.date) },
+    { key: 'site', label: '', value: (r) => r._g.site, render: (r) => <span title={r._g.venue}>{siteMark[r._g.site]}</span> },
+    {
+      key: 'proj',
+      label: 'Proj',
+      title: "Projected spread from this site's model for the team whose page this is (negative = favored). Not a betting line.",
+      value: (r) => r._g.proj_spread,
+      render: (r) => <span className="proj">{fmtSpread(r._g.proj_spread)}</span>,
+    },
+    ...teamStatCols(meta),
+  ];
+  return (
+    <>
+      {rows.length > 0 && (
+        <SortTable
+          columns={columns}
+          rows={rows}
+          rankRows={[...teamsById.values()]}
+          rowKey={(r) => r._g.game_id}
+          rankKey={(r) => r.team_id}
+          defaultSort={{ key: 'date', dir: 'asc' }}
+        />
+      )}
+      {other.map((g) => (
+        <p key={g.game_id} className="note">
+          {fmtDate(g.date)} · {g.note || 'Game'} · {g.opp_id == null ? 'opponent TBD' : `${g.opp} (FCS), Proj ${fmtSpread(g.proj_spread)}`}
+          {g.site === 'Neutral' ? ' · neutral site' : ''}
+        </p>
+      ))}
+      <p className="note">
+        Opponent stats are their season so far; small numbers rank them among all 138 FBS teams. Proj = projected point
+        spread for this team from this site’s model: the gap in SRS ratings (scoring margin capped at {meta.model.margin_cap} a
+        game, adjusted for opponents) plus a home edge of {meta.model.fitted_home_edge_points.toFixed(1)} points, none at
+        neutral sites. Negative = favored. It is an estimate, not a betting line.
       </p>
     </>
   );
@@ -165,7 +236,7 @@ export default function Team() {
   const { id } = useParams();
   const teamId = Number(id);
   const [params] = useSearchParams();
-  const base = useCfb('teams', 'meta', 'ap_polls', 'cfp_rankings', 'home_away_splits');
+  const base = useCfb('teams', 'meta', 'ap_polls', 'cfp_rankings', 'home_away_splits', 'upcoming');
   const log = useCfb(`games/${teamId}`);
   const hist = useCfb(`history/${teamId}`, 'history/meta');
   const t = base.data?.teams.find((x) => x.team_id === teamId);
@@ -278,6 +349,14 @@ export default function Team() {
 
   // ---------------------------------------------------------------- current season view
   const sites = home_away_splits.filter((r) => r.team_id === teamId);
+  const teamsById = new Map(base.data.teams.map((x) => [x.team_id, x]));
+  const curRankOf = (o) => (o ? (meta.latest_poll.poll === 'CFP' ? o.cfp_rank : o.ap_rank) : null);
+  const upcoming = base.data.upcoming
+    .filter((g) => g.team_id === teamId)
+    .map((g) => {
+      const o = teamsById.get(g.opp_id);
+      return { ...g, opp_cur_rank: curRankOf(o), opp_talent_rank: o?.talent_rank ?? null, opp_ever_ap_ranked: !!o?.ever_ap_ranked };
+    });
   const basisLabel = t.top50_basis === 'Projected' ? 'projected by this site’s model, not a published ranking' : t.top50_basis;
 
   return (
@@ -308,10 +387,13 @@ export default function Team() {
         {t.biggest_lead_lost != null && ` · Biggest lead lost: ${t.biggest_lead_lost}`}
       </p>
 
+      <h3>Remaining schedule</h3>
+      {upcoming.length ? <RemainingSchedule upcoming={upcoming} teamsById={teamsById} meta={meta} /> : <p className="muted">No games left on the schedule.</p>}
+
       {historySection}
 
       <h3>Games</h3>
-      {!log.data ? <Status error={log.error} /> : <GameLog games={log.data[`games/${teamId}`]} season={CURRENT} />}
+      {!log.data ? <Status error={log.error} /> : <GameLog games={log.data[`games/${teamId}`]} season={CURRENT} upcoming={upcoming} />}
     </>
   );
 }

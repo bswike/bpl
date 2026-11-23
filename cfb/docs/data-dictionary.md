@@ -201,3 +201,27 @@ Every College Football Playoff committee Top 25 released so far.
 | `rank` | Committee rank. |
 | `team_id` | ESPN team id. |
 | `team` | Short team name. |
+
+## upcoming
+
+Scheduled games not yet played, one row per FBS team per game, with this project's projected spread. Projections are this site's model, not a betting line.
+
+147 rows.
+
+| Column | Meaning |
+|---|---|
+| `game_id` | ESPN game id. |
+| `date` | Game date in US Eastern time (YYYY-MM-DD). |
+| `kickoff_utc` | Scheduled kickoff in UTC (ISO). |
+| `week` | Week number (postseason weeks restart at 1). |
+| `season_type` | Regular or Postseason. |
+| `note` | Game name from the feed, such as a conference championship or bowl. |
+| `team_id` | ESPN team id of the row's team. |
+| `team` | Short team name. |
+| `opp_id` | Opponent's ESPN team id, empty while the opponent is to be determined. |
+| `opp` | Opponent short name, or TBD. |
+| `opp_is_fbs` | False for FCS opponents and TBD. |
+| `site` | Home, Away or Neutral from the row team's point of view. |
+| `venue` | Stadium name. |
+| `proj_margin` | Projected margin for the row's team in points: SRS difference plus the fitted home edge (none at neutral sites). Empty when the opponent is TBD. |
+| `proj_spread` | proj_margin as a point spread from the row team's side, rounded to the half point (negative = favored). |

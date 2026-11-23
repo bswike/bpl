@@ -226,6 +226,7 @@ def main():
 
     # ---------------------------------------------------------------- model and the top 50
     now, home_edge = ratings(done, fbs, cap=MARGIN_CAP)
+    fcs_srs = now.attrs["fcs_srs"]
     now["score"] = W_COLLEY * now.z_colley + (1 - W_COLLEY) * now.z_srs
     now = now.sort_values("score", ascending=False).reset_index(drop=True)
     model = {int(r.id): dict(rank=k + 1, score=float(r.score), colley=float(r.colley), srs=float(r.srs)) for k, r in enumerate(now.itertuples())}
@@ -250,6 +251,32 @@ def main():
     top50_basis = {t: b for _, t, b in top}
     top50 = pd.DataFrame([dict(rank=rk, basis=b, team_id=t, team=name[t], conference=conf(t), wins=season[t]["w"], losses=season[t]["l"],
                                ap_points=ap_points.get(t), cfp_rank=cfp_rank.get(t), model_rank=model[t]["rank"], talent_rank=talent_rank[t]) for rk, t, b in top])
+
+    # ---------------------------------------------------------------- upcoming games and projected spreads
+    # Projected margin = SRS difference + fitted home edge (0 at neutral sites). SRS caps each game's margin at
+    # MARGIN_CAP when fitting, so blowout projections run small. FCS teams share the pooled FCS rating.
+    srs = {t: m["srs"] for t, m in model.items()}
+    later = sched[sched.season_type.isin([2, 3]) & (sched.status_type_completed != True)]  # noqa: E712
+    upcoming_rows = []
+    for g in later.itertuples():
+        home, away = int(g.home_id), int(g.away_id)
+        neutral = bool(g.neutral_site)
+        date = dt.datetime.strptime(g.date, "%Y-%m-%dT%H:%MZ").replace(tzinfo=dt.timezone.utc).astimezone(ET).date().isoformat()
+        for team, opp, site in ((home, away, "Neutral" if neutral else "Home"), (away, home, "Neutral" if neutral else "Away")):
+            if team not in fbs:
+                continue
+            known = opp > 0
+            margin = None
+            if known:
+                margin = srs[team] - srs.get(opp, fcs_srs) + (0 if neutral else home_edge if site == "Home" else -home_edge)
+            upcoming_rows.append(dict(
+                game_id=int(g.id), date=date, kickoff_utc=g.date, week=int(g.week), season_type="Postseason" if int(g.season_type) == 3 else "Regular",
+                note=g.notes_headline if isinstance(g.notes_headline, str) else None, team_id=team, team=name[team],
+                opp_id=opp if known else None, opp=name.get(opp, "TBD") if known else "TBD", opp_is_fbs=opp in fbs,
+                site=site, venue=g.venue_full_name if pd.notna(g.venue_full_name) else None,
+                proj_margin=round(margin, 1) if margin is not None else None,
+                proj_spread=round(-margin * 2) / 2 if margin is not None else None))
+    upcoming = pd.DataFrame(upcoming_rows, columns=list(SCHEMA["upcoming"])[1:]).sort_values(["team", "kickoff_utc"]).reset_index(drop=True)
 
     # ---------------------------------------------------------------- team summary
     gcf = gc_games[gc_games.team_id.isin(set(fbs))]
@@ -315,9 +342,9 @@ def main():
 
     # ---------------------------------------------------------------- write
     tables = {"team_summary": summary, "top50": top50, "home_away_splits": splits, "games": games,
-              "ap_polls": ap_polls, "ap_receiving_votes": ap_receiving, "cfp_rankings": cfp_rankings}
+              "ap_polls": ap_polls, "ap_receiving_votes": ap_receiving, "cfp_rankings": cfp_rankings, "upcoming": upcoming}
     nullable_ints = {"ap_rank", "ap_points", "ap_best_rank", "cfp_rank", "top50_rank", "biggest_deficit_overcome", "biggest_lead_lost",
-                     "opp_talent_rank", "opp_cur_rank", "points", "first_place_votes"}
+                     "opp_talent_rank", "opp_cur_rank", "opp_id", "points", "first_place_votes"}
     OUT_CSV.mkdir(parents=True, exist_ok=True)
     OUT_JSON.mkdir(parents=True, exist_ok=True)
     for tname, df in tables.items():

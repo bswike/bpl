@@ -72,3 +72,20 @@ export const colNg = {
 };
 
 export const colRankNum = (key, label, field, title, extra = {}) => ({ key, label, title, value: (r) => r[field] ?? null, render: (r) => num(r[field]), ...extra });
+
+/** Every stat column of the ratings table after Rk and Team; also used for opponents on team pages. */
+export const teamStatCols = (meta) => [
+  colConf(),
+  colRecord('wl', 'W-L', 'wins', 'losses'),
+  colRankNum('ap', 'AP', 'ap_rank', `AP rank, poll of ${meta?.ap_poll.released}`, { group: 'Rankings' }),
+  colRankNum('cfp', 'CFP', 'cfp_rank', `CFP committee rank of ${meta?.cfp.released} (before later games)`, { group: 'Rankings' }),
+  colRankNum('tal', 'Talent', 'talent_rank', '247Sports 2026 Team Talent Composite rank (preseason roster talent)', { group: 'Rankings' }),
+  colRankNum('model', 'Model*', 'model_rank', "This site's model rank among 138 FBS teams. An estimate, not an official ranking.", { group: 'Rankings' }),
+  ...splitCols(meta?.latest_poll),
+  colRecord('home', 'Home', 'home_w', 'home_l', { group: 'Site' }),
+  colRecord('away', 'Away', 'away_w', 'away_l', { group: 'Site' }),
+  colRecord('neut', 'Neut', 'neutral_w', 'neutral_l', { group: 'Site' }),
+  colLead,
+  colAvgLead,
+  colNg,
+];

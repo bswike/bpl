@@ -13,8 +13,9 @@ import { useMemo, useState } from 'react';
  *   left?: true,               left-align
  *   sticky?: '0' | '2.6em',    pin the column at this left offset when scrolling sideways
  * }
+ * rowKey identifies rows; rankKey (default rowKey) matches a row to its rankRows entry for the small ranks.
  */
-export default function SortTable({ columns, rows, rankRows, rowKey = (r) => r.team_id, defaultSort, rowClass }) {
+export default function SortTable({ columns, rows, rankRows, rowKey = (r) => r.team_id, rankKey = rowKey, defaultSort, rowClass }) {
   const [sort, setSort] = useState(defaultSort);
 
   const ranks = useMemo(() => {
@@ -22,14 +23,14 @@ export default function SortTable({ columns, rows, rankRows, rowKey = (r) => r.t
     const out = {};
     for (const c of columns) {
       if (!c.rank) continue;
-      const vals = base.map((r) => [rowKey(r), c.value(r)]).filter(([, v]) => v != null);
+      const vals = base.map((r) => [rankKey(r), c.value(r)]).filter(([, v]) => v != null);
       vals.sort((a, b) => (c.desc ? b[1] - a[1] : a[1] - b[1]));
       const m = new Map();
       vals.forEach(([k, v], i) => m.set(k, i > 0 && v === vals[i - 1][1] ? m.get(vals[i - 1][0]) : i + 1));
       out[c.key] = m;
     }
     return out;
-  }, [columns, rows, rankRows, rowKey]);
+  }, [columns, rows, rankRows, rankKey]);
 
   const sorted = useMemo(() => {
     const col = columns.find((c) => c.key === sort.key);
@@ -93,7 +94,7 @@ export default function SortTable({ columns, rows, rankRows, rowKey = (r) => r.t
           {sorted.map((r) => (
             <tr key={rowKey(r)} className={rowClass ? rowClass(r) : undefined}>
               {columns.map((c) => {
-                const rk = c.rank ? ranks[c.key].get(rowKey(r)) : null;
+                const rk = c.rank ? ranks[c.key].get(rankKey(r)) : null;
                 return (
                   <td key={c.key} className={[c.left && 'l', c.sticky != null && 'st'].filter(Boolean).join(' ') || undefined} style={stickyStyle(c)}>
                     {c.render ? c.render(r) : c.value(r)}

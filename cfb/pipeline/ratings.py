@@ -65,7 +65,9 @@ def ratings(games: pd.DataFrame, fbs_ids, cutoff: str | None = None, cap: int = 
     sol = np.linalg.lstsq(a_mat, y, rcond=None)[0]
 
     out = pd.DataFrame({"id": ids, "colley": colley, "srs": sol[:n], "w": wins, "l": losses})
+    fcs_srs = float(sol[ix["FCS"]])
     out = out[out.id != "FCS"].copy()
+    out.attrs["fcs_srs"] = fcs_srs  # the pooled FCS rating, for projecting games against FCS teams
     for c in ("colley", "srs"):
         out["z_" + c] = (out[c] - out[c].mean()) / out[c].std()
     return out, float(sol[n])

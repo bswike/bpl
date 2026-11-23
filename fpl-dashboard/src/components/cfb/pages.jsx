@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import SortTable from './SortTable';
 import { filterTeams, num, signed, useCfb } from './data';
 import {
-  colAvgLead, colConf, colLead, colNg, colRankNum, colRecord, colT50, colTeam, colTied, colTrail, splitCols,
+  colAvgLead, colConf, colLead, colNg, colRecord, colT50, colTeam, colTied, colTrail, splitCols, teamStatCols,
 } from './columns';
 import { ConfFilter, ProjectedNote, Status } from './ui';
 
@@ -19,26 +19,10 @@ export function Ratings() {
   const { data, error } = useCfb('teams', 'meta');
   const [params] = useSearchParams();
 
-  const columns = useMemo(() => {
-    const meta = data?.meta;
-    return [
-      { ...colT50(basisOf), value: defaultOrder },
-      colTeam,
-      colConf(),
-      colRecord('wl', 'W-L', 'wins', 'losses'),
-      colRankNum('ap', 'AP', 'ap_rank', `AP rank, poll of ${meta?.ap_poll.released}`, { group: 'Rankings' }),
-      colRankNum('cfp', 'CFP', 'cfp_rank', `CFP committee rank of ${meta?.cfp.released} (before later games)`, { group: 'Rankings' }),
-      colRankNum('tal', 'Talent', 'talent_rank', '247Sports 2026 Team Talent Composite rank (preseason roster talent)', { group: 'Rankings' }),
-      colRankNum('model', 'Model*', 'model_rank', "This site's model rank among 138 FBS teams. An estimate, not an official ranking.", { group: 'Rankings' }),
-      ...splitCols(meta?.latest_poll),
-      colRecord('home', 'Home', 'home_w', 'home_l', { group: 'Site' }),
-      colRecord('away', 'Away', 'away_w', 'away_l', { group: 'Site' }),
-      colRecord('neut', 'Neut', 'neutral_w', 'neutral_l', { group: 'Site' }),
-      colLead,
-      colAvgLead,
-      colNg,
-    ];
-  }, [data]);
+  const columns = useMemo(
+    () => [{ ...colT50(basisOf), value: defaultOrder }, colTeam, ...teamStatCols(data?.meta)],
+    [data],
+  );
 
   if (!data) return <Status error={error} />;
   const rows = filterTeams(data.teams, params);

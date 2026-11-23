@@ -47,6 +47,7 @@
 .cfb-t tbody tr:nth-child(even) td { background: #f4f4f4; }
 .cfb-t tbody tr.projrow td { background: #fdf6d8; }
 .cfb-t tbody tr.postrow td { background: #eef3e6; }
+.cfb-t tbody tr.nextrow td { background: #f7f3e8; }
 .cfb-t tbody tr.onrow td { background: #e3e9f2; }
 .cfb-t tbody tr:hover td { background: #e6eefb; }
 .cfb-t .l { text-align: left; }

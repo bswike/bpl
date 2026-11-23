@@ -24,7 +24,7 @@ mkdirSync(join(OUT, 'history'), { recursive: true });
 const teams = read('team_summary').map(({ logo, logo_dark, ...rest }) => rest);
 write('teams.json', teams);
 
-for (const name of ['meta', 'top50', 'home_away_splits', 'ap_polls', 'ap_receiving_votes', 'cfp_rankings']) {
+for (const name of ['meta', 'top50', 'home_away_splits', 'ap_polls', 'ap_receiving_votes', 'cfp_rankings', 'upcoming']) {
   write(`${name}.json`, read(name));
 }
 

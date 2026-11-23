@@ -1,0 +1,148 @@
+game_id,date,kickoff_utc,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,site,venue,proj_margin,proj_spread
+401864546,2026-11-27,2026-11-27T21:30Z,13,Regular,,2005,Air Force,167,New Mexico,True,Away,University Stadium (NM),-6.7,6.5
+401866472,2026-11-27,2026-11-27T17:00Z,13,Regular,,2006,Akron,2084,Buffalo,True,Home,InfoCision Stadium,-11.1,11.0
+401856757,2026-11-28,2026-11-29T00:30Z,13,Regular,,333,Alabama,2,Auburn,True,Home,Bryant-Denny Stadium,14.7,-14.5
+401869930,2026-11-27,2026-11-27T20:00Z,13,Regular,,2026,App State,6,South Alabama,True,Away,Hancock Whitney Stadium,-5.7,5.5
+401856873,2026-11-28,2026-11-29T02:00Z,13,Regular,,12,Arizona,9,Arizona State,True,Home,Casino Del Sol Stadium,11.4,-11.5
+401856873,2026-11-28,2026-11-29T02:00Z,13,Regular,,9,Arizona State,12,Arizona,True,Away,Casino Del Sol Stadium,-11.4,11.5
+401856758,2026-11-28,2026-11-28T17:45Z,13,Regular,,8,Arkansas,99,LSU,True,Home,Donald W. Reynolds Razorback Stadium,-10.1,10.0
+401869939,2026-11-28,2026-11-28T20:00Z,13,Regular,,2032,Arkansas State,2653,Troy,True,Home,Centennial Bank Stadium,5.2,-5.0
+401862841,2026-11-28,2026-11-28T19:00Z,13,Regular,,349,Army,242,Rice,True,Away,First Community Stadium,4.7,-4.5
+401862844,2026-12-12,2026-12-12T20:00Z,15,Regular,,349,Army,2426,Navy,True,Neutral,MetLife Stadium,0.1,0.0
+401856757,2026-11-28,2026-11-29T00:30Z,13,Regular,,2,Auburn,333,Alabama,True,Away,Bryant-Denny Stadium,-14.7,14.5
+401856876,2026-11-28,2026-11-28T20:30Z,13,Regular,,252,BYU,2132,Cincinnati,True,Home,LaVell Edwards Stadium,13.9,-14.0
+401866474,2026-11-28,2026-11-28T17:00Z,13,Regular,,2050,Ball State,2117,Central Michigan,True,Home,Scheumann Stadium,-2.9,3.0
+401856874,2026-11-28,2026-11-29T02:30Z,13,Regular,,239,Baylor,248,Houston,True,Away,TDECU Stadium,-3.4,3.5
+401860926,2026-11-28,2026-11-28T23:00Z,13,Regular,,68,Boise State,36,Colorado State,True,Away,Canvas Stadium,16.9,-17.0
+401869542,2026-12-04,2026-12-05T01:00Z,14,Regular,Pac-12 Championship,68,Boise State,21,San Diego State,True,Home,Albertsons Stadium,15.5,-15.5
+401858311,2026-11-28,2026-11-28T17:00Z,13,Regular,,103,Boston College,2390,Miami,True,Away,Hard Rock Stadium,-22.3,22.5
+401866475,2026-11-28,2026-11-28T20:30Z,13,Regular,,189,Bowling Green,113,Massachusetts,True,Home,Doyt L. Perry Stadium,0.2,0.0
+401866472,2026-11-27,2026-11-27T17:00Z,13,Regular,,2084,Buffalo,2006,Akron,True,Away,InfoCision Stadium,11.1,-11.0
+401858315,2026-11-28,2026-11-29T00:30Z,13,Regular,,25,California,221,Pittsburgh,True,Home,California Memorial Stadium,-9.9,10.0
+401866474,2026-11-28,2026-11-28T17:00Z,13,Regular,,2117,Central Michigan,2050,Ball State,True,Away,Scheumann Stadium,2.9,-3.0
+401862842,2026-11-28,2026-11-28T17:00Z,13,Regular,,2429,Charlotte,2426,Navy,True,Home,Jerry Richardson Stadium,-11.3,11.5
+401856876,2026-11-28,2026-11-28T20:30Z,13,Regular,,2132,Cincinnati,252,BYU,True,Away,LaVell Edwards Stadium,-13.9,14.0
+401856764,2026-11-28,2026-11-28T20:00Z,13,Regular,,228,Clemson,2579,South Carolina,True,Home,"Memorial Stadium (Clemson, SC)",-0.2,0.0
+401869947,2026-11-28,2026-11-28T19:00Z,13,Regular,,324,Coastal Carolina,256,James Madison,True,Away,Bridgeforth Stadium,-13.5,13.5
+401856875,2026-11-28,2026-11-28T19:00Z,13,Regular,,38,Colorado,2116,UCF,True,Home,Folsom Field,-2.4,2.5
+401860926,2026-11-28,2026-11-28T23:00Z,13,Regular,,36,Colorado State,68,Boise State,True,Home,Canvas Stadium,-16.9,17.0
+401871062,2026-11-28,2026-11-28T20:30Z,13,Regular,,48,Delaware,55,Jacksonville State,True,Home,Delaware Stadium,2.2,-2.0
+401858312,2026-11-28,2026-11-28T20:30Z,13,Regular,,150,Duke,154,Wake Forest,True,Away,Allegacy Federal Credit Union Stadium,-9.8,10.0
+401862837,2026-11-28,2026-11-28T18:00Z,13,Regular,,151,East Carolina,2226,Florida Atlantic,True,Home,Dowdy-Ficklen Stadium,-1.0,1.0
+401866470,2026-11-24,2026-11-25T00:00Z,13,Regular,,2199,Eastern Michigan,2309,Kent State,True,Home,Rynearson Stadium,6.3,-6.5
+401856759,2026-11-27,2026-11-27T20:30Z,13,Regular,,57,Florida,52,Florida State,True,Away,Doak Campbell Stadium,2.9,-3.0
+401862837,2026-11-28,2026-11-28T18:00Z,13,Regular,,2226,Florida Atlantic,151,East Carolina,True,Away,Dowdy-Ficklen Stadium,1.0,-1.0
+401871082,2026-11-28,2026-11-28T19:00Z,13,Regular,,2229,Florida International,2534,Sam Houston,True,Home,Pitbull Stadium,12.1,-12.0
+401856759,2026-11-27,2026-11-27T20:30Z,13,Regular,,52,Florida State,57,Florida,True,Home,Doak Campbell Stadium,-2.9,3.0
+401860927,2026-11-28,2026-11-29T03:00Z,13,Regular,,278,Fresno State,204,Oregon State,True,Home,Valley Children's Stadium,1.7,-1.5
+401856760,2026-11-28,2026-11-28T20:30Z,13,Regular,,61,Georgia,59,Georgia Tech,True,Home,Sanford Stadium,30.8,-31.0
+401869545,2026-12-05,2026-12-05T21:00Z,14,Regular,SEC Championship,61,Georgia,,TBD,False,Neutral,Mercedes-Benz Stadium,,
+401869954,2026-11-28,2026-11-28T17:00Z,13,Regular,,290,Georgia Southern,2348,Louisiana Tech,True,Home,Allen E. Paulson Stadium,0.1,0.0
+401869959,2026-11-28,2026-11-28T19:00Z,13,Regular,,2247,Georgia State,309,Louisiana,True,Home,Center Parc Stadium,-2.4,2.5
+401856760,2026-11-28,2026-11-28T20:30Z,13,Regular,,59,Georgia Tech,61,Georgia,True,Away,Sanford Stadium,-30.8,31.0
+401864547,2026-11-28,2026-11-29T04:00Z,13,Regular,,62,Hawai'i,16,Sacramento State,True,Home,Clarence T.C. Ching Athletics Complex,11.1,-11.0
+401856874,2026-11-28,2026-11-29T02:30Z,13,Regular,,248,Houston,239,Baylor,True,Home,TDECU Stadium,3.4,-3.5
+401858537,2026-11-28,2026-11-28T17:30Z,13,Regular,,356,Illinois,77,Northwestern,True,Away,Ryan Field,-5.9,6.0
+401858538,2026-11-28,2026-11-29T00:00Z,13,Regular,,84,Indiana,2509,Purdue,True,Home,"Memorial Stadium (Bloomington, IN)",15.1,-15.0
+401858536,2026-11-27,2026-11-27T17:00Z,13,Regular,,2294,Iowa,158,Nebraska,True,Home,Kinnick Stadium,3.7,-3.5
+401856878,2026-11-28,2026-11-28T19:00Z,13,Regular,,66,Iowa State,2306,Kansas State,True,Home,Jack Trice Stadium,6.0,-6.0
+401871062,2026-11-28,2026-11-28T20:30Z,13,Regular,,55,Jacksonville State,48,Delaware,True,Away,Delaware Stadium,-2.2,2.0
+401869535,2026-12-04,2026-12-05T00:00Z,14,Regular,Conference USA Championship,55,Jacksonville State,2335,Liberty,True,Away,Williams Stadium (VA),-11.6,11.5
+401869947,2026-11-28,2026-11-28T19:00Z,13,Regular,,256,James Madison,324,Coastal Carolina,True,Home,Bridgeforth Stadium,13.5,-13.5
+401856877,2026-11-28,2026-11-28T23:15Z,13,Regular,,2305,Kansas,197,Oklahoma State,True,Away,Boone Pickens Stadium,-8.2,8.0
+401856878,2026-11-28,2026-11-28T19:00Z,13,Regular,,2306,Kansas State,66,Iowa State,True,Away,Jack Trice Stadium,-6.0,6.0
+401870804,2026-11-28,2026-11-28T18:00Z,13,Regular,,338,Kennesaw State,98,Western Kentucky,True,Away,Houchens Industries-L.T. Smith Stadium,1.8,-2.0
+401866470,2026-11-24,2026-11-25T00:00Z,13,Regular,,2309,Kent State,2199,Eastern Michigan,True,Away,Rynearson Stadium,-6.3,6.5
+401856761,2026-11-28,2026-11-28T17:00Z,13,Regular,,96,Kentucky,97,Louisville,True,Home,Kroger Field,-3.3,3.5
+401856758,2026-11-28,2026-11-28T17:45Z,13,Regular,,99,LSU,8,Arkansas,True,Away,Donald W. Reynolds Razorback Stadium,10.1,-10.0
+401871063,2026-11-28,2026-11-28T19:00Z,13,Regular,,2335,Liberty,2623,Missouri State,True,Away,Robert W. Plaster Stadium,14.2,-14.0
+401869535,2026-12-04,2026-12-05T00:00Z,14,Regular,Conference USA Championship,2335,Liberty,55,Jacksonville State,True,Home,Williams Stadium (VA),11.6,-11.5
+401869959,2026-11-28,2026-11-28T19:00Z,13,Regular,,309,Louisiana,2247,Georgia State,True,Away,Center Parc Stadium,2.4,-2.5
+401869954,2026-11-28,2026-11-28T17:00Z,13,Regular,,2348,Louisiana Tech,290,Georgia Southern,True,Away,Allen E. Paulson Stadium,-0.1,0.0
+401856761,2026-11-28,2026-11-28T17:00Z,13,Regular,,97,Louisville,96,Kentucky,True,Away,Kroger Field,3.3,-3.5
+401871102,2026-11-28,2026-11-28T18:00Z,13,Regular,,276,Marshall,2433,UL Monroe,True,Away,Malone Stadium,4.1,-4.0
+401858539,2026-11-28,2026-11-28T20:30Z,13,Regular,,120,Maryland,213,Penn State,True,Home,SECU Stadium,-4.6,4.5
+401866475,2026-11-28,2026-11-28T20:30Z,13,Regular,,113,Massachusetts,189,Bowling Green,True,Away,Doyt L. Perry Stadium,-0.2,0.0
+401862838,2026-11-27,2026-11-27T20:30Z,13,Regular,,235,Memphis,218,Temple,True,Home,Simmons Bank Liberty Stadium,17.6,-17.5
+401858311,2026-11-28,2026-11-28T17:00Z,13,Regular,,2390,Miami,103,Boston College,True,Home,Hard Rock Stadium,22.3,-22.5
+401858318,2026-12-05,2026-12-05T17:00Z,14,Regular,ACC Championship,2390,Miami,154,Wake Forest,True,Neutral,Bank of America Stadium,1.7,-1.5
+401866471,2026-11-24,2026-11-25T00:00Z,13,Regular,,193,Miami (OH),2711,Western Michigan,True,Away,Waldo Stadium,-6.0,6.0
+401858540,2026-11-28,2026-11-28T17:00Z,13,Regular,,130,Michigan,194,Ohio State,True,Away,Ohio Stadium,-14.2,14.0
+401858542,2026-11-28,2026-11-28T21:15Z,13,Regular,,127,Michigan State,164,Rutgers,True,Away,SHI Stadium,4.5,-4.5
+401871083,2026-11-28,2026-11-28T19:00Z,13,Regular,,2393,Middle Tennessee,166,New Mexico State,True,Home,"Johnny ""Red"" Floyd Stadium",8.8,-9.0
+401858544,2026-11-27,2026-11-28T00:30Z,13,Regular,,135,Minnesota,275,Wisconsin,True,Away,Camp Randall Stadium,-12.8,13.0
+401856762,2026-11-27,2026-11-27T17:00Z,13,Regular,,344,Mississippi State,145,Ole Miss,True,Away,Vaught-Hemingway Stadium,-13.3,13.5
+401856763,2026-11-28,2026-11-28T21:15Z,13,Regular,,142,Missouri,201,Oklahoma,True,Home,Memorial Stadium,4.0,-4.0
+401871063,2026-11-28,2026-11-28T19:00Z,13,Regular,,2623,Missouri State,2335,Liberty,True,Home,Robert W. Plaster Stadium,-14.2,14.0
+401858313,2026-11-28,2026-11-28T17:00Z,13,Regular,,152,NC State,153,North Carolina,True,Away,Kenan Stadium,-9.4,9.5
+401862842,2026-11-28,2026-11-28T17:00Z,13,Regular,,2426,Navy,2429,Charlotte,True,Away,Jerry Richardson Stadium,11.3,-11.5
+401862844,2026-12-12,2026-12-12T20:00Z,15,Regular,,2426,Navy,349,Army,True,Neutral,MetLife Stadium,-0.1,0.0
+401858536,2026-11-27,2026-11-27T17:00Z,13,Regular,,158,Nebraska,2294,Iowa,True,Away,Kinnick Stadium,-3.7,3.5
+401864548,2026-11-28,2026-11-29T02:00Z,13,Regular,,2440,Nevada,2439,UNLV,True,Away,Allegiant Stadium,-5.7,5.5
+401864546,2026-11-27,2026-11-27T21:30Z,13,Regular,,167,New Mexico,2005,Air Force,True,Home,University Stadium (NM),6.7,-6.5
+401871083,2026-11-28,2026-11-28T19:00Z,13,Regular,,166,New Mexico State,2393,Middle Tennessee,True,Away,"Johnny ""Red"" Floyd Stadium",-8.8,9.0
+401858313,2026-11-28,2026-11-28T17:00Z,13,Regular,,153,North Carolina,152,NC State,True,Home,Kenan Stadium,9.4,-9.5
+401864549,2026-11-27,2026-11-27T20:30Z,13,Regular,,2449,North Dakota State,23,San José State,True,Away,CEFCU Stadium,10.4,-10.5
+401862843,2026-11-28,2026-11-28T21:00Z,13,Regular,,249,North Texas,5,UAB,True,Home,DATCU Stadium,9.9,-10.0
+401864550,2026-11-28,2026-11-28T20:30Z,13,Regular,,2459,Northern Illinois,2638,UTEP,True,Home,Huskie Stadium,1.6,-1.5
+401858537,2026-11-28,2026-11-28T17:30Z,13,Regular,,77,Northwestern,356,Illinois,True,Home,Ryan Field,5.9,-6.0
+401858314,2026-11-28,2026-11-28T17:00Z,13,Regular,,87,Notre Dame,183,Syracuse,True,Away,JMA Wireless Dome,18.6,-18.5
+401866473,2026-11-27,2026-11-27T17:00Z,13,Regular,,195,Ohio,2649,Toledo,True,Home,Peden Stadium,-2.9,3.0
+401858540,2026-11-28,2026-11-28T17:00Z,13,Regular,,194,Ohio State,130,Michigan,True,Home,Ohio Stadium,14.2,-14.0
+401856763,2026-11-28,2026-11-28T21:15Z,13,Regular,,201,Oklahoma,142,Missouri,True,Away,Memorial Stadium,-4.0,4.0
+401856877,2026-11-28,2026-11-28T23:15Z,13,Regular,,197,Oklahoma State,2305,Kansas,True,Home,Boone Pickens Stadium,8.2,-8.0
+401871103,2026-11-28,2026-11-28T18:00Z,13,Regular,,295,Old Dominion,2572,Southern Miss,True,Home,S.B. Ballard Stadium,4.4,-4.5
+401856762,2026-11-27,2026-11-27T17:00Z,13,Regular,,145,Ole Miss,344,Mississippi State,True,Home,Vaught-Hemingway Stadium,13.3,-13.5
+401858541,2026-11-28,2026-11-29T00:30Z,13,Regular,,2483,Oregon,264,Washington,True,Home,Autzen Stadium,12.1,-12.0
+401860927,2026-11-28,2026-11-29T03:00Z,13,Regular,,204,Oregon State,278,Fresno State,True,Away,Valley Children's Stadium,-1.7,1.5
+401858539,2026-11-28,2026-11-28T20:30Z,13,Regular,,213,Penn State,120,Maryland,True,Away,SECU Stadium,4.6,-4.5
+401858315,2026-11-28,2026-11-29T00:30Z,13,Regular,,221,Pittsburgh,25,California,True,Away,California Memorial Stadium,9.9,-10.0
+401858538,2026-11-28,2026-11-29T00:00Z,13,Regular,,2509,Purdue,84,Indiana,True,Away,"Memorial Stadium (Bloomington, IN)",-15.1,15.0
+401862841,2026-11-28,2026-11-28T19:00Z,13,Regular,,242,Rice,349,Army,True,Home,First Community Stadium,-4.7,4.5
+401858542,2026-11-28,2026-11-28T21:15Z,13,Regular,,164,Rutgers,127,Michigan State,True,Home,SHI Stadium,-4.5,4.5
+401858316,2026-11-28,2026-11-28T20:30Z,13,Regular,,2567,SMU,24,Stanford,True,Away,Stanford Stadium,3.0,-3.0
+401864547,2026-11-28,2026-11-29T04:00Z,13,Regular,,16,Sacramento State,62,Hawai'i,True,Away,Clarence T.C. Ching Athletics Complex,-11.1,11.0
+401871082,2026-11-28,2026-11-28T19:00Z,13,Regular,,2534,Sam Houston,2229,Florida International,True,Away,Pitbull Stadium,-12.1,12.0
+401860929,2026-11-28,2026-11-28T23:30Z,13,Regular,,21,San Diego State,265,Washington State,True,Away,Martin Stadium,2.3,-2.5
+401869542,2026-12-04,2026-12-05T01:00Z,14,Regular,Pac-12 Championship,21,San Diego State,68,Boise State,True,Away,Albertsons Stadium,-15.5,15.5
+401864549,2026-11-27,2026-11-27T20:30Z,13,Regular,,23,San José State,2449,North Dakota State,True,Home,CEFCU Stadium,-10.4,10.5
+401869930,2026-11-27,2026-11-27T20:00Z,13,Regular,,6,South Alabama,2026,App State,True,Home,Hancock Whitney Stadium,5.7,-5.5
+401856764,2026-11-28,2026-11-28T20:00Z,13,Regular,,2579,South Carolina,228,Clemson,True,Away,"Memorial Stadium (Clemson, SC)",0.2,0.0
+401862839,2026-11-28,2026-11-28T20:30Z,13,Regular,,58,South Florida,2655,Tulane,True,Home,Raymond James Stadium,6.4,-6.5
+401871103,2026-11-28,2026-11-28T18:00Z,13,Regular,,2572,Southern Miss,295,Old Dominion,True,Away,S.B. Ballard Stadium,-4.4,4.5
+401858316,2026-11-28,2026-11-28T20:30Z,13,Regular,,24,Stanford,2567,SMU,True,Home,Stanford Stadium,-3.0,3.0
+401858314,2026-11-28,2026-11-28T17:00Z,13,Regular,,183,Syracuse,87,Notre Dame,True,Home,JMA Wireless Dome,-18.6,18.5
+401856879,2026-11-26,2026-11-27T01:00Z,13,Regular,,2628,TCU,2641,Texas Tech,True,Away,Galaxy Stadium,-11.0,11.0
+401862838,2026-11-27,2026-11-27T20:30Z,13,Regular,,218,Temple,235,Memphis,True,Away,Simmons Bank Liberty Stadium,-17.6,17.5
+401856765,2026-11-28,2026-11-29T00:00Z,13,Regular,,2633,Tennessee,238,Vanderbilt,True,Away,FirstBank Stadium,16.3,-16.5
+401856756,2026-11-27,2026-11-28T00:30Z,13,Regular,,251,Texas,245,Texas A&M,True,Away,Kyle Field,12.1,-12.0
+401856756,2026-11-27,2026-11-28T00:30Z,13,Regular,,245,Texas A&M,251,Texas,True,Home,Kyle Field,-12.1,12.0
+401860928,2026-11-28,2026-11-29T02:30Z,13,Regular,,326,Texas State,328,Utah State,True,Away,Maverik Stadium,8.5,-8.5
+401856879,2026-11-26,2026-11-27T01:00Z,13,Regular,,2641,Texas Tech,2628,TCU,True,Home,Galaxy Stadium,11.0,-11.0
+401866473,2026-11-27,2026-11-27T17:00Z,13,Regular,,2649,Toledo,195,Ohio,True,Away,Peden Stadium,2.9,-3.0
+401869939,2026-11-28,2026-11-28T20:00Z,13,Regular,,2653,Troy,2032,Arkansas State,True,Away,Centennial Bank Stadium,-5.2,5.0
+401862839,2026-11-28,2026-11-28T20:30Z,13,Regular,,2655,Tulane,58,South Florida,True,Away,Raymond James Stadium,-6.4,6.5
+401862840,2026-11-27,2026-11-27T17:00Z,13,Regular,,202,Tulsa,2636,UTSA,True,Away,Alamodome,-1.7,1.5
+401862843,2026-11-28,2026-11-28T21:00Z,13,Regular,,5,UAB,249,North Texas,True,Away,DATCU Stadium,-9.9,10.0
+401856875,2026-11-28,2026-11-28T19:00Z,13,Regular,,2116,UCF,38,Colorado,True,Away,Folsom Field,2.4,-2.5
+401858543,2026-11-28,2026-11-28T20:30Z,13,Regular,,26,UCLA,30,USC,True,Home,Rose Bowl,8.0,-8.0
+401861969,2026-11-28,2026-11-28T17:00Z,13,Regular,,41,UConn,2751,Wyoming,True,Away,War Memorial Stadium,3.1,-3.0
+401871102,2026-11-28,2026-11-28T18:00Z,13,Regular,,2433,UL Monroe,276,Marshall,True,Home,Malone Stadium,-4.1,4.0
+401864548,2026-11-28,2026-11-29T02:00Z,13,Regular,,2439,UNLV,2440,Nevada,True,Home,Allegiant Stadium,5.7,-5.5
+401858543,2026-11-28,2026-11-28T20:30Z,13,Regular,,30,USC,26,UCLA,True,Away,Rose Bowl,-8.0,8.0
+401864550,2026-11-28,2026-11-28T20:30Z,13,Regular,,2638,UTEP,2459,Northern Illinois,True,Away,Huskie Stadium,-1.6,1.5
+401862840,2026-11-27,2026-11-27T17:00Z,13,Regular,,2636,UTSA,202,Tulsa,True,Home,Alamodome,1.7,-1.5
+401856880,2026-11-27,2026-11-28T02:00Z,13,Regular,,254,Utah,277,West Virginia,True,Home,Rice-Eccles Stadium,19.6,-19.5
+401860928,2026-11-28,2026-11-29T02:30Z,13,Regular,,328,Utah State,326,Texas State,True,Home,Maverik Stadium,-8.5,8.5
+401856765,2026-11-28,2026-11-29T00:00Z,13,Regular,,238,Vanderbilt,2633,Tennessee,True,Home,FirstBank Stadium,-16.3,16.5
+401858317,2026-11-28,2026-11-28T20:00Z,13,Regular,,258,Virginia,259,Virginia Tech,True,Away,Lane Stadium,0.8,-1.0
+401858317,2026-11-28,2026-11-28T20:00Z,13,Regular,,259,Virginia Tech,258,Virginia,True,Home,Lane Stadium,-0.8,1.0
+401858312,2026-11-28,2026-11-28T20:30Z,13,Regular,,154,Wake Forest,150,Duke,True,Home,Allegacy Federal Credit Union Stadium,9.8,-10.0
+401858318,2026-12-05,2026-12-05T17:00Z,14,Regular,ACC Championship,154,Wake Forest,2390,Miami,True,Neutral,Bank of America Stadium,-1.7,1.5
+401858541,2026-11-28,2026-11-29T00:30Z,13,Regular,,264,Washington,2483,Oregon,True,Away,Autzen Stadium,-12.1,12.0
+401860929,2026-11-28,2026-11-28T23:30Z,13,Regular,,265,Washington State,21,San Diego State,True,Home,Martin Stadium,-2.3,2.5
+401856880,2026-11-27,2026-11-28T02:00Z,13,Regular,,277,West Virginia,254,Utah,True,Away,Rice-Eccles Stadium,-19.6,19.5
+401870804,2026-11-28,2026-11-28T18:00Z,13,Regular,,98,Western Kentucky,338,Kennesaw State,True,Home,Houchens Industries-L.T. Smith Stadium,-1.8,2.0
+401866471,2026-11-24,2026-11-25T00:00Z,13,Regular,,2711,Western Michigan,193,Miami (OH),True,Home,Waldo Stadium,6.0,-6.0
+401858544,2026-11-27,2026-11-28T00:30Z,13,Regular,,275,Wisconsin,135,Minnesota,True,Home,Camp Randall Stadium,12.8,-13.0
+401861969,2026-11-28,2026-11-28T17:00Z,13,Regular,,2751,Wyoming,41,UConn,True,Home,War Memorial Stadium,-3.1,3.0

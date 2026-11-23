@@ -61,6 +61,14 @@ How each number is defined, where the data comes from, what was verified, and wh
   against top-25 rosters) is its most debatable call: 23rd in the model, with no AP votes on Nov 22.
 - The model was tuned on one week's committee ranking. Treat `model_rank` as a rough guide.
 
+## Projected spreads (upcoming games)
+
+- Projected margin = SRS(team) - SRS(opponent) + the fitted home edge (about 2.5 points), or no edge at a neutral
+  site. Shown as a spread rounded to the half point, negative = favored. FCS opponents use the pooled FCS rating.
+- SRS caps each game's margin at 24 points when it is fitted, so projections for mismatches run smaller than a
+  betting line would. These are the model's estimates, not lines, and are not checked against results yet.
+- Games whose opponent is not yet known (most conference championships and all bowls) are listed without a spread.
+
 ## Game control
 
 - **Time shares:** for each game the score is tracked across the 3,600 seconds of regulation. `lead_pct`,
