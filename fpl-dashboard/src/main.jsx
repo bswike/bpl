@@ -11,6 +11,7 @@ import Rounds from './components/Rounds.jsx';
 
 const CourseMap = lazy(() => import('./components/CourseMap.jsx'));
 const GolfTrip = lazy(() => import('./components/GolfTrip.jsx'));
+const CfbApp = lazy(() => import('./components/cfb/CfbApp.jsx'));
 import { Analytics } from '@vercel/analytics/react';
 import './index.css';
 
@@ -39,6 +40,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           element={
             <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
               <GolfTrip />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/cfb/*"
+          element={
+            <Suspense fallback={<div style={{ minHeight: '100vh', background: '#fff' }} />}>
+              <CfbApp />
             </Suspense>
           }
         />

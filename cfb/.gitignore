@@ -1,0 +1,8 @@
+# large feed, re-downloaded by pipeline/fetch_raw.sh
+data/raw/play_by_play_*.parquet
+
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+.DS_Store

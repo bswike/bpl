@@ -1,0 +1,74 @@
+[
+ {
+  "poll_week":13,
+  "team_id":167,
+  "team":"New Mexico",
+  "points":95
+ },
+ {
+  "poll_week":13,
+  "team_id":158,
+  "team":"Nebraska",
+  "points":90
+ },
+ {
+  "poll_week":13,
+  "team_id":2636,
+  "team":"UTSA",
+  "points":75
+ },
+ {
+  "poll_week":13,
+  "team_id":96,
+  "team":"Kentucky",
+  "points":62
+ },
+ {
+  "poll_week":13,
+  "team_id":264,
+  "team":"Washington",
+  "points":39
+ },
+ {
+  "poll_week":13,
+  "team_id":2348,
+  "team":"Louisiana Tech",
+  "points":31
+ },
+ {
+  "poll_week":13,
+  "team_id":2449,
+  "team":"North Dakota State",
+  "points":25
+ },
+ {
+  "poll_week":13,
+  "team_id":2649,
+  "team":"Toledo",
+  "points":22
+ },
+ {
+  "poll_week":13,
+  "team_id":197,
+  "team":"Oklahoma State",
+  "points":12
+ },
+ {
+  "poll_week":13,
+  "team_id":2,
+  "team":"Auburn",
+  "points":10
+ },
+ {
+  "poll_week":13,
+  "team_id":2005,
+  "team":"Air Force",
+  "points":7
+ },
+ {
+  "poll_week":13,
+  "team_id":150,
+  "team":"Duke",
+  "points":2
+ }
+]

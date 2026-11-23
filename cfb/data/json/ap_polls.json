@@ -1,0 +1,2927 @@
+[
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":1,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":2,
+  "team_id":2483,
+  "team":"Oregon",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":3,
+  "team_id":61,
+  "team":"Georgia",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":4,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":5,
+  "team_id":251,
+  "team":"Texas",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":6,
+  "team_id":84,
+  "team":"Indiana",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":7,
+  "team_id":2390,
+  "team":"Miami",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":8,
+  "team_id":245,
+  "team":"Texas A&M",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":9,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":10,
+  "team_id":201,
+  "team":"Oklahoma",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":11,
+  "team_id":99,
+  "team":"LSU",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":12,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":13,
+  "team_id":333,
+  "team":"Alabama",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":14,
+  "team_id":252,
+  "team":"BYU",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":15,
+  "team_id":30,
+  "team":"USC",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":16,
+  "team_id":130,
+  "team":"Michigan",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":17,
+  "team_id":264,
+  "team":"Washington",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":18,
+  "team_id":213,
+  "team":"Penn State",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":19,
+  "team_id":2567,
+  "team":"SMU",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":20,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":21,
+  "team_id":254,
+  "team":"Utah",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":22,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":23,
+  "team_id":248,
+  "team":"Houston",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":24,
+  "team_id":97,
+  "team":"Louisville",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":1,
+  "label":"Preseason",
+  "rank":25,
+  "team_id":142,
+  "team":"Missouri",
+  "points":null,
+  "first_place_votes":null
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":1,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":1684,
+  "first_place_votes":46
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":2,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1532,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":3,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1512,
+  "first_place_votes":4
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":4,
+  "team_id":251,
+  "team":"Texas",
+  "points":1462,
+  "first_place_votes":2
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":5,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1428,
+  "first_place_votes":8
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":6,
+  "team_id":2483,
+  "team":"Oregon",
+  "points":1422,
+  "first_place_votes":3
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":7,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1405,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":8,
+  "team_id":99,
+  "team":"LSU",
+  "points":1315,
+  "first_place_votes":5
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":9,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":1154,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":10,
+  "team_id":245,
+  "team":"Texas A&M",
+  "points":1079,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":11,
+  "team_id":201,
+  "team":"Oklahoma",
+  "points":1039,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":12,
+  "team_id":333,
+  "team":"Alabama",
+  "points":910,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":13,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":900,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":14,
+  "team_id":30,
+  "team":"USC",
+  "points":861,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":15,
+  "team_id":252,
+  "team":"BYU",
+  "points":840,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":16,
+  "team_id":213,
+  "team":"Penn State",
+  "points":621,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":17,
+  "team_id":2567,
+  "team":"SMU",
+  "points":501,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":18,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":491,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":19,
+  "team_id":264,
+  "team":"Washington",
+  "points":489,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":20,
+  "team_id":254,
+  "team":"Utah",
+  "points":381,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":21,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":369,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":22,
+  "team_id":248,
+  "team":"Houston",
+  "points":214,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":23,
+  "team_id":142,
+  "team":"Missouri",
+  "points":182,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":24,
+  "team_id":97,
+  "team":"Louisville",
+  "points":163,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":2,
+  "label":"Week 2",
+  "rank":25,
+  "team_id":258,
+  "team":"Virginia",
+  "points":89,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":1,
+  "team_id":251,
+  "team":"Texas",
+  "points":1678,
+  "first_place_votes":56
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":2,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1551,
+  "first_place_votes":3
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":3,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1531,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":4,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1466,
+  "first_place_votes":3
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":5,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1452,
+  "first_place_votes":4
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":6,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":1407,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":7,
+  "team_id":99,
+  "team":"LSU",
+  "points":1334,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":8,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":1216,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":9,
+  "team_id":245,
+  "team":"Texas A&M",
+  "points":1165,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":10,
+  "team_id":333,
+  "team":"Alabama",
+  "points":1068,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":11,
+  "team_id":252,
+  "team":"BYU",
+  "points":966,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":12,
+  "team_id":30,
+  "team":"USC",
+  "points":944,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":13,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":910,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":14,
+  "team_id":213,
+  "team":"Penn State",
+  "points":692,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":15,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":676,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":16,
+  "team_id":2567,
+  "team":"SMU",
+  "points":636,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":17,
+  "team_id":254,
+  "team":"Utah",
+  "points":558,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":18,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":391,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":19,
+  "team_id":130,
+  "team":"Michigan",
+  "points":382,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":20,
+  "team_id":142,
+  "team":"Missouri",
+  "points":344,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":21,
+  "team_id":2483,
+  "team":"Oregon",
+  "points":324,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":22,
+  "team_id":248,
+  "team":"Houston",
+  "points":292,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":23,
+  "team_id":97,
+  "team":"Louisville",
+  "points":244,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":24,
+  "team_id":201,
+  "team":"Oklahoma",
+  "points":222,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":3,
+  "label":"Week 3",
+  "rank":25,
+  "team_id":258,
+  "team":"Virginia",
+  "points":182,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":1,
+  "team_id":251,
+  "team":"Texas",
+  "points":1706,
+  "first_place_votes":58
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":2,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1580,
+  "first_place_votes":3
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":3,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1517,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":4,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":1488,
+  "first_place_votes":3
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":5,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1467,
+  "first_place_votes":4
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":6,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1445,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":7,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":1415,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":8,
+  "team_id":333,
+  "team":"Alabama",
+  "points":1182,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":9,
+  "team_id":252,
+  "team":"BYU",
+  "points":1090,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":10,
+  "team_id":99,
+  "team":"LSU",
+  "points":1078,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":11,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":1067,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":12,
+  "team_id":30,
+  "team":"USC",
+  "points":907,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":13,
+  "team_id":213,
+  "team":"Penn State",
+  "points":850,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":14,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":826,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":15,
+  "team_id":254,
+  "team":"Utah",
+  "points":752,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":16,
+  "team_id":97,
+  "team":"Louisville",
+  "points":692,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":17,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":561,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":18,
+  "team_id":130,
+  "team":"Michigan",
+  "points":432,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":19,
+  "team_id":142,
+  "team":"Missouri",
+  "points":369,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":20,
+  "team_id":2483,
+  "team":"Oregon",
+  "points":364,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":21,
+  "team_id":57,
+  "team":"Florida",
+  "points":269,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":22,
+  "team_id":2567,
+  "team":"SMU",
+  "points":212,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":23,
+  "team_id":245,
+  "team":"Texas A&M",
+  "points":202,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":24,
+  "team_id":344,
+  "team":"Mississippi State",
+  "points":179,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":4,
+  "label":"Week 4",
+  "rank":25,
+  "team_id":248,
+  "team":"Houston",
+  "points":127,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":1,
+  "team_id":251,
+  "team":"Texas",
+  "points":1737,
+  "first_place_votes":62
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":2,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1646,
+  "first_place_votes":6
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":3,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1581,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":4,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1501,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":5,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":1465,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":6,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1408,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":7,
+  "team_id":333,
+  "team":"Alabama",
+  "points":1305,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":8,
+  "team_id":57,
+  "team":"Florida",
+  "points":1272,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":9,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":1089,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":10,
+  "team_id":252,
+  "team":"BYU",
+  "points":1078,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":11,
+  "team_id":99,
+  "team":"LSU",
+  "points":1073,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":12,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":1053,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":13,
+  "team_id":254,
+  "team":"Utah",
+  "points":903,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":14,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":856,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":15,
+  "team_id":2483,
+  "team":"Oregon",
+  "points":725,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":16,
+  "team_id":344,
+  "team":"Mississippi State",
+  "points":715,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":17,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":663,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":18,
+  "team_id":30,
+  "team":"USC",
+  "points":410,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":19,
+  "team_id":197,
+  "team":"Oklahoma State",
+  "points":345,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":20,
+  "team_id":248,
+  "team":"Houston",
+  "points":278,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":21,
+  "team_id":2567,
+  "team":"SMU",
+  "points":246,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":22,
+  "team_id":68,
+  "team":"Boise State",
+  "points":221,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":23,
+  "team_id":26,
+  "team":"UCLA",
+  "points":218,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":24,
+  "team_id":96,
+  "team":"Kentucky",
+  "points":150,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":5,
+  "label":"Week 5",
+  "rank":25,
+  "team_id":142,
+  "team":"Missouri",
+  "points":118,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":1,
+  "team_id":251,
+  "team":"Texas",
+  "points":1737,
+  "first_place_votes":61
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":2,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1647,
+  "first_place_votes":6
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":3,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1532,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":4,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1524,
+  "first_place_votes":2
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":5,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":1490,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":6,
+  "team_id":333,
+  "team":"Alabama",
+  "points":1460,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":7,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1380,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":8,
+  "team_id":252,
+  "team":"BYU",
+  "points":1144,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":9,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":1095,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":10,
+  "team_id":99,
+  "team":"LSU",
+  "points":1087,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":11,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":1062,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":12,
+  "team_id":254,
+  "team":"Utah",
+  "points":996,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":13,
+  "team_id":2483,
+  "team":"Oregon",
+  "points":831,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":14,
+  "team_id":142,
+  "team":"Missouri",
+  "points":755,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":15,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":746,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":16,
+  "team_id":57,
+  "team":"Florida",
+  "points":691,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":17,
+  "team_id":344,
+  "team":"Mississippi State",
+  "points":487,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":18,
+  "team_id":197,
+  "team":"Oklahoma State",
+  "points":477,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":19,
+  "team_id":30,
+  "team":"USC",
+  "points":439,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":20,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":367,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":21,
+  "team_id":26,
+  "team":"UCLA",
+  "points":287,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":22,
+  "team_id":248,
+  "team":"Houston",
+  "points":279,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":23,
+  "team_id":68,
+  "team":"Boise State",
+  "points":271,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":24,
+  "team_id":2567,
+  "team":"SMU",
+  "points":167,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":6,
+  "label":"Week 6",
+  "rank":25,
+  "team_id":221,
+  "team":"Pittsburgh",
+  "points":162,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":1,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1745,
+  "first_place_votes":66
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":2,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1630,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":3,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1594,
+  "first_place_votes":2
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":4,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":1508,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":5,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1461,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":6,
+  "team_id":333,
+  "team":"Alabama",
+  "points":1372,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":7,
+  "team_id":251,
+  "team":"Texas",
+  "points":1371,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":8,
+  "team_id":252,
+  "team":"BYU",
+  "points":1237,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":9,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":1135,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":10,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":1132,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":11,
+  "team_id":254,
+  "team":"Utah",
+  "points":1073,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":12,
+  "team_id":26,
+  "team":"UCLA",
+  "points":951,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":13,
+  "team_id":142,
+  "team":"Missouri",
+  "points":882,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":14,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":706,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":15,
+  "team_id":96,
+  "team":"Kentucky",
+  "points":655,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":16,
+  "team_id":344,
+  "team":"Mississippi State",
+  "points":650,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":17,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":621,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":18,
+  "team_id":197,
+  "team":"Oklahoma State",
+  "points":604,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":19,
+  "team_id":30,
+  "team":"USC",
+  "points":505,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":20,
+  "team_id":248,
+  "team":"Houston",
+  "points":380,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":21,
+  "team_id":154,
+  "team":"Wake Forest",
+  "points":326,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":22,
+  "team_id":99,
+  "team":"LSU",
+  "points":274,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":23,
+  "team_id":68,
+  "team":"Boise State",
+  "points":268,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":24,
+  "team_id":2567,
+  "team":"SMU",
+  "points":142,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":7,
+  "label":"Week 7",
+  "rank":25,
+  "team_id":77,
+  "team":"Northwestern",
+  "points":112,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":1,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1697,
+  "first_place_votes":40
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":2,
+  "team_id":252,
+  "team":"BYU",
+  "points":1675,
+  "first_place_votes":20
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":3,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":1649,
+  "first_place_votes":9
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":4,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1395,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":5,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1382,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":6,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1370,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":7,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":1360,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":8,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":1336,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":9,
+  "team_id":26,
+  "team":"UCLA",
+  "points":1159,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":10,
+  "team_id":254,
+  "team":"Utah",
+  "points":1153,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":11,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":1151,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":12,
+  "team_id":96,
+  "team":"Kentucky",
+  "points":932,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":13,
+  "team_id":333,
+  "team":"Alabama",
+  "points":870,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":14,
+  "team_id":248,
+  "team":"Houston",
+  "points":785,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":15,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":747,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":16,
+  "team_id":30,
+  "team":"USC",
+  "points":592,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":17,
+  "team_id":154,
+  "team":"Wake Forest",
+  "points":574,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":18,
+  "team_id":99,
+  "team":"LSU",
+  "points":529,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":19,
+  "team_id":251,
+  "team":"Texas",
+  "points":440,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":20,
+  "team_id":57,
+  "team":"Florida",
+  "points":355,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":21,
+  "team_id":68,
+  "team":"Boise State",
+  "points":295,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":22,
+  "team_id":142,
+  "team":"Missouri",
+  "points":290,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":23,
+  "team_id":2567,
+  "team":"SMU",
+  "points":265,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":24,
+  "team_id":77,
+  "team":"Northwestern",
+  "points":254,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":8,
+  "label":"Week 8",
+  "rank":25,
+  "team_id":12,
+  "team":"Arizona",
+  "points":136,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":1,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1735,
+  "first_place_votes":59
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":2,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":1681,
+  "first_place_votes":10
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":3,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1511,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":4,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1459,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":5,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1458,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":6,
+  "team_id":254,
+  "team":"Utah",
+  "points":1413,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":7,
+  "team_id":26,
+  "team":"UCLA",
+  "points":1398,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":8,
+  "team_id":252,
+  "team":"BYU",
+  "points":1325,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":9,
+  "team_id":96,
+  "team":"Kentucky",
+  "points":1185,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":10,
+  "team_id":333,
+  "team":"Alabama",
+  "points":1063,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":11,
+  "team_id":251,
+  "team":"Texas",
+  "points":966,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":12,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":871,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":13,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":861,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":14,
+  "team_id":154,
+  "team":"Wake Forest",
+  "points":822,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":15,
+  "team_id":99,
+  "team":"LSU",
+  "points":813,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":16,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":662,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":17,
+  "team_id":57,
+  "team":"Florida",
+  "points":556,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":18,
+  "team_id":248,
+  "team":"Houston",
+  "points":491,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":19,
+  "team_id":2567,
+  "team":"SMU",
+  "points":440,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":20,
+  "team_id":68,
+  "team":"Boise State",
+  "points":422,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":20,
+  "team_id":77,
+  "team":"Northwestern",
+  "points":422,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":22,
+  "team_id":12,
+  "team":"Arizona",
+  "points":400,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":23,
+  "team_id":142,
+  "team":"Missouri",
+  "points":329,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":24,
+  "team_id":197,
+  "team":"Oklahoma State",
+  "points":180,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":9,
+  "label":"Week 9",
+  "rank":25,
+  "team_id":275,
+  "team":"Wisconsin",
+  "points":125,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":1,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1740,
+  "first_place_votes":62
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":2,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1648,
+  "first_place_votes":7
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":3,
+  "team_id":254,
+  "team":"Utah",
+  "points":1540,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":4,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1476,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":5,
+  "team_id":26,
+  "team":"UCLA",
+  "points":1473,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":6,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1446,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":7,
+  "team_id":252,
+  "team":"BYU",
+  "points":1358,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":8,
+  "team_id":96,
+  "team":"Kentucky",
+  "points":1253,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":9,
+  "team_id":333,
+  "team":"Alabama",
+  "points":1107,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":10,
+  "team_id":251,
+  "team":"Texas",
+  "points":1057,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":11,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":1049,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":12,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":953,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":13,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":931,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":14,
+  "team_id":154,
+  "team":"Wake Forest",
+  "points":898,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":15,
+  "team_id":99,
+  "team":"LSU",
+  "points":814,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":16,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":719,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":17,
+  "team_id":248,
+  "team":"Houston",
+  "points":590,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":18,
+  "team_id":30,
+  "team":"USC",
+  "points":539,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":19,
+  "team_id":142,
+  "team":"Missouri",
+  "points":475,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":20,
+  "team_id":68,
+  "team":"Boise State",
+  "points":451,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":21,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":401,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":22,
+  "team_id":167,
+  "team":"New Mexico",
+  "points":179,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":23,
+  "team_id":2579,
+  "team":"South Carolina",
+  "points":163,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":24,
+  "team_id":12,
+  "team":"Arizona",
+  "points":154,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":10,
+  "label":"Week 10",
+  "rank":25,
+  "team_id":57,
+  "team":"Florida",
+  "points":94,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":1,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1729,
+  "first_place_votes":53
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":2,
+  "team_id":254,
+  "team":"Utah",
+  "points":1675,
+  "first_place_votes":12
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":3,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1597,
+  "first_place_votes":5
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":4,
+  "team_id":26,
+  "team":"UCLA",
+  "points":1542,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":5,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1430,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":6,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1376,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":7,
+  "team_id":333,
+  "team":"Alabama",
+  "points":1334,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":8,
+  "team_id":251,
+  "team":"Texas",
+  "points":1253,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":9,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":1177,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":10,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":1082,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":11,
+  "team_id":154,
+  "team":"Wake Forest",
+  "points":1067,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":12,
+  "team_id":252,
+  "team":"BYU",
+  "points":1041,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":13,
+  "team_id":96,
+  "team":"Kentucky",
+  "points":897,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":14,
+  "team_id":248,
+  "team":"Houston",
+  "points":803,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":15,
+  "team_id":30,
+  "team":"USC",
+  "points":679,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":16,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":659,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":17,
+  "team_id":68,
+  "team":"Boise State",
+  "points":563,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":18,
+  "team_id":2483,
+  "team":"Oregon",
+  "points":517,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":19,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":415,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":20,
+  "team_id":2579,
+  "team":"South Carolina",
+  "points":399,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":21,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":349,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":22,
+  "team_id":12,
+  "team":"Arizona",
+  "points":324,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":23,
+  "team_id":167,
+  "team":"New Mexico",
+  "points":301,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":24,
+  "team_id":99,
+  "team":"LSU",
+  "points":277,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":11,
+  "label":"Week 11",
+  "rank":25,
+  "team_id":2567,
+  "team":"SMU",
+  "points":118,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":1,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1734,
+  "first_place_votes":58
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":2,
+  "team_id":254,
+  "team":"Utah",
+  "points":1677,
+  "first_place_votes":10
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":3,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1584,
+  "first_place_votes":2
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":4,
+  "team_id":26,
+  "team":"UCLA",
+  "points":1552,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":5,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1426,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":6,
+  "team_id":84,
+  "team":"Indiana",
+  "points":1384,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":7,
+  "team_id":333,
+  "team":"Alabama",
+  "points":1297,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":8,
+  "team_id":251,
+  "team":"Texas",
+  "points":1290,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":9,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":1179,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":10,
+  "team_id":154,
+  "team":"Wake Forest",
+  "points":1134,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":11,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":1081,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":12,
+  "team_id":252,
+  "team":"BYU",
+  "points":1038,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":13,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":861,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":14,
+  "team_id":2483,
+  "team":"Oregon",
+  "points":820,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":15,
+  "team_id":68,
+  "team":"Boise State",
+  "points":767,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":16,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":661,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":17,
+  "team_id":96,
+  "team":"Kentucky",
+  "points":599,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":18,
+  "team_id":30,
+  "team":"USC",
+  "points":546,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":19,
+  "team_id":12,
+  "team":"Arizona",
+  "points":404,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":20,
+  "team_id":248,
+  "team":"Houston",
+  "points":365,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":21,
+  "team_id":97,
+  "team":"Louisville",
+  "points":357,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":22,
+  "team_id":2335,
+  "team":"Liberty",
+  "points":183,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":23,
+  "team_id":57,
+  "team":"Florida",
+  "points":173,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":24,
+  "team_id":235,
+  "team":"Memphis",
+  "points":138,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":12,
+  "label":"Week 12",
+  "rank":25,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":103,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":1,
+  "team_id":61,
+  "team":"Georgia",
+  "points":1711,
+  "first_place_votes":56
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":2,
+  "team_id":254,
+  "team":"Utah",
+  "points":1662,
+  "first_place_votes":12
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":3,
+  "team_id":87,
+  "team":"Notre Dame",
+  "points":1591,
+  "first_place_votes":1
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":4,
+  "team_id":2390,
+  "team":"Miami",
+  "points":1491,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":5,
+  "team_id":251,
+  "team":"Texas",
+  "points":1392,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":6,
+  "team_id":333,
+  "team":"Alabama",
+  "points":1352,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":7,
+  "team_id":2633,
+  "team":"Tennessee",
+  "points":1317,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":8,
+  "team_id":154,
+  "team":"Wake Forest",
+  "points":1264,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":9,
+  "team_id":2641,
+  "team":"Texas Tech",
+  "points":1166,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":10,
+  "team_id":26,
+  "team":"UCLA",
+  "points":1156,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":11,
+  "team_id":252,
+  "team":"BYU",
+  "points":1030,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":12,
+  "team_id":84,
+  "team":"Indiana",
+  "points":958,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":13,
+  "team_id":2294,
+  "team":"Iowa",
+  "points":912,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":14,
+  "team_id":2483,
+  "team":"Oregon",
+  "points":865,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":15,
+  "team_id":30,
+  "team":"USC",
+  "points":699,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":16,
+  "team_id":12,
+  "team":"Arizona",
+  "points":665,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":17,
+  "team_id":248,
+  "team":"Houston",
+  "points":570,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":18,
+  "team_id":97,
+  "team":"Louisville",
+  "points":565,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":19,
+  "team_id":201,
+  "team":"Oklahoma",
+  "points":341,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":20,
+  "team_id":57,
+  "team":"Florida",
+  "points":310,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":21,
+  "team_id":2335,
+  "team":"Liberty",
+  "points":294,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":22,
+  "team_id":68,
+  "team":"Boise State",
+  "points":207,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":23,
+  "team_id":145,
+  "team":"Ole Miss",
+  "points":200,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":24,
+  "team_id":142,
+  "team":"Missouri",
+  "points":125,
+  "first_place_votes":0
+ },
+ {
+  "poll_week":13,
+  "label":"Week 13",
+  "rank":25,
+  "team_id":194,
+  "team":"Ohio State",
+  "points":112,
+  "first_place_votes":0
+ }
+]

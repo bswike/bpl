@@ -1,0 +1,79 @@
+{
+  "_comment": "Hand-entered reference values that are not in the raw data feeds. Update these when a new poll or ranking is released.",
+  "ap_preseason": {
+    "released": "2026-08-17",
+    "rank_fixes": {
+      "30": 15
+    },
+    "rank_fixes_note": "The game feed shows BYU and USC both at 14 in the preseason poll; published order was BYU 14, USC 15."
+  },
+  "ap_latest": {
+    "week": 13,
+    "released": "2026-11-22",
+    "top25": [
+      "Georgia",
+      "Utah",
+      "Notre Dame",
+      "Miami",
+      "Texas",
+      "Alabama",
+      "Tennessee",
+      "Wake Forest",
+      "Texas Tech",
+      "UCLA",
+      "BYU",
+      "Indiana",
+      "Iowa",
+      "Oregon",
+      "USC",
+      "Arizona",
+      "Houston",
+      "Louisville",
+      "Oklahoma",
+      "Florida",
+      "Liberty",
+      "Boise State",
+      "Ole Miss",
+      "Missouri",
+      "Ohio State"
+    ]
+  },
+  "cfp_latest": {
+    "week": 12,
+    "released": "2026-11-17",
+    "next_release": "2026-11-24",
+    "games_through_cutoff_utc": "2026-11-16T12:00Z",
+    "top25": [
+      "Georgia",
+      "Utah",
+      "Alabama",
+      "UCLA",
+      "Texas",
+      "Notre Dame",
+      "Miami",
+      "Indiana",
+      "Tennessee",
+      "BYU",
+      "Wake Forest",
+      "Texas Tech",
+      "Oregon",
+      "Ohio State",
+      "Iowa",
+      "Kentucky",
+      "Boise State",
+      "USC",
+      "Arizona",
+      "Houston",
+      "South Carolina",
+      "Oklahoma",
+      "Louisville",
+      "Florida",
+      "Ole Miss"
+    ]
+  },
+  "talent": {
+    "name": "247Sports 2026 Team Talent Composite (Composite version)",
+    "url": "https://247sports.com/season/2026-football/collegeteamtalentcomposite/",
+    "last_updated": "2026-08-28"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "season": 2026,
+  "built_at_utc": "2026-11-23T01:08Z",
+  "games_through": "2026-11-21",
+  "completed_games": 822,
+  "fbs_teams": 138,
+  "ap_poll": {
+    "latest_week": 13,
+    "released": "2026-11-22",
+    "polls_this_season": 13,
+    "teams_ranked_this_season": 41,
+    "preseason_released": "2026-08-17"
+  },
+  "cfp": {
+    "latest_week": 12,
+    "released": "2026-11-17",
+    "next_release": "2026-11-24",
+    "note": "CFP ranks predate any games played after the release date."
+  },
+  "talent": {
+    "name": "247Sports 2026 Team Talent Composite (Composite version)",
+    "url": "https://247sports.com/season/2026-football/collegeteamtalentcomposite/",
+    "last_updated": "2026-08-28",
+    "tiers": {
+      "1": "1-25",
+      "2": "26-50",
+      "3": "51+"
+    }
+  },
+  "top50": {
+    "basis_counts": {
+      "AP Top 25": 25,
+      "Projected": 13,
+      "AP receiving votes": 12
+    },
+    "note": "Projected rows are this project's estimate, not a published ranking."
+  },
+  "model": {
+    "blend": {
+      "colley": 0.7,
+      "srs": 0.3
+    },
+    "margin_cap": 24,
+    "fitted_home_edge_points": 2.51,
+    "calibration_vs_cfp_committee": {
+      "committee_week": 12,
+      "games_before_utc": "2026-11-16T12:00Z",
+      "committee_teams_in_model_top25": 24,
+      "committee_teams_missed": [
+        "South Carolina"
+      ],
+      "model_teams_not_ranked": [
+        "LSU"
+      ]
+    }
+  },
+  "game_control": {
+    "games": 822,
+    "games_with_untimed_points": 17,
+    "untimed_points": 82,
+    "overtime_games": 33,
+    "garbage_time": "lead of 38+ in the 2nd quarter, 28+ in the 3rd, 22+ in the 4th",
+    "scope": "regulation time only; overtime counts toward margins but not time shares"
+  },
+  "sources": {
+    "games_and_polls": "ESPN data via https://github.com/sportsdataverse/cfbfastR-cfb-raw and https://github.com/sportsdataverse/cfbfastR-cfb-data",
+    "play_by_play": "ESPN play-by-play via https://github.com/sportsdataverse/cfbfastR-cfb-data",
+    "talent": "https://247sports.com/season/2026-football/collegeteamtalentcomposite/",
+    "ap_receiving_votes": "hand-entered from published AP results (data/manual/ap_receiving_votes.csv)"
+  }
+}

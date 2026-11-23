@@ -1,0 +1,76 @@
+cfp_week,rank,team_id,team
+10,1,2390,Miami
+10,2,61,Georgia
+10,3,254,Utah
+10,4,84,Indiana
+10,5,333,Alabama
+10,6,96,Kentucky
+10,7,251,Texas
+10,8,26,UCLA
+10,9,252,BYU
+10,10,145,Ole Miss
+10,11,87,Notre Dame
+10,12,194,Ohio State
+10,13,2633,Tennessee
+10,14,99,LSU
+10,15,2641,Texas Tech
+10,16,154,Wake Forest
+10,17,248,Houston
+10,18,142,Missouri
+10,19,2294,Iowa
+10,20,30,USC
+10,21,2579,South Carolina
+10,22,12,Arizona
+10,23,2483,Oregon
+10,24,57,Florida
+10,25,68,Boise State
+11,1,61,Georgia
+11,2,254,Utah
+11,3,333,Alabama
+11,4,26,UCLA
+11,5,87,Notre Dame
+11,6,251,Texas
+11,7,2390,Miami
+11,8,2633,Tennessee
+11,9,84,Indiana
+11,10,252,BYU
+11,11,96,Kentucky
+11,12,2641,Texas Tech
+11,13,154,Wake Forest
+11,14,248,Houston
+11,15,2294,Iowa
+11,16,2483,Oregon
+11,17,2579,South Carolina
+11,18,30,USC
+11,19,145,Ole Miss
+11,20,194,Ohio State
+11,21,99,LSU
+11,22,142,Missouri
+11,23,12,Arizona
+11,24,68,Boise State
+11,25,197,Oklahoma State
+12,1,61,Georgia
+12,2,254,Utah
+12,3,333,Alabama
+12,4,26,UCLA
+12,5,251,Texas
+12,6,87,Notre Dame
+12,7,2390,Miami
+12,8,84,Indiana
+12,9,2633,Tennessee
+12,10,252,BYU
+12,11,154,Wake Forest
+12,12,2641,Texas Tech
+12,13,2483,Oregon
+12,14,194,Ohio State
+12,15,2294,Iowa
+12,16,96,Kentucky
+12,17,68,Boise State
+12,18,30,USC
+12,19,12,Arizona
+12,20,248,Houston
+12,21,2579,South Carolina
+12,22,201,Oklahoma
+12,23,97,Louisville
+12,24,57,Florida
+12,25,145,Ole Miss

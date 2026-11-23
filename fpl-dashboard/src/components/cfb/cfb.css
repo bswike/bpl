@@ -1,0 +1,79 @@
+/* Plain, dense, table-first styling for /cfb. Everything is scoped under .cfb. */
+
+.cfb {
+  background: #fff;
+  color: #000;
+  font: 13px/1.4 Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  padding: 8px 10px 32px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+.cfb a { color: #0645ad; text-decoration: none; }
+.cfb a:hover { text-decoration: underline; }
+.cfb h1 { font-size: 20px; font-weight: bold; margin: 0 0 2px; }
+.cfb h1 a { color: #000; }
+.cfb h2 { font-size: 16px; font-weight: bold; margin: 10px 0 4px; }
+.cfb h3 { font-size: 14px; font-weight: bold; margin: 14px 0 4px; }
+.cfb p { margin: 4px 0; }
+.cfb .links { margin: 2px 0; }
+.cfb .links a.on, .cfb nav a.on { font-weight: bold; color: #000; }
+.cfb .asof { color: #555; font-size: 12px; margin: 2px 0 6px; }
+.cfb .note { color: #444; font-size: 12px; max-width: 70em; }
+.cfb .muted { color: #777; }
+.cfb .err { color: #b00; }
+.cfb footer { color: #777; font-size: 11px; margin-top: 18px; border-top: 1px solid #ddd; padding-top: 6px; }
+.cfb header { border-bottom: 1px solid #ccc; padding-bottom: 2px; }
+
+/* ---- tables ---- */
+.cfb .cfb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 6px 0; max-width: 100%; }
+.cfb-t { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.cfb-t th {
+  background: #d8dee6;
+  border: 1px solid #b8c0ca;
+  padding: 2px 5px;
+  font-weight: bold;
+  text-align: right;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: bottom;
+}
+.cfb-t th.on { background: #c3ccd7; }
+.cfb-t tr.grp th { cursor: default; font-weight: normal; font-size: 11px; text-align: center; white-space: nowrap; line-height: 1.15; }
+.cfb-t tr.grp th > div { white-space: pre; }
+.cfb-t tr.grp th.blank { background: #fff; border: none; }
+.cfb-t td { padding: 1px 5px; text-align: right; border-bottom: 1px solid #e4e4e4; background: #fff; }
+.cfb-t tbody tr:nth-child(even) td { background: #f4f4f4; }
+.cfb-t tbody tr.projrow td { background: #fdf6d8; }
+.cfb-t tbody tr:hover td { background: #e6eefb; }
+.cfb-t .l { text-align: left; }
+.cfb-t .st { position: sticky; z-index: 1; }
+.cfb-t th.st { z-index: 2; }
+.cfb-t td.st:first-child, .cfb-t th.st:first-child { min-width: 2.6em; max-width: 2.6em; width: 2.6em; box-sizing: border-box; }
+.cfb-t td.st:nth-child(2) { box-shadow: 1px 0 0 #ccc; }
+.cfb-t .rk { color: #888; font-size: 10px; margin-left: 3px; display: inline-block; min-width: 1.8em; text-align: left; }
+.cfb-t td.win { color: #060; }
+.cfb-t td.loss { color: #a00; }
+.cfb .proj { font-style: italic; color: #7a5b00; }
+.cfb .projrow .proj { font-weight: bold; }
+.cfb .note .proj { background: #fdf6d8; padding: 0 2px; }
+.cfb .dag { color: #a00; margin-left: 2px; }
+
+/* key/value block on team pages */
+.cfb table.kv { border-collapse: collapse; font-size: 12px; }
+.cfb table.kv th { text-align: left; padding: 1px 10px 1px 0; color: #444; vertical-align: top; white-space: nowrap; }
+.cfb table.kv td { padding: 1px 0; }
+
+/* about page */
+.cfb .prose { max-width: 48em; }
+.cfb .prose ul { padding-left: 1.3em; list-style: disc; }
+.cfb .prose li { margin: 2px 0; }
+.cfb .prose dt { font-weight: bold; margin-top: 8px; }
+.cfb .prose dd { margin: 1px 0 0 1.3em; }
+
+@media (max-width: 600px) {
+  .cfb { padding: 6px 4px 24px; }
+  .cfb h1 { font-size: 17px; }
+  .cfb-t { font-size: 11px; }
+  .cfb-t td, .cfb-t th { padding: 1px 3px; }
+}
