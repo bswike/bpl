@@ -45,6 +45,8 @@
 .cfb-t td { padding: 1px 5px; text-align: right; border-bottom: 1px solid #e4e4e4; background: #fff; }
 .cfb-t tbody tr:nth-child(even) td { background: #f4f4f4; }
 .cfb-t tbody tr.projrow td { background: #fdf6d8; }
+.cfb-t tbody tr.postrow td { background: #eef3e6; }
+.cfb-t tbody tr.onrow td { background: #e3e9f2; }
 .cfb-t tbody tr:hover td { background: #e6eefb; }
 .cfb-t .l { text-align: left; }
 .cfb-t .st { position: sticky; z-index: 1; }

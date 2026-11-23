@@ -30,6 +30,9 @@ they reacted, then `docs/methodology.md` for how each number is defined and what
 - `pipeline/`: `build.py` regenerates every table; `ratings.py` and `game_control.py` hold the two models;
   `schema.py` holds column descriptions.
 - `docs/metric-ideas.md`: other metrics discussed but not built.
+- `data/history/`: past seasons 2020-2025 (`team_seasons`, `games`, `meta.json`) built by `pipeline/history.py`
+  for the team pages. Raw feeds go to `data/raw/history/` (git-ignored, ~330 MB); per-game game control is cached in
+  `data/derived/history/`. `data/manual/talent_247_history.txt` holds 247's composite order for each past season.
 
 ## Commands
 
@@ -37,6 +40,8 @@ they reacted, then `docs/methodology.md` for how each number is defined and what
 pip install -r pipeline/requirements.txt
 python pipeline/build.py        # rebuild tables from data/raw + data/manual
 bash pipeline/fetch_raw.sh      # refresh feeds (needs git; play-by-play is about 55 MB), then rebuild
+bash pipeline/fetch_history.sh  # past-season feeds (once); python pipeline/history.py rebuilds data/history
+node ../fpl-dashboard/scripts/cfb-export.mjs   # copy everything into the site (public/data/cfb)
 ```
 
 The build runs without the play-by-play file by using the cache in `data/derived/`. It stops with a clear
@@ -75,6 +80,15 @@ error if a computed record disagrees with the standings feed, and warns when a h
 2. Update `data/manual/`: `ap_receiving_votes.csv` (teams outside the Top 25 with votes are not in any
    feed) and the reference lists and dates in `published.json`.
 3. `python pipeline/build.py` and read its warnings.
+
+## Past seasons
+
+- Postseason games count in past seasons (not in the current one until it ends). "AP-ranked at least once" spans
+  all of that season's AP polls including the final one.
+- The `cfb_team_talent` table in cfbfastR-cfb-data is **not** the 247 composite (it puts UCLA 61st in 2026 where 247
+  has 25th). Past talent ranks come from 247's own pages, read in a browser: 247 blocks scripted requests with a
+  JavaScript challenge, so curl gets nothing.
+- The raw 2022 schedule lacks weeks 3 and 12; `history.py` fills missing games from `cfb_schedules` plus `linescores`.
 
 ## Before publishing
 

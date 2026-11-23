@@ -110,3 +110,26 @@ that sits exactly on a rounding boundary can differ by one unit in the last plac
 - The CFP ranking (Nov 17) is older than the records and the AP poll (through Nov 21 and Nov 22). UCLA, for
   example, was 10-0 when the committee ranked it fourth and is 10-1 in the data.
 - The next CFP ranking is due Nov 24. A new AP poll follows each weekend.
+
+## Past seasons (2020-2025)
+
+Built by `pipeline/history.py` for the team pages, with the 2026 definitions and these changes:
+
+- **Games:** regular season and postseason (bowls, playoff). All-star and exhibition games are left out. FBS teams
+  are the teams ESPN flags as FBS that belong to an FBS conference that season (this drops all-star squads that the
+  flag also catches); for 2024 that set matches ESPN's standings exactly.
+- **Missing games:** the raw 2022 schedule has no week 3 or week 12 games (137 games). They are filled from
+  `cfb_schedules` (same ESPN game ids) with quarter scores from `linescores`; all 137 have quarter scores that add up.
+  Where both sources have a game they agree on every score but one.
+- **Checks:** every FBS team's record in every season equals the record computed from `cfb_schedules`; 2024 records
+  equal ESPN's standings feed for all 134 teams. Spot checks: Alabama 2020 13-0, Georgia 2022 15-0, Michigan 2023
+  15-0, Ohio State 2024 14-2, Indiana 2025 16-0.
+- **AP:** "ranked at least once" spans the preseason poll through the final post-bowl poll. The 2025 feed lacks the
+  preseason poll; it is recovered from week-1 game ranks, as for 2026.
+- **Talent:** 247Sports Team Talent Composite, read from 247's page for each season on 2026-11-22 and re-ranked among
+  that season's FBS teams (2020-2023 pages include FCS schools). The pages' "last updated" dates vary (2020: Nov 9,
+  2021: Oct 4, 2022: Dec 4, 2023: Sep 18, 2024: Aug 27, 2025: Aug 27). Teams 247 does not list (Air Force, Army and
+  Navy in some years) have no rank and count as 51+.
+- **Game control:** same method. Games without play-by-play (at most about 4% of team-games, 2021) are left out of
+  the time shares; `control_games` says how many games a team's numbers use. One 2024 game with quarter scores that
+  do not add up is skipped.

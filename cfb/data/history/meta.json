@@ -1,0 +1,145 @@
+{
+  "built_at_utc": "2026-11-23T02:02Z",
+  "seasons": {
+    "2020": {
+      "season": 2020,
+      "fbs_teams": 130,
+      "talent_last_updated": "2020-11-09",
+      "talent_unranked_fbs": [],
+      "completed_games": 568,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 51,
+      "game_control": {
+        "games": 563,
+        "games_with_untimed_points": 2,
+        "untimed_points": 21,
+        "overtime_games": 21,
+        "skipped_games": [],
+        "games_without_control": 5
+      },
+      "fbs_teams_without_games": [
+        "New Mexico State",
+        "Old Dominion",
+        "UConn"
+      ]
+    },
+    "2021": {
+      "season": 2021,
+      "fbs_teams": 130,
+      "talent_last_updated": "2021-10-04",
+      "talent_unranked_fbs": [],
+      "completed_games": 887,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 47,
+      "game_control": {
+        "games": 839,
+        "games_with_untimed_points": 43,
+        "untimed_points": 547,
+        "overtime_games": 30,
+        "skipped_games": [],
+        "games_without_control": 48
+      }
+    },
+    "2022": {
+      "season": 2022,
+      "games_filled_from_second_source": 137,
+      "fbs_teams": 131,
+      "talent_last_updated": "2022-12-04",
+      "talent_unranked_fbs": [
+        "Air Force",
+        "Navy"
+      ],
+      "completed_games": 896,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 51,
+      "game_control": {
+        "games": 857,
+        "games_with_untimed_points": 51,
+        "untimed_points": 798,
+        "overtime_games": 39,
+        "skipped_games": [],
+        "games_without_control": 39
+      }
+    },
+    "2023": {
+      "season": 2023,
+      "fbs_teams": 133,
+      "talent_last_updated": "2023-09-18",
+      "talent_unranked_fbs": [
+        "Air Force",
+        "Army",
+        "Navy"
+      ],
+      "completed_games": 910,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 44,
+      "game_control": {
+        "games": 902,
+        "games_with_untimed_points": 13,
+        "untimed_points": 190,
+        "overtime_games": 35,
+        "skipped_games": [],
+        "games_without_control": 8
+      }
+    },
+    "2024": {
+      "season": 2024,
+      "fbs_teams": 134,
+      "talent_last_updated": "2024-08-27",
+      "talent_unranked_fbs": [
+        "Air Force",
+        "Army",
+        "Navy"
+      ],
+      "completed_games": 919,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 17,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 48,
+      "game_control": {
+        "games": 900,
+        "games_with_untimed_points": 12,
+        "untimed_points": 67,
+        "overtime_games": 38,
+        "skipped_games": [
+          401628324
+        ],
+        "games_without_control": 19
+      }
+    },
+    "2025": {
+      "season": 2025,
+      "fbs_teams": 136,
+      "talent_last_updated": "2025-08-27",
+      "talent_unranked_fbs": [
+        "Air Force",
+        "Navy"
+      ],
+      "completed_games": 934,
+      "ap_preseason_source": "week-1 game ranks",
+      "ap_polls": 17,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 49,
+      "game_control": {
+        "games": 932,
+        "games_with_untimed_points": 11,
+        "untimed_points": 64,
+        "overtime_games": 44,
+        "skipped_games": [],
+        "games_without_control": 2
+      }
+    }
+  },
+  "sources": {
+    "games_polls_pbp": "ESPN data via https://github.com/sportsdataverse/cfbfastR-cfb-raw and https://github.com/sportsdataverse/cfbfastR-cfb-data",
+    "talent": "247Sports Team Talent Composite, https://247sports.com/season/<year>-football/collegeteamtalentcomposite/ (data/manual/talent_247_history.txt)"
+  }
+}

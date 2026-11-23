@@ -2,14 +2,15 @@
 //
 //   node scripts/cfb-export.mjs
 //
-// Run after `python ../cfb/pipeline/build.py`. games.json is split into one file per team
-// so a team page only downloads its own game log.
+// Run after `python ../cfb/pipeline/build.py` (and `history.py` for past seasons). games.json and
+// the history tables are split into one file per team so a team page only downloads its own data.
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', '..', 'cfb', 'data', 'json');
+const HIST = join(here, '..', '..', 'cfb', 'data', 'history');
 const OUT = join(here, '..', 'public', 'data', 'cfb');
 
 const read = (name) => JSON.parse(readFileSync(join(SRC, `${name}.json`), 'utf8'));
@@ -17,6 +18,7 @@ const write = (path, data) => writeFileSync(join(OUT, path), JSON.stringify(data
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(join(OUT, 'games'), { recursive: true });
+mkdirSync(join(OUT, 'history'), { recursive: true });
 
 // Logos are school trademarks hosted by ESPN; the site does not show them, so leave them out.
 const teams = read('team_summary').map(({ logo, logo_dark, ...rest }) => rest);
@@ -36,4 +38,20 @@ for (const [id, games] of byTeam) {
   write(join('games', `${id}.json`), games);
 }
 
-console.log(`cfb-export: ${teams.length} teams, ${byTeam.size} game logs -> ${OUT}`);
+// ---- past seasons: history/<team_id>.json = { seasons: [...], games: [...] }, oldest season first
+const readHist = (name) => JSON.parse(readFileSync(join(HIST, name), 'utf8'));
+const hist = new Map();
+const slot = (id) => {
+  if (!hist.has(id)) hist.set(id, { seasons: [], games: [] });
+  return hist.get(id);
+};
+for (const r of readHist('team_seasons.json')) slot(r.team_id).seasons.push(r);
+for (const { team, team_id, ...g } of readHist('games.json')) slot(team_id).games.push(g);
+for (const [id, h] of hist) {
+  h.seasons.sort((a, b) => a.season - b.season);
+  h.games.sort((a, b) => a.season - b.season || a.date.localeCompare(b.date));
+  write(join('history', `${id}.json`), h);
+}
+write(join('history', 'meta.json'), readHist('meta.json'));
+
+console.log(`cfb-export: ${teams.length} teams, ${byTeam.size} game logs, ${hist.size} team histories -> ${OUT}`);

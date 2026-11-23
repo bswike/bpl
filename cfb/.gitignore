@@ -6,3 +6,6 @@ __pycache__/
 .venv/
 node_modules/
 .DS_Store
+
+# past-season feeds, re-downloaded by pipeline/fetch_history.sh
+data/raw/history/

@@ -51,6 +51,23 @@ export default function About() {
         <dd>Neutral-site games are their own split, so a team’s three rows add up to its season.</dd>
       </dl>
 
+      <h3>Past seasons (team pages)</h3>
+      <p>
+        Each team page has a season row and a season-by-season table for 2020-2025, built with the same definitions,
+        with three differences that suit a finished season:
+      </p>
+      <ul>
+        <li>Bowl and playoff games count. Records are full-season records, and the postseason record is shown separately.</li>
+        <li>“AP-ranked at least once” covers every AP poll of that season, preseason through the final post-bowl poll.</li>
+        <li>AP Final and CFP are the final AP poll and the final committee ranking. Talent is the 247Sports composite rank among that season’s FBS teams. 247 does not list some service academies in some years; they count as 51+.</li>
+      </ul>
+      <p>
+        ESPN’s 2022 schedule feed is missing weeks 3 and 12; those games come from a second ESPN-derived schedule in the
+        same data repositories. Every past record was checked against that second source, and the 2024 records against
+        ESPN’s standings. A few games (at most about 4% in a season) have no play-by-play, so game-control numbers for
+        those seasons use the games that do.
+      </p>
+
       <h3>How the score timeline was rebuilt</h3>
       <p>
         ESPN play feeds have plays out of order and scores that go backwards. Each game’s timeline is rebuilt quarter by quarter and anchored to the official

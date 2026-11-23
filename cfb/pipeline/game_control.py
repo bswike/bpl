@@ -74,16 +74,21 @@ def timeline(plays: pd.DataFrame, home_q, away_q):
     return segs, forced, official
 
 
-def build_game_control(pbp_path, completed_games: pd.DataFrame):
+def build_game_control(pbp_path, completed_games: pd.DataFrame, strict: bool = True):
     """Return (one row per team per game, notes dict).
 
     completed_games: schedule rows of completed games, with id, date, week, home_id, away_id,
     home_score, away_score, home_linescores, away_linescores.
+    strict: raise on a game whose quarter scores do not add up. When False, the game is left out
+    and listed in notes["skipped_games"] (used for past seasons, where a stray game should not
+    stop the whole build).
     """
     pbp = pd.read_parquet(pbp_path, columns=PBP_COLUMNS)
     done = completed_games.set_index("id")
     rows = []
     notes = {"games": 0, "games_with_untimed_points": 0, "untimed_points": 0, "overtime_games": 0}
+    if not strict:
+        notes["skipped_games"] = []
     for gid, plays in pbp.groupby("game_id", sort=False):
         if gid not in done.index:
             continue
@@ -92,7 +97,10 @@ def build_game_control(pbp_path, completed_games: pd.DataFrame):
         fh, fa = int(s.home_score), int(s.away_score)
         hq, aq = quarter_scores(str(s.home_linescores)), quarter_scores(str(s.away_linescores))
         if not (len(hq) >= 4 and len(aq) >= 4 and sum(hq) == fh and sum(aq) == fa):
-            raise ValueError(f"quarter scores do not add up to the final score for game {gid}")
+            if strict:
+                raise ValueError(f"quarter scores do not add up to the final score for game {gid}")
+            notes["skipped_games"].append(int(gid))
+            continue
         segs, forced, official = timeline(plays, hq, aq)
         notes["games"] += 1
         if forced:
