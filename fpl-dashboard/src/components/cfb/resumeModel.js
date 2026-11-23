@@ -1,18 +1,19 @@
 // Resume Builder scoring, shared by the page (Resume.jsx) and offline checks. No React here.
 
 // Every question is a 1-5 scale where 5 is the biggest effect. Answers are stored as indexes 0-4 (shown as 1-5) and the
-// URL keeps them as ?s=333333333333 so rankings can be shared. 3 is the default for every question; 1 and 5 are the
-// extremes the earlier three-option version offered, and 2 and 4 sit halfway between.
+// URL keeps them as ?s=333333333333 so rankings can be shared. 3 is the default for every question and 2 and 4 sit
+// halfway to the ends. Value ranges were tuned by running every 1/3/5 combination and a million random answer sets
+// (talent and schedule were scaled down so neither outweighs ranked wins).
 export const QUESTIONS = [
   { sec: 'Wins', key: 'winGood', q: 'How much extra credit for FBS wins over .500 teams?', lo: 'none', hi: 'big boost', vals: [0, 0.25, 0.5, 0.75, 1] },
   { sec: 'Wins', key: 'ranked', q: 'How much extra credit for wins over AP-ranked teams?', lo: 'none', hi: 'big boost', vals: [0, 0.375, 0.75, 1.125, 1.5] },
   { sec: 'Wins', key: 'faded', q: 'How much should a win over a team that’s no longer ranked still count as a ranked win?', lo: 'not at all', hi: 'fully', vals: [0, 0.25, 0.5, 0.75, 1] },
-  { sec: 'Wins', key: 'talent', q: 'How much extra credit for wins over teams with top-50 rosters (247 talent)?', lo: 'none', hi: 'big boost', vals: [0, 0.25, 0.5, 0.75, 1] },
+  { sec: 'Wins', key: 'talent', q: 'How much extra credit for wins over teams with top-50 rosters (247 talent)?', lo: 'none', hi: 'big boost', vals: [0, 0.15, 0.3, 0.45, 0.6] },
   { sec: 'Wins', key: 'road', q: 'How much extra credit for road wins?', lo: 'none', hi: 'a lot', vals: [0, 0.125, 0.25, 0.375, 0.5] },
   { sec: 'Wins', key: 'fcs', q: 'How much should a win over an FCS team count?', lo: 'not at all', hi: 'fully', vals: [0, 0.25, 0.5, 0.75, 1] },
   { sec: 'Losses', key: 'lossBad', q: 'How much more should a loss to a team with a losing record (or FCS) hurt?', lo: 'no more', hi: 'a lot more', vals: [0, 0.375, 0.75, 1.125, 1.5] },
   { sec: 'Losses', key: 'goodLoss', q: 'How much should a loss to a ranked team hurt?', lo: 'much less', hi: 'like any loss', vals: [0.4, 0.55, 0.7, 0.85, 1] },
-  { sec: 'Schedule', key: 'sos', q: 'How much credit for a tough schedule, win or lose?', lo: 'none', hi: 'a lot', vals: [0, 0.2, 0.4, 0.575, 0.75] },
+  { sec: 'Schedule', key: 'sos', q: 'How much credit for a tough schedule, win or lose?', lo: 'none', hi: 'a lot', vals: [0, 0.125, 0.25, 0.375, 0.5] },
   { sec: 'Full strength', key: 'qb', q: 'How much less should a win count if the opponent’s starting QB was out?', lo: 'the same', hi: 'much less', vals: [1, 0.9, 0.8, 0.65, 0.5] },
   { sec: 'Full strength', key: 'ownQb', q: 'How much less should a loss hurt if your own starting QB was out?', lo: 'the same', hi: 'much less', vals: [1, 0.8, 0.6, 0.425, 0.25] },
   { sec: 'Margin', key: 'margin', q: 'How much should margin of victory (or defeat) matter?', lo: 'only W/L', hi: 'a lot', vals: [0, 0.25, 0.5, 0.75, 1] },
@@ -57,8 +58,11 @@ export function gameValue(g, w, oppById) {
   const byRank = (r) => 0.5 + (26 - r) / 25;
   const rankedFactor = rankedNow ? byRank(opp.ap) : rankedThen ? byRank(apThen) * w.faded : 0;
   const m = Math.min(Math.abs(margin), 21) / 21;
-  // schedule credit for every game: from -1 (winless or FCS opponent) to +1 (unbeaten opponent)
-  const sched = w.sos * (fcs ? -1 : (opp.pct - 0.5) * 2);
+  // schedule credit for every game, from -1 to +1 by opponent strength. Strength is the opponent's SRS rating (margin,
+  // adjusted for who it played), so a good record in a weak conference does not pass for a strong opponent; +-12 points
+  // (about the top and bottom tenth of FBS) reaches the ends. FCS opponents are -1. Without SRS, win% stands in.
+  const strength = fcs ? -1 : opp.srs != null ? Math.max(-1, Math.min(1, opp.srs / 12)) : (opp.pct - 0.5) * 2;
+  const sched = w.sos * strength;
   if (result === 'W') {
     if (fcs) return Math.max(w.fcs + sched, WIN_FLOOR * w.fcs);
     // roster talent of the opponent: full credit for a top-25 roster, half for 26-50

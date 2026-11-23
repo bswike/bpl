@@ -34,7 +34,8 @@ export default function About() {
         <dt>Resume Builder</dt>
         <dd>
           Each game earns points: a win starts at +1, a loss at −1, and your answers add or take away from that. Ranked
-          wins count more the higher the opponent was ranked. A win is always worth at least +0.25 and a loss always costs
+          wins count more the higher the opponent was ranked. Schedule credit rates opponents by SRS (margin adjusted for
+          who they played), so a good record in a weak conference doesn’t pass for a strong opponent. A win is always worth at least +0.25 and a loss always costs
           at least 0.5, so no loss outscores a win. Scores are scaled to 11 games. “Starting QB” is the passer who led a
           team in attempts in most of its games.
         </dd>

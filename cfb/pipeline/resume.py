@@ -5,7 +5,7 @@
 
 Writes data/json/resume.json:
 
-    {season, ap_released, teams: [{id, team, conf, w, l, pct, ap, cfp, tal, games: [[opp_id, opp, result, margin, site,
+    {season, ap_released, teams: [{id, team, conf, w, l, pct, ap, cfp, tal, srs, games: [[opp_id, opp, result, margin, site,
      opp_ap_then, opp_qb_out, own_qb_out], ...]}]}
 
 opp_ap_then is the opponent's AP rank going into the game. opp_qb_out is 1 when the opponent's usual starting QB did
@@ -56,7 +56,7 @@ def main():
     for t in teams:
         out["teams"].append({
             "id": t["team_id"], "team": t["team"], "conf": t["conference"], "w": t["wins"], "l": t["losses"],
-            "pct": t["win_pct"], "ap": t["ap_rank"], "cfp": t["cfp_rank"], "tal": t["talent_rank"], "games": by_team.get(t["team_id"], []),
+            "pct": t["win_pct"], "ap": t["ap_rank"], "cfp": t["cfp_rank"], "tal": t["talent_rank"], "srs": t["srs"], "games": by_team.get(t["team_id"], []),
         })
     (ROOT / "data" / "json" / "resume.json").write_text(json.dumps(out, separators=(",", ":")))
     n_out = sum(g[6] for t in out["teams"] for g in t["games"])

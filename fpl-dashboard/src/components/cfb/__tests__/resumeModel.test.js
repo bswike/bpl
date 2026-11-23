@@ -29,6 +29,12 @@ describe('resume model', () => {
     }
   });
 
+  it('gives schedule credit by opponent strength (SRS), not record', () => {
+    const w = weightsFor(QUESTIONS.map((_, i) => (QUESTIONS[i].key === 'sos' ? SCALE - 1 : DEFAULT[i])));
+    const vs = (srs) => gameValue([9, 'X', 'W', 7, 'H', null, 0, 0], w, new Map([[9, { pct: 0.7, ap: null, tal: 90, srs }]]));
+    expect(vs(10)).toBeGreaterThan(vs(-10)); // same .700 record, stronger opponent counts more
+  });
+
   it('counts a win over a higher-ranked team for more', () => {
     const w = weightsFor(DEFAULT);
     const beat = (rank) => gameValue([9, 'X', 'W', 7, 'H', rank, 0, 0], w, new Map([[9, { pct: 0.8, ap: rank, tal: 60 }]]));
@@ -43,9 +49,9 @@ describe('resume model', () => {
     expect(parseAnswers(answersToParam(DEFAULT))).toEqual(DEFAULT);
   });
 
-  it('keeps 3 equal to the earlier middle option and converts old three-option links', () => {
+  it('has the expected default weights and converts old three-option links', () => {
     const w = weightsFor(DEFAULT);
-    expect(w).toMatchObject({ winGood: 0.5, ranked: 0.75, faded: 0.5, talent: 0.5, road: 0.25, fcs: 0.5, lossBad: 0.75, goodLoss: 0.7, sos: 0.4, qb: 0.8, ownQb: 0.6, margin: 0.5 });
+    expect(w).toMatchObject({ winGood: 0.5, ranked: 0.75, faded: 0.5, talent: 0.3, road: 0.25, fcs: 0.5, lossBad: 0.75, goodLoss: 0.7, sos: 0.25, qb: 0.8, ownQb: 0.6, margin: 0.5 });
     expect(migrateOldAnswers('111111111111')).toEqual(DEFAULT);
     // every old third option maps to 5, except the three questions whose old options ran biggest-effect-first
     // (faded: "not a ranked win", fcs: "don't count", goodLoss: "hurt much less"), which map to 1
