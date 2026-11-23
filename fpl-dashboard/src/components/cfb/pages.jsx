@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import SortTable from './SortTable';
-import { filterTeams, num, signed, useCfb } from './data';
+import { CONFS, CURRENT_SEASON, FIRST_SEASON, filterTeams, num, signed, useCfb } from './data';
 import {
-  colAvgLead, colConf, colLead, colNg, colRecord, colT50, colTeam, colTied, colTrail, teamStatCols,
+  colAvgLead, colConf, colLead, colNg, colRecord, colT50, colTeam, colTied, colTrail, pastSeasonCols, teamStatCols,
 } from './columns';
 import { ConfFilter, ProjectedNote, Status } from './ui';
 
@@ -15,7 +15,39 @@ const defaultOrder = (r) => r.top50_rank ?? 100 + r.model_rank;
 
 // ---- Ratings (landing page) --------------------------------------------------
 
+const SEASONS = Array.from({ length: CURRENT_SEASON - FIRST_SEASON + 1 }, (_, i) => CURRENT_SEASON - i);
+
+/** "Season: 2026 | 2025 | ... | 2004"; switching season keeps the power-conference filter but drops a conference. */
+function SeasonLinks({ season }) {
+  const [params] = useSearchParams();
+  const href = (y) => {
+    const p = new URLSearchParams();
+    if (params.get('set')) p.set('set', params.get('set'));
+    if (y !== CURRENT_SEASON) p.set('season', y);
+    const q = p.toString();
+    return q ? `/cfb?${q}` : '/cfb';
+  };
+  return (
+    <p className="links">
+      Season:{' '}
+      {SEASONS.map((y, i) => (
+        <span key={y}>
+          {i > 0 && ' | '}
+          {y === season ? <b>{y}</b> : <Link to={href(y)}>{y}</Link>}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 export function Ratings() {
+  const [params] = useSearchParams();
+  const want = Number(params.get('season'));
+  const season = SEASONS.includes(want) ? want : CURRENT_SEASON;
+  return season === CURRENT_SEASON ? <CurrentRatings /> : <PastRatings key={season} season={season} />;
+}
+
+function CurrentRatings() {
   const { data, error } = useCfb('teams', 'meta');
   const [params] = useSearchParams();
 
@@ -28,10 +60,32 @@ export function Ratings() {
   const rows = filterTeams(data.teams, params);
   return (
     <>
-      <h2>2026 Team Ratings</h2>
+      <h2>{CURRENT_SEASON} Team Ratings</h2>
+      <SeasonLinks season={CURRENT_SEASON} />
       <ConfFilter />
       <ProjectedNote />
       <SortTable key={params.toString()} columns={columns} rows={rows} rankRows={data.teams} defaultSort={{ key: 't50', dir: 'asc' }} rowClass={projRow} />
+    </>
+  );
+}
+
+function PastRatings({ season }) {
+  const key = `history/season_${season}`;
+  const { data, error } = useCfb(key);
+  const [params] = useSearchParams();
+  const columns = useMemo(() => pastSeasonCols(season), [season]);
+  if (!data) return <Status error={error} />;
+  const all = data[key];
+  const present = new Set(all.map((r) => r.conference));
+  const confs = [...CONFS.filter((c) => present.has(c)), ...[...present].filter((c) => !CONFS.includes(c)).sort()];
+  const rows = filterTeams(all, params);
+  return (
+    <>
+      <h2>{season} Team Ratings</h2>
+      <SeasonLinks season={season} />
+      <ConfFilter confs={confs} />
+      <p className="note">Full season, bowls and playoff included. AP = final poll.</p>
+      <SortTable key={params.toString()} columns={columns} rows={rows} rankRows={all} defaultSort={{ key: 'apf', dir: 'asc' }} />
     </>
   );
 }

@@ -23,7 +23,7 @@ export const ProjectedNote = () => (
 );
 
 /** "All FBS | Power conf + ND | ACC | ..." as plain links that keep the current page. */
-export function ConfFilter() {
+export function ConfFilter({ confs = CONFS }) {
   const [params] = useSearchParams();
   const { pathname } = useLocation();
   const conf = params.get('conf');
@@ -38,8 +38,8 @@ export function ConfFilter() {
   };
   const items = [
     { label: 'All FBS', to: href({}), on: !conf && !set },
-    { label: 'Power conf. + ND', to: href({ set: 'power' }), on: set === 'power' && !conf, title: 'ACC, Big 12, Big Ten, SEC, Notre Dame and the eight-team 2026 Pac-12 (76 teams)' },
-    ...CONFS.map((c) => ({ label: c, to: href({ conf: c }), on: conf === c })),
+    { label: 'Power conf. + ND', to: href({ set: 'power' }), on: set === 'power' && !conf, title: 'Power conferences of that season plus Notre Dame' },
+    ...confs.map((c) => ({ label: c, to: href({ conf: c }), on: conf === c })),
   ];
   return (
     <p className="links">

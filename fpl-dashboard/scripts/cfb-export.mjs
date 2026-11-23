@@ -55,6 +55,13 @@ for (const [id, h] of hist) {
   write(join('history', `${id}.json`), h);
 }
 write(join('history', 'meta.json'), readHist('meta.json'));
+// one file per past season with every FBS team's row (no per-site detail), for the Ratings page season picker
+const bySeason = new Map();
+for (const { sites, ...r } of readHist('team_seasons.json')) {
+  if (!bySeason.has(r.season)) bySeason.set(r.season, []);
+  bySeason.get(r.season).push(r);
+}
+for (const [season, rows] of bySeason) write(join('history', `season_${season}.json`), rows);
 
 // ---- box scores: one file per game, built by cfb/pipeline/boxscores.py
 let boxes = 0;

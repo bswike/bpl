@@ -1,4 +1,5 @@
-import { fmtDate, num, pct, rec, recKey, signed } from './data';
+import { Link } from 'react-router-dom';
+import { fmtDate, num, pct, rec, recKey, signed, teamHref } from './data';
 import { T50, TeamLink } from './ui';
 
 // Column definitions shared by the table pages. `basis` lookups come from teams.json (top50_basis).
@@ -90,3 +91,36 @@ export const teamStatCols = (meta) => [
   colAvgLead,
   colNg,
 ];
+
+/**
+ * Columns for a past season's table (history team_seasons rows). AP = final (post-bowl) poll; CFP only from 2014 and
+ * 247 talent only from 2015, when those exist. "Currently ranked" means ranked in that season's last poll.
+ */
+export const pastSeasonCols = (season) => {
+  const talent = season >= 2015;
+  const rankings = { group: 'Rankings' };
+  return [
+    { key: 'apf', label: 'AP', title: 'Final AP poll rank (after the bowls)', sticky: '0',
+      value: (r) => r.ap_final_rank ?? 100 + (1 - r.wins / Math.max(r.wins + r.losses, 1)) * 50, render: (r) => num(r.ap_final_rank) },
+    { ...colTeam, render: (r) => <Link to={teamHref(r.team_id, season)}>{r.team}</Link> },
+    colConf(),
+    colRecord('wl', 'W-L', 'wins', 'losses', { title: 'Full-season record, bowls and playoff included' }),
+    colRecord('post', 'Post', 'post_w', 'post_l', { title: 'Bowl and playoff record' }),
+    colRankNum('pre', 'AP Pre', 'ap_pre_rank', 'Preseason AP rank', rankings),
+    ...(season >= 2014 ? [colRankNum('cfp', 'CFP', 'cfp_final_rank', 'Final CFP committee rank', rankings)] : []),
+    ...(talent ? [colRankNum('tal', 'Talent', 'talent_rank', '247Sports Team Talent Composite rank among FBS teams that season', rankings)] : []),
+    ...splitCols(null)
+      .filter((c) => talent || !['t1', 't2', 't3', 't4'].includes(c.key))
+      .map((c) => ({
+        cur: { ...c, title: 'Record against opponents ranked in that season’s final AP poll' },
+        apY: { ...c, title: 'Record against opponents that appeared in any AP Top 25 that season (preseason through final)' },
+        apN: { ...c, title: 'Record against opponents never in an AP Top 25 that season, FCS included' },
+      }[c.key] ?? c)),
+    colRecord('home', 'Home', 'home_w', 'home_l', { group: 'Site' }),
+    colRecord('away', 'Away', 'away_w', 'away_l', { group: 'Site' }),
+    colRecord('neut', 'Neut', 'neutral_w', 'neutral_l', { group: 'Site' }),
+    colLead,
+    colAvgLead,
+    colNg,
+  ];
+};
