@@ -30,7 +30,7 @@ export function Ratings() {
       colRankNum('cfp', 'CFP', 'cfp_rank', `CFP committee rank of ${meta?.cfp.released} (before later games)`, { group: 'Rankings' }),
       colRankNum('tal', 'Talent', 'talent_rank', '247Sports 2026 Team Talent Composite rank (preseason roster talent)', { group: 'Rankings' }),
       colRankNum('model', 'Model*', 'model_rank', "This site's model rank among 138 FBS teams. An estimate, not an official ranking.", { group: 'Rankings' }),
-      ...splitCols,
+      ...splitCols(meta?.latest_poll),
       colRecord('home', 'Home', 'home_w', 'home_l', { group: 'Site' }),
       colRecord('away', 'Away', 'away_w', 'away_l', { group: 'Site' }),
       colRecord('neut', 'Neut', 'neutral_w', 'neutral_l', { group: 'Site' }),
@@ -98,7 +98,7 @@ export function Control() {
 const SITES = ['Home', 'Away', 'Neutral'];
 
 export function Splits() {
-  const { data, error } = useCfb('teams', 'home_away_splits');
+  const { data, error } = useCfb('teams', 'home_away_splits', 'meta');
   const [params] = useSearchParams();
   const site = SITES.includes(params.get('site')) ? params.get('site') : 'Home';
   const teamsById = useMemo(() => new Map((data?.teams || []).map((t) => [t.team_id, t])), [data]);
@@ -111,7 +111,7 @@ export function Splits() {
     colConf(),
     { key: 'g', label: 'G', desc: true, value: (r) => r.games },
     colRecord('wl', 'W-L', 'wins', 'losses'),
-    ...splitCols,
+    ...splitCols(data.meta.latest_poll),
     colLead,
     colTrail,
     colAvgLead,

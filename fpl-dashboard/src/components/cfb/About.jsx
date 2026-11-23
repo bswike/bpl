@@ -25,6 +25,12 @@ export default function About() {
           The opponent appeared in any 2026 AP Top 25, from the preseason poll through the latest one ({m.ap_poll.teams_ranked_this_season} teams). It counts
           for every game against that team, whatever its rank on game day. This is not “ranked at kickoff”. FCS opponents count as never ranked.
         </dd>
+        <dt>Opponent ranked in the latest poll</dt>
+        <dd>
+          The opponent is ranked in the most recent poll: the AP poll or the CFP committee ranking, whichever was released
+          last (now the {m.latest_poll.poll === 'CFP' ? 'CFP ranking' : 'AP poll'} of {fmtDate(m.latest_poll.released, true)}). It counts for every game
+          against that team, whatever its rank on game day. For past seasons the last poll is the final, post-bowl AP poll.
+        </dd>
         <dt>Talent tiers</dt>
         <dd>The opponent’s rank in the 247Sports Composite: 1-25, 26-50, 51+. FCS opponents are in 51+.</dd>
         <dt>Rk (top 50)</dt>
@@ -58,7 +64,7 @@ export default function About() {
       </p>
       <ul>
         <li>Bowl and playoff games count. Records are full-season records, and the postseason record is shown separately.</li>
-        <li>“AP-ranked at least once” covers every AP poll of that season, preseason through the final post-bowl poll.</li>
+        <li>“AP-ranked at least once” covers every AP poll of that season, preseason through the final post-bowl poll. “Ranked in the latest poll” uses that final post-bowl AP poll, the season’s last poll.</li>
         <li>AP Final and CFP are the final AP poll and the final committee ranking. Talent is the 247Sports composite rank among that season’s FBS teams. 247 does not list some service academies in some years; they count as 51+.</li>
       </ul>
       <p>

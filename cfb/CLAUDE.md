@@ -52,6 +52,9 @@ error if a computed record disagrees with the standings feed, and warns when a h
 - **AP ranked / unranked**: an opponent counts as ranked if it appeared in *any* 2026 AP Top 25, preseason
   through the latest poll, no matter where it stood on game day. This is not "ranked at kickoff". FCS
   opponents count as unranked.
+- **Ranked in the latest poll** (`vs_cur_ranked_*`, `opp_cur_rank`): opponent ranked in the most recent poll, AP or
+  CFP, whichever was released last (by the release dates in `published.json`; `meta.json` `latest_poll` says which).
+  Past seasons use the final post-bowl AP poll. Like the AP split, it applies to every game against that opponent.
 - **Talent tiers**: opponent's 247Sports talent rank, 1-25, 26-50, 51+. FCS opponents fall in 51+.
   `talent_tier` is stored as 1, 2, 3.
 - **Top 50**: ranks 1-25 are the AP Top 25; the next ranks are the other teams receiving AP votes, by

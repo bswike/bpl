@@ -7,6 +7,7 @@
 Applies the 2026 definitions to each completed season, with two differences that suit a finished season:
 - Postseason games (bowls and playoff) count. Records are full-season records; post_w/post_l split them out.
 - "AP-ranked at least once" spans every AP poll of that season, preseason through the final (post-bowl) poll.
+- "Currently ranked" means ranked in the season's last poll, which is the post-bowl AP poll.
 
 Writes data/history/team_seasons.{csv,json}, data/history/games.{csv,json} and data/history/meta.json.
 Per-game game-control numbers are cached in data/derived/history so the build runs without play-by-play.
@@ -186,11 +187,20 @@ def build_season(season, talent_lists):
     notes["teams_ap_ranked"] = len(ever_ranked)
 
     cfp = polls[(polls.poll == "cfp") & polls["rank"].notna()].copy()
-    cfp_final = {}
+    cfp_final, k = {}, None
     if len(cfp):
         cfp["key"] = list(zip(cfp.season_type.astype(int), cfp.week.astype(int)))
         k = max(cfp.key)
         cfp_final = {int(t): int(r) for t, r in zip(cfp[cfp.key == k].team_id, cfp[cfp.key == k]["rank"])}
+
+    # ------------------------------------------------------------ latest poll ("currently ranked")
+    # The last poll of the season. The AP poll after the bowls comes out after the committee's final ranking
+    # (selection day), so it wins whenever the feed has it; otherwise the later of the two by (season type, week).
+    if final_key[0] == 3 or not cfp_final or final_key >= k:
+        cur_rank, latest = final_ap, {"poll": "AP", "label": notes["ap_final"]}
+    else:
+        cur_rank, latest = cfp_final, {"poll": "CFP", "label": "final committee ranking"}
+    notes["latest_poll"] = latest
 
     # ------------------------------------------------------------ game control
     pbp = RAW / f"play_by_play_{season}.parquet"
@@ -210,7 +220,7 @@ def build_season(season, talent_lists):
 
     # ------------------------------------------------------------ records and game log
     def blank():
-        return dict(n=0, w=0, l=0, pw=0, pl=0, rw=0, rl=0, uw=0, ul=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0]},
+        return dict(n=0, w=0, l=0, pw=0, pl=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0]},
                     margin=0, cn=0, lead=0.0, tied=0.0, trail=0.0, avg=0.0, ng=0.0, nt=0, cb=0, bl=0)
 
     season_tot, by_site, rows = {}, {}, []
@@ -235,6 +245,8 @@ def build_season(season, talent_lists):
                 if post:
                     b["pw" if win else "pl"] += 1
                 b[("r" if opp in ever_ranked else "u") + ("w" if win else "l")] += 1
+                if opp in cur_rank:
+                    b["c" + ("w" if win else "l")] += 1
                 b["t"][tier(opp)][0 if win else 1] += 1
                 b["margin"] += pf - pa
                 if c is not None:
@@ -252,7 +264,7 @@ def build_season(season, talent_lists):
                 team_id=team, team=name[team], opp_id=opp, opp=name.get(opp, str(opp)), opp_is_fbs=opp in fbs,
                 site=site, result="W" if win else "L", points_for=pf, points_against=pa, margin=pf - pa,
                 overtime=bool(c.overtime) if c is not None else None,
-                opp_ever_ap_ranked=opp in ever_ranked, opp_talent_rank=talent_rank.get(opp), opp_talent_tier=tier(opp),
+                opp_ever_ap_ranked=opp in ever_ranked, opp_cur_rank=cur_rank.get(opp), opp_talent_rank=talent_rank.get(opp), opp_talent_tier=tier(opp),
                 led_pct=round(c.lead_s / 3600, 4) if c is not None else None,
                 tied_pct=round(c.tied_s / 3600, 4) if c is not None else None,
                 trailed_pct=round(c.trail_s / 3600, 4) if c is not None else None,
@@ -270,6 +282,7 @@ def build_season(season, talent_lists):
 
     def cats(b):
         return {"vs_ap_ranked_w": b["rw"], "vs_ap_ranked_l": b["rl"], "vs_ap_unranked_w": b["uw"], "vs_ap_unranked_l": b["ul"],
+                "vs_cur_ranked_w": b["cw"], "vs_cur_ranked_l": b["cl"],
                 "vs_talent_t1_w": b["t"][1][0], "vs_talent_t1_l": b["t"][1][1], "vs_talent_t2_w": b["t"][2][0], "vs_talent_t2_l": b["t"][2][1],
                 "vs_talent_t3_w": b["t"][3][0], "vs_talent_t3_l": b["t"][3][1]}
 
@@ -317,7 +330,7 @@ def main():
     ts = pd.concat(seasons, ignore_index=True)
     gm = pd.concat(games, ignore_index=True).sort_values(["team", "season", "date"]).reset_index(drop=True)
     nullable = ["ap_pre_rank", "ap_final_rank", "ap_best_rank", "cfp_final_rank", "talent_rank", "lead_pct_rank",
-                "opp_talent_rank", "biggest_lead", "biggest_deficit", "ng_margin"]
+                "opp_talent_rank", "opp_cur_rank", "biggest_lead", "biggest_deficit", "ng_margin"]
     for df in (ts, gm):
         for c in nullable:
             if c in df:

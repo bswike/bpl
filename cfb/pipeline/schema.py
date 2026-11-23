@@ -11,6 +11,7 @@ def _wl(prefix, what):
 _CATEGORY_COLUMNS = {
     **_wl("vs_ap_ranked", "against opponents that appeared in at least one 2026 AP Top 25 (preseason through the latest poll), whenever the game was played"),
     **_wl("vs_ap_unranked", "against opponents never in the 2026 AP Top 25, FCS opponents included"),
+    **_wl("vs_cur_ranked", "against opponents ranked in the latest poll (AP or CFP, whichever was released last; see meta.json latest_poll), whenever the game was played"),
     **_wl("vs_talent_t1", "against opponents ranked 1-25 in the 247Sports Team Talent Composite"),
     **_wl("vs_talent_t2", "against opponents ranked 26-50 in the 247Sports Team Talent Composite"),
     **_wl("vs_talent_t3", "against opponents ranked 51 or lower in the talent composite, plus FCS opponents (which have no talent rank)"),
@@ -115,6 +116,7 @@ SCHEMA = {
         "margin": "points_for - points_against.",
         "overtime": "True if the game went to overtime.",
         "opp_ever_ap_ranked": "True if the opponent appeared in any 2026 AP Top 25.",
+        "opp_cur_rank": "Opponent's rank in the latest poll (AP or CFP, whichever was released last), empty if unranked.",
         "opp_talent_rank": "Opponent's 247Sports talent composite rank, empty for FCS opponents.",
         "opp_talent_tier": "1 = 1-25, 2 = 26-50, 3 = 51 or lower or FCS.",
         "led_pct": "Share of regulation time the row's team led (0-1).",

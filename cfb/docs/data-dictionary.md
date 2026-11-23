@@ -43,6 +43,8 @@ One row per FBS team (138) with identity, rankings, every record split and game 
 | `vs_ap_ranked_l` | Losses against opponents that appeared in at least one 2026 AP Top 25 (preseason through the latest poll), whenever the game was played. |
 | `vs_ap_unranked_w` | Wins against opponents never in the 2026 AP Top 25, FCS opponents included. |
 | `vs_ap_unranked_l` | Losses against opponents never in the 2026 AP Top 25, FCS opponents included. |
+| `vs_cur_ranked_w` | Wins against opponents ranked in the latest poll (AP or CFP, whichever was released last; see meta.json latest_poll), whenever the game was played. |
+| `vs_cur_ranked_l` | Losses against opponents ranked in the latest poll (AP or CFP, whichever was released last; see meta.json latest_poll), whenever the game was played. |
 | `vs_talent_t1_w` | Wins against opponents ranked 1-25 in the 247Sports Team Talent Composite. |
 | `vs_talent_t1_l` | Losses against opponents ranked 1-25 in the 247Sports Team Talent Composite. |
 | `vs_talent_t2_w` | Wins against opponents ranked 26-50 in the 247Sports Team Talent Composite. |
@@ -109,6 +111,8 @@ Every category split by where the game was played. One row per FBS team per site
 | `vs_ap_ranked_l` | Losses against opponents that appeared in at least one 2026 AP Top 25 (preseason through the latest poll), whenever the game was played. |
 | `vs_ap_unranked_w` | Wins against opponents never in the 2026 AP Top 25, FCS opponents included. |
 | `vs_ap_unranked_l` | Losses against opponents never in the 2026 AP Top 25, FCS opponents included. |
+| `vs_cur_ranked_w` | Wins against opponents ranked in the latest poll (AP or CFP, whichever was released last; see meta.json latest_poll), whenever the game was played. |
+| `vs_cur_ranked_l` | Losses against opponents ranked in the latest poll (AP or CFP, whichever was released last; see meta.json latest_poll), whenever the game was played. |
 | `vs_talent_t1_w` | Wins against opponents ranked 1-25 in the 247Sports Team Talent Composite. |
 | `vs_talent_t1_l` | Losses against opponents ranked 1-25 in the 247Sports Team Talent Composite. |
 | `vs_talent_t2_w` | Wins against opponents ranked 26-50 in the 247Sports Team Talent Composite. |
@@ -145,6 +149,7 @@ One row per FBS team per completed game (so an FBS-vs-FBS game appears twice, on
 | `margin` | points_for - points_against. |
 | `overtime` | True if the game went to overtime. |
 | `opp_ever_ap_ranked` | True if the opponent appeared in any 2026 AP Top 25. |
+| `opp_cur_rank` | Opponent's rank in the latest poll (AP or CFP, whichever was released last), empty if unranked. |
 | `opp_talent_rank` | Opponent's 247Sports talent composite rank, empty for FCS opponents. |
 | `opp_talent_tier` | 1 = 1-25, 2 = 26-50, 3 = 51 or lower or FCS. |
 | `led_pct` | Share of regulation time the row's team led (0-1). |

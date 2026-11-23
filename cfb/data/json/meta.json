@@ -1,6 +1,6 @@
 {
   "season": 2026,
-  "built_at_utc": "2026-11-23T01:08Z",
+  "built_at_utc": "2026-11-23T13:06Z",
   "games_through": "2026-11-21",
   "completed_games": 822,
   "fbs_teams": 138,
@@ -26,6 +26,12 @@
       "2": "26-50",
       "3": "51+"
     }
+  },
+  "latest_poll": {
+    "poll": "AP",
+    "week": 13,
+    "released": "2026-11-22",
+    "note": "'Currently ranked' uses this poll: the AP poll or the CFP ranking, whichever was released last."
   },
   "top50": {
     "basis_counts": {

@@ -158,6 +158,16 @@ def main():
     elif last_cfp_week is not None:
         warn(f"published.json checks CFP week {pub_cfp.get('week')} but the feed's latest is week {last_cfp_week}; update data/manual/published.json")
 
+    # ---------------------------------------------------------------- latest poll ("currently ranked")
+    # Whichever of the AP poll and the CFP ranking was released last. Release dates come from published.json.
+    ap_released, cfp_released = pub_ap.get("released"), pub_cfp.get("released") if cfp_checked else None
+    if cfp_released and (not ap_released or cfp_released > ap_released):
+        latest_poll = {"poll": "CFP", "week": last_cfp_week, "released": cfp_released}
+        cur_rank = dict(cfp_rank)
+    else:
+        latest_poll = {"poll": "AP", "week": last_ap_week, "released": ap_released}
+        cur_rank = dict(ap_rank_now)
+
     # ---------------------------------------------------------------- game control (per team per game)
     pbp_path = RAW / f"play_by_play_{SEASON}.parquet"
     cache_path = DERIVED / "game_control_by_game.csv"
@@ -177,7 +187,7 @@ def main():
 
     # ---------------------------------------------------------------- records and the game log
     def blank():
-        return dict(n=0, w=0, l=0, rw=0, rl=0, uw=0, ul=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0]},
+        return dict(n=0, w=0, l=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0]},
                     lead=0.0, tied=0.0, trail=0.0, avg=0.0, ng=0.0, margin=0.0)
 
     season, by_site, game_rows = {}, {}, []
@@ -193,6 +203,8 @@ def main():
                 bucket["n"] += 1
                 bucket["w" if win else "l"] += 1
                 bucket[("r" if opp in ever_ranked else "u") + ("w" if win else "l")] += 1
+                if opp in cur_rank:
+                    bucket["c" + ("w" if win else "l")] += 1
                 bucket["t"][tier(opp)][0 if win else 1] += 1
                 bucket["lead"] += c.lead_s
                 bucket["tied"] += c.tied_s
@@ -205,7 +217,7 @@ def main():
                     game_id=gid, date=date, week=int(g.week), team_id=team, team=name[team], opp_id=opp, opp=name[opp], opp_is_fbs=opp in fbs,
                     site=site, venue=g.venue_full_name if pd.notna(g.venue_full_name) else None, result="W" if win else "L",
                     points_for=pf, points_against=pa, margin=pf - pa, overtime=bool(c.overtime),
-                    opp_ever_ap_ranked=opp in ever_ranked, opp_talent_rank=talent_rank.get(opp), opp_talent_tier=tier(opp),
+                    opp_ever_ap_ranked=opp in ever_ranked, opp_cur_rank=cur_rank.get(opp), opp_talent_rank=talent_rank.get(opp), opp_talent_tier=tier(opp),
                     led_pct=round(c.lead_s / 3600, 4), tied_pct=round(c.tied_s / 3600, 4), trailed_pct=round(c.trail_s / 3600, 4),
                     avg_lead=round(c.avg_lead, 2), biggest_lead=int(c.max_lead), biggest_deficit=int(c.max_deficit), ng_margin=int(c.ng_margin)))
     for t, rec_text in fbs.items():  # every FBS record must match ESPN's standings feed
@@ -249,6 +261,7 @@ def main():
 
     def category_cols(b):
         return {"vs_ap_ranked_w": b["rw"], "vs_ap_ranked_l": b["rl"], "vs_ap_unranked_w": b["uw"], "vs_ap_unranked_l": b["ul"],
+                "vs_cur_ranked_w": b["cw"], "vs_cur_ranked_l": b["cl"],
                 "vs_talent_t1_w": b["t"][1][0], "vs_talent_t1_l": b["t"][1][1], "vs_talent_t2_w": b["t"][2][0], "vs_talent_t2_l": b["t"][2][1],
                 "vs_talent_t3_w": b["t"][3][0], "vs_talent_t3_l": b["t"][3][1]}
 
@@ -262,7 +275,7 @@ def main():
         s, d = season[t], info[t]
         site = {k: by_site.get((t, k), blank()) for k in SITES}
         assert sum(site[k]["w"] for k in SITES) == s["w"] and sum(site[k]["l"] for k in SITES) == s["l"]
-        for key in ("rw", "rl", "uw", "ul"):
+        for key in ("rw", "rl", "uw", "ul", "cw", "cl"):
             assert sum(site[k][key] for k in SITES) == s[key]
         rows.append({
             "team_id": t, "team": name[t], "display_name": d.get("display_name"), "abbreviation": d.get("abbreviation"),
@@ -304,7 +317,7 @@ def main():
     tables = {"team_summary": summary, "top50": top50, "home_away_splits": splits, "games": games,
               "ap_polls": ap_polls, "ap_receiving_votes": ap_receiving, "cfp_rankings": cfp_rankings}
     nullable_ints = {"ap_rank", "ap_points", "ap_best_rank", "cfp_rank", "top50_rank", "biggest_deficit_overcome", "biggest_lead_lost",
-                     "opp_talent_rank", "points", "first_place_votes"}
+                     "opp_talent_rank", "opp_cur_rank", "points", "first_place_votes"}
     OUT_CSV.mkdir(parents=True, exist_ok=True)
     OUT_JSON.mkdir(parents=True, exist_ok=True)
     for tname, df in tables.items():
@@ -330,6 +343,7 @@ def main():
                 "next_release": pub_cfp.get("next_release") if cfp_checked else None,
                 "note": "CFP ranks predate any games played after the release date."},
         "talent": {**published.get("talent", {}), "tiers": TIER_LABELS},
+        "latest_poll": {**latest_poll, "note": "'Currently ranked' uses this poll: the AP poll or the CFP ranking, whichever was released last."},
         "top50": {"basis_counts": top50.basis.value_counts().to_dict(),
                   "note": "Projected rows are this project's estimate, not a published ranking."},
         "model": {"blend": {"colley": W_COLLEY, "srs": round(1 - W_COLLEY, 2)}, "margin_cap": MARGIN_CAP, "fitted_home_edge_points": round(home_edge, 2),

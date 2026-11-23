@@ -1,5 +1,5 @@
 {
-  "built_at_utc": "2026-11-23T02:02Z",
+  "built_at_utc": "2026-11-23T13:07Z",
   "seasons": {
     "2020": {
       "season": 2020,
@@ -11,6 +11,10 @@
       "ap_polls": 16,
       "ap_final": "post-bowl poll",
       "teams_ap_ranked": 51,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
       "game_control": {
         "games": 563,
         "games_with_untimed_points": 2,
@@ -35,6 +39,10 @@
       "ap_polls": 16,
       "ap_final": "post-bowl poll",
       "teams_ap_ranked": 47,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
       "game_control": {
         "games": 839,
         "games_with_untimed_points": 43,
@@ -58,6 +66,10 @@
       "ap_polls": 16,
       "ap_final": "post-bowl poll",
       "teams_ap_ranked": 51,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
       "game_control": {
         "games": 857,
         "games_with_untimed_points": 51,
@@ -81,6 +93,10 @@
       "ap_polls": 16,
       "ap_final": "post-bowl poll",
       "teams_ap_ranked": 44,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
       "game_control": {
         "games": 902,
         "games_with_untimed_points": 13,
@@ -104,6 +120,10 @@
       "ap_polls": 17,
       "ap_final": "post-bowl poll",
       "teams_ap_ranked": 48,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
       "game_control": {
         "games": 900,
         "games_with_untimed_points": 12,
@@ -128,6 +148,10 @@
       "ap_polls": 17,
       "ap_final": "post-bowl poll",
       "teams_ap_ranked": 49,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
       "game_control": {
         "games": 932,
         "games_with_untimed_points": 11,

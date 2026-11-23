@@ -1,4 +1,4 @@
-import { num, pct, rec, recKey, signed } from './data';
+import { fmtDate, num, pct, rec, recKey, signed } from './data';
 import { T50, TeamLink } from './ui';
 
 // Column definitions shared by the table pages. `basis` lookups come from teams.json (top50_basis).
@@ -32,8 +32,18 @@ export const colRecord = (key, label, w, l, extra = {}) => ({
   ...extra,
 });
 
-/** Records against opponents AP-ranked at least once, and the talent tiers. Field names match teams + splits. */
-export const splitCols = [
+export const CUR_GROUP = 'Opp. ranked in\nlatest poll';
+
+/** Record against opponents ranked in the latest poll (meta.latest_poll: AP or CFP, whichever came out last). */
+export const colCurRanked = (latest) => colRecord('cur', latest ? `${latest.poll} ${fmtDate(latest.released)}` : 'Latest', 'vs_cur_ranked_w', 'vs_cur_ranked_l', {
+  group: CUR_GROUP,
+  title: latest
+    ? `Record against opponents ranked in the ${latest.poll === 'CFP' ? 'CFP ranking' : 'AP poll'} of ${fmtDate(latest.released)}, the most recent poll, whenever the game was played`
+    : 'Record against opponents ranked in the most recent poll',
+});
+
+/** Records against opponents AP-ranked at least once, ranked in the latest poll, and by talent tier. */
+export const splitCols = (latest) => [
   colRecord('apY', 'Yes', 'vs_ap_ranked_w', 'vs_ap_ranked_l', {
     group: 'Opp. AP-ranked at least\nonce this season',
     title: 'Record against opponents that appeared in at least one 2026 AP Top 25 (preseason on), whenever the game was played',
@@ -42,6 +52,7 @@ export const splitCols = [
     group: 'Opp. AP-ranked at least\nonce this season',
     title: 'Record against opponents never in a 2026 AP Top 25, FCS included',
   }),
+  colCurRanked(latest),
   colRecord('t1', '1-25', 'vs_talent_t1_w', 'vs_talent_t1_l', { group: 'vs. opp. 247 talent rank', title: 'Opponent ranked 1-25 in the 247Sports Team Talent Composite' }),
   colRecord('t2', '26-50', 'vs_talent_t2_w', 'vs_talent_t2_l', { group: 'vs. opp. 247 talent rank', title: 'Opponent ranked 26-50' }),
   colRecord('t3', '51+', 'vs_talent_t3_w', 'vs_talent_t3_l', { group: 'vs. opp. 247 talent rank', title: 'Opponent ranked 51 or lower, or FCS' }),
