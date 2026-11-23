@@ -137,3 +137,6 @@
 .cfb h2.with-link .linkbtn { font-size: 13px; font-weight: normal; margin-left: 8px; }
 .cfb .resume .spiel { margin-top: 4px; }
 .cfb .resume .spiel p { margin: 4px 0 0; padding: 6px 8px; background: #f4f6f9; border-left: 3px solid #0b2545; font-style: italic; }
+/* season rows: one line that scrolls sideways when it doesn't fit */
+.cfb .scroll-row { white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.cfb .scroll-row::-webkit-scrollbar { display: none; }

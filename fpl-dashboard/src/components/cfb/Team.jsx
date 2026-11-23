@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { fmtDate, pct, rec, signed, useCfb } from './data';
 import SortTable from './SortTable';
 import { colT50, colTeam, teamStatCols } from './columns';
-import { Status } from './ui';
+import { SeasonStrip, Status } from './ui';
 
 const SPLIT_HEAD = ['', 'G', 'W-L', 'Vs. Currently\nRanked', 'Yes', 'No', '1-25', '26-50', '51-75', '76+', 'Lead%', 'Tied%', 'Trail%', 'AvgLead', 'NG Marg'];
 const AP_GROUP = 'Opp. AP-ranked at least\nonce this season';
@@ -305,16 +305,12 @@ export default function Team() {
     : allHistoryRows.map((r) => ({ ...r, ...BLANK_SPLIT, ...((r.current ? curSite : r.sites?.[site]) || {}) }));
 
   const seasonLinks = (
-    <p className="links">
-      Season:{' '}
-      {[CURRENT, ...[...pastSeasons].reverse()].map((y, i) => (
-        <Fragment key={y}>
-          {i > 0 && ' | '}
-          {y === season ? <b>{y}</b> : <Link to={href(y)}>{y}</Link>}
-        </Fragment>
-      ))}
-      {histLoading && <span className="muted"> (loading past seasons…)</span>}
-    </p>
+    <SeasonStrip
+      seasons={[CURRENT, ...[...pastSeasons].reverse()]}
+      season={season}
+      hrefFor={(y) => href(y)}
+      extra={histLoading ? <span className="muted"> (loading past seasons…)</span> : null}
+    />
   );
   const siteLinks = (
     <p className="links site-links">

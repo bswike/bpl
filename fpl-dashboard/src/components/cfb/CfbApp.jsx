@@ -6,8 +6,6 @@ import Player from './Player';
 import Resume from './Resume';
 import Team from './Team';
 import { Control, Ratings } from './pages';
-import { useCfb } from './data';
-import { AsOf } from './ui';
 import './cfb.css';
 
 const NAV = [
@@ -18,7 +16,6 @@ const NAV = [
 ];
 
 export default function CfbApp() {
-  const { data } = useCfb('meta');
   const { pathname } = useLocation();
 
   // The rest of the site paints a dark body; this section is plain white.
@@ -48,7 +45,6 @@ export default function CfbApp() {
             </Fragment>
           ))}
         </nav>
-        <AsOf meta={data?.meta} />
       </header>
       <main>
         <Routes>

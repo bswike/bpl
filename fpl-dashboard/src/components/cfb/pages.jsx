@@ -5,7 +5,7 @@ import { CONFS, CURRENT_SEASON, FIRST_SEASON, filterTeams, num, signed, useCfb }
 import {
   colAvgLead, colConf, colLead, colNg, colRecord, colT50, colTeam, colTied, colTrail, pastSeasonCols, teamStatCols,
 } from './columns';
-import { ConfFilter, ProjectedNote, Status } from './ui';
+import { ConfFilter, ProjectedNote, SeasonStrip, Status } from './ui';
 
 const basisOf = (r) => r.top50_basis;
 const projRow = (r) => (r.top50_basis === 'Projected' ? 'projrow' : undefined);
@@ -27,17 +27,7 @@ function SeasonLinks({ season }) {
     const q = p.toString();
     return q ? `/cfb?${q}` : '/cfb';
   };
-  return (
-    <p className="links">
-      Season:{' '}
-      {SEASONS.map((y, i) => (
-        <span key={y}>
-          {i > 0 && ' | '}
-          {y === season ? <b>{y}</b> : <Link to={href(y)}>{y}</Link>}
-        </span>
-      ))}
-    </p>
-  );
+  return <SeasonStrip seasons={SEASONS} season={season} hrefFor={href} />;
 }
 
 export function Ratings() {
