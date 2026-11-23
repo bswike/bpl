@@ -32,7 +32,7 @@ export default function About() {
           against that team, whatever its rank on game day. For past seasons the last poll is the final, post-bowl AP poll.
         </dd>
         <dt>Talent tiers</dt>
-        <dd>The opponent’s rank in the 247Sports Composite: 1-25, 26-50, 51+. FCS opponents are in 51+.</dd>
+        <dd>The opponent’s rank in the 247Sports Composite: 1-25, 26-50, 51-75, 76+. FCS opponents are in 76+.</dd>
         <dt>Rk</dt>
         <dd>
           1-25 are the latest AP Top 25. The next spots go to the other teams receiving AP votes, by points. The remaining spots are filled by this site’s
@@ -65,7 +65,7 @@ export default function About() {
       <ul>
         <li>Bowl and playoff games count. Records are full-season records, and the postseason record is shown separately.</li>
         <li>“AP-ranked at least once” covers every AP poll of that season, preseason through the final post-bowl poll. “Ranked in the latest poll” uses that final post-bowl AP poll, the season’s last poll.</li>
-        <li>AP Final and CFP are the final AP poll and the final committee ranking. Talent is the 247Sports composite rank among that season’s FBS teams. 247 does not list some service academies in some years; they count as 51+.</li>
+        <li>AP Final and CFP are the final AP poll and the final committee ranking. Talent is the 247Sports composite rank among that season’s FBS teams. 247 does not list some service academies in some years; they count as 76+.</li>
       </ul>
       <p>
         ESPN’s 2022 schedule feed is missing weeks 3 and 12; those games come from a second ESPN-derived schedule in the

@@ -32,7 +32,7 @@ One row per FBS team (138) with identity, rankings, every record split and game 
 | `ever_ap_ranked` | True if the team appeared in any 2026 AP Top 25. |
 | `cfp_rank` | Rank in the latest College Football Playoff committee Top 25, empty if unranked. |
 | `talent_rank` | Rank (1-138) in the 247Sports 2026 Team Talent Composite, a preseason ranking of roster talent. |
-| `talent_tier` | 1 = talent rank 1-25, 2 = 26-50, 3 = 51 or lower. |
+| `talent_tier` | 1 = talent rank 1-25, 2 = 26-50, 3 = 51-75, 4 = 76 or lower. |
 | `model_rank` | Rank among all 138 FBS teams in the project's own model (see methodology). |
 | `model_score` | Model score: 0.7 x Colley z-score + 0.3 x capped-margin SRS z-score. |
 | `colley` | Colley rating (schedule-adjusted wins and losses). |
@@ -49,8 +49,10 @@ One row per FBS team (138) with identity, rankings, every record split and game 
 | `vs_talent_t1_l` | Losses against opponents ranked 1-25 in the 247Sports Team Talent Composite. |
 | `vs_talent_t2_w` | Wins against opponents ranked 26-50 in the 247Sports Team Talent Composite. |
 | `vs_talent_t2_l` | Losses against opponents ranked 26-50 in the 247Sports Team Talent Composite. |
-| `vs_talent_t3_w` | Wins against opponents ranked 51 or lower in the talent composite, plus FCS opponents (which have no talent rank). |
-| `vs_talent_t3_l` | Losses against opponents ranked 51 or lower in the talent composite, plus FCS opponents (which have no talent rank). |
+| `vs_talent_t3_w` | Wins against opponents ranked 51-75 in the 247Sports Team Talent Composite. |
+| `vs_talent_t3_l` | Losses against opponents ranked 51-75 in the 247Sports Team Talent Composite. |
+| `vs_talent_t4_w` | Wins against opponents ranked 76 or lower in the talent composite, plus FCS opponents (which have no talent rank). |
+| `vs_talent_t4_l` | Losses against opponents ranked 76 or lower in the talent composite, plus FCS opponents (which have no talent rank). |
 | `home_w` | Wins in home games. |
 | `home_l` | Losses in home games. |
 | `away_w` | Wins in road games. |
@@ -117,8 +119,10 @@ Every category split by where the game was played. One row per FBS team per site
 | `vs_talent_t1_l` | Losses against opponents ranked 1-25 in the 247Sports Team Talent Composite. |
 | `vs_talent_t2_w` | Wins against opponents ranked 26-50 in the 247Sports Team Talent Composite. |
 | `vs_talent_t2_l` | Losses against opponents ranked 26-50 in the 247Sports Team Talent Composite. |
-| `vs_talent_t3_w` | Wins against opponents ranked 51 or lower in the talent composite, plus FCS opponents (which have no talent rank). |
-| `vs_talent_t3_l` | Losses against opponents ranked 51 or lower in the talent composite, plus FCS opponents (which have no talent rank). |
+| `vs_talent_t3_w` | Wins against opponents ranked 51-75 in the 247Sports Team Talent Composite. |
+| `vs_talent_t3_l` | Losses against opponents ranked 51-75 in the 247Sports Team Talent Composite. |
+| `vs_talent_t4_w` | Wins against opponents ranked 76 or lower in the talent composite, plus FCS opponents (which have no talent rank). |
+| `vs_talent_t4_l` | Losses against opponents ranked 76 or lower in the talent composite, plus FCS opponents (which have no talent rank). |
 | `lead_pct` | Share of regulation game time the team was ahead (0-1). |
 | `tied_pct` | Share of regulation game time the score was tied (0-1). |
 | `trail_pct` | Share of regulation game time the team was behind (0-1). |
@@ -153,7 +157,7 @@ One row per FBS team per completed game (so an FBS-vs-FBS game appears twice, on
 | `opp_ever_ap_ranked` | True if the opponent appeared in any 2026 AP Top 25. |
 | `opp_cur_rank` | Opponent's rank in the latest poll (AP or CFP, whichever was released last), empty if unranked. |
 | `opp_talent_rank` | Opponent's 247Sports talent composite rank, empty for FCS opponents. |
-| `opp_talent_tier` | 1 = 1-25, 2 = 26-50, 3 = 51 or lower or FCS. |
+| `opp_talent_tier` | 1 = 1-25, 2 = 26-50, 3 = 51-75, 4 = 76 or lower or FCS. |
 | `led_pct` | Share of regulation time the row's team led (0-1). |
 | `tied_pct` | Share of regulation time tied (0-1). |
 | `trailed_pct` | Share of regulation time the row's team trailed (0-1). |

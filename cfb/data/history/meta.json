@@ -1,9 +1,10 @@
 {
-  "built_at_utc": "2026-11-23T14:00Z",
+  "built_at_utc": "2026-11-23T14:17Z",
   "seasons": {
     "2004": {
       "season": 2004,
       "games_filled_from_second_source": 595,
+      "conference_fixes": 26,
       "fbs_teams": 117,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -28,6 +29,7 @@
     "2005": {
       "season": 2005,
       "games_filled_from_second_source": 609,
+      "conference_fixes": 15,
       "fbs_teams": 119,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -52,6 +54,7 @@
     "2006": {
       "season": 2006,
       "games_filled_from_second_source": 617,
+      "conference_fixes": 15,
       "fbs_teams": 119,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -76,6 +79,7 @@
     "2007": {
       "season": 2007,
       "games_filled_from_second_source": 671,
+      "conference_fixes": 15,
       "fbs_teams": 120,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -102,6 +106,7 @@
     "2008": {
       "season": 2008,
       "games_filled_from_second_source": 674,
+      "conference_fixes": 15,
       "fbs_teams": 120,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -126,6 +131,7 @@
     "2009": {
       "season": 2009,
       "games_filled_from_second_source": 660,
+      "conference_fixes": 15,
       "fbs_teams": 120,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -150,6 +156,7 @@
     "2010": {
       "season": 2010,
       "games_filled_from_second_source": 654,
+      "conference_fixes": 15,
       "fbs_teams": 120,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -174,6 +181,7 @@
     "2011": {
       "season": 2011,
       "games_filled_from_second_source": 775,
+      "conference_fixes": 4,
       "fbs_teams": 120,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -201,6 +209,7 @@
     "2012": {
       "season": 2012,
       "games_filled_from_second_source": 594,
+      "conference_fixes": 4,
       "fbs_teams": 124,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -228,6 +237,7 @@
     "2013": {
       "season": 2013,
       "games_filled_from_second_source": 786,
+      "conference_fixes": 0,
       "fbs_teams": 126,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -252,6 +262,7 @@
     "2014": {
       "season": 2014,
       "games_filled_from_second_source": 719,
+      "conference_fixes": 0,
       "fbs_teams": 128,
       "talent_last_updated": null,
       "talent_unranked_fbs": null,
@@ -276,6 +287,7 @@
     "2015": {
       "season": 2015,
       "games_filled_from_second_source": 899,
+      "conference_fixes": 0,
       "fbs_teams": 128,
       "talent_last_updated": "2017-06-21",
       "talent_unranked_fbs": [],
@@ -300,6 +312,7 @@
     "2016": {
       "season": 2016,
       "games_filled_from_second_source": 735,
+      "conference_fixes": 0,
       "fbs_teams": 128,
       "talent_last_updated": "2017-06-21",
       "talent_unranked_fbs": [],
@@ -326,6 +339,7 @@
     "2017": {
       "season": 2017,
       "games_filled_from_second_source": 677,
+      "conference_fixes": 0,
       "fbs_teams": 130,
       "talent_last_updated": "2017-09-20",
       "talent_unranked_fbs": [],
@@ -352,6 +366,7 @@
     "2018": {
       "season": 2018,
       "games_filled_from_second_source": 738,
+      "conference_fixes": 0,
       "fbs_teams": 130,
       "talent_last_updated": "2018-10-11",
       "talent_unranked_fbs": [],
@@ -376,6 +391,7 @@
     "2019": {
       "season": 2019,
       "games_filled_from_second_source": 735,
+      "conference_fixes": 0,
       "fbs_teams": 130,
       "talent_last_updated": "2019-09-29",
       "talent_unranked_fbs": [],
@@ -400,6 +416,7 @@
     "2020": {
       "season": 2020,
       "games_filled_from_second_source": 25,
+      "conference_fixes": 0,
       "fbs_teams": 127,
       "talent_last_updated": "2020-11-09",
       "talent_unranked_fbs": [],
@@ -424,6 +441,7 @@
     "2021": {
       "season": 2021,
       "games_filled_from_second_source": 1567,
+      "conference_fixes": 0,
       "fbs_teams": 130,
       "talent_last_updated": "2021-10-04",
       "talent_unranked_fbs": [],
@@ -448,6 +466,7 @@
     "2022": {
       "season": 2022,
       "games_filled_from_second_source": 2946,
+      "conference_fixes": 0,
       "fbs_teams": 131,
       "talent_last_updated": "2022-12-04",
       "talent_unranked_fbs": [
@@ -475,6 +494,7 @@
     "2023": {
       "season": 2023,
       "games_filled_from_second_source": 2813,
+      "conference_fixes": 0,
       "fbs_teams": 133,
       "talent_last_updated": "2023-09-18",
       "talent_unranked_fbs": [
@@ -503,6 +523,7 @@
     "2024": {
       "season": 2024,
       "games_filled_from_second_source": 2880,
+      "conference_fixes": 0,
       "fbs_teams": 134,
       "talent_last_updated": "2024-08-27",
       "talent_unranked_fbs": [
@@ -533,6 +554,7 @@
     "2025": {
       "season": 2025,
       "games_filled_from_second_source": 2895,
+      "conference_fixes": 0,
       "fbs_teams": 136,
       "talent_last_updated": "2025-08-27",
       "talent_unranked_fbs": [

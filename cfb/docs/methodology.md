@@ -36,6 +36,9 @@ How each number is defined, where the data comes from, what was verified, and wh
 
 ## Talent tiers
 
+- Tiers are opponent rank 1-25, 26-50, 51-75 and 76+ (FCS opponents in 76+). The chat used 1-25, 26-50 and 51+; the
+  last tier was split on 2026-11-23.
+
 - The 247Sports **Composite** version is used, not 247's own new Team Talent Rating, which orders teams
   differently (for example Oregon second instead of Texas).
 - All 138 listed teams map one to one onto the 138 FBS teams in the standings feed.
@@ -126,6 +129,10 @@ Built by `pipeline/history.py` for the team pages, with the 2026 definitions and
 - **Games:** regular season and postseason (bowls, playoff). All-star and exhibition games are left out. FBS teams
   are the teams ESPN flags as FBS that belong to an FBS conference that season (this drops all-star squads that the
   flag also catches); for 2024 that set matches ESPN's standings exactly.
+- **Conferences:** ESPN's team feed gives some teams their current conference in old seasons (Utah, TCU and BYU in
+  the 2010 "Big 12"). Each team's conference comes instead from cfb_schedules, the conference it played most
+  regular-season games under; that corrected 124 team-seasons in 2004-2012. Power conferences: the BCS
+  automatic-qualifier conferences through 2013 (Big East, and the American in 2013), Power 5 2014-2023, Power 4 after.
 - **Missing games:** the raw 2022 schedule has no week 3 or week 12 games (137 games). They are filled from
   `cfb_schedules` (same ESPN game ids) with quarter scores from `linescores`; all 137 have quarter scores that add up.
   Where both sources have a game they agree on every score but one.
@@ -137,7 +144,7 @@ Built by `pipeline/history.py` for the team pages, with the 2026 definitions and
 - **Talent:** 247Sports Team Talent Composite, read from 247's page for each season on 2026-11-22 and re-ranked among
   that season's FBS teams (2020-2023 pages include FCS schools). The pages' "last updated" dates vary (2020: Nov 9,
   2021: Oct 4, 2022: Dec 4, 2023: Sep 18, 2024: Aug 27, 2025: Aug 27). Teams 247 does not list (Air Force, Army and
-  Navy in some years) have no rank and count as 51+.
+  Navy in some years) have no rank and count as 76+.
 - **Game control:** same method. Games without play-by-play (at most about 4% of team-games, 2021) are left out of
   the time shares; `control_games` says how many games a team's numbers use. One 2024 game with quarter scores that
   do not add up is skipped.

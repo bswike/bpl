@@ -33,7 +33,7 @@ CONFERENCES = {1: "ACC", 4: "Big 12", 5: "Big Ten", 8: "SEC", 9: "Pac-12", 18: "
 POWER = {"ACC", "Big 12", "Big Ten", "SEC"}
 NOTRE_DAME = 87
 SITES = ["Home", "Away", "Neutral"]
-TIER_LABELS = {1: "1-25", 2: "26-50", 3: "51+"}
+TIER_LABELS = {1: "1-25", 2: "26-50", 3: "51-75", 4: "76+"}
 
 
 def warn(msg):
@@ -92,8 +92,8 @@ def main():
     assert set(talent_rank) == set(fbs), "talent file must list exactly the FBS teams in the standings feed"
 
     def tier(t):
-        r = talent_rank.get(t, 999)
-        return 1 if r <= 25 else 2 if r <= 50 else 3
+        r = talent_rank.get(t, 999)  # FCS teams have no rank and land in 76+
+        return 1 if r <= 25 else 2 if r <= 50 else 3 if r <= 75 else 4
 
     # ---------------------------------------------------------------- AP and CFP polls
     reg = sched[sched.season_type == 2]
@@ -199,7 +199,7 @@ def main():
 
     # ---------------------------------------------------------------- records and the game log
     def blank():
-        return dict(n=0, w=0, l=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0]},
+        return dict(n=0, w=0, l=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]},
                     lead=0.0, tied=0.0, trail=0.0, avg=0.0, ng=0.0, margin=0.0)
 
     season, by_site, game_rows = {}, {}, []
@@ -302,7 +302,8 @@ def main():
         return {"vs_ap_ranked_w": b["rw"], "vs_ap_ranked_l": b["rl"], "vs_ap_unranked_w": b["uw"], "vs_ap_unranked_l": b["ul"],
                 "vs_cur_ranked_w": b["cw"], "vs_cur_ranked_l": b["cl"],
                 "vs_talent_t1_w": b["t"][1][0], "vs_talent_t1_l": b["t"][1][1], "vs_talent_t2_w": b["t"][2][0], "vs_talent_t2_l": b["t"][2][1],
-                "vs_talent_t3_w": b["t"][3][0], "vs_talent_t3_l": b["t"][3][1]}
+                "vs_talent_t3_w": b["t"][3][0], "vs_talent_t3_l": b["t"][3][1],
+                "vs_talent_t4_w": b["t"][4][0], "vs_talent_t4_l": b["t"][4][1]}
 
     def control_cols(b):
         secs = b["n"] * 3600

@@ -52,7 +52,8 @@ export const splitCols = (latest) => [
   }),
   colRecord('t1', '1-25', 'vs_talent_t1_w', 'vs_talent_t1_l', { group: 'vs. opp. 247 talent rank', title: 'Opponent ranked 1-25 in the 247Sports Team Talent Composite' }),
   colRecord('t2', '26-50', 'vs_talent_t2_w', 'vs_talent_t2_l', { group: 'vs. opp. 247 talent rank', title: 'Opponent ranked 26-50' }),
-  colRecord('t3', '51+', 'vs_talent_t3_w', 'vs_talent_t3_l', { group: 'vs. opp. 247 talent rank', title: 'Opponent ranked 51 or lower, or FCS' }),
+  colRecord('t3', '51-75', 'vs_talent_t3_w', 'vs_talent_t3_l', { group: 'vs. opp. 247 talent rank', title: 'Opponent ranked 51-75' }),
+  colRecord('t4', '76+', 'vs_talent_t4_w', 'vs_talent_t4_l', { group: 'vs. opp. 247 talent rank', title: 'Opponent ranked 76 or lower, or FCS' }),
 ];
 
 const g = 'Game control';

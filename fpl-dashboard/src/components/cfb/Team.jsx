@@ -5,13 +5,13 @@ import SortTable from './SortTable';
 import { colT50, colTeam, teamStatCols } from './columns';
 import { Status } from './ui';
 
-const SPLIT_HEAD = ['', 'G', 'W-L', 'Vs. Currently\nRanked', 'Yes', 'No', '1-25', '26-50', '51+', 'Lead%', 'Tied%', 'Trail%', 'AvgLead', 'NG Marg'];
+const SPLIT_HEAD = ['', 'G', 'W-L', 'Vs. Currently\nRanked', 'Yes', 'No', '1-25', '26-50', '51-75', '76+', 'Lead%', 'Tied%', 'Trail%', 'AvgLead', 'NG Marg'];
 const AP_GROUP = 'Opp. AP-ranked at least\nonce this season';
 const siteMark = { Home: 'vs', Away: '@', Neutral: 'n' };
 const SITES = ['Home', 'Away', 'Neutral'];
 // zeroed split fields, for a season with no games at the chosen site
 const BLANK_SPLIT = Object.fromEntries(
-  ['wins', 'losses', 'vs_cur_ranked', 'vs_ap_ranked', 'vs_ap_unranked', 'vs_talent_t1', 'vs_talent_t2', 'vs_talent_t3']
+  ['wins', 'losses', 'vs_cur_ranked', 'vs_ap_ranked', 'vs_ap_unranked', 'vs_talent_t1', 'vs_talent_t2', 'vs_talent_t3', 'vs_talent_t4']
     .flatMap((k) => (k === 'wins' || k === 'losses' ? [[k, 0]] : [[`${k}_w`, 0], [`${k}_l`, 0]]))
     .concat([['lead_pct', null], ['tied_pct', null], ['trail_pct', null], ['avg_lead', null], ['ng_margin_pg', null]]),
 );
@@ -36,6 +36,7 @@ function SplitRow({ label, r, games }) {
       <td>{rec(r.vs_talent_t1_w, r.vs_talent_t1_l)}</td>
       <td>{rec(r.vs_talent_t2_w, r.vs_talent_t2_l)}</td>
       <td>{rec(r.vs_talent_t3_w, r.vs_talent_t3_l)}</td>
+      <td>{rec(r.vs_talent_t4_w, r.vs_talent_t4_l)}</td>
       <td>{pct(r.lead_pct)}</td>
       <td>{pct(r.tied_pct)}</td>
       <td>{pct(r.trail_pct)}</td>
@@ -55,7 +56,7 @@ function SplitsTable({ all, sites, site = 'All' }) {
           <tr className="grp">
             <th className="blank" colSpan={4} />
             <th className="g" colSpan={2}><div>{AP_GROUP}</div></th>
-            <th className="g" colSpan={3}><div>vs. opp. 247 talent rank</div></th>
+            <th className="g" colSpan={4}><div>vs. opp. 247 talent rank</div></th>
             <th className="g" colSpan={5}><div>Game control</div></th>
           </tr>
           <tr>{SPLIT_HEAD.map((h, i) => <th key={i} className={i === 0 ? 'l' : undefined}>{h}</th>)}</tr>
@@ -197,7 +198,7 @@ function RemainingSchedule({ upcoming, teamsById, meta }) {
 
 function HistoryTable({ rows, id, season, site = 'All', hrefFor }) {
   const all = site === 'All';
-  const head = ['Season', 'Conf', 'W-L', ...(all ? ['Post'] : []), 'AP Pre', 'AP Final', 'CFP', 'Talent', 'Vs. Currently\nRanked', 'Yes', 'No', '1-25', '26-50', '51+', ...(all ? ['Home', 'Away', 'Neut'] : []), 'Lead%', 'AvgLead', 'NG Marg'];
+  const head = ['Season', 'Conf', 'W-L', ...(all ? ['Post'] : []), 'AP Pre', 'AP Final', 'CFP', 'Talent', 'Vs. Currently\nRanked', 'Yes', 'No', '1-25', '26-50', '51-75', '76+', ...(all ? ['Home', 'Away', 'Neut'] : []), 'Lead%', 'AvgLead', 'NG Marg'];
   return (
     <div className="cfb-scroll">
       <table className="cfb-t">
@@ -207,7 +208,7 @@ function HistoryTable({ rows, id, season, site = 'All', hrefFor }) {
             <th className="g" colSpan={4}><div>Rankings</div></th>
             <th className="blank" />
             <th className="g" colSpan={2}><div>{AP_GROUP}</div></th>
-            <th className="g" colSpan={3}><div>vs. opp. 247 talent rank</div></th>
+            <th className="g" colSpan={4}><div>vs. opp. 247 talent rank</div></th>
             {all && <th className="g" colSpan={3}><div>Site</div></th>}
             <th className="g" colSpan={3}><div>Game control</div></th>
           </tr>
@@ -232,6 +233,7 @@ function HistoryTable({ rows, id, season, site = 'All', hrefFor }) {
               <td>{rec(r.vs_talent_t1_w, r.vs_talent_t1_l)}</td>
               <td>{rec(r.vs_talent_t2_w, r.vs_talent_t2_l)}</td>
               <td>{rec(r.vs_talent_t3_w, r.vs_talent_t3_l)}</td>
+              <td>{rec(r.vs_talent_t4_w, r.vs_talent_t4_l)}</td>
               {all && (
                 <>
                   <td>{rec(r.home_w, r.home_l)}</td>

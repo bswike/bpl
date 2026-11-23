@@ -15,6 +15,7 @@ Per-game game-control numbers are cached in data/derived/history so the build ru
 import datetime as dt
 import json
 import re
+from collections import Counter
 import sys
 import unicodedata
 from pathlib import Path
@@ -34,6 +35,9 @@ OUT = ROOT / "data" / "history"
 SEASONS = list(range(2004, 2026))
 ET = ZoneInfo("America/New_York")
 CONF_LABEL = {"CUSA": "C-USA", "FBS Indep.": "Ind"}
+# conference names in cfb_schedules -> the site's labels
+ALT_CONF_LABEL = {"Mid-American": "MAC", "Conference USA": "C-USA", "American Athletic": "American",
+                  "FBS Independents": "Ind", "FCS Independents": "Ind", "Western Athletic": "WAC"}
 NOTRE_DAME = 87
 SITES = ["Home", "Away", "Neutral"]
 
@@ -60,8 +64,8 @@ def norm(s):
 def power_conferences(season):
     """BCS automatic-qualifier conferences through 2013 (Big East included), Power 5 2014-2023, Power 4 after."""
     base = {"ACC", "Big 12", "Big Ten", "SEC"}
-    if season <= 2013:
-        return base | {"Pac-12", "Big East"}
+    if season <= 2013:  # the American kept the Big East's BCS automatic bid in 2013, its first season under that name
+        return base | {"Pac-10", "Pac-12", "Big East"} | ({"American"} if season == 2013 else set())
     return base | ({"Pac-12"} if season <= 2023 else set())
 
 
@@ -131,6 +135,25 @@ def build_season(season, talent_lists):
     fbs_rows = fbs_rows[fbs_rows.team_id.isin(played)]
     fbs = set(fbs_rows.team_id)
     conf = {int(r.team_id): CONF_LABEL.get(r.conference_short_name, r.conference_short_name) for r in fbs_rows.itertuples()}
+    # ESPN's team feed gives some teams their current conference in past seasons (Utah, TCU and BYU in the 2010
+    # "Big 12", Boise State in the 2012 "Pac-12"). cfb_schedules names each team's conference per game, which is
+    # right for those cases, so use the conference a team played most of its regular-season games under.
+    alt_path = RAW / f"cfb_schedules_{season}.parquet"
+    if alt_path.exists():
+        alt = pd.read_parquet(alt_path, columns=["season_type", "home_id", "home_conference", "away_id", "away_conference"])
+        alt = alt[alt.season_type == "regular"]
+        seen_conf = {}
+        for tid, cf in list(zip(alt.home_id, alt.home_conference)) + list(zip(alt.away_id, alt.away_conference)):
+            if isinstance(cf, str):
+                seen_conf.setdefault(int(tid), Counter())[cf] += 1
+        changed = 0
+        for tid in conf:
+            if tid in seen_conf:
+                label = seen_conf[tid].most_common(1)[0][0]
+                label = ALT_CONF_LABEL.get(label, label)
+                changed += label != conf[tid]
+                conf[tid] = label
+        notes["conference_fixes"] = changed
     name = {}
     for side in ("home", "away"):
         for tid, loc in zip(sched[f"{side}_id"], sched[f"{side}_location"]):
@@ -164,8 +187,8 @@ def build_season(season, talent_lists):
     def tier(t):
         if not has_talent:
             return None
-        r = talent_rank.get(t)
-        return 3 if r is None else 1 if r <= 25 else 2 if r <= 50 else 3
+        r = talent_rank.get(t)  # FCS teams and teams 247 does not list land in 76+
+        return 4 if r is None else 1 if r <= 25 else 2 if r <= 50 else 3 if r <= 75 else 4
 
     # ------------------------------------------------------------ games
     done = sched[sched.season_type.isin([2, 3]) & (sched.status_type_completed == True)].copy()  # noqa: E712
@@ -249,7 +272,7 @@ def build_season(season, talent_lists):
 
     # ------------------------------------------------------------ records and game log
     def blank():
-        return dict(n=0, w=0, l=0, pw=0, pl=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0]},
+        return dict(n=0, w=0, l=0, pw=0, pl=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]},
                     margin=0, cn=0, lead=0.0, tied=0.0, trail=0.0, avg=0.0, ng=0.0, nt=0, cb=0, bl=0)
 
     season_tot, by_site, rows = {}, {}, []
@@ -316,7 +339,8 @@ def build_season(season, talent_lists):
                 "vs_cur_ranked_w": b["cw"], "vs_cur_ranked_l": b["cl"],
                 **({"vs_talent_t1_w": b["t"][1][0], "vs_talent_t1_l": b["t"][1][1], "vs_talent_t2_w": b["t"][2][0], "vs_talent_t2_l": b["t"][2][1]}
                    if has_talent else {"vs_talent_t1_w": None, "vs_talent_t1_l": None, "vs_talent_t2_w": None, "vs_talent_t2_l": None}),
-                "vs_talent_t3_w": b["t"][3][0] if has_talent else None, "vs_talent_t3_l": b["t"][3][1] if has_talent else None}
+                "vs_talent_t3_w": b["t"][3][0] if has_talent else None, "vs_talent_t3_l": b["t"][3][1] if has_talent else None,
+                "vs_talent_t4_w": b["t"][4][0] if has_talent else None, "vs_talent_t4_l": b["t"][4][1] if has_talent else None}
 
     power = power_conferences(season)
     out = []
