@@ -103,3 +103,15 @@
 .cfb .box-cat .cfb-scroll { margin: 4px 0; }
 .cfb .box-p th.l { min-width: 13em; }
 .cfb-t tbody tr.totrow td { background: #e8edf3; font-weight: bold; border-top: 1px solid #b8c0ca; }
+
+/* resume builder */
+.cfb .resume { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 800px) { .cfb .resume { grid-template-columns: 1fr; } }
+.cfb .resume .q { margin: 0 0 10px; }
+.cfb .resume .q-text { font-weight: bold; margin-bottom: 3px; }
+.cfb .resume .q-opts { display: flex; flex-wrap: wrap; gap: 4px; }
+.cfb .resume .q-opts button { font: inherit; font-size: 12px; padding: 3px 8px; border: 1px solid #b8c0ca; background: #fff; color: #0645ad; cursor: pointer; border-radius: 2px; }
+.cfb .resume .q-opts button.on { background: #0645ad; color: #fff; border-color: #0645ad; }
+.cfb button.linkbtn { font: inherit; background: none; border: none; padding: 0; color: #0645ad; cursor: pointer; }
+.cfb button.linkbtn:hover { text-decoration: underline; }
+.cfb-t tbody tr.inrow td { background: #e6f0e0; }

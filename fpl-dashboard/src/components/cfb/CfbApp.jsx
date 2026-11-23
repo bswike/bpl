@@ -3,6 +3,7 @@ import { NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import About from './About';
 import Game from './Game';
 import Player from './Player';
+import Resume from './Resume';
 import Team from './Team';
 import { Control, Ratings } from './pages';
 import { useCfb } from './data';
@@ -12,6 +13,7 @@ import './cfb.css';
 const NAV = [
   ['/cfb', 'Ratings', true],
   ['/cfb/control', 'Game Control'],
+  ['/cfb/resume', 'Resume Builder'],
   ['/cfb/about', 'About'],
 ];
 
@@ -52,6 +54,7 @@ export default function CfbApp() {
         <Routes>
           <Route index element={<Ratings />} />
           <Route path="control" element={<Control />} />
+          <Route path="resume" element={<Resume />} />
           <Route path="team/:id" element={<Team />} />
           <Route path="game/:gameId" element={<Game />} />
           <Route path="player/:id" element={<Player />} />
