@@ -72,4 +72,9 @@ if (existsSync(BOX)) {
 // ---- player season totals and game logs, sharded by athlete id (also from boxscores.py)
 if (existsSync(PLAYERS)) cpSync(PLAYERS, join(OUT, 'players'), { recursive: true });
 
+// ---- Resume Builder agendas (answers that best serve one goal); ~1 minute of searching
+const { buildAgendas } = await import('./cfb-agendas.mjs');
+const agendas = buildAgendas(read('resume'));
+write('resume_agendas.json', agendas);
+
 console.log(`cfb-export: ${teams.length} teams, ${byTeam.size} game logs, ${hist.size} team histories, ${boxes} box score files -> ${OUT}`);

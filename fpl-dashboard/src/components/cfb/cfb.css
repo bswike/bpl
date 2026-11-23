@@ -130,3 +130,5 @@
 .cfb-t tbody tr.secrow td { background: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #666; padding-top: 8px; border-bottom: 1px solid #ccc; }
 .cfb-t td.bestcell { font-weight: bold; }
 .cfb .compare-games { display: flex; flex-wrap: wrap; gap: 0 18px; align-items: flex-start; }
+.cfb .resume .agenda select { font: inherit; font-size: 12px; max-width: 100%; }
+.cfb .resume .agenda { padding-bottom: 8px; border-bottom: 1px solid #ddd; }

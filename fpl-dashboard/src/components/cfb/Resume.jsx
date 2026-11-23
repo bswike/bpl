@@ -6,7 +6,8 @@ import Compare from './Compare';
 import { Status } from './ui';
 
 export default function Resume() {
-  const { data, error } = useCfb('resume', 'teams');
+  const { data, error } = useCfb('resume', 'teams', 'resume_agendas');
+  const [agenda, setAgenda] = useState(null); // {label, s, result} of the last agenda applied
   const [params, setParams] = useSearchParams();
   const [showAll, setShowAll] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -34,6 +35,24 @@ export default function Resume() {
   const fpiAsOf = d.fpi_as_of ? fmtDate(d.fpi_as_of) : null;
 
   const choose = (qi, oi) => setAnswers((a) => a.map((x, i) => (i === qi ? oi : x)));
+
+  // ---- agendas: answers precomputed (scripts/cfb-agendas.mjs) to best serve one goal
+  const ag = data.resume_agendas;
+  const nameOf = new Map(d.teams.map((t) => [t.id, t.team]));
+  const byName = (a, b) => nameOf.get(Number(a)).localeCompare(nameOf.get(Number(b)));
+  const applyAgenda = (value) => {
+    if (!value) { setAgenda(null); return; }
+    const [kind, key] = value.split(':');
+    const entry = ag[kind]?.[key];
+    if (!entry) return;
+    const label = kind === 'team' ? `Make ${nameOf.get(Number(key))} look good`
+      : kind === 'hate' ? `Hate ${nameOf.get(Number(key))}` : `${key} agenda`;
+    const result = kind === 'team' ? `best possible rank, #${entry.rank}`
+      : kind === 'hate' ? `worst possible rank, #${entry.rank}` : `${entry.top12} of ${entry.teams} ${key} teams in the top ${PLAYOFF}`;
+    setAnswers(parseAnswers(entry.s));
+    setAgenda({ value, label, s: entry.s, result });
+  };
+  const agendaEdited = agenda && answersToParam(answers) !== agenda.s;
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -49,6 +68,26 @@ export default function Resume() {
       <p className="note">Answer the questions; your rankings update as you go. Games through {fmtDate(d.games_through)}.</p>
       <div className="resume">
         <div className="resume-q">
+          <div className="q agenda">
+            <div className="q-text">Do you have an agenda?</div>
+            <select value={agenda?.value ?? ''} onChange={(e) => applyAgenda(e.target.value)} aria-label="Pick an agenda">
+              <option value="">No agenda</option>
+              <optgroup label="Make a team look good">
+                {Object.keys(ag.team).sort(byName).map((id) => <option key={id} value={`team:${id}`}>{nameOf.get(Number(id))}</option>)}
+              </optgroup>
+              <optgroup label="Conference agenda">
+                {Object.keys(ag.conf).map((c) => <option key={c} value={`conf:${c}`}>{c} agenda</option>)}
+              </optgroup>
+              <optgroup label="Hate a team">
+                {Object.keys(ag.hate).sort(byName).map((id) => <option key={id} value={`hate:${id}`}>Hate {nameOf.get(Number(id))}</option>)}
+              </optgroup>
+            </select>
+            {agenda && (
+              <div className="note">
+                {agenda.label} → {agenda.result}.{agendaEdited ? ' You’ve changed answers since.' : ''}
+              </div>
+            )}
+          </div>
           {QUESTIONS.map((q, qi) => (
             <div key={q.key} className="q">
               {(qi === 0 || QUESTIONS[qi - 1].sec !== q.sec) && <div className="q-sec">{q.sec}</div>}
@@ -67,7 +106,7 @@ export default function Resume() {
           <p className="links">
             <button type="button" className="linkbtn" onClick={copyLink}>{copied ? 'Link copied' : 'Copy link to my rankings'}</button>
             {' | '}
-            <button type="button" className="linkbtn" onClick={() => setAnswers([...DEFAULT])}>Reset</button>
+            <button type="button" className="linkbtn" onClick={() => { setAnswers([...DEFAULT]); setAgenda(null); }}>Reset</button>
           </p>
         </div>
 

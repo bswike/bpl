@@ -57,6 +57,7 @@ bash pipeline/fetch_history.sh  # past-season feeds (once); python pipeline/hist
 bash pipeline/fetch_box.sh 2026 # box score feeds (data/raw/box, git-ignored); python pipeline/boxscores.py writes data/box and data/players
 python pipeline/resume.py      # Resume Builder inputs (needs data/raw/box/player_box_2026.parquet)
 node ../fpl-dashboard/scripts/cfb-export.mjs   # copy everything into the site (public/data/cfb)
+                               # (also precomputes Resume Builder agendas, ~1 minute: scripts/cfb-agendas.mjs)
 ```
 
 The build runs without the play-by-play file by using the cache in `data/derived/`. It stops with a clear
