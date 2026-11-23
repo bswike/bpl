@@ -4,12 +4,14 @@ import { fmtDate, rec, useCfb } from './data';
 import { DEFAULT, PLAYOFF, QUESTIONS, SCALE, answersToParam, migrateOldAnswers, parseAnswers, rankTeams } from './resumeModel';
 import Compare from './Compare';
 import { CONF_GROUPS, makeFast, searchAgenda } from './resumeFast';
+import { barSpiel } from './spiel';
 import { Status } from './ui';
 
 export default function Resume() {
   const { data, error } = useCfb('resume', 'teams', 'resume_agendas');
   const [goals, setGoals] = useState({ love: '', hate: '', loveConf: '', hateConf: '' }); // agenda dropdowns
   const [agenda, setAgenda] = useState(null); // { s, parts, working } for the agenda last applied
+  const [showSpiel, setShowSpiel] = useState(false); // the bar spiel is hidden until asked for
   const [params, setParams] = useSearchParams();
   const [showAll, setShowAll] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -54,6 +56,7 @@ export default function Resume() {
   ].filter(Boolean);
   const runAgenda = (g) => {
     setGoals(g);
+    setShowSpiel(false);
     const chosen = precomputed(g);
     if (!chosen.length) { setAgenda(null); return; }
     if (chosen.length === 1) {
@@ -76,6 +79,12 @@ export default function Resume() {
   };
   const pickGoal = (key, value) => runAgenda({ ...goals, [key]: value });
   const agendaEdited = agenda && !agenda.working && answersToParam(answers) !== agenda.s;
+  const resetAll = () => {
+    setAnswers([...DEFAULT]);
+    setAgenda(null);
+    setShowSpiel(false);
+    setGoals({ love: '', hate: '', loveConf: '', hateConf: '' });
+  };
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -87,7 +96,10 @@ export default function Resume() {
 
   return (
     <>
-      <h2>Resume Builder</h2>
+      <h2 className="with-link">
+        Resume Builder{' '}
+        <button type="button" className="linkbtn" onClick={resetAll} title="Set every answer back to 3 and clear any agenda">Reset to all 3s</button>
+      </h2>
       <p className="note">Answer the questions; your rankings update as you go. Games through {fmtDate(d.games_through)}.</p>
       <div className="resume">
         <div className="resume-q">
@@ -125,6 +137,14 @@ export default function Resume() {
                 {agendaEdited ? ' You’ve changed answers since.' : ''}
               </div>
             )}
+            {agenda && !agenda.working && (
+              <div className="spiel">
+                <button type="button" className="linkbtn" onClick={() => setShowSpiel((x) => !x)} aria-expanded={showSpiel}>
+                  {showSpiel ? 'Your bar spiel ▾' : 'Your bar spiel ▸'}
+                </button>
+                {showSpiel && <p>{barSpiel({ goals, answers, ranked, teams: d.teams, groups: CONF_GROUPS })}</p>}
+              </div>
+            )}
           </div>
           {QUESTIONS.map((q, qi) => (
             <div key={q.key} className="q">
@@ -144,7 +164,7 @@ export default function Resume() {
           <p className="links">
             <button type="button" className="linkbtn" onClick={copyLink}>{copied ? 'Link copied' : 'Copy link to my rankings'}</button>
             {' | '}
-            <button type="button" className="linkbtn" onClick={() => { setAnswers([...DEFAULT]); setAgenda(null); setGoals({ love: '', hate: '', loveConf: '', hateConf: '' }); }}>Reset</button>
+            <button type="button" className="linkbtn" onClick={resetAll}>Reset</button>
           </p>
         </div>
 
