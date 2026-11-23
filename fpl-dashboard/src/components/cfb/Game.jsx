@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { PLAYER_CATS, fmtDate, teamHref, useCfb } from './data';
+import { BOX_SHARDS, PLAYER_CATS, fmtDate, teamHref, useCfb } from './data';
 import { Status } from './ui';
 
 function TeamName({ side, season }) {
@@ -36,15 +36,15 @@ function PlayerTable({ title, cols, rows, season }) {
 
 export default function Game() {
   const { gameId } = useParams();
-  const key = `box/${Number(gameId)}`;
+  const key = `box/${Number(gameId) % BOX_SHARDS}`;
   const { data, error } = useCfb(key);
-  const b = data?.[key];
+  const b = data?.[key]?.[String(Number(gameId))];
 
   useEffect(() => {
     if (b) document.title = `${b.away.name} ${b.away.score}, ${b.home.name} ${b.home.score} · CFB`;
   }, [b]);
 
-  if (error) return <p>No box score for game {gameId}. <Link to="/cfb">Back to ratings</Link></p>;
+  if (error || (data && !b)) return <p>No box score for game {gameId}. <Link to="/cfb">Back to ratings</Link></p>;
   if (!b) return <Status />;
 
   const { away, home, season } = b;

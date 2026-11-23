@@ -143,7 +143,10 @@ def build_game_control(pbp_path, completed_games: pd.DataFrame, strict: bool = T
         end_reg = official[4][0] - official[4][1]
         max_m, min_m = max(max_m, fh - fa, end_reg), min(min_m, fh - fa, end_reg)
         if abs(lead + tied + trail - 3600) > 1e-6:
-            raise ValueError(f"timeline for game {gid} does not cover 60 minutes")
+            if strict:
+                raise ValueError(f"timeline for game {gid} does not cover 60 minutes")
+            notes["skipped_games"].append(int(gid))
+            continue
 
         for team, opp, sign in ((home, away, 1), (away, home, -1)):
             rows.append({

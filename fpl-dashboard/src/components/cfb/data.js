@@ -65,7 +65,8 @@ export function filterTeams(rows, params, teamsById) {
 // ---- shared constants -----------------------------------------------------------
 
 export const CURRENT_SEASON = 2026;
-export const PLAYER_SHARDS = 500; // players/<athlete id % 500>.json, see cfb/pipeline/boxscores.py
+export const BOX_SHARDS = 2000; // box/<game id % 2000>.json, see cfb/pipeline/boxscores.py
+export const PLAYER_SHARDS = 1000; // players/<athlete id % 1000>.json, see cfb/pipeline/boxscores.py
 
 export const PLAYER_CATS = [
   ['passing', 'Passing'],

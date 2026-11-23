@@ -4,9 +4,9 @@
     bash pipeline/fetch_box.sh      # ESPN team/player box scores and quarter scores into data/raw/box
     python pipeline/boxscores.py    # after build.py and history.py
 
-Writes data/box/<game_id>.json for every game in data/json/games.json (2026) and data/history/games.json
+Writes data/box/<game_id % 2000>.json ({game_id: box score}) for every game in data/json/games.json (2026) and data/history/games.json
 (2020-2025), and data/players/<shard>.json with every player's season totals and game logs (shard = athlete id
-mod 500, so a player page loads one ~100 KB file instead of 33,000 separate files). Box score:
+mod 1000, so a player page loads one ~100 KB file instead of ~70,000 separate files). Box score:
 
     {game_id, season, date, week, season_type, note, venue, neutral,
      away: {id, name, score, fbs, lines: [q1, q2, ...]}, home: {...},
@@ -31,8 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw" / "box"
 OUT = ROOT / "data" / "box"
 PLAYERS = ROOT / "data" / "players"
-SHARDS = 500
-SEASONS = range(2020, 2027)
+SHARDS = 1000
+BOX_SHARDS = 2000  # box scores are grouped too: data/box/<game_id % 2000>.json, ~35 KB each
+SEASONS = range(2004, 2027)
 
 TEAM_STATS = [
     ("First downs", "firstDowns"),
@@ -178,6 +179,7 @@ def main():
         d.mkdir(parents=True, exist_ok=True)
         for old in d.glob("*.json"):
             old.unlink()
+    box_shards = {}
     players = {}  # athlete id -> {"name", "seasons": {season: {"teams": {}, "games": {}, "cats": {}}}}
     written, no_lines, missing = 0, 0, []
     for season in SEASONS:
@@ -264,9 +266,11 @@ def main():
                 "venue": first.get("venue"), "neutral": neutral,
                 "away": sides["away"], "home": sides["home"], "team_stats": team_stats, "players": out_players,
             }
-            (OUT / f"{gid}.json").write_text(json.dumps(out, separators=(",", ":"), ensure_ascii=False))
+            box_shards.setdefault(gid % BOX_SHARDS, {})[str(gid)] = out
             written += 1
-    print(f"Wrote {written} box scores to {OUT}; {no_lines} without usable quarter scores; {len(missing)} games with no team box score")
+    for k, data in box_shards.items():
+        (OUT / f"{k}.json").write_text(json.dumps(data, separators=(",", ":"), ensure_ascii=False))
+    print(f"Wrote {written} box scores in {len(box_shards)} files to {OUT}; {no_lines} without usable quarter scores; {len(missing)} games with no team box score")
     if missing:
         warn(f"no team box score for {len(missing)} games, e.g. {missing[:5]}")
 

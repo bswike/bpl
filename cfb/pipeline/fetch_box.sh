@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Download team and player box scores plus quarter scores into data/raw/box (not committed; ~6 MB).
-#   bash pipeline/fetch_box.sh            # 2020-2026
+#   bash pipeline/fetch_box.sh            # 2004-2026
 #   bash pipeline/fetch_box.sh 2026       # just this season (after new games)
 # Then run: python pipeline/boxscores.py
 set -euo pipefail
 
 SEASONS=("$@")
-[ ${#SEASONS[@]} -eq 0 ] && SEASONS=(2020 2021 2022 2023 2024 2025 2026)
+[ ${#SEASONS[@]} -eq 0 ] && SEASONS=($(seq 2004 2026))
 RAW="$(cd "$(dirname "$0")/.." && pwd)/data/raw/box"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT

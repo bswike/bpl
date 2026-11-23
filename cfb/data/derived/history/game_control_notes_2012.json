@@ -1,0 +1,10 @@
+{
+  "games": 823,
+  "games_with_untimed_points": 27,
+  "untimed_points": 312,
+  "overtime_games": 45,
+  "skipped_games": [
+    322520052,
+    322870008
+  ]
+}

@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import SortTable from './SortTable';
 import { filterTeams, num, signed, useCfb } from './data';
 import {
-  colAvgLead, colConf, colLead, colNg, colRecord, colT50, colTeam, colTied, colTrail, splitCols, teamStatCols,
+  colAvgLead, colConf, colLead, colNg, colRecord, colT50, colTeam, colTied, colTrail, teamStatCols,
 } from './columns';
 import { ConfFilter, ProjectedNote, Status } from './ui';
 
@@ -67,57 +67,3 @@ export function Control() {
     </>
   );
 }
-
-// ---- Home / away / neutral ---------------------------------------------------
-
-const SITES = ['Home', 'Away', 'Neutral'];
-
-export function Splits() {
-  const { data, error } = useCfb('teams', 'home_away_splits', 'meta');
-  const [params] = useSearchParams();
-  const site = SITES.includes(params.get('site')) ? params.get('site') : 'Home';
-  const teamsById = useMemo(() => new Map((data?.teams || []).map((t) => [t.team_id, t])), [data]);
-  if (!data) return <Status error={error} />;
-
-  const siteRows = data.home_away_splits.filter((r) => r.site === site);
-  const columns = [
-    colT50((r) => teamsById.get(r.team_id)?.top50_basis),
-    colTeam,
-    colConf(),
-    { key: 'g', label: 'G', desc: true, value: (r) => r.games },
-    colRecord('wl', 'W-L', 'wins', 'losses'),
-    ...splitCols(data.meta.latest_poll),
-    colLead,
-    colTrail,
-    colAvgLead,
-    { ...colNg, title: 'Margin per game with garbage time removed' },
-  ];
-  const siteHref = (s) => {
-    const p = new URLSearchParams(params);
-    p.set('site', s);
-    return `/cfb/splits?${p}`;
-  };
-  return (
-    <>
-      <h2>Home / Away / Neutral</h2>
-      <p className="links">
-        {SITES.map((s, i) => (
-          <span key={s}>
-            {i > 0 && ' | '}
-            {s === site ? <b>{s}</b> : <Link to={siteHref(s)}>{s}</Link>}
-          </span>
-        ))}
-      </p>
-      <ConfFilter />
-      <SortTable
-        key={`${site}|${params}`}
-        columns={columns}
-        rows={filterTeams(siteRows, params, teamsById)}
-        rankRows={siteRows}
-        defaultSort={{ key: 'wl', dir: 'desc' }}
-        rowClass={(r) => projRow(teamsById.get(r.team_id) || {})}
-      />
-    </>
-  );
-}
-

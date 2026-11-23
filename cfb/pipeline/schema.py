@@ -115,6 +115,8 @@ SCHEMA = {
         "points_against": "Points allowed.",
         "margin": "points_for - points_against.",
         "overtime": "True if the game went to overtime.",
+        "ap_rank_in": "The row team's AP rank going into the game (the poll in effect that week), empty if unranked.",
+        "cfp_rank_in": "The row team's CFP committee rank going into the game, empty if unranked or before the first ranking.",
         "opp_ever_ap_ranked": "True if the opponent appeared in any 2026 AP Top 25.",
         "opp_cur_rank": "Opponent's rank in the latest poll (AP or CFP, whichever was released last), empty if unranked.",
         "opp_talent_rank": "Opponent's 247Sports talent composite rank, empty for FCS opponents.",

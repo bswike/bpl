@@ -59,7 +59,7 @@ export default function About() {
 
       <h3>Past seasons (team pages)</h3>
       <p>
-        Each team page has a season row and a season-by-season table for 2020-2025, built with the same definitions,
+        Each team page has a season row and a season-by-season table for 2004-2025, built with the same definitions,
         with three differences that suit a finished season:
       </p>
       <ul>

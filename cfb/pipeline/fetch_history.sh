@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Download the feeds for past seasons into data/raw/history (not committed; about 330 MB with play-by-play).
-#   bash pipeline/fetch_history.sh            # 2020-2025
+#   bash pipeline/fetch_history.sh            # 2004-2025
 #   bash pipeline/fetch_history.sh 2023 2024  # just these seasons
 # Then run: python pipeline/history.py
 set -euo pipefail
 
 SEASONS=("$@")
-[ ${#SEASONS[@]} -eq 0 ] && SEASONS=(2020 2021 2022 2023 2024 2025)
+[ ${#SEASONS[@]} -eq 0 ] && SEASONS=($(seq 2004 2025))
 RAW="$(cd "$(dirname "$0")/.." && pwd)/data/raw/history"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT

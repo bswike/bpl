@@ -1,9 +1,406 @@
 {
-  "built_at_utc": "2026-11-23T13:07Z",
+  "built_at_utc": "2026-11-23T14:00Z",
   "seasons": {
+    "2004": {
+      "season": 2004,
+      "games_filled_from_second_source": 595,
+      "fbs_teams": 117,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 707,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 42,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 463,
+        "games_with_untimed_points": 3,
+        "untimed_points": 5,
+        "overtime_games": 22,
+        "skipped_games": [],
+        "games_without_control": 244
+      }
+    },
+    "2005": {
+      "season": 2005,
+      "games_filled_from_second_source": 609,
+      "fbs_teams": 119,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 718,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 43,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 596,
+        "games_with_untimed_points": 19,
+        "untimed_points": 153,
+        "overtime_games": 36,
+        "skipped_games": [],
+        "games_without_control": 122
+      }
+    },
+    "2006": {
+      "season": 2006,
+      "games_filled_from_second_source": 617,
+      "fbs_teams": 119,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 792,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 39,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 683,
+        "games_with_untimed_points": 11,
+        "untimed_points": 146,
+        "overtime_games": 31,
+        "skipped_games": [],
+        "games_without_control": 109
+      }
+    },
+    "2007": {
+      "season": 2007,
+      "games_filled_from_second_source": 671,
+      "fbs_teams": 120,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 798,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 46,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 706,
+        "games_with_untimed_points": 57,
+        "untimed_points": 933,
+        "overtime_games": 33,
+        "skipped_games": [
+          273352440
+        ],
+        "games_without_control": 92
+      }
+    },
+    "2008": {
+      "season": 2008,
+      "games_filled_from_second_source": 674,
+      "fbs_teams": 120,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 807,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 17,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 51,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 776,
+        "games_with_untimed_points": 32,
+        "untimed_points": 515,
+        "overtime_games": 31,
+        "skipped_games": [],
+        "games_without_control": 31
+      }
+    },
+    "2009": {
+      "season": 2009,
+      "games_filled_from_second_source": 660,
+      "fbs_teams": 120,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 808,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 44,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 790,
+        "games_with_untimed_points": 27,
+        "untimed_points": 349,
+        "overtime_games": 27,
+        "skipped_games": [],
+        "games_without_control": 18
+      }
+    },
+    "2010": {
+      "season": 2010,
+      "games_filled_from_second_source": 654,
+      "fbs_teams": 120,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 808,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 46,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 786,
+        "games_with_untimed_points": 31,
+        "untimed_points": 275,
+        "overtime_games": 29,
+        "skipped_games": [],
+        "games_without_control": 22
+      }
+    },
+    "2011": {
+      "season": 2011,
+      "games_filled_from_second_source": 775,
+      "fbs_teams": 120,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 812,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 41,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 801,
+        "games_with_untimed_points": 34,
+        "untimed_points": 308,
+        "overtime_games": 34,
+        "skipped_games": [
+          312460130,
+          312600239
+        ],
+        "games_without_control": 11
+      }
+    },
+    "2012": {
+      "season": 2012,
+      "games_filled_from_second_source": 594,
+      "fbs_teams": 124,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 847,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 47,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 823,
+        "games_with_untimed_points": 27,
+        "untimed_points": 312,
+        "overtime_games": 45,
+        "skipped_games": [
+          322520052,
+          322870008
+        ],
+        "games_without_control": 24
+      }
+    },
+    "2013": {
+      "season": 2013,
+      "games_filled_from_second_source": 786,
+      "fbs_teams": 126,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 857,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 17,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 41,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 855,
+        "games_with_untimed_points": 13,
+        "untimed_points": 126,
+        "overtime_games": 35,
+        "skipped_games": [],
+        "games_without_control": 2
+      }
+    },
+    "2014": {
+      "season": 2014,
+      "games_filled_from_second_source": 719,
+      "fbs_teams": 128,
+      "talent_last_updated": null,
+      "talent_unranked_fbs": null,
+      "completed_games": 868,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 17,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 42,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 851,
+        "games_with_untimed_points": 2,
+        "untimed_points": 83,
+        "overtime_games": 33,
+        "skipped_games": [],
+        "games_without_control": 17
+      }
+    },
+    "2015": {
+      "season": 2015,
+      "games_filled_from_second_source": 899,
+      "fbs_teams": 128,
+      "talent_last_updated": "2017-06-21",
+      "talent_unranked_fbs": [],
+      "completed_games": 870,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 46,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 863,
+        "games_with_untimed_points": 2,
+        "untimed_points": 17,
+        "overtime_games": 36,
+        "skipped_games": [],
+        "games_without_control": 7
+      }
+    },
+    "2016": {
+      "season": 2016,
+      "games_filled_from_second_source": 735,
+      "fbs_teams": 128,
+      "talent_last_updated": "2017-06-21",
+      "talent_unranked_fbs": [],
+      "completed_games": 873,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 46,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 855,
+        "games_with_untimed_points": 5,
+        "untimed_points": 82,
+        "overtime_games": 40,
+        "skipped_games": [
+          400869605
+        ],
+        "games_without_control": 18
+      }
+    },
+    "2017": {
+      "season": 2017,
+      "games_filled_from_second_source": 677,
+      "fbs_teams": 130,
+      "talent_last_updated": "2017-09-20",
+      "talent_unranked_fbs": [],
+      "completed_games": 874,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 44,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 868,
+        "games_with_untimed_points": 1,
+        "untimed_points": 3,
+        "overtime_games": 34,
+        "skipped_games": [
+          400941816
+        ],
+        "games_without_control": 6
+      }
+    },
+    "2018": {
+      "season": 2018,
+      "games_filled_from_second_source": 738,
+      "fbs_teams": 130,
+      "talent_last_updated": "2018-10-11",
+      "talent_unranked_fbs": [],
+      "completed_games": 884,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 16,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 54,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 881,
+        "games_with_untimed_points": 2,
+        "untimed_points": 4,
+        "overtime_games": 33,
+        "skipped_games": [],
+        "games_without_control": 3
+      }
+    },
+    "2019": {
+      "season": 2019,
+      "games_filled_from_second_source": 735,
+      "fbs_teams": 130,
+      "talent_last_updated": "2019-09-29",
+      "talent_unranked_fbs": [],
+      "completed_games": 888,
+      "ap_preseason_source": "poll feed",
+      "ap_polls": 17,
+      "ap_final": "post-bowl poll",
+      "teams_ap_ranked": 47,
+      "latest_poll": {
+        "poll": "AP",
+        "label": "post-bowl poll"
+      },
+      "game_control": {
+        "games": 887,
+        "games_with_untimed_points": 6,
+        "untimed_points": 55,
+        "overtime_games": 29,
+        "skipped_games": [],
+        "games_without_control": 1
+      }
+    },
     "2020": {
       "season": 2020,
-      "fbs_teams": 130,
+      "games_filled_from_second_source": 25,
+      "fbs_teams": 127,
       "talent_last_updated": "2020-11-09",
       "talent_unranked_fbs": [],
       "completed_games": 568,
@@ -22,15 +419,11 @@
         "overtime_games": 21,
         "skipped_games": [],
         "games_without_control": 5
-      },
-      "fbs_teams_without_games": [
-        "New Mexico State",
-        "Old Dominion",
-        "UConn"
-      ]
+      }
     },
     "2021": {
       "season": 2021,
+      "games_filled_from_second_source": 1567,
       "fbs_teams": 130,
       "talent_last_updated": "2021-10-04",
       "talent_unranked_fbs": [],
@@ -54,7 +447,7 @@
     },
     "2022": {
       "season": 2022,
-      "games_filled_from_second_source": 137,
+      "games_filled_from_second_source": 2946,
       "fbs_teams": 131,
       "talent_last_updated": "2022-12-04",
       "talent_unranked_fbs": [
@@ -81,6 +474,7 @@
     },
     "2023": {
       "season": 2023,
+      "games_filled_from_second_source": 2813,
       "fbs_teams": 133,
       "talent_last_updated": "2023-09-18",
       "talent_unranked_fbs": [
@@ -108,6 +502,7 @@
     },
     "2024": {
       "season": 2024,
+      "games_filled_from_second_source": 2880,
       "fbs_teams": 134,
       "talent_last_updated": "2024-08-27",
       "talent_unranked_fbs": [
@@ -137,6 +532,7 @@
     },
     "2025": {
       "season": 2025,
+      "games_filled_from_second_source": 2895,
       "fbs_teams": 136,
       "talent_last_updated": "2025-08-27",
       "talent_unranked_fbs": [

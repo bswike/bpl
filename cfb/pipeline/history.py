@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Past seasons (2020-2025) for the team history pages.
+"""Past seasons (2004-2025) for the team history pages.
 
     bash pipeline/fetch_history.sh   # once: feeds into data/raw/history (not committed)
     python pipeline/history.py
@@ -31,7 +31,7 @@ MANUAL = ROOT / "data" / "manual"
 DERIVED = ROOT / "data" / "derived" / "history"
 OUT = ROOT / "data" / "history"
 
-SEASONS = list(range(2020, 2026))
+SEASONS = list(range(2004, 2026))
 ET = ZoneInfo("America/New_York")
 CONF_LABEL = {"CUSA": "C-USA", "FBS Indep.": "Ind"}
 NOTRE_DAME = 87
@@ -58,7 +58,11 @@ def norm(s):
 
 
 def power_conferences(season):
-    return {"ACC", "Big 12", "Big Ten", "SEC"} | ({"Pac-12"} if season <= 2023 else set())
+    """BCS automatic-qualifier conferences through 2013 (Big East included), Power 5 2014-2023, Power 4 after."""
+    base = {"ACC", "Big 12", "Big Ten", "SEC"}
+    if season <= 2013:
+        return base | {"Pac-12", "Big East"}
+    return base | ({"Pac-12"} if season <= 2023 else set())
 
 
 def load_talent():
@@ -82,7 +86,9 @@ def fill_missing_games(season, sched):
         warn(f"{season}: no second schedule source; run pipeline/fetch_history.sh")
         return sched, 0
     alt = pd.read_parquet(alt_path)
-    alt = alt[(alt.completed == True) & alt.season_type.isin(["regular", "postseason"]) & (alt.fbs_participant == True)]  # noqa: E712
+    # no fbs_participant filter: it misses teams moving up to FBS (Old Dominion 2013); FBS games are picked later
+    alt = alt[(alt.completed == True) & alt.season_type.isin(["regular", "postseason"])  # noqa: E712
+              & alt.home_points.notna() & alt.away_points.notna()]
     alt = alt[~alt.game_id.astype(int).isin(set(sched.id.astype(int)))]
     if alt.empty:
         return sched, 0
@@ -119,6 +125,10 @@ def build_season(season, talent_lists):
     # ------------------------------------------------------------ FBS teams and names
     # is_fbs also flags all-star teams; they have no conference.
     fbs_rows = teams[(teams.is_fbs == True) & teams.conference_short_name.notna()]  # noqa: E712
+    # ...and some seasons (2015) flag all-star squads with a conference too, so keep teams that played a game.
+    played = sched[sched.season_type.isin([2, 3]) & (sched.status_type_completed == True)]  # noqa: E712
+    played = set(played.home_id.astype(int)) | set(played.away_id.astype(int))
+    fbs_rows = fbs_rows[fbs_rows.team_id.isin(played)]
     fbs = set(fbs_rows.team_id)
     conf = {int(r.team_id): CONF_LABEL.get(r.conference_short_name, r.conference_short_name) for r in fbs_rows.itertuples()}
     name = {}
@@ -130,7 +140,8 @@ def build_season(season, talent_lists):
     notes["fbs_teams"] = len(fbs)
 
     # ------------------------------------------------------------ talent (247 composite, re-ranked among FBS)
-    updated, order = talent_lists[season]
+    has_talent = season in talent_lists  # 247's composite starts in 2015
+    updated, order = talent_lists.get(season, (None, []))
     lookup = {}
     for r in fbs_rows.itertuples():
         for v in (r.location, r.short_display_name, r.school, r.nickname, getattr(r, "alt_name1", None), getattr(r, "alt_name2", None), getattr(r, "alt_name3", None)):
@@ -148,9 +159,11 @@ def build_season(season, talent_lists):
         seen.add(tid)
         talent_rank[tid] = len(talent_rank) + 1
     notes["talent_last_updated"] = updated
-    notes["talent_unranked_fbs"] = sorted(name[t] for t in fbs - set(talent_rank))
+    notes["talent_unranked_fbs"] = sorted(name[t] for t in fbs - set(talent_rank)) if has_talent else None
 
     def tier(t):
+        if not has_talent:
+            return None
         r = talent_rank.get(t)
         return 3 if r is None else 1 if r <= 25 else 2 if r <= 50 else 3
 
@@ -192,6 +205,22 @@ def build_season(season, talent_lists):
         cfp["key"] = list(zip(cfp.season_type.astype(int), cfp.week.astype(int)))
         k = max(cfp.key)
         cfp_final = {int(t): int(r) for t, r in zip(cfp[cfp.key == k].team_id, cfp[cfp.key == k]["rank"])}
+
+    # ------------------------------------------------------------ each team's rank going into each game
+    # Poll week N is the poll in effect for week N games (week 1 = preseason). A week with no poll in the feed uses
+    # the most recent earlier one; postseason games use the last regular-season poll / committee ranking.
+    def by_week(df):
+        out = {}
+        for r in df[df.season_type.astype(int) == 2].itertuples():
+            out.setdefault(int(r.week), {})[int(r.team_id)] = int(r.rank)
+        return out
+    ap_week = by_week(ap)
+    ap_week[1] = dict(pre)
+    cfp_week = by_week(cfp) if len(cfp) else {}
+
+    def rank_in(weeks, team, week, post):
+        keys = [k for k in weeks if post or k <= week]
+        return weeks[max(keys)].get(team) if keys else None
 
     # ------------------------------------------------------------ latest poll ("currently ranked")
     # The last poll of the season. The AP poll after the bowls comes out after the committee's final ranking
@@ -247,7 +276,8 @@ def build_season(season, talent_lists):
                 b[("r" if opp in ever_ranked else "u") + ("w" if win else "l")] += 1
                 if opp in cur_rank:
                     b["c" + ("w" if win else "l")] += 1
-                b["t"][tier(opp)][0 if win else 1] += 1
+                if has_talent:
+                    b["t"][tier(opp)][0 if win else 1] += 1
                 b["margin"] += pf - pa
                 if c is not None:
                     b["cn"] += 1
@@ -264,6 +294,7 @@ def build_season(season, talent_lists):
                 team_id=team, team=name[team], opp_id=opp, opp=name.get(opp, str(opp)), opp_is_fbs=opp in fbs,
                 site=site, result="W" if win else "L", points_for=pf, points_against=pa, margin=pf - pa,
                 overtime=bool(c.overtime) if c is not None else None,
+                ap_rank_in=rank_in(ap_week, team, int(g.week), post), cfp_rank_in=rank_in(cfp_week, team, int(g.week), post),
                 opp_ever_ap_ranked=opp in ever_ranked, opp_cur_rank=cur_rank.get(opp), opp_talent_rank=talent_rank.get(opp), opp_talent_tier=tier(opp),
                 led_pct=round(c.lead_s / 3600, 4) if c is not None else None,
                 tied_pct=round(c.tied_s / 3600, 4) if c is not None else None,
@@ -283,8 +314,9 @@ def build_season(season, talent_lists):
     def cats(b):
         return {"vs_ap_ranked_w": b["rw"], "vs_ap_ranked_l": b["rl"], "vs_ap_unranked_w": b["uw"], "vs_ap_unranked_l": b["ul"],
                 "vs_cur_ranked_w": b["cw"], "vs_cur_ranked_l": b["cl"],
-                "vs_talent_t1_w": b["t"][1][0], "vs_talent_t1_l": b["t"][1][1], "vs_talent_t2_w": b["t"][2][0], "vs_talent_t2_l": b["t"][2][1],
-                "vs_talent_t3_w": b["t"][3][0], "vs_talent_t3_l": b["t"][3][1]}
+                **({"vs_talent_t1_w": b["t"][1][0], "vs_talent_t1_l": b["t"][1][1], "vs_talent_t2_w": b["t"][2][0], "vs_talent_t2_l": b["t"][2][1]}
+                   if has_talent else {"vs_talent_t1_w": None, "vs_talent_t1_l": None, "vs_talent_t2_w": None, "vs_talent_t2_l": None}),
+                "vs_talent_t3_w": b["t"][3][0] if has_talent else None, "vs_talent_t3_l": b["t"][3][1] if has_talent else None}
 
     power = power_conferences(season)
     out = []
@@ -330,7 +362,7 @@ def main():
     ts = pd.concat(seasons, ignore_index=True)
     gm = pd.concat(games, ignore_index=True).sort_values(["team", "season", "date"]).reset_index(drop=True)
     nullable = ["ap_pre_rank", "ap_final_rank", "ap_best_rank", "cfp_final_rank", "talent_rank", "lead_pct_rank",
-                "opp_talent_rank", "opp_cur_rank", "biggest_lead", "biggest_deficit", "ng_margin"]
+                "opp_talent_rank", "opp_cur_rank", "ap_rank_in", "cfp_rank_in", "biggest_lead", "biggest_deficit", "ng_margin"]
     for df in (ts, gm):
         for c in nullable:
             if c in df:

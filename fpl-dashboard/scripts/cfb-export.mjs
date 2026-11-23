@@ -65,4 +65,4 @@ if (existsSync(BOX)) {
 // ---- player season totals and game logs, sharded by athlete id (also from boxscores.py)
 if (existsSync(PLAYERS)) cpSync(PLAYERS, join(OUT, 'players'), { recursive: true });
 
-console.log(`cfb-export: ${teams.length} teams, ${byTeam.size} game logs, ${hist.size} team histories, ${boxes} box scores -> ${OUT}`);
+console.log(`cfb-export: ${teams.length} teams, ${byTeam.size} game logs, ${hist.size} team histories, ${boxes} box score files -> ${OUT}`);

@@ -32,10 +32,11 @@ they reacted, then `docs/methodology.md` for how each number is defined and what
 - `pipeline/`: `build.py` regenerates every table; `ratings.py` and `game_control.py` hold the two models;
   `schema.py` holds column descriptions.
 - `docs/metric-ideas.md`: other metrics discussed but not built.
-- `data/box/<game_id>.json`: one box score per completed game 2020-2026 (linescore, team stats, player stats) for the
+- `data/box/<game_id % 2000>.json`: box scores for every completed game 2004-2026, grouped into 2,000 files to stay under
+  the host's file-count limit (linescore, team stats, player stats) for the
   site's game pages, built by `pipeline/boxscores.py` from ESPN's team_box/player_box tables in cfbfastR-cfb-data.
-  Defensive player stats are sparse before 2023 in that feed; 2020 time of possession is blank for ~18% of games.
-- `data/players/<athlete id % 500>.json`: every player's season totals and game logs (same script), sharded so a
+  Defensive player stats are absent before 2016 and sparse until 2023 in that feed; 2020 time of possession is blank for ~18% of games.
+- `data/players/<athlete id % 1000>.json`: every player's season totals and game logs (same script), sharded so a
   player page loads one file. Season totals sum counting stats and recompute averages; QBR is not totalled.
 - `data/history/`: past seasons 2020-2025 (`team_seasons`, `games`, `meta.json`) built by `pipeline/history.py`
   for the team pages. Raw feeds go to `data/raw/history/` (git-ignored, ~330 MB); per-game game control is cached in

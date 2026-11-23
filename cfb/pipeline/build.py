@@ -158,6 +158,18 @@ def main():
     elif last_cfp_week is not None:
         warn(f"published.json checks CFP week {pub_cfp.get('week')} but the feed's latest is week {last_cfp_week}; update data/manual/published.json")
 
+    # ---------------------------------------------------------------- each team's rank going into each game
+    # Poll week N (CFP week N) is the ranking in effect for week N games; a week without one uses the latest earlier.
+    ap_week, cfp_week = {}, {}
+    for r in ap_polls.itertuples():
+        ap_week.setdefault(int(r.poll_week), {})[int(r.team_id)] = int(r.rank)
+    for r in cfp_rankings.itertuples():
+        cfp_week.setdefault(int(r.cfp_week), {})[int(r.team_id)] = int(r.rank)
+
+    def rank_in(weeks, team, week):
+        keys = [k for k in weeks if k <= week]
+        return weeks[max(keys)].get(team) if keys else None
+
     # ---------------------------------------------------------------- latest poll ("currently ranked")
     # Whichever of the AP poll and the CFP ranking was released last. Release dates come from published.json.
     ap_released, cfp_released = pub_ap.get("released"), pub_cfp.get("released") if cfp_checked else None
@@ -217,6 +229,7 @@ def main():
                     game_id=gid, date=date, week=int(g.week), team_id=team, team=name[team], opp_id=opp, opp=name[opp], opp_is_fbs=opp in fbs,
                     site=site, venue=g.venue_full_name if pd.notna(g.venue_full_name) else None, result="W" if win else "L",
                     points_for=pf, points_against=pa, margin=pf - pa, overtime=bool(c.overtime),
+                    ap_rank_in=rank_in(ap_week, team, int(g.week)), cfp_rank_in=rank_in(cfp_week, team, int(g.week)),
                     opp_ever_ap_ranked=opp in ever_ranked, opp_cur_rank=cur_rank.get(opp), opp_talent_rank=talent_rank.get(opp), opp_talent_tier=tier(opp),
                     led_pct=round(c.lead_s / 3600, 4), tied_pct=round(c.tied_s / 3600, 4), trailed_pct=round(c.trail_s / 3600, 4),
                     avg_lead=round(c.avg_lead, 2), biggest_lead=int(c.max_lead), biggest_deficit=int(c.max_deficit), ng_margin=int(c.ng_margin)))
@@ -343,7 +356,7 @@ def main():
     tables = {"team_summary": summary, "top50": top50, "home_away_splits": splits, "games": games,
               "ap_polls": ap_polls, "ap_receiving_votes": ap_receiving, "cfp_rankings": cfp_rankings, "upcoming": upcoming}
     nullable_ints = {"ap_rank", "ap_points", "ap_best_rank", "cfp_rank", "top50_rank", "biggest_deficit_overcome", "biggest_lead_lost",
-                     "opp_talent_rank", "opp_cur_rank", "opp_id", "points", "first_place_votes"}
+                     "opp_talent_rank", "opp_cur_rank", "opp_id", "ap_rank_in", "cfp_rank_in", "points", "first_place_votes"}
     OUT_CSV.mkdir(parents=True, exist_ok=True)
     OUT_JSON.mkdir(parents=True, exist_ok=True)
     for tname, df in tables.items():
