@@ -9,9 +9,11 @@ export const QUESTIONS = [
   { sec: 'Wins', key: 'ranked', q: 'How much extra credit for wins over AP-ranked teams?', lo: 'none', hi: 'big boost', vals: [0, 0.375, 0.75, 1.125, 1.5] },
   { sec: 'Wins', key: 'faded', q: 'How much should a win over a team that’s no longer ranked still count as a ranked win?', lo: 'not at all', hi: 'fully', vals: [0, 0.25, 0.5, 0.75, 1] },
   { sec: 'Wins', key: 'talent', q: 'How much extra credit for wins over teams with top-50 rosters (247 talent)?', lo: 'none', hi: 'big boost', vals: [0, 0.15, 0.3, 0.45, 0.6] },
+  { sec: 'Wins', key: 'weakWin', q: 'How much less should a win over a bad team count? (more so the worse its record)', lo: 'the same', hi: 'barely counts', vals: [0, 0.2, 0.4, 0.6, 0.8] },
   { sec: 'Wins', key: 'road', q: 'How much extra credit for road wins?', lo: 'none', hi: 'a lot', vals: [0, 0.125, 0.25, 0.375, 0.5] },
   { sec: 'Wins', key: 'fcs', q: 'How much should a win over an FCS team count?', lo: 'not at all', hi: 'fully', vals: [0, 0.25, 0.5, 0.75, 1] },
   { sec: 'Losses', key: 'lossBad', q: 'How much more should a loss to a team with a losing record (or FCS) hurt?', lo: 'no more', hi: 'a lot more', vals: [0, 0.375, 0.75, 1.125, 1.5] },
+  { sec: 'Losses', key: 'homeLoss', q: 'How much more should a home loss hurt?', lo: 'no more', hi: 'a lot more', vals: [0, 0.25, 0.5, 0.75, 1] },
   { sec: 'Losses', key: 'goodLoss', q: 'How much should a loss to a ranked team hurt?', lo: 'much less', hi: 'like any loss', vals: [0.4, 0.55, 0.7, 0.85, 1] },
   { sec: 'Schedule', key: 'sos', q: 'How much credit for a tough schedule, win or lose?', lo: 'none', hi: 'a lot', vals: [0, 0.125, 0.25, 0.375, 0.5] },
   { sec: 'Full strength', key: 'qb', q: 'How much less should a win count if the opponent’s starting QB was out?', lo: 'the same', hi: 'much less', vals: [1, 0.9, 0.8, 0.65, 0.5] },
@@ -22,10 +24,20 @@ export const SCALE = 5;
 export const DEFAULT = QUESTIONS.map(() => 2);
 export const PLAYOFF = 12;
 
-/** Answers from the ?s= digits (1-5 per question); anything malformed gives the defaults. */
+// Question order of earlier links (before weakWin and homeLoss were added); their new questions get the default.
+const LEGACY_KEYS = ['winGood', 'ranked', 'faded', 'talent', 'road', 'fcs', 'lossBad', 'goodLoss', 'sos', 'qb', 'ownQb', 'margin'];
+const fromLegacy = (vals) => {
+  const byKey = Object.fromEntries(LEGACY_KEYS.map((k, i) => [k, vals[i]]));
+  return QUESTIONS.map((q, i) => byKey[q.key] ?? DEFAULT[i]);
+};
+
+/** Answers from the ?s= digits (1-5 per question); older 12-question links carry over; anything else gives defaults. */
 export function parseAnswers(s) {
-  if (!s || s.length !== QUESTIONS.length || !/^[1-5]+$/.test(s)) return [...DEFAULT];
-  return [...s].map((c) => Number(c) - 1);
+  if (!s || !/^[1-5]+$/.test(s)) return [...DEFAULT];
+  const a = [...s].map((c) => Number(c) - 1);
+  if (a.length === QUESTIONS.length) return a;
+  if (a.length === LEGACY_KEYS.length) return fromLegacy(a);
+  return [...DEFAULT];
 }
 
 export const answersToParam = (a) => a.map((x) => x + 1).join('');
@@ -34,11 +46,11 @@ export const answersToParam = (a) => a.map((x) => x + 1).join('');
 // the biggest effect first, so they are flipped.
 const OLD_FLIPPED = new Set(['faded', 'fcs', 'goodLoss']);
 export function migrateOldAnswers(r) {
-  if (!r || r.length !== QUESTIONS.length || !/^[0-2]+$/.test(r)) return null;
-  return [...r].map((c, i) => {
+  if (!r || r.length !== LEGACY_KEYS.length || !/^[0-2]+$/.test(r)) return null;
+  return fromLegacy([...r].map((c, i) => {
     const k = Number(c) * 2; // 0, 2, 4
-    return OLD_FLIPPED.has(QUESTIONS[i].key) ? 4 - k : k;
-  });
+    return OLD_FLIPPED.has(LEGACY_KEYS[i]) ? 4 - k : k;
+  }));
 }
 
 // A win is always worth at least WIN_FLOOR and a loss always costs at least LOSS_FLOOR (half a win), so no combination of answers
@@ -67,13 +79,20 @@ export function gameValue(g, w, oppById) {
     if (fcs) return Math.max(w.fcs + sched, WIN_FLOOR * w.fcs);
     // roster talent of the opponent: full credit for a top-25 roster, half for 26-50
     const talentFactor = opp.tal == null ? 0 : opp.tal <= 25 ? 1 : opp.tal <= 50 ? 0.5 : 0;
-    let v = 1 + (opp.pct > 0.5 ? w.winGood : 0) + w.ranked * rankedFactor + w.talent * talentFactor + (site === 'A' ? w.road : 0) + w.margin * m;
+    // the .500 bonus grows with the opponent's record: about half for a team just over .500, 1.5x for an unbeaten one
+    const goodFactor = opp.pct > 0.5 ? 0.5 + (opp.pct - 0.5) * 2 : 0;
+    let v = 1 + w.winGood * goodFactor + w.ranked * rankedFactor + w.talent * talentFactor + (site === 'A' ? w.road : 0) + w.margin * m;
+    // a win over a bad team is discounted, more the worse its record (none at .500, full at winless)
+    const badness = Math.max(0, 0.5 - opp.pct) * 2;
+    v *= 1 - w.weakWin * badness;
     if (oppQbOut) v *= w.qb;
     return Math.max(v + sched, WIN_FLOOR);
   }
   let p = 1 + (fcs || opp.pct < 0.5 ? w.lossBad : 0) + w.margin * m;
   if (rankedFactor > 0) p *= w.goodLoss;
   if (ownQbOut) p *= w.ownQb;
+  // a home loss costs extra on top, untouched by the softening above
+  if (site === 'H') p += w.homeLoss;
   return Math.min(-p + sched, LOSS_FLOOR);
 }
 

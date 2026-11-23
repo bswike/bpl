@@ -35,6 +35,13 @@ describe('resume model', () => {
     expect(vs(10)).toBeGreaterThan(vs(-10)); // same .700 record, stronger opponent counts more
   });
 
+  it('discounts wins over bad teams and charges extra for home losses', () => {
+    const w = weightsFor(DEFAULT);
+    const opp = (pct) => new Map([[9, { pct, ap: null, tal: 90, srs: 0 }]]);
+    expect(gameValue([9, 'X', 'W', 7, 'H', null, 0, 0], w, opp(0))).toBeLessThan(gameValue([9, 'X', 'W', 7, 'H', null, 0, 0], w, opp(0.5)));
+    expect(gameValue([9, 'X', 'L', -7, 'H', null, 0, 0], w, opp(0.6))).toBeLessThan(gameValue([9, 'X', 'L', -7, 'A', null, 0, 0], w, opp(0.6)));
+  });
+
   it('counts a win over a higher-ranked team for more', () => {
     const w = weightsFor(DEFAULT);
     const beat = (rank) => gameValue([9, 'X', 'W', 7, 'H', rank, 0, 0], w, new Map([[9, { pct: 0.8, ap: rank, tal: 60 }]]));
@@ -51,13 +58,15 @@ describe('resume model', () => {
 
   it('has the expected default weights and converts old three-option links', () => {
     const w = weightsFor(DEFAULT);
-    expect(w).toMatchObject({ winGood: 0.5, ranked: 0.75, faded: 0.5, talent: 0.3, road: 0.25, fcs: 0.5, lossBad: 0.75, goodLoss: 0.7, sos: 0.25, qb: 0.8, ownQb: 0.6, margin: 0.5 });
+    expect(w).toMatchObject({ winGood: 0.5, ranked: 0.75, faded: 0.5, talent: 0.3, weakWin: 0.4, road: 0.25, fcs: 0.5, lossBad: 0.75, homeLoss: 0.5, goodLoss: 0.7, sos: 0.25, qb: 0.8, ownQb: 0.6, margin: 0.5 });
     expect(migrateOldAnswers('111111111111')).toEqual(DEFAULT);
     // every old third option maps to 5, except the three questions whose old options ran biggest-effect-first
     // (faded: "not a ranked win", fcs: "don't count", goodLoss: "hurt much less"), which map to 1
-    expect(answersToParam(migrateOldAnswers('222222222222'))).toBe('551551515555');
+    expect(answersToParam(migrateOldAnswers('222222222222'))).toBe('55153515315555');
     // and their old first options ("still a ranked win", "count fully", "hurt like any loss") map to 5
-    expect(answersToParam(migrateOldAnswers('110110101111'))).toBe('335335353333');
+    expect(answersToParam(migrateOldAnswers('110110101111'))).toBe('33533353353333');
+    // a 12-question ?s= link keeps its answers and gets the default (3) for the two newer questions
+    expect(answersToParam(parseAnswers('512345123451'))).toBe('51233451323451');
     expect(migrateOldAnswers('11')).toBeNull();
   });
 });
