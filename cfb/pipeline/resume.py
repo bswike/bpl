@@ -5,11 +5,11 @@
 
 Writes data/json/resume.json:
 
-    {season, ap_released, teams: [{id, team, conf, w, l, pct, ap, cfp, games: [[opp_id, opp, result, margin, site,
-     opp_ap_then, opp_qb_out], ...]}]}
+    {season, ap_released, teams: [{id, team, conf, w, l, pct, ap, cfp, tal, games: [[opp_id, opp, result, margin, site,
+     opp_ap_then, opp_qb_out, own_qb_out], ...]}]}
 
 opp_ap_then is the opponent's AP rank going into the game. opp_qb_out is 1 when the opponent's usual starting QB did
-not lead it in pass attempts that game: a team's starter is the passer who led in attempts in the most of its games.
+not lead it in pass attempts that game, own_qb_out the same for the row's team: a team's starter is the passer who led in attempts in the most of its games.
 That is an approximation (a mid-season change of starter makes the earlier games count as "starter out"). FCS
 opponents have no starter data and get 0.
 """
@@ -44,18 +44,19 @@ def main():
     by_team = {}
     for g in games:
         opp = g["opp_id"]
-        qb_out = 0
-        if opp in fbs and opp in starter and (g["game_id"], opp) in led_by:
-            qb_out = int(led_by[(g["game_id"], opp)] != starter[opp])
+        def qb_out(team):
+            if team in fbs and team in starter and (g["game_id"], team) in led_by:
+                return int(led_by[(g["game_id"], team)] != starter[team])
+            return 0
         by_team.setdefault(g["team_id"], []).append(
-            [opp, g["opp"], g["result"], g["margin"], g["site"][0], rank_in.get((g["game_id"], opp)), qb_out])
+            [opp, g["opp"], g["result"], g["margin"], g["site"][0], rank_in.get((g["game_id"], opp)), qb_out(opp), qb_out(g["team_id"])])
 
     out = {"season": SEASON, "ap_released": meta["ap_poll"]["released"], "cfp_released": meta["cfp"]["released"],
            "games_through": meta["games_through"], "teams": []}
     for t in teams:
         out["teams"].append({
             "id": t["team_id"], "team": t["team"], "conf": t["conference"], "w": t["wins"], "l": t["losses"],
-            "pct": t["win_pct"], "ap": t["ap_rank"], "cfp": t["cfp_rank"], "games": by_team.get(t["team_id"], []),
+            "pct": t["win_pct"], "ap": t["ap_rank"], "cfp": t["cfp_rank"], "tal": t["talent_rank"], "games": by_team.get(t["team_id"], []),
         })
     (ROOT / "data" / "json" / "resume.json").write_text(json.dumps(out, separators=(",", ":")))
     n_out = sum(g[6] for t in out["teams"] for g in t["games"])

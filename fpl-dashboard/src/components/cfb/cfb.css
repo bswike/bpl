@@ -109,6 +109,7 @@
 @media (max-width: 800px) { .cfb .resume { grid-template-columns: 1fr; } }
 .cfb .resume .q { margin: 0 0 10px; }
 .cfb .resume .q-text { font-weight: bold; margin-bottom: 3px; }
+.cfb .resume .q-sec { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #666; border-bottom: 1px solid #ddd; margin: 12px 0 5px; padding-bottom: 1px; }
 .cfb .resume .q-opts { display: flex; flex-wrap: wrap; gap: 4px; }
 .cfb .resume .q-opts button { font: inherit; font-size: 12px; padding: 3px 8px; border: 1px solid #b8c0ca; background: #fff; color: #0645ad; cursor: pointer; border-radius: 2px; }
 .cfb .resume .q-opts button.on { background: #0645ad; color: #fff; border-color: #0645ad; }
