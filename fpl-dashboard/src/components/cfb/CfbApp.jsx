@@ -14,7 +14,7 @@ const NAV = [
   ['/cfb', 'Ratings', true],
   ['/cfb/control', 'Game Control'],
   ['/cfb/resume', 'Resume Builder'],
-  ['/cfb/about', 'About'],
+  // ['/cfb/about', 'About'], hidden from the nav for now; the page still works at /cfb/about
 ];
 
 export default function CfbApp() {
