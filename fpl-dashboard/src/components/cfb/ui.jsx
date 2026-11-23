@@ -18,9 +18,7 @@ export function T50({ rank, basis }) {
 
 export const ProjectedNote = () => (
   <p className="note">
-    <b>Rk</b>: 1-25 are the AP Top 25; next come the other teams receiving AP votes, by points.{' '}
-    <span className="proj">Shaded rows marked p</span> are projected by this site's model once the AP-voted teams run
-    out. They are an estimate, not a published ranking.
+    <span className="proj">p</span> = projected by this site’s model, not a published ranking.
   </p>
 );
 
@@ -59,9 +57,8 @@ export function AsOf({ meta }) {
   if (!meta) return null;
   return (
     <p className="asof">
-      Games through {fmtDate(meta.games_through)} · AP poll {fmtDate(meta.ap_poll.released)} · CFP ranking{' '}
-      {fmtDate(meta.cfp.released)} (before any later games) · 247Sports talent composite {fmtDate(meta.talent.last_updated)}{' '}
-      (preseason)
+      Games through {fmtDate(meta.games_through)} · AP {fmtDate(meta.ap_poll.released)} · CFP {fmtDate(meta.cfp.released)} · 247
+      talent {fmtDate(meta.talent.last_updated)}
     </p>
   );
 }

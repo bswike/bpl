@@ -138,12 +138,8 @@ export default function Game() {
         );
       })}
       {!b.players.defensive && (
-        <p className="note">No defensive player stats in the feed for this game (ESPN’s data has them for most games only from 2023 on).</p>
+        <p className="note">No defensive stats for this game.</p>
       )}
-      <p className="note">
-        Box score from ESPN via the sportsdataverse cfbfastR data. QBR is ESPN’s adjusted QBR. Defense: TOT total tackles,
-        TFL tackles for loss, PD passes defended, QB HUR quarterback hurries.
-      </p>
     </>
   );
 }

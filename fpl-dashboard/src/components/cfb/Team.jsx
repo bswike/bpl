@@ -122,11 +122,8 @@ function GameLog({ games, season, upcoming = [] }) {
         </table>
       </div>
       <p className="note">
-        † opponent was AP-ranked at least once that season (not necessarily on game day). The small number before an
-        opponent is its rank in {past ? 'that season’s final (post-bowl) AP poll' : 'the latest poll'}. vs home · @ away · n neutral.
-        Opp Tal = opponent’s 247Sports talent rank among FBS teams. Click a score for the box score. Time shares are regulation only.
-        {past && ' P = postseason (shaded). Blank game-control cells: no play-by-play for that game.'}
-        {upcoming.length > 0 && ' Proj = projected spread from this site’s model for games not yet played (negative = favored; not a betting line).'}
+        † AP-ranked at least once · small number = {past ? 'final AP' : 'current'} rank
+        {upcoming.length > 0 && ' · Proj = model spread (− = favored)'}
       </p>
     </>
   );
@@ -170,12 +167,7 @@ function RemainingSchedule({ upcoming, teamsById, meta }) {
           {g.site === 'Neutral' ? ' · neutral site' : ''}
         </p>
       ))}
-      <p className="note">
-        Opponent stats are their season so far; small numbers rank them among all 138 FBS teams. Proj = projected point
-        spread for this team from this site’s model: the gap in SRS ratings (scoring margin capped at {meta.model.margin_cap} a
-        game, adjusted for opponents) plus a home edge of {meta.model.fitted_home_edge_points.toFixed(1)} points, none at
-        neutral sites. Negative = favored. It is an estimate, not a betting line.
-      </p>
+      <p className="note">Proj = this site’s model spread (− = favored), not a betting line.</p>
     </>
   );
 }
@@ -291,15 +283,7 @@ export default function Team() {
       {h ? (
         <>
           <HistoryTable rows={historyRows} id={teamId} season={season} />
-          <p className="note">
-            *{CURRENT} is the regular season through {fmtDate(meta.games_through)}; AP Final and CFP are the latest
-            rankings ({fmtDate(meta.ap_poll.released)} and {fmtDate(meta.cfp.released)}). Past seasons include bowls and
-            the playoff (Post = postseason record), use that season’s final AP poll and final CFP ranking, and count an
-            opponent as AP-ranked if it appeared in any AP poll that season. Vs. Currently Ranked = record against opponents ranked in
-            the most recent poll: for {CURRENT}, the {meta.latest_poll.poll === 'CFP' ? 'CFP ranking' : 'AP poll'} of {fmtDate(meta.latest_poll.released)} (AP
-            or CFP, whichever came out last); for past seasons, the final post-bowl AP poll, the last poll of the season. Talent = 247Sports Team Talent Composite rank
-            among FBS teams that season (– = not listed by 247). Small numbers rank Lead% among FBS teams that season.
-          </p>
+          <p className="note">*through {fmtDate(meta.games_through)}</p>
         </>
       ) : hist.error ? (
         <p className="muted">No FBS seasons before {CURRENT} in this data (2020 onward).</p>
@@ -323,14 +307,13 @@ export default function Team() {
         {seasonLinks}
         <table className="kv">
           <tbody>
-            <tr><th>Record</th><td>{rec(s.wins, s.losses)} <span className="muted">{s.post_w + s.post_l ? `postseason ${rec(s.post_w, s.post_l)}` : 'no postseason games'}</span></td></tr>
+            <tr><th>Record</th><td>{rec(s.wins, s.losses)} {s.post_w + s.post_l ? <span className="muted">post {rec(s.post_w, s.post_l)}</span> : null}</td></tr>
             <tr><th>AP</th><td>
               Preseason {s.ap_pre_rank ? `#${s.ap_pre_rank}` : 'unranked'} · Final {s.ap_final_rank ? `#${s.ap_final_rank}` : 'unranked'}
-              {s.ap_best_rank ? ` · Best #${s.ap_best_rank}` : ''} <span className="muted">ranked in {s.ap_polls_ranked} of {sm.ap_polls} polls; final = {sm.ap_final}</span>
+              {s.ap_best_rank ? ` · Best #${s.ap_best_rank}` : ''}
             </td></tr>
-            <tr><th>CFP</th><td>{s.cfp_final_rank ? `#${s.cfp_final_rank}` : 'Unranked'} <span className="muted">final committee ranking</span></td></tr>
-            <tr><th>247 talent</th><td>{s.talent_rank ? `#${s.talent_rank} of ${sm.fbs_teams}` : 'Not listed'} <span className="muted">among FBS teams; 247Sports composite, page updated {fmtDate(sm.talent_last_updated, true)}</span></td></tr>
-            <tr><th>Game control</th><td>{s.control_games} of {s.wins + s.losses} games <span className="muted">{s.control_games < s.wins + s.losses ? 'have play-by-play; time shares use those games' : 'have play-by-play'}{s.lead_pct_rank != null ? ` · Lead% ranks #${s.lead_pct_rank} among FBS` : ''}</span></td></tr>
+            <tr><th>CFP</th><td>{s.cfp_final_rank ? `#${s.cfp_final_rank}` : 'Unranked'}</td></tr>
+            <tr><th>247 talent</th><td>{s.talent_rank ? `#${s.talent_rank} of ${sm.fbs_teams}` : 'Not listed'}</td></tr>
           </tbody>
         </table>
 
@@ -369,12 +352,12 @@ export default function Team() {
       {seasonLinks}
       <table className="kv">
         <tbody>
-          <tr><th>Record</th><td>{rec(t.wins, t.losses)} <span className="muted">games through {fmtDate(meta.games_through)}</span></td></tr>
-          <tr><th>AP</th><td>{t.ap_rank ? `#${t.ap_rank}` : t.ap_status || 'Unranked'}{t.ap_points ? ` (${t.ap_points} pts)` : ''} <span className="muted">poll of {fmtDate(meta.ap_poll.released)}</span></td></tr>
-          <tr><th>CFP</th><td>{t.cfp_rank ? `#${t.cfp_rank}` : 'Unranked'} <span className="muted">committee ranking of {fmtDate(meta.cfp.released)}, before later games</span></td></tr>
+          <tr><th>Record</th><td>{rec(t.wins, t.losses)}</td></tr>
+          <tr><th>AP</th><td>{t.ap_rank ? `#${t.ap_rank}` : t.ap_status || 'Unranked'}{t.ap_points ? ` (${t.ap_points} pts)` : ''} <span className="muted">{fmtDate(meta.ap_poll.released)}</span></td></tr>
+          <tr><th>CFP</th><td>{t.cfp_rank ? `#${t.cfp_rank}` : 'Unranked'} <span className="muted">{fmtDate(meta.cfp.released)}</span></td></tr>
           <tr><th>Top 50</th><td>{t.top50_rank ? <>#{t.top50_rank} <span className={t.top50_basis === 'Projected' ? 'proj' : 'muted'}>{basisLabel}</span></> : 'Not on the list'}</td></tr>
-          <tr><th>247 talent</th><td>{rk(t.talent_rank)} of 138 <span className="muted">preseason roster composite, {fmtDate(meta.talent.last_updated)}</span></td></tr>
-          <tr><th>Model*</th><td>{rk(t.model_rank)} of 138 <span className="muted">this site’s estimate, not an official ranking (Colley {t.colley.toFixed(3)}, SRS {signed(t.srs)})</span></td></tr>
+          <tr><th>247 talent</th><td>{rk(t.talent_rank)} of 138 <span className="muted">preseason</span></td></tr>
+          <tr><th>Model*</th><td>{rk(t.model_rank)} of 138 <span className="muted">site estimate</span></td></tr>
           <tr><th>AP history</th><td>{ap.length ? ap.map((p) => `${p.poll_week === 1 ? 'Pre' : `W${p.poll_week}`} ${p.rank}`).join(' · ') : 'Not ranked in any 2026 AP poll'}</td></tr>
           <tr><th>CFP history</th><td>{cfp.length ? cfp.map((p) => `W${p.cfp_week} ${p.rank}`).join(' · ') : 'Not ranked by the committee'}</td></tr>
         </tbody>

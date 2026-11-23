@@ -32,10 +32,6 @@ export function Ratings() {
       <ConfFilter />
       <ProjectedNote />
       <SortTable key={params.toString()} columns={columns} rows={rows} rankRows={data.teams} defaultSort={{ key: 't50', dir: 'asc' }} rowClass={projRow} />
-      <p className="note">
-        Click a column to sort. Small numbers are ranks among all 138 FBS teams. <b>Model*</b> is this site's own estimate
-        (see <Link to="/cfb/about">About</Link>), not an official ranking. <b>Talent</b> is a preseason roster ranking.
-      </p>
     </>
   );
 }
@@ -67,11 +63,6 @@ export function Control() {
     <>
       <h2>Game Control</h2>
       <ConfFilter />
-      <p className="note">
-        Share of the 60 minutes of regulation spent leading, tied and trailing; scoring margin averaged over every second
-        of regulation; and margin with garbage time removed (lead of 38+ in Q2, 28+ in Q3, 22+ in Q4). Overtime counts
-        toward margins but not toward time shares.
-      </p>
       <SortTable key={params.toString()} columns={columns} rows={filterTeams(data.teams, params)} rankRows={data.teams} defaultSort={{ key: 'lead', dir: 'desc' }} rowClass={projRow} />
     </>
   );
@@ -118,10 +109,6 @@ export function Splits() {
         ))}
       </p>
       <ConfFilter />
-      <p className="note">
-        {site} games only. Neutral-site games are their own split, so a team's three rows add up to its season. Small
-        numbers rank among all FBS teams with a {site.toLowerCase()} game.
-      </p>
       <SortTable
         key={`${site}|${params}`}
         columns={columns}
