@@ -26,7 +26,17 @@
 .cfb header { border-bottom: 1px solid #ccc; padding-bottom: 2px; }
 
 /* ---- tables ---- */
-.cfb .cfb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 6px 0; max-width: 100%; }
+.cfb .cfb-scroll {
+  overflow: auto;              /* scrolls both ways, so the header row can stay pinned inside it */
+  max-height: 85vh;
+  max-height: 85dvh;           /* mobile: follows the browser bar showing or hiding */
+  -webkit-overflow-scrolling: touch;
+  margin: 6px 0;
+  max-width: 100%;
+}
+/* header rows stay at the top of the table box when scrolling down; the team column stays when scrolling sideways */
+.cfb-t thead { position: sticky; top: 0; z-index: 3; }
+.cfb-t thead th { box-shadow: inset 0 -1px 0 #b8c0ca; }
 .cfb-t { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
 .cfb-t th {
   background: #d8dee6;

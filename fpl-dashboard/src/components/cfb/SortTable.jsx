@@ -55,7 +55,9 @@ export default function SortTable({ columns, rows, rankRows, rowKey = (r) => r.t
   if (hasGroups) {
     for (const c of columns) {
       const last = groups[groups.length - 1];
-      if (last && c.group && last.label === c.group) last.span += 1;
+      // pinned columns get their own cell so the group row does not slide over the pinned corner
+      if (last && c.group && last.label === c.group && c.sticky == null && last.sticky == null) last.span += 1;
+      else if (last && !c.group && !last.label && c.sticky == null && last.sticky == null) last.span += 1;
       else groups.push({ label: c.group || '', span: 1, sticky: c.sticky });
     }
   }
@@ -69,7 +71,12 @@ export default function SortTable({ columns, rows, rankRows, rowKey = (r) => r.t
           {hasGroups && (
             <tr className="grp">
               {groups.map((g, i) => (
-                <th key={i} colSpan={g.span} className={g.label ? 'g' : 'blank'}>
+                <th
+                  key={i}
+                  colSpan={g.span}
+                  className={[g.label ? 'g' : 'blank', g.sticky != null && 'st'].filter(Boolean).join(' ')}
+                  style={g.sticky != null ? { left: g.sticky } : undefined}
+                >
                   {g.label && <div>{g.label}</div>}
                 </th>
               ))}
