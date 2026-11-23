@@ -35,6 +35,8 @@ they reacted, then `docs/methodology.md` for how each number is defined and what
 - `data/box/<game_id>.json`: one box score per completed game 2020-2026 (linescore, team stats, player stats) for the
   site's game pages, built by `pipeline/boxscores.py` from ESPN's team_box/player_box tables in cfbfastR-cfb-data.
   Defensive player stats are sparse before 2023 in that feed; 2020 time of possession is blank for ~18% of games.
+- `data/players/<athlete id % 500>.json`: every player's season totals and game logs (same script), sharded so a
+  player page loads one file. Season totals sum counting stats and recompute averages; QBR is not totalled.
 - `data/history/`: past seasons 2020-2025 (`team_seasons`, `games`, `meta.json`) built by `pipeline/history.py`
   for the team pages. Raw feeds go to `data/raw/history/` (git-ignored, ~330 MB); per-game game control is cached in
   `data/derived/history/`. `data/manual/talent_247_history.txt` holds 247's composite order for each past season.
@@ -46,7 +48,7 @@ pip install -r pipeline/requirements.txt
 python pipeline/build.py        # rebuild tables from data/raw + data/manual
 bash pipeline/fetch_raw.sh      # refresh feeds (needs git; play-by-play is about 55 MB), then rebuild
 bash pipeline/fetch_history.sh  # past-season feeds (once); python pipeline/history.py rebuilds data/history
-bash pipeline/fetch_box.sh 2026 # box score feeds (data/raw/box, git-ignored); python pipeline/boxscores.py writes data/box
+bash pipeline/fetch_box.sh 2026 # box score feeds (data/raw/box, git-ignored); python pipeline/boxscores.py writes data/box and data/players
 node ../fpl-dashboard/scripts/cfb-export.mjs   # copy everything into the site (public/data/cfb)
 ```
 

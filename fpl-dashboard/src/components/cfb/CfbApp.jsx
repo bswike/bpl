@@ -2,6 +2,7 @@ import { Fragment, useEffect } from 'react';
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import About from './About';
 import Game from './Game';
+import Player from './Player';
 import Team from './Team';
 import { Control, Ratings, Splits } from './pages';
 import { useCfb } from './data';
@@ -27,7 +28,7 @@ export default function CfbApp() {
   }, []);
 
   useEffect(() => {
-    if (!pathname.startsWith('/cfb/team/') && !pathname.startsWith('/cfb/game/')) document.title = 'CFB 2026 Team Metrics';
+    if (!pathname.startsWith('/cfb/team/') && !pathname.startsWith('/cfb/game/') && !pathname.startsWith('/cfb/player/')) document.title = 'CFB 2026 Team Metrics';
   }, [pathname]);
 
   return (
@@ -55,6 +56,7 @@ export default function CfbApp() {
           <Route path="splits" element={<Splits />} />
           <Route path="team/:id" element={<Team />} />
           <Route path="game/:gameId" element={<Game />} />
+          <Route path="player/:id" element={<Player />} />
           <Route path="about" element={<About />} />
           <Route path="*" element={<Ratings />} />
         </Routes>

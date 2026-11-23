@@ -12,6 +12,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', '..', 'cfb', 'data', 'json');
 const HIST = join(here, '..', '..', 'cfb', 'data', 'history');
 const BOX = join(here, '..', '..', 'cfb', 'data', 'box');
+const PLAYERS = join(here, '..', '..', 'cfb', 'data', 'players');
 const OUT = join(here, '..', 'public', 'data', 'cfb');
 
 const read = (name) => JSON.parse(readFileSync(join(SRC, `${name}.json`), 'utf8'));
@@ -61,5 +62,7 @@ if (existsSync(BOX)) {
   cpSync(BOX, join(OUT, 'box'), { recursive: true });
   boxes = readdirSync(BOX).filter((f) => f.endsWith('.json')).length;
 }
+// ---- player season totals and game logs, sharded by athlete id (also from boxscores.py)
+if (existsSync(PLAYERS)) cpSync(PLAYERS, join(OUT, 'players'), { recursive: true });
 
 console.log(`cfb-export: ${teams.length} teams, ${byTeam.size} game logs, ${hist.size} team histories, ${boxes} box scores -> ${OUT}`);

@@ -92,3 +92,4 @@
 .cfb .box-cat { display: flex; flex-wrap: wrap; gap: 0 18px; align-items: flex-start; }
 .cfb .box-cat .cfb-scroll { margin: 4px 0; }
 .cfb .box-p th.l { min-width: 13em; }
+.cfb-t tbody tr.totrow td { background: #e8edf3; font-weight: bold; border-top: 1px solid #b8c0ca; }

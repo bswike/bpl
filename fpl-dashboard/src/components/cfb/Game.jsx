@@ -1,29 +1,13 @@
 import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { fmtDate, useCfb } from './data';
+import { PLAYER_CATS, fmtDate, teamHref, useCfb } from './data';
 import { Status } from './ui';
-
-const CURRENT = 2026;
-const CATS = [
-  ['passing', 'Passing'],
-  ['rushing', 'Rushing'],
-  ['receiving', 'Receiving'],
-  ['fumbles', 'Fumbles'],
-  ['defensive', 'Defense'],
-  ['interceptions', 'Interceptions'],
-  ['kickReturns', 'Kick returns'],
-  ['puntReturns', 'Punt returns'],
-  ['kicking', 'Kicking'],
-  ['punting', 'Punting'],
-];
-
-const teamHref = (id, season) => (season === CURRENT ? `/cfb/team/${id}` : `/cfb/team/${id}?season=${season}`);
 
 function TeamName({ side, season }) {
   return side.fbs ? <Link to={teamHref(side.id, season)}>{side.name}</Link> : <>{side.name} <span className="muted">(FCS)</span></>;
 }
 
-function PlayerTable({ title, cols, rows }) {
+function PlayerTable({ title, cols, rows, season }) {
   return (
     <div className="cfb-scroll">
       <table className="cfb-t box-p">
@@ -37,8 +21,8 @@ function PlayerTable({ title, cols, rows }) {
           {rows.length ? (
             rows.map((r, i) => (
               <tr key={i}>
-                <td className="l">{r[0]}</td>
-                {r.slice(1).map((v, j) => <td key={j}>{v}</td>)}
+                <td className="l">{r[1] ? <Link to={`/cfb/player/${r[1]}?season=${season}`}>{r[0]}</Link> : r[0]}</td>
+                {r.slice(2).map((v, j) => <td key={j}>{v}</td>)}
               </tr>
             ))
           ) : (
@@ -128,12 +112,12 @@ export default function Game() {
       </div>
 
       <h3>Player stats</h3>
-      {CATS.filter(([k]) => b.players[k]).map(([k, title]) => {
+      {PLAYER_CATS.filter(([k]) => b.players[k]).map(([k, title]) => {
         const p = b.players[k];
         return (
           <div key={k} className="box-cat">
-            <PlayerTable title={`${away.name} ${title}`} cols={p.cols} rows={p.away} />
-            <PlayerTable title={`${home.name} ${title}`} cols={p.cols} rows={p.home} />
+            <PlayerTable title={`${away.name} ${title}`} cols={p.cols} rows={p.away} season={season} />
+            <PlayerTable title={`${home.name} ${title}`} cols={p.cols} rows={p.home} season={season} />
           </div>
         );
       })}

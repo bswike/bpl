@@ -61,3 +61,23 @@ export function filterTeams(rows, params, teamsById) {
     return true;
   });
 }
+
+// ---- shared constants -----------------------------------------------------------
+
+export const CURRENT_SEASON = 2026;
+export const PLAYER_SHARDS = 500; // players/<athlete id % 500>.json, see cfb/pipeline/boxscores.py
+
+export const PLAYER_CATS = [
+  ['passing', 'Passing'],
+  ['rushing', 'Rushing'],
+  ['receiving', 'Receiving'],
+  ['fumbles', 'Fumbles'],
+  ['defensive', 'Defense'],
+  ['interceptions', 'Interceptions'],
+  ['kickReturns', 'Kick returns'],
+  ['puntReturns', 'Punt returns'],
+  ['kicking', 'Kicking'],
+  ['punting', 'Punting'],
+];
+
+export const teamHref = (id, season) => (season && season !== CURRENT_SEASON ? `/cfb/team/${id}?season=${season}` : `/cfb/team/${id}`);
