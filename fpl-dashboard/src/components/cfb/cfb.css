@@ -140,3 +140,8 @@
 /* season rows: one line that scrolls sideways when it doesn't fit */
 .cfb .scroll-row { white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 .cfb .scroll-row::-webkit-scrollbar { display: none; }
+/* more to see on the right: fade the last bit out so it reads as scrollable */
+.cfb .scroll-row.more {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+}

@@ -50,7 +50,6 @@ function CurrentRatings() {
   const rows = filterTeams(data.teams, params);
   return (
     <>
-      <h2>{CURRENT_SEASON} Team Ratings</h2>
       <SeasonLinks season={CURRENT_SEASON} />
       <ConfFilter />
       <ProjectedNote />
@@ -71,7 +70,6 @@ function PastRatings({ season }) {
   const rows = filterTeams(all, params);
   return (
     <>
-      <h2>{season} Team Ratings</h2>
       <SeasonLinks season={season} />
       <ConfFilter confs={confs} />
       <p className="note">Full season, bowls and playoff included. AP = final poll.</p>

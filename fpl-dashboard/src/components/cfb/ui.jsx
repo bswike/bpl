@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { CONFS, fmtDate } from './data';
 
@@ -23,14 +23,22 @@ export const ProjectedNote = () => (
 );
 
 /** Refs for a one-line .scroll-row and its selected item; centres the selected item whenever `key` changes. */
+// Also returns the row's class: "scroll-row more" while there is more to scroll to on the right (CSS fades that edge).
 function useScrollRow(key) {
   const row = useRef(null);
   const on = useRef(null);
+  const [more, setMore] = useState(false);
   useEffect(() => {
     const r = row.current, b = on.current;
-    if (r && b && r.scrollWidth > r.clientWidth) r.scrollLeft = Math.max(0, b.offsetLeft - r.offsetLeft - r.clientWidth / 2 + b.offsetWidth / 2);
+    if (!r) return undefined;
+    if (b && r.scrollWidth > r.clientWidth) r.scrollLeft = Math.max(0, b.offsetLeft - r.offsetLeft - r.clientWidth / 2 + b.offsetWidth / 2);
+    const check = () => setMore(r.scrollLeft + r.clientWidth < r.scrollWidth - 2);
+    check();
+    r.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => { r.removeEventListener('scroll', check); window.removeEventListener('resize', check); };
   }, [key]);
-  return [row, on];
+  return [row, on, more ? 'links scroll-row more' : 'links scroll-row'];
 }
 
 /** "All FBS | Power conf + ND | ACC | ..." as plain links that keep the current page. */
@@ -52,9 +60,9 @@ export function ConfFilter({ confs = CONFS }) {
     { label: 'Power conf. + ND', to: href({ set: 'power' }), on: set === 'power' && !conf, title: 'Power conferences of that season plus Notre Dame' },
     ...confs.map((c) => ({ label: c, to: href({ conf: c }), on: conf === c })),
   ];
-  const [row, on] = useScrollRow(`${conf}|${set}`);
+  const [row, on, cls] = useScrollRow(`${conf}|${set}`);
   return (
-    <p className="links scroll-row" ref={row}>
+    <p className={cls} ref={row}>
       {items.map((it, i) => (
         <Fragment key={it.label}>
           {i > 0 && ' | '}
@@ -80,9 +88,9 @@ export function AsOf({ meta }) {
  * season scrolled into view. hrefFor(year) gives each link.
  */
 export function SeasonStrip({ seasons, season, hrefFor, extra = null }) {
-  const [row, on] = useScrollRow(`${season}|${seasons.length}`);
+  const [row, on, cls] = useScrollRow(`${season}|${seasons.length}`);
   return (
-    <p className="links scroll-row" ref={row}>
+    <p className={cls} ref={row}>
       Season:{' '}
       {seasons.map((y, i) => (
         <Fragment key={y}>
