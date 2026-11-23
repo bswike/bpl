@@ -4,13 +4,14 @@
 //
 // Run after `python ../cfb/pipeline/build.py` (and `history.py` for past seasons). games.json and
 // the history tables are split into one file per team so a team page only downloads its own data.
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', '..', 'cfb', 'data', 'json');
 const HIST = join(here, '..', '..', 'cfb', 'data', 'history');
+const BOX = join(here, '..', '..', 'cfb', 'data', 'box');
 const OUT = join(here, '..', 'public', 'data', 'cfb');
 
 const read = (name) => JSON.parse(readFileSync(join(SRC, `${name}.json`), 'utf8'));
@@ -54,4 +55,11 @@ for (const [id, h] of hist) {
 }
 write(join('history', 'meta.json'), readHist('meta.json'));
 
-console.log(`cfb-export: ${teams.length} teams, ${byTeam.size} game logs, ${hist.size} team histories -> ${OUT}`);
+// ---- box scores: one file per game, built by cfb/pipeline/boxscores.py
+let boxes = 0;
+if (existsSync(BOX)) {
+  cpSync(BOX, join(OUT, 'box'), { recursive: true });
+  boxes = readdirSync(BOX).filter((f) => f.endsWith('.json')).length;
+}
+
+console.log(`cfb-export: ${teams.length} teams, ${byTeam.size} game logs, ${hist.size} team histories, ${boxes} box scores -> ${OUT}`);

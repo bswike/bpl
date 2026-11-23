@@ -9,3 +9,6 @@ node_modules/
 
 # past-season feeds, re-downloaded by pipeline/fetch_history.sh
 data/raw/history/
+
+# box score feeds, re-downloaded by pipeline/fetch_box.sh
+data/raw/box/

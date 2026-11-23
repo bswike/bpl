@@ -86,7 +86,9 @@ function GameLog({ games, season, upcoming = [] }) {
                 </td>
                 <td>{g.opp_talent_rank ?? ''}</td>
                 <td className={g.result === 'W' ? 'win' : 'loss'}>
-                  {g.result} {g.points_for}-{g.points_against}{g.overtime ? ' OT' : ''}
+                  <Link to={`/cfb/game/${g.game_id}`} className="score" title="Box score">
+                    {g.result} {g.points_for}-{g.points_against}{g.overtime ? ' OT' : ''}
+                  </Link>
                 </td>
                 <td>{pct(g.led_pct)}</td>
                 <td>{pct(g.tied_pct)}</td>
@@ -122,7 +124,7 @@ function GameLog({ games, season, upcoming = [] }) {
       <p className="note">
         † opponent was AP-ranked at least once that season (not necessarily on game day). The small number before an
         opponent is its rank in {past ? 'that season’s final (post-bowl) AP poll' : 'the latest poll'}. vs home · @ away · n neutral.
-        Opp Tal = opponent’s 247Sports talent rank among FBS teams. Time shares are regulation only.
+        Opp Tal = opponent’s 247Sports talent rank among FBS teams. Click a score for the box score. Time shares are regulation only.
         {past && ' P = postseason (shaded). Blank game-control cells: no play-by-play for that game.'}
         {upcoming.length > 0 && ' Proj = projected spread from this site’s model for games not yet played (negative = favored; not a betting line).'}
       </p>

@@ -82,3 +82,13 @@
   .cfb-t td, .cfb-t th { padding: 1px 3px; }
 }
 .cfb .orank { color: #666; font-size: 10px; margin-right: 3px; }
+
+/* game links and box score page */
+.cfb-t td.win a.score { color: #060; }
+.cfb-t td.loss a.score { color: #a00; }
+.cfb-t a.score { text-decoration: underline dotted; }
+.cfb .box-head .win-name { font-weight: bold; }
+.cfb .box-head { font-weight: normal; }
+.cfb .box-cat { display: flex; flex-wrap: wrap; gap: 0 18px; align-items: flex-start; }
+.cfb .box-cat .cfb-scroll { margin: 4px 0; }
+.cfb .box-p th.l { min-width: 13em; }
