@@ -102,6 +102,46 @@ anchored to the official quarter-by-quarter scores (which do add up to every fin
 - The play-by-play file also carries win probability per play. It was not used, because it is computed from
   the same unreliable play ordering and score fields.
 
+## Passing by throw depth
+
+Built by `pipeline/passing.py` from the play-by-play (`passing_offense`, `passing_defense`, `passing_players`).
+
+- **What the feed has and lacks.** Since late October 2025 ESPN's play text is the official stat-crew wording, which
+  says where a pass was caught or aimed. In 2026 that puts a depth on 96% of pass attempts straight from the feed.
+  It has no label for screens, shovel passes, scrambles, play action, RPOs or routes, and none can be read from the
+  text. Depth is the detail there is. "At or behind the line" holds screens, swing passes and checkdowns together
+  (21% of throws, about double a charted screen rate), so it must never be labelled "screens".
+- **Pass attempts:** plays the feed flags as attempts, minus intentional grounding (typed as a sack, as in official
+  scoring) and plays wiped out by a penalty. Against the box scores: within one attempt in 98.7% of team-games,
+  FBS season total 45,451 against 45,541 (0.2% low), largest team gap 2.5% (Navy, 3 attempts). The gaps are
+  penalties that leave a play standing, which the feed types as "Penalty".
+- **Repeated plays:** a stat correction sometimes enters a play twice (same sequence number, down, distance and
+  spot). The last entry is kept; 20 pass plays were dropped for 2026.
+- **Depth** is air yards: the spot caught or thrown to minus the line of scrimmage. Buckets are 0 or less, 1-9,
+  10-19 and 20+ (the feed's own short/deep word flips at exactly 20).
+- **Interceptions** carry no target spot, only where the ball was picked off, so that spot is used: 1,114 of 1,157
+  placed (the rest are returns for touchdowns that keep ESPN's scoring sentence). Leaving them out flatters deep
+  throws: EPA per attempt on 20+ throws is +0.66 without interceptions and +0.48 with them. The interception rate
+  climbs with depth: 0.8%, 1.5%, 3.5%, 5.3% across the four buckets.
+- **No depth** for 698 of 48,988 attempts (1.4%): about 1 touchdown pass in 9 (ESPN's scoring sentence replaces the
+  play text), spikes, and two games still in ESPN's older wording, which leaves SMU (86%), Alabama (89%), Florida
+  State (92%) and East Carolina (94%) short of the rest. Those attempts count in `att`, `cmp_pct`, `ypa` and `epa`
+  but in none of the depth columns. Missing touchdown passes pull the depth buckets' EPA down a little.
+- **Cmp+/- (`cmp_oe`):** completions minus the completions an average passer would have on the same throws, per
+  attempt. The expectation is the FBS-wide completion rate in eight depth bands (5 air yards wide up to 20, then
+  20-29 and 30+), interceptions counted as incompletions. cfbfastR's own `cpoe` is not used because it cannot score
+  interceptions (no air yards) and so leaves out the worst outcomes.
+- **Air% (`air_share`):** air yards on completions divided by yards on completions. A 60-yard gain on a pass caught
+  behind the line adds 60 yards and no air yards.
+- **EPA** is cfbfastR's expected points added, per pass attempt. Sacks and scrambles are not pass attempts, so this
+  is not EPA per dropback.
+- **Passers** need 12 attempts per game their team has played (144 qualify).
+- **Weak spots:** nothing is adjusted for opponent. Stat crews differ in how they mark catch spots (the share of
+  completions marked with no yards after the catch runs from 14% to 50% by home crew in 2026, median 24%), so
+  `air_share` and `yac` carry some scorer habit. Past seasons are not built: ESPN's feed has depth only from late October 2025.
+- **Checked:** an independent recount from the play-by-play for Georgia, Auburn and Air Force matches the tables
+  (attempts, completion rate, yards per attempt, EPA, bucket counts, air share, YAC, and the defensive side).
+
 ## Home, away and neutral
 
 - Site comes from the feed's neutral-site flag. Ten games are neutral: North Carolina-TCU, Auburn-Baylor,

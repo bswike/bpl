@@ -26,6 +26,32 @@ _CONTROL_COLUMNS = {
     "ng_margin_pg": "Average margin per game counting only points scored outside garbage time (lead of 38+ in Q2, 28+ in Q3, 22+ in Q4). Overtime points count.",
 }
 
+def _bucket(key, what):
+    return {
+        f"{key}_att": f"Pass attempts thrown {what}.",
+        f"{key}_share": f"Share of the attempts with a known depth that were thrown {what} (0-1).",
+        f"{key}_cmp_pct": f"Completion rate on throws {what} (0-1). Interceptions count as incompletions.",
+        f"{key}_epa": f"Expected points added per attempt on throws {what}.",
+    }
+
+
+_PASSING_COLUMNS = {
+    "att": "Pass attempts from the play-by-play: completions, incompletions and interceptions. Intentional grounding and plays wiped out by a penalty are not attempts. Season totals sit within about 0.2% of the box scores.",
+    "cmp_pct": "Completion rate on all attempts (0-1).",
+    "ypa": "Passing yards per attempt.",
+    "epa": "Expected points added per pass attempt (ESPN-derived EPA from cfbfastR). Sacks and scrambles are not pass attempts and are not included.",
+    "ints": "Interceptions.",
+    "depth_att": "Attempts with a known depth. The rest (about 1 in 9 touchdown passes, spikes, the odd game in ESPN's older wording) count in att, cmp_pct, ypa and epa but in none of the depth columns.",
+    "adot": "Average depth of target: mean air yards per attempt with a known depth. Air yards run from the line of scrimmage to where the ball was caught or aimed; for an interception, to where it was picked off.",
+    "air_share": "Share of passing yards gained in the air, before the catch (0-1): air yards on completions divided by yards on completions. Low values mean the yards came after the catch.",
+    "yac": "Yards after the catch per completion.",
+    "cmp_oe": "Completion rate over expected (-1 to 1): actual completions minus the completions an average passer would have on the same throws, per attempt. The expectation is the FBS-wide completion rate in eight depth bands (5 air yards wide up to 20, then 20-29 and 30+).",
+    **_bucket("behind", "at or behind the line of scrimmage (air yards of 0 or less: screens, swing passes and checkdowns together)"),
+    **_bucket("short", "1-9 yards past the line"),
+    **_bucket("mid", "10-19 yards past the line"),
+    **_bucket("deep", "20 or more yards past the line"),
+}
+
 SCHEMA = {
     "team_summary": {
         "_about": "One row per FBS team (138) with identity, rankings, every record split and game control. Start here.",
@@ -173,5 +199,25 @@ SCHEMA = {
         "rank": "Committee rank.",
         "team_id": "ESPN team id.",
         "team": "Short team name.",
+    },
+    "passing_offense": {
+        "_about": "Passing by throw depth for each FBS offense, from play-by-play (pipeline/passing.py). Not adjusted for opponent. The feed has no label for screens, scrambles, play action or routes; depth is the detail it has.",
+        "team_id": "ESPN team id.",
+        "team": "Short team name.",
+        **_PASSING_COLUMNS,
+    },
+    "passing_defense": {
+        "_about": "The same columns as passing_offense for each FBS defense: every number is what opposing passers did against this team (FCS opponents included).",
+        "team_id": "ESPN team id.",
+        "team": "Short team name.",
+        **_PASSING_COLUMNS,
+    },
+    "passing_players": {
+        "_about": "The same columns for each passer on an FBS team with at least 12 attempts per game his team has played (meta.json passing.min_attempts_per_team_game).",
+        "athlete_id": "ESPN athlete id, as in the player pages.",
+        "player": "Passer's name.",
+        "team_id": "ESPN team id of his team.",
+        "team": "Short team name.",
+        **_PASSING_COLUMNS,
     },
 }

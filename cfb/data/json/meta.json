@@ -1,6 +1,6 @@
 {
   "season": 2026,
-  "built_at_utc": "2026-11-23T18:29Z",
+  "built_at_utc": "2026-11-24T01:05Z",
   "games_through": "2026-11-21",
   "completed_games": 822,
   "fbs_teams": 138,
@@ -68,6 +68,62 @@
     "overtime_games": 33,
     "garbage_time": "lead of 38+ in the 2nd quarter, 28+ in the 3rd, 22+ in the 4th",
     "scope": "regulation time only; overtime counts toward margins but not time shares"
+  },
+  "passing": {
+    "games": 822,
+    "attempts": 48988,
+    "repeated_plays_dropped": 20,
+    "interceptions": 1157,
+    "interceptions_placed": 1114,
+    "attempts_with_depth": 48290,
+    "overall": {
+      "attempts": 48988,
+      "with_depth_pct": 0.9858,
+      "adot": 8.7,
+      "air_share": 0.5337,
+      "yac": 5.43,
+      "buckets": {
+        "behind": {
+          "label": "at or behind the line of scrimmage",
+          "share": 0.2118,
+          "cmp_pct": 0.8158,
+          "epa": -0.141
+        },
+        "short": {
+          "label": "1-9 air yards",
+          "share": 0.4299,
+          "cmp_pct": 0.6624,
+          "epa": 0.098
+        },
+        "mid": {
+          "label": "10-19 air yards",
+          "share": 0.2166,
+          "cmp_pct": 0.5091,
+          "epa": 0.365
+        },
+        "deep": {
+          "label": "20+ air yards",
+          "share": 0.1417,
+          "cmp_pct": 0.3552,
+          "epa": 0.482
+        }
+      }
+    },
+    "bucket_labels": {
+      "behind": "at or behind the line of scrimmage",
+      "short": "1-9 air yards",
+      "mid": "10-19 air yards",
+      "deep": "20+ air yards"
+    },
+    "min_attempts_per_team_game": 12,
+    "box_score_check": {
+      "team_games_compared": 1517,
+      "team_games_within_one_attempt": 0.9868,
+      "season_attempts": 45451,
+      "season_attempts_box": 45541,
+      "largest_team_season_gap_pct": 2.52
+    },
+    "note": "Depth is air yards past the line of scrimmage. Interceptions are placed where the ball was picked off. The feed does not label screens, scrambles, play action or routes. 'overall' covers every pass in these games, FCS opponents' included."
   },
   "sources": {
     "games_and_polls": "ESPN data via https://github.com/sportsdataverse/cfbfastR-cfb-raw and https://github.com/sportsdataverse/cfbfastR-cfb-data",

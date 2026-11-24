@@ -13016,7 +13016,7 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2004,242552348,2004-09-11,3,Regular,,309,Louisiana,2348,Louisiana Tech,True,Away,L,20,24,-4,,,,False,,,,,,,,,,
 2004,242622306,2004-09-18,4,Regular,,309,Louisiana,2306,Kansas State,True,Away,L,20,40,-20,False,,,True,,,,0.0,0.0639,0.9361,-12.3,0,23,-20
 2004,242690309,2004-09-25,5,Regular,,309,Louisiana,2393,Middle Tennessee,True,Home,W,24,17,7,,,,False,,,,,,,,,,
-2004,242762229,2004-10-02,6,Regular,,309,Louisiana,2229,Florida International,False,Away,W,43,34,9,,,,False,,,,,,,,,,
+2004,242762229,2004-10-02,6,Regular,,309,Louisiana,2229,Florida Intl,False,Away,W,43,34,9,,,,False,,,,,,,,,,
 2004,242830166,2004-10-09,7,Regular,,309,Louisiana,166,New Mexico State,True,Away,L,32,35,-3,,,,False,,,,,,,,,,
 2004,242900070,2004-10-16,8,Regular,,309,Louisiana,70,Idaho,True,Away,L,25,38,-13,,,,False,,,,,,,,,,
 2004,242970309,2004-10-23,9,Regular,,309,Louisiana,2032,Arkansas State,True,Home,W,27,24,3,,,,False,,,,,,,,,,
@@ -13294,7 +13294,7 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2004,242692433,2004-09-25,5,Regular,,2433,Louisiana Monroe,2032,Arkansas State,True,Home,L,21,28,-7,,,,False,,,,,,,,,,
 2004,242762751,2004-10-02,6,Regular,,2433,Louisiana Monroe,2751,Wyoming,True,Away,L,10,31,-21,,,,False,,,,,,,,,,
 2004,242830070,2004-10-09,7,Regular,,2433,Louisiana Monroe,70,Idaho,True,Away,W,16,14,2,,,,False,,,,,,,,,,
-2004,242902433,2004-10-16,8,Regular,,2433,Louisiana Monroe,2229,Florida International,False,Home,W,28,20,8,,,,False,,,,,,,,,,
+2004,242902433,2004-10-16,8,Regular,,2433,Louisiana Monroe,2229,Florida Intl,False,Home,W,28,20,8,,,,False,,,,,,,,,,
 2004,242972226,2004-10-23,9,Regular,,2433,Louisiana Monroe,2226,Florida Atlantic,False,Away,W,17,13,4,,,,False,,,,,,,,,,
 2004,243040249,2004-10-30,10,Regular,,2433,Louisiana Monroe,249,North Texas,True,Away,L,30,45,-15,,,,False,,,,,,,,,,
 2004,243112433,2004-11-06,11,Regular,,2433,Louisiana Monroe,328,Utah State,True,Home,W,32,25,7,,,,False,,,,,,,,,,
@@ -13507,7 +13507,7 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2007,273352440,2007-12-01,14,Regular,,2348,Louisiana Tech,2440,Nevada,True,Away,L,10,49,-39,,,,False,,,,,,,,,,
 2008,282432348,2008-08-30,1,Regular,,2348,Louisiana Tech,344,Mississippi State,True,Home,W,22,14,8,False,,,False,,,,0.3581,0.145,0.4969,-0.67,8,11,8
 2008,282502305,2008-09-06,2,Regular,,2348,Louisiana Tech,2305,Kansas,True,Away,L,0,29,-29,False,,,True,,,,0.0,0.0728,0.9272,-14.33,0,29,-29
-2008,282642348,2008-09-20,4,Regular,,2348,Louisiana Tech,2545,SE Louisiana,False,Home,W,41,26,15,False,,,False,,,,0.8972,0.0656,0.0372,7.51,15,3,15
+2008,282642348,2008-09-20,4,Regular,,2348,Louisiana Tech,2545,Southeastern Louisiana,False,Home,W,41,26,15,False,,,False,,,,0.8972,0.0656,0.0372,7.51,15,3,15
 2008,282750068,2008-10-01,6,Regular,,2348,Louisiana Tech,68,Boise State,True,Away,L,3,38,-35,False,,,True,11,,,0.0,0.1211,0.8789,-17.97,0,35,-28
 2008,282850062,2008-10-12,7,Regular,,2348,Louisiana Tech,62,Hawai'i,True,Away,L,14,24,-10,False,,,False,,,,0.0,0.2019,0.7981,-10.61,0,17,-10
 2008,282922348,2008-10-18,8,Regular,,2348,Louisiana Tech,70,Idaho,True,Home,W,46,14,32,False,,,False,,,,0.7861,0.0375,0.1764,15.61,32,7,29
@@ -16680,7 +16680,7 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2007,273270344,2007-11-23,13,Regular,,344,Mississippi State,145,Ole Miss,True,Home,W,17,14,3,False,,,False,,,,0.0033,0.0406,0.9561,-8.38,3,14,3
 2007,273630344,2007-12-29,1,Postseason,AUTOZONE LIBERTY BOWL AT MEMPHIS TN,344,Mississippi State,2116,UCF,True,Home,W,10,3,7,False,,,False,,,,0.0317,0.8719,0.0964,-0.07,7,3,7
 2008,282432348,2008-08-30,1,Regular,,344,Mississippi State,2348,Louisiana Tech,True,Away,L,14,22,-8,False,,,False,,,,0.4969,0.145,0.3581,0.67,11,8,-8
-2008,282500344,2008-09-06,2,Regular,,344,Mississippi State,2545,SE Louisiana,False,Home,W,34,10,24,False,,,False,,,,0.8442,0.1317,0.0242,15.41,31,3,31
+2008,282500344,2008-09-06,2,Regular,,344,Mississippi State,2545,Southeastern Louisiana,False,Home,W,34,10,24,False,,,False,,,,0.8442,0.1317,0.0242,15.41,31,3,31
 2008,282570344,2008-09-13,3,Regular,,344,Mississippi State,2,Auburn,True,Home,L,2,3,-1,False,,,True,,,,0.0,0.3728,0.6272,-1.65,0,3,-1
 2008,282640059,2008-09-20,4,Regular,,344,Mississippi State,59,Georgia Tech,True,Away,L,7,38,-31,False,,,True,22,,,0.0,0.0847,0.9153,-21.4,0,38,-28
 2008,282710099,2008-09-27,5,Regular,,344,Mississippi State,99,LSU,True,Away,L,24,34,-10,False,,,True,,,,0.0361,0.1964,0.7675,-9.23,3,17,-10
@@ -18576,7 +18576,7 @@ season,game_id,date,week,season_type,note,team_id,team,opp_id,opp,opp_is_fbs,sit
 2004,242762638,2004-10-02,6,Regular,,166,New Mexico State,2638,UTEP,True,Away,L,0,45,-45,,,,True,,,,,,,,,,
 2004,242830166,2004-10-09,7,Regular,,166,New Mexico State,309,Louisiana,True,Home,W,35,32,3,,,,False,,,,,,,,,,
 2004,242970249,2004-10-23,9,Regular,,166,New Mexico State,249,North Texas,True,Away,L,26,36,-10,,,,False,,,,,,,,,,
-2004,243040166,2004-10-30,10,Regular,,166,New Mexico State,2229,Florida International,False,Home,W,56,31,25,,,,False,,,,,,,,,,
+2004,243040166,2004-10-30,10,Regular,,166,New Mexico State,2229,Florida Intl,False,Home,W,56,31,25,,,,False,,,,,,,,,,
 2004,243110166,2004-11-06,11,Regular,,166,New Mexico State,2393,Middle Tennessee,True,Home,W,44,10,34,,,,False,,,,,,,,,,
 2004,243182226,2004-11-13,12,Regular,,166,New Mexico State,2226,Florida Atlantic,False,Away,W,35,7,28,,,,False,,,,,,,,,,
 2004,243250328,2004-11-20,13,Regular,,166,New Mexico State,328,Utah State,True,Away,L,25,34,-9,,,,False,,,,,,,,,,

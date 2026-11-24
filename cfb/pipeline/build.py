@@ -17,6 +17,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from game_control import build_game_control  # noqa: E402
+from passing import BUCKET_LABELS, MIN_ATT_PER_TEAM_GAME, box_check, build_passing, passing_tables  # noqa: E402
 from ratings import ratings  # noqa: E402
 from schema import SCHEMA  # noqa: E402
 
@@ -200,6 +201,22 @@ def main():
     gc_games = gc_games[gc_games.game_id.isin(set(done.id.astype(int)))]
     gc = {(int(r.game_id), int(r.team_id)): r for r in gc_games.itertuples()}
 
+    # ---------------------------------------------------------------- passing by throw depth (per game, cached the same way)
+    pass_cache = DERIVED / "passing_by_game.csv"
+    if pbp_path.exists():
+        pass_sums, pass_notes = build_passing(pbp_path)
+        pass_sums.to_csv(pass_cache, index=False)
+        (DERIVED / "passing_notes.json").write_text(json.dumps(pass_notes, indent=2))
+    pass_sums = pd.read_csv(pass_cache, keep_default_na=False)  # read back even when just written, so both paths give the same tables
+    pass_notes = json.loads((DERIVED / "passing_notes.json").read_text())
+    missing = set(done.id.astype(int)) - set(pass_sums.game_id.astype(int))
+    assert not missing, f"{len(missing)} completed games have no passing numbers; run pipeline/fetch_raw.sh and rebuild"
+    pass_sums = pass_sums[pass_sums.game_id.isin(set(done.id.astype(int)))]
+    pass_offense, pass_defense, pass_players, pass_overall = passing_tables(pass_sums, set(fbs), name)
+    pass_box = box_check(pass_sums, RAW / "box" / f"team_box_{SEASON}.parquet", set(fbs))
+    if pass_box and pass_box["largest_team_season_gap_pct"] > 5:
+        warn(f"a team's pass attempts differ from its box scores by {pass_box['largest_team_season_gap_pct']}%; check the play-by-play feed")
+
     # ---------------------------------------------------------------- records and the game log
     def blank():
         return dict(n=0, w=0, l=0, fw=0, fl=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]},
@@ -367,7 +384,8 @@ def main():
 
     # ---------------------------------------------------------------- write
     tables = {"team_summary": summary, "top50": top50, "home_away_splits": splits, "games": games,
-              "ap_polls": ap_polls, "ap_receiving_votes": ap_receiving, "cfp_rankings": cfp_rankings, "upcoming": upcoming}
+              "ap_polls": ap_polls, "ap_receiving_votes": ap_receiving, "cfp_rankings": cfp_rankings, "upcoming": upcoming,
+              "passing_offense": pass_offense, "passing_defense": pass_defense, "passing_players": pass_players}
     nullable_ints = {"conf_w", "conf_l", "ap_rank", "ap_points", "ap_best_rank", "cfp_rank", "top50_rank", "biggest_deficit_overcome", "biggest_lead_lost",
                      "opp_talent_rank", "opp_cur_rank", "opp_id", "ap_rank_in", "cfp_rank_in", "points", "first_place_votes"}
     OUT_CSV.mkdir(parents=True, exist_ok=True)
@@ -402,6 +420,11 @@ def main():
                   "calibration_vs_cfp_committee": calibration},
         "game_control": {**gc_notes, "garbage_time": "lead of 38+ in the 2nd quarter, 28+ in the 3rd, 22+ in the 4th",
                          "scope": "regulation time only; overtime counts toward margins but not time shares"},
+        "passing": {**pass_notes, "overall": pass_overall, "bucket_labels": BUCKET_LABELS, "min_attempts_per_team_game": MIN_ATT_PER_TEAM_GAME,
+                    "box_score_check": pass_box,
+                    "note": "Depth is air yards past the line of scrimmage. Interceptions are placed where the ball was picked off. "
+                            "The feed does not label screens, scrambles, play action or routes. 'overall' covers every pass in "
+                            "these games, FCS opponents' included."},
         "sources": {
             "games_and_polls": "ESPN data via https://github.com/sportsdataverse/cfbfastR-cfb-raw and https://github.com/sportsdataverse/cfbfastR-cfb-data",
             "play_by_play": "ESPN play-by-play via https://github.com/sportsdataverse/cfbfastR-cfb-data",

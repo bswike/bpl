@@ -148,3 +148,8 @@
 
 /* conference record beside the conference name */
 .cfb .conf-rec { font-size: 0.8em; color: #777; }
+
+/* passing page: long player names would eat a phone screen, so the pinned name column is clipped there */
+@media (max-width: 600px) {
+  .cfb-t a.pname { display: inline-block; max-width: 9.5em; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+}

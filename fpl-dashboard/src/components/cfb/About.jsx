@@ -63,6 +63,14 @@ export default function About() {
         <dd>Wins after trailing by 10 or more, and losses after leading by 10 or more.</dd>
         <dt>Home / away / neutral</dt>
         <dd>Neutral-site games are their own split, so a team’s three rows add up to its season.</dd>
+        <dt>Passing by throw depth</dt>
+        <dd>
+          Depth is air yards: how far past the line of scrimmage the ball was caught or aimed. Interceptions are placed where
+          the ball was picked off. The play-by-play does not say what kind of play it was, so “behind line” holds screens,
+          swing passes and checkdowns together. Cmp+/- compares the completion rate with what an average FBS passer completes
+          on throws of the same depth. EPA is per pass attempt, so sacks and scrambles are not in it. About 1 touchdown pass
+          in 9 has no catch spot in the feed and is left out of the depth columns. Nothing is adjusted for opponent.
+        </dd>
       </dl>
 
       <h3>Past seasons (team pages)</h3>

@@ -143,10 +143,11 @@ def build_season(season, talent_lists):
     sched = sched.assign(
         _k=list(zip(hi.where(~swap, ai), ai.where(~swap, hi), pd.to_datetime(sched.date, utc=True, format="ISO8601").dt.date,
                     hs_.where(~swap, as2), as2.where(~swap, hs_))))
-    sched = sched.sort_values("id")
-    # only completed games: unplayed ones have no score to match on
-    keep = ~sched.duplicated("_k") | sched.home_score.isna()
-    sched = sched[keep].drop(columns="_k")
+    # only completed games: unplayed ones have no score to match on. The rows keep their order, because team names
+    # are taken from the first row a team appears in.
+    by_id = sched.sort_values("id")
+    repeat = by_id.duplicated("_k") & by_id.home_score.notna()
+    sched = sched[~repeat.reindex(sched.index)].drop(columns="_k")
     if len(sched) < before:
         notes["duplicate_games_dropped"] = before - len(sched)
 

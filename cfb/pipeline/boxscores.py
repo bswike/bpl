@@ -144,6 +144,12 @@ def warn(msg):
     print(f"WARNING: {msg}", file=sys.stderr)
 
 
+def player_name(r):
+    """The feed has no name for a handful of old players (a NaN, which is not valid JSON and broke those files)."""
+    n = r["athlete_name"]
+    return n if isinstance(n, str) and n else "Unknown"
+
+
 def cell(v):
     """Box score value as display text; '' for missing."""
     if v is None or (isinstance(v, float) and math.isnan(v)):
@@ -249,10 +255,11 @@ def main():
                     for r in g[cat].get(tid, []):
                         aid = int(r["athlete_id"])
                         vals = [cell(r.get(f)) for _, f in cols]
-                        block[side].append([r["athlete_name"], aid if aid > 0 else None, *vals])
+                        block[side].append([player_name(r), aid if aid > 0 else None, *vals])
                         if aid > 0:
-                            p = players.setdefault(aid, {"name": r["athlete_name"], "seasons": {}})
-                            p["name"] = r["athlete_name"]
+                            p = players.setdefault(aid, {"name": player_name(r), "seasons": {}})
+                            if player_name(r) != "Unknown":  # the latest spelling wins; a nameless row never overwrites a name
+                                p["name"] = player_name(r)
                             ps = p["seasons"].setdefault(season, {"teams": {}, "games": {}, "cats": {}})
                             ps["teams"][tid] = ps["teams"].get(tid, 0) + 1
                             ps["games"][gid] = view[side]
@@ -269,7 +276,7 @@ def main():
             box_shards.setdefault(gid % BOX_SHARDS, {})[str(gid)] = out
             written += 1
     for k, data in box_shards.items():
-        (OUT / f"{k}.json").write_text(json.dumps(data, separators=(",", ":"), ensure_ascii=False))
+        (OUT / f"{k}.json").write_text(json.dumps(data, separators=(",", ":"), ensure_ascii=False, allow_nan=False))
     print(f"Wrote {written} box scores in {len(box_shards)} files to {OUT}; {no_lines} without usable quarter scores; {len(missing)} games with no team box score")
     if missing:
         warn(f"no team box score for {len(missing)} games, e.g. {missing[:5]}")
@@ -295,7 +302,7 @@ def main():
             seasons.append({"season": season, "team_id": tid, "team": team_names.get(tid, str(tid)), "games": glist, "cats": cats})
         shards.setdefault(aid % SHARDS, {})[str(aid)] = {"name": p["name"], "seasons": seasons}
     for k, data in shards.items():
-        (PLAYERS / f"{k}.json").write_text(json.dumps(data, separators=(",", ":"), ensure_ascii=False))
+        (PLAYERS / f"{k}.json").write_text(json.dumps(data, separators=(",", ":"), ensure_ascii=False, allow_nan=False))
     (PLAYERS / "meta.json").write_text(json.dumps({"shards": SHARDS, "cols": {c: [lab for lab, _ in cols] for c, (cols, _) in PLAYER_CATS.items()}}))
     print(f"Wrote {len(players)} players in {len(shards)} shards to {PLAYERS}")
 
