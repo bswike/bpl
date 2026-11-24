@@ -1,6 +1,6 @@
 {
   "season": 2026,
-  "built_at_utc": "2026-11-24T01:05Z",
+  "built_at_utc": "2026-11-24T01:55Z",
   "games_through": "2026-11-21",
   "completed_games": 822,
   "fbs_teams": 138,
@@ -124,6 +124,43 @@
       "largest_team_season_gap_pct": 2.52
     },
     "note": "Depth is air yards past the line of scrimmage. Interceptions are placed where the ball was picked off. The feed does not label screens, scrambles, play action or routes. 'overall' covers every pass in these games, FCS opponents' included."
+  },
+  "rushing": {
+    "repeated_plays_dropped": 15,
+    "kneel_downs_left_out": 948,
+    "team_rushes_left_out": 163,
+    "games": 822,
+    "runs": 54307,
+    "overall": {
+      "att": 54307,
+      "ypc": 5.14,
+      "epa": 0.045,
+      "succ_pct": 0.4388,
+      "stuff_pct": 0.1637,
+      "opp_pct": 0.4904,
+      "expl_pct": 0.1386,
+      "line_ypc": 3.14,
+      "hilite_ypo": 3.98,
+      "short_att": 5509,
+      "short_conv_pct": 0.6947,
+      "qb_share": 0.2124,
+      "qb_ypc": 5.63,
+      "qb_epa": 0.185,
+      "back_ypc": 5.0,
+      "back_epa": 0.007
+    },
+    "min_carries_per_team_game": 8,
+    "qb_min_pass_attempts": 10,
+    "box_score_check": {
+      "player_games_compared": 6204,
+      "player_games_within_one_carry": 0.9969,
+      "carries": 39713,
+      "carries_box": 39865,
+      "yards": 202873,
+      "yards_box": 202282,
+      "largest_season_gap_pct_80_carries": 4.05
+    },
+    "note": "Runs with a ball carrier: sacks, kneel-downs and snaps charged to the team are left out. The feed does not label the kind of run, and a quarterback scramble is written like a designed run. 'overall' covers every run in these games, FCS opponents' included."
   },
   "sources": {
     "games_and_polls": "ESPN data via https://github.com/sportsdataverse/cfbfastR-cfb-raw and https://github.com/sportsdataverse/cfbfastR-cfb-data",

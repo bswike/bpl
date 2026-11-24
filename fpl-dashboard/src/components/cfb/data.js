@@ -44,6 +44,7 @@ export const rec = (w, l) => (w + l === 0 ? '–' : `${w}-${l}`);
 export const pct = (x) => (x == null ? '' : (x * 100).toFixed(1));
 export const signed = (x, digits = 1) => (x == null ? '' : `${x > 0 ? '+' : ''}${x.toFixed(digits)}`);
 export const num = (x) => (x == null ? '' : String(x));
+export const fixed = (x, digits = 1) => (x == null ? '' : x.toFixed(digits));
 
 /** Sort key for a W-L split: win pct, then more wins; null (no games) sorts last. */
 export const recKey = (w, l) => (w + l === 0 ? null : w / (w + l) + w * 1e-4);

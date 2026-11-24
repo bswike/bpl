@@ -5,6 +5,7 @@ import Game from './Game';
 import Passing from './Passing';
 import Player from './Player';
 import Resume from './Resume';
+import Rushing from './Rushing';
 import Team from './Team';
 import { Control, Ratings } from './pages';
 import './cfb.css';
@@ -13,6 +14,7 @@ const NAV = [
   ['/cfb', 'Ratings', true],
   ['/cfb/control', 'Game Control'],
   ['/cfb/passing', 'Passing'],
+  ['/cfb/rushing', 'Rushing'],
   ['/cfb/resume', 'Resume Builder'],
   // ['/cfb/about', 'About'], hidden from the nav for now; the page still works at /cfb/about
 ];
@@ -53,6 +55,7 @@ export default function CfbApp() {
           <Route index element={<Ratings />} />
           <Route path="control" element={<Control />} />
           <Route path="passing" element={<Passing />} />
+          <Route path="rushing" element={<Rushing />} />
           <Route path="resume" element={<Resume />} />
           <Route path="team/:id" element={<Team />} />
           <Route path="game/:gameId" element={<Game />} />

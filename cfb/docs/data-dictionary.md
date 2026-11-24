@@ -346,3 +346,86 @@ The same columns for each passer on an FBS team with at least 12 attempts per ga
 | `deep_share` | Share of the attempts with a known depth that were thrown 20 or more yards past the line (0-1). |
 | `deep_cmp_pct` | Completion rate on throws 20 or more yards past the line (0-1). Interceptions count as incompletions. |
 | `deep_epa` | Expected points added per attempt on throws 20 or more yards past the line. |
+
+## rushing_offense
+
+Rushing for each FBS offense, from play-by-play (pipeline/rushing.py). Not adjusted for opponent. The feed has no label for the kind of run, and its left/middle/right mark follows the stat crew more than the offense, so neither is used.
+
+138 rows.
+
+| Column | Meaning |
+|---|---|
+| `team_id` | ESPN team id. |
+| `team` | Short team name. |
+| `att` | Runs with a ball carrier, from the play-by-play. Sacks, kneel-downs and snaps charged to the team are not counted (college box scores count all three as rushes). |
+| `ypc` | Yards per carry. |
+| `epa` | Expected points added per run (ESPN-derived EPA from cfbfastR). |
+| `succ_pct` | Success rate (0-1): the run gained 50% of the yards to go on first down, 70% on second, all of them on third or fourth, or scored. |
+| `stuff_pct` | Share of runs stopped for no gain or a loss (0-1). |
+| `opp_pct` | Opportunity rate: share of runs that gained 4 or more yards (0-1). |
+| `expl_pct` | Share of runs that gained 10 or more yards (0-1). |
+| `line_ypc` | Line yards per carry: the part of each run credited to the blocking. Losses count 120%, yards 0-4 in full, yards 5-10 at half, nothing beyond 10. |
+| `hilite_ypo` | Highlight yards per opportunity: on runs of 4 or more yards, the yards credited to the runner (half of yards 5-10, everything past 10), divided by the number of such runs. |
+| `short_att` | Short-yardage runs: third or fourth down with 2 or fewer yards to go, or first or second down with goal to go from the 2 or closer. |
+| `short_conv_pct` | Share of short-yardage runs that gained the yards to go or scored (0-1). |
+| `back_att` | Runs by everyone except quarterbacks. |
+| `back_ypc` | Yards per carry on runs by everyone except quarterbacks. |
+| `back_epa` | Expected points added per run by everyone except quarterbacks. |
+| `qb_att` | Runs by quarterbacks (players with at least 10 pass attempts this season): scrambles and designed runs together. Sacks are not runs. |
+| `qb_ypc` | Yards per carry on quarterback runs. |
+| `qb_epa` | Expected points added per quarterback run. |
+| `qb_share` | Share of the team's runs carried by quarterbacks (0-1). |
+
+## rushing_defense
+
+The same columns as rushing_offense for each FBS defense: every number is what opposing runners did against this team (FCS opponents included).
+
+138 rows.
+
+| Column | Meaning |
+|---|---|
+| `team_id` | ESPN team id. |
+| `team` | Short team name. |
+| `att` | Runs with a ball carrier, from the play-by-play. Sacks, kneel-downs and snaps charged to the team are not counted (college box scores count all three as rushes). |
+| `ypc` | Yards per carry. |
+| `epa` | Expected points added per run (ESPN-derived EPA from cfbfastR). |
+| `succ_pct` | Success rate (0-1): the run gained 50% of the yards to go on first down, 70% on second, all of them on third or fourth, or scored. |
+| `stuff_pct` | Share of runs stopped for no gain or a loss (0-1). |
+| `opp_pct` | Opportunity rate: share of runs that gained 4 or more yards (0-1). |
+| `expl_pct` | Share of runs that gained 10 or more yards (0-1). |
+| `line_ypc` | Line yards per carry: the part of each run credited to the blocking. Losses count 120%, yards 0-4 in full, yards 5-10 at half, nothing beyond 10. |
+| `hilite_ypo` | Highlight yards per opportunity: on runs of 4 or more yards, the yards credited to the runner (half of yards 5-10, everything past 10), divided by the number of such runs. |
+| `short_att` | Short-yardage runs: third or fourth down with 2 or fewer yards to go, or first or second down with goal to go from the 2 or closer. |
+| `short_conv_pct` | Share of short-yardage runs that gained the yards to go or scored (0-1). |
+| `back_att` | Runs by everyone except quarterbacks. |
+| `back_ypc` | Yards per carry on runs by everyone except quarterbacks. |
+| `back_epa` | Expected points added per run by everyone except quarterbacks. |
+| `qb_att` | Runs by quarterbacks (players with at least 10 pass attempts this season): scrambles and designed runs together. Sacks are not runs. |
+| `qb_ypc` | Yards per carry on quarterback runs. |
+| `qb_epa` | Expected points added per quarterback run. |
+| `qb_share` | Share of the team's runs carried by quarterbacks (0-1). |
+
+## rushing_players
+
+The same core columns for each ball carrier on an FBS team with at least 8 carries per game his team has played (meta.json rushing.min_carries_per_team_game).
+
+199 rows.
+
+| Column | Meaning |
+|---|---|
+| `athlete_id` | ESPN athlete id, as in the player pages. |
+| `player` | Ball carrier's name. |
+| `team_id` | ESPN team id of his team. |
+| `team` | Short team name. |
+| `is_qb` | True for a quarterback (at least 10 pass attempts this season). His runs are scrambles and designed runs together. |
+| `att` | Runs with a ball carrier, from the play-by-play. Sacks, kneel-downs and snaps charged to the team are not counted (college box scores count all three as rushes). |
+| `ypc` | Yards per carry. |
+| `epa` | Expected points added per run (ESPN-derived EPA from cfbfastR). |
+| `succ_pct` | Success rate (0-1): the run gained 50% of the yards to go on first down, 70% on second, all of them on third or fourth, or scored. |
+| `stuff_pct` | Share of runs stopped for no gain or a loss (0-1). |
+| `opp_pct` | Opportunity rate: share of runs that gained 4 or more yards (0-1). |
+| `expl_pct` | Share of runs that gained 10 or more yards (0-1). |
+| `line_ypc` | Line yards per carry: the part of each run credited to the blocking. Losses count 120%, yards 0-4 in full, yards 5-10 at half, nothing beyond 10. |
+| `hilite_ypo` | Highlight yards per opportunity: on runs of 4 or more yards, the yards credited to the runner (half of yards 5-10, everything past 10), divided by the number of such runs. |
+| `short_att` | Short-yardage runs: third or fourth down with 2 or fewer yards to go, or first or second down with goal to go from the 2 or closer. |
+| `short_conv_pct` | Share of short-yardage runs that gained the yards to go or scored (0-1). |

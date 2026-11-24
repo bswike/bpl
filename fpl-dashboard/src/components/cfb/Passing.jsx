@@ -1,9 +1,9 @@
-import { Fragment, useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import SortTable from './SortTable';
-import { filterTeams, pct, signed, useCfb } from './data';
-import { colConf, colT50, colTeam } from './columns';
-import { ConfFilter, Status } from './ui';
+import { filterTeams, fixed, pct, signed, useCfb } from './data';
+import { colConf, colPlayer, colT50, colTeam } from './columns';
+import { ConfFilter, Status, ViewLinks } from './ui';
 
 // Passing by throw depth (cfb/pipeline/passing.py). The play-by-play says where each pass was caught or aimed, not what
 // kind of play it was, so the buckets are depths: "behind line" holds screens, swing passes and checkdowns together.
@@ -21,7 +21,6 @@ const BUCKETS = [
 ];
 const THIN = 10; // a depth bucket with fewer throws than this is greyed (the count is in the cell's tooltip)
 
-const fixed = (x, digits = 1) => (x == null ? '' : x.toFixed(digits));
 const basisOf = (r) => r.top50_basis;
 
 function statCols(view) {
@@ -56,37 +55,6 @@ function statCols(view) {
   return cols;
 }
 
-const colPlayer = {
-  key: 'player',
-  label: 'Player',
-  left: true,
-  sticky: '2.6em',
-  value: (r) => r.player,
-  render: (r) => <Link className="pname" to={`/cfb/player/${r.athlete_id}`}>{r.player}</Link>,
-};
-
-/** "Offense | Defense | Quarterbacks", keeping the conference filter. */
-function ViewLinks({ view }) {
-  const [params] = useSearchParams();
-  const href = (v) => {
-    const p = new URLSearchParams(params);
-    if (v === 'off') p.delete('view');
-    else p.set('view', v);
-    const q = p.toString();
-    return q ? `/cfb/passing?${q}` : '/cfb/passing';
-  };
-  return (
-    <p className="links">
-      {VIEWS.map(([k, label], i) => (
-        <Fragment key={k}>
-          {i > 0 && ' | '}
-          {k === view ? <b>{label}</b> : <Link to={href(k)}>{label}</Link>}
-        </Fragment>
-      ))}
-    </p>
-  );
-}
-
 export default function Passing() {
   const [params] = useSearchParams();
   const view = VIEWS.some(([k]) => k === params.get('view')) ? params.get('view') : 'off';
@@ -111,7 +79,7 @@ export default function Passing() {
   return (
     <>
       <h2>Passing by Throw Depth</h2>
-      <ViewLinks view={view} />
+      <ViewLinks views={VIEWS} view={view} />
       <ConfFilter />
       <p className="note">
         Depth = air yards past the line of scrimmage. “Behind line” = screens, swing passes and checkdowns together.

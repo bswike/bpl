@@ -27,7 +27,7 @@ const teams = read('team_summary').map(({ logo, logo_dark, ...rest }) => rest);
 write('teams.json', teams);
 
 for (const name of ['meta', 'top50', 'home_away_splits', 'ap_polls', 'ap_receiving_votes', 'cfp_rankings', 'upcoming', 'resume',
-  'passing_offense', 'passing_defense', 'passing_players']) {
+  'passing_offense', 'passing_defense', 'passing_players', 'rushing_offense', 'rushing_defense', 'rushing_players']) {
   write(`${name}.json`, read(name));
 }
 

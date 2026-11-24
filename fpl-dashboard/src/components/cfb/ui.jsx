@@ -112,3 +112,29 @@ export function ConfCell({ conf, w, l }) {
     </>
   );
 }
+
+/**
+ * "Offense | Defense | Quarterbacks" for a page with several views (?view=...), keeping the conference filter.
+ * views: [[key, label], ...]; the first is the default and needs no parameter.
+ */
+export function ViewLinks({ views, view }) {
+  const [params] = useSearchParams();
+  const { pathname } = useLocation();
+  const href = (v) => {
+    const p = new URLSearchParams(params);
+    if (v === views[0][0]) p.delete('view');
+    else p.set('view', v);
+    const q = p.toString();
+    return q ? `${pathname}?${q}` : pathname;
+  };
+  return (
+    <p className="links">
+      {views.map(([k, label], i) => (
+        <Fragment key={k}>
+          {i > 0 && ' | '}
+          {k === view ? <b>{label}</b> : <Link to={href(k)}>{label}</Link>}
+        </Fragment>
+      ))}
+    </p>
+  );
+}

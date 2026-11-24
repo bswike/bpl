@@ -142,6 +142,42 @@ Built by `pipeline/passing.py` from the play-by-play (`passing_offense`, `passin
 - **Checked:** an independent recount from the play-by-play for Georgia, Auburn and Air Force matches the tables
   (attempts, completion rate, yards per attempt, EPA, bucket counts, air share, YAC, and the defensive side).
 
+## Rushing
+
+Built by `pipeline/rushing.py` from the play-by-play (`rushing_offense`, `rushing_defense`, `rushing_players`).
+
+- **What counts as a run:** a play the feed flags as a rush with a ball carrier: 54,307 in 2026. Left out: sacks (the
+  feed types them separately; college box scores fold them into rushing), 948 kneel-downs, 163 snaps that got away
+  and were charged to the team, plays wiped out by a penalty, and 15 plays a stat correction entered twice. Team
+  attempts are therefore lower than the box score's.
+- **What the feed lacks:** the kind of run. Nothing marks zone, power, counter, draw, option or sweep, and a
+  quarterback scramble is written exactly like a designed quarterback run.
+- **Direction is not used.** The text says left, middle or right, but that follows the home stat crew more than the
+  offense. The share of runs marked "middle" runs from 35% to 90% by stadium (median 58%). A team's own home and
+  away shares correlate only 0.43, while visitors' shares in a stadium track the home team's there (0.61). A team's
+  direction split would mostly describe its scorer.
+- **Success:** the run gained 50% of the yards to go on first down, 70% on second, all of them on third or fourth,
+  or scored (43.9% of all runs).
+- **Stuff, 4+, 10+:** share of runs for no gain or a loss (16.4%), of 4 or more yards (49.0%, the "opportunity
+  rate") and of 10 or more (13.9%).
+- **Line yards (`line_ypc`):** the part of a run credited to the blocking. Losses count 120%, yards 0-4 in full,
+  yards 5-10 at half, nothing past 10 (so at most 7 a run). The feed's own `line_yards` column uses the same formula
+  and matches on every run. **Highlight yards (`hilite_ypo`)** are the rest of a run that gained 4 or more, divided
+  by the number of such runs: what the runner added once the blocking did its job.
+- **Short yardage:** runs on third or fourth down with 2 or fewer to go, or on first or second down with goal to go
+  from the 2 or closer; converted if the run gained the yards to go or scored (5,509 runs, 69.5% converted). The same
+  plays as the feed's "power" flag.
+- **Quarterback runs:** runs by a player with at least 10 pass attempts this season. That is 21% of runs, at 5.63
+  yards and +0.19 EPA a carry against 5.00 and +0.01 for everyone else; scrambles are in there and sacks are not,
+  which is much of the gap.
+- **Rushers** need 8 carries per game their team has played (199 qualify, 27 of them quarterbacks).
+- **Checked:** non-quarterbacks' carries (their box-score lines hold no sacks or kneel-downs) are within one carry of
+  the box score in 99.7% of 6,204 player-games; season carries 39,713 against 39,865 and yards 202,873 against
+  202,282; the largest season gap for a back with 80+ carries is 4%. An independent recount from the play-by-play
+  for Georgia, Army and Stanford matches the tables on every column, offense and defense.
+- **Weak spots:** nothing is adjusted for opponent. About 0.2% of runs are typed "Penalty" by the feed although the
+  play stood, and are missed.
+
 ## Home, away and neutral
 
 - Site comes from the feed's neutral-site flag. Ten games are neutral: North Carolina-TCU, Auburn-Baylor,

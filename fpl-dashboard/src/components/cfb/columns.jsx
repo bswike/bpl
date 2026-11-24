@@ -22,6 +22,21 @@ export const colTeam = {
   render: (r) => <TeamLink id={r.team_id}>{r.team}</TeamLink>,
 };
 
+/** Player name linking to the player page, pinned like the team column; rows flagged is_qb get a small "QB". */
+export const colPlayer = {
+  key: 'player',
+  label: 'Player',
+  left: true,
+  sticky: '2.6em',
+  value: (r) => r.player,
+  render: (r) => (
+    <>
+      <Link className="pname" to={`/cfb/player/${r.athlete_id}`}>{r.player}</Link>
+      {r.is_qb && <small className="conf-rec"> QB</small>}
+    </>
+  ),
+};
+
 export const colConf = (confOf = (r) => r.conference) => ({
   key: 'conf',
   label: 'Conf',

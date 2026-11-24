@@ -19,6 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from game_control import build_game_control  # noqa: E402
 from passing import BUCKET_LABELS, MIN_ATT_PER_TEAM_GAME, box_check, build_passing, passing_tables  # noqa: E402
 from ratings import ratings  # noqa: E402
+from rushing import MIN_CARRIES_PER_TEAM_GAME, QB_MIN_PASS_ATT, build_rushing, rushing_tables  # noqa: E402
+from rushing import box_check as rushing_box_check  # noqa: E402
 from schema import SCHEMA  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -217,6 +219,25 @@ def main():
     if pass_box and pass_box["largest_team_season_gap_pct"] > 5:
         warn(f"a team's pass attempts differ from its box scores by {pass_box['largest_team_season_gap_pct']}%; check the play-by-play feed")
 
+    # ---------------------------------------------------------------- rushing (same pattern)
+    rush_cache = DERIVED / "rushing_by_game.csv"
+    if pbp_path.exists():
+        rush_sums, rush_notes = build_rushing(pbp_path)
+        rush_sums.to_csv(rush_cache, index=False)
+        (DERIVED / "rushing_notes.json").write_text(json.dumps(rush_notes, indent=2))
+    rush_sums = pd.read_csv(rush_cache, keep_default_na=False)
+    rush_notes = json.loads((DERIVED / "rushing_notes.json").read_text())
+    missing = set(done.id.astype(int)) - set(rush_sums.game_id.astype(int))
+    assert not missing, f"{len(missing)} completed games have no rushing numbers; run pipeline/fetch_raw.sh and rebuild"
+    rush_sums = rush_sums[rush_sums.game_id.isin(set(done.id.astype(int)))]
+    # a ball carrier counts as a quarterback if he has thrown enough passes this season
+    season_pass_att = pass_sums[pass_sums.passer_id >= 0].groupby("passer_id").att.sum()
+    qb_ids = set(int(i) for i in season_pass_att[season_pass_att >= QB_MIN_PASS_ATT].index)
+    rush_offense, rush_defense, rush_players, rush_overall = rushing_tables(rush_sums, set(fbs), name, qb_ids)
+    rush_box = rushing_box_check(rush_sums, RAW / "box" / f"player_box_{SEASON}.parquet", qb_ids, set(fbs))
+    if rush_box and rush_box["player_games_within_one_carry"] < 0.98:
+        warn(f"only {rush_box['player_games_within_one_carry']:.1%} of running backs' games match the box score within a carry; check the play-by-play feed")
+
     # ---------------------------------------------------------------- records and the game log
     def blank():
         return dict(n=0, w=0, l=0, fw=0, fl=0, rw=0, rl=0, uw=0, ul=0, cw=0, cl=0, t={1: [0, 0], 2: [0, 0], 3: [0, 0], 4: [0, 0]},
@@ -385,7 +406,8 @@ def main():
     # ---------------------------------------------------------------- write
     tables = {"team_summary": summary, "top50": top50, "home_away_splits": splits, "games": games,
               "ap_polls": ap_polls, "ap_receiving_votes": ap_receiving, "cfp_rankings": cfp_rankings, "upcoming": upcoming,
-              "passing_offense": pass_offense, "passing_defense": pass_defense, "passing_players": pass_players}
+              "passing_offense": pass_offense, "passing_defense": pass_defense, "passing_players": pass_players,
+              "rushing_offense": rush_offense, "rushing_defense": rush_defense, "rushing_players": rush_players}
     nullable_ints = {"conf_w", "conf_l", "ap_rank", "ap_points", "ap_best_rank", "cfp_rank", "top50_rank", "biggest_deficit_overcome", "biggest_lead_lost",
                      "opp_talent_rank", "opp_cur_rank", "opp_id", "ap_rank_in", "cfp_rank_in", "points", "first_place_votes"}
     OUT_CSV.mkdir(parents=True, exist_ok=True)
@@ -425,6 +447,11 @@ def main():
                     "note": "Depth is air yards past the line of scrimmage. Interceptions are placed where the ball was picked off. "
                             "The feed does not label screens, scrambles, play action or routes. 'overall' covers every pass in "
                             "these games, FCS opponents' included."},
+        "rushing": {**rush_notes, "overall": rush_overall, "min_carries_per_team_game": MIN_CARRIES_PER_TEAM_GAME,
+                    "qb_min_pass_attempts": QB_MIN_PASS_ATT, "box_score_check": rush_box,
+                    "note": "Runs with a ball carrier: sacks, kneel-downs and snaps charged to the team are left out. The feed does not "
+                            "label the kind of run, and a quarterback scramble is written like a designed run. 'overall' covers every "
+                            "run in these games, FCS opponents' included."},
         "sources": {
             "games_and_polls": "ESPN data via https://github.com/sportsdataverse/cfbfastR-cfb-raw and https://github.com/sportsdataverse/cfbfastR-cfb-data",
             "play_by_play": "ESPN play-by-play via https://github.com/sportsdataverse/cfbfastR-cfb-data",

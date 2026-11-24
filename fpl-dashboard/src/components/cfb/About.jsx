@@ -71,6 +71,16 @@ export default function About() {
           on throws of the same depth. EPA is per pass attempt, so sacks and scrambles are not in it. About 1 touchdown pass
           in 9 has no catch spot in the feed and is left out of the depth columns. Nothing is adjusted for opponent.
         </dd>
+        <dt>Rushing</dt>
+        <dd>
+          A run is a rush with a ball carrier: sacks, kneel-downs and snaps charged to the team are not counted, so attempts
+          are lower than the box score’s. Success means the run gained 50% of the yards to go on first down, 70% on second,
+          all of them on third or fourth, or scored. Line yards credit the blocking (losses at 120%, yards 0-4 in full, yards
+          5-10 at half); highlight yards are what the runner added past that on runs of 4 or more. Short yardage is third or
+          fourth down with 2 or fewer to go, or goal to go from the 2 or closer. Quarterback runs are scrambles and designed
+          runs together. The play-by-play does not say what kind of run it was, and its left/middle/right mark follows the
+          home stat crew more than the offense, so neither is shown. Nothing is adjusted for opponent.
+        </dd>
       </dl>
 
       <h3>Past seasons (team pages)</h3>
