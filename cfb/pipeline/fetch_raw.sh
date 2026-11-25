@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Refresh the raw feeds in data/raw from the public sportsdataverse repositories.
-# Needs git. Downloads only the four files used here (the play-by-play file is about 55 MB).
+# Needs git and curl. Downloads only the files used here (the play-by-play file is about 55 MB).
 set -euo pipefail
 
 SEASON=2026
@@ -25,5 +25,16 @@ fetch cfbfastR-cfb-raw  "cfb/standings/json/fbs/${SEASON}.json"                 
 fetch cfbfastR-cfb-data "cfb/poll_analytics/parquet/cfb_poll_analytics_${SEASON}.parquet" "cfb_poll_analytics_${SEASON}.parquet"
 fetch cfbfastR-cfb-data "cfb/pbp/parquet/play_by_play_${SEASON}.parquet"                  "play_by_play_${SEASON}.parquet"
 fetch cfbfastR-cfb-data "cfb/fpi_weekly/parquet/cfb_fpi_weekly_${SEASON}.parquet"        "cfb_fpi_weekly_${SEASON}.parquet"
+
+# ESPN's own FPI page data (FPI, strength of record, strength of schedule). It is refreshed daily, so it is usually a
+# few days newer than the weekly snapshot above; pipeline/resume.py uses whichever of the two is newer.
+FPI_URL="https://site.web.api.espn.com/apis/fitt/v3/sports/football/college-football/powerindex?region=us&lang=en&limit=200"
+if curl -fsS -m 60 "$FPI_URL" -o "$RAW/espn_fpi_${SEASON}.json.tmp"; then
+  mv "$RAW/espn_fpi_${SEASON}.json.tmp" "$RAW/espn_fpi_${SEASON}.json"
+  echo "updated data/raw/espn_fpi_${SEASON}.json"
+else
+  rm -f "$RAW/espn_fpi_${SEASON}.json.tmp"
+  echo "WARNING: could not fetch ESPN's FPI page data; the weekly snapshot will be used" >&2
+fi
 
 echo "Done. Now update data/manual/ if a new AP poll or CFP ranking is out, then run: python pipeline/build.py"

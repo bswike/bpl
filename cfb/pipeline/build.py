@@ -150,17 +150,30 @@ def main():
                                 columns=["poll_week", "team_id", "team", "points"])
 
     cfp = polls[(polls.poll == "cfp") & polls["rank"].notna()]
-    cfp_rankings = pd.DataFrame([dict(cfp_week=int(r.week), rank=int(r.rank), team_id=int(r.team_id), team=name[int(r.team_id)])
-                                 for r in cfp.sort_values(["week", "rank"]).itertuples()], columns=["cfp_week", "rank", "team_id", "team"])
-    cfp_rank, last_cfp_week = {}, None
-    if len(cfp):
-        last_cfp_week = int(cfp.week.max())
-        cfp_last = cfp[cfp.week == last_cfp_week].sort_values("rank")
-        cfp_rank = {int(t): int(r) for t, r in zip(cfp_last.team_id, cfp_last["rank"])}
+    cfp_rows = [dict(cfp_week=int(r.week), rank=int(r.rank), team_id=int(r.team_id), team=name[int(r.team_id)])
+                for r in cfp.sort_values(["week", "rank"]).itertuples()]
     pub_cfp = published.get("cfp_latest", {})
+    feed_cfp_week = int(cfp.week.max()) if len(cfp) else None
+    # The poll feed can trail a release by days. Until it has the week in published.json, that hand-entered list is the
+    # ranking; once the feed catches up the two are compared below and the feed is used.
+    cfp_hand_entered = bool(pub_cfp.get("top25")) and (feed_cfp_week is None or pub_cfp["week"] > feed_cfp_week)
+    if cfp_hand_entered:
+        by_name = {name[t]: t for t in fbs}
+        assert len(by_name) == len(fbs), "two FBS teams share a name"
+        unknown = [n for n in pub_cfp["top25"] if n not in by_name]
+        assert not unknown, f"published.json cfp_latest names no FBS team for {unknown}"
+        assert len(set(pub_cfp["top25"])) == len(pub_cfp["top25"]) == 25, "published.json cfp_latest must list 25 different teams"
+        cfp_rows += [dict(cfp_week=int(pub_cfp["week"]), rank=i + 1, team_id=by_name[n], team=n) for i, n in enumerate(pub_cfp["top25"])]
+        warn(f"CFP week {pub_cfp['week']} is not in the poll feed yet (it ends at week {feed_cfp_week}); using the hand-entered ranking in data/manual/published.json")
+    cfp_rankings = pd.DataFrame(cfp_rows, columns=["cfp_week", "rank", "team_id", "team"])
+    cfp_rank, last_cfp_week = {}, None
+    if len(cfp_rankings):
+        last_cfp_week = int(cfp_rankings.cfp_week.max())
+        cfp_last = cfp_rankings[cfp_rankings.cfp_week == last_cfp_week].sort_values("rank")
+        cfp_rank = {int(t): int(r) for t, r in zip(cfp_last.team_id, cfp_last["rank"])}
     cfp_checked = pub_cfp.get("week") == last_cfp_week
     if cfp_checked:
-        assert [name[int(t)] for t in cfp_last.team_id] == pub_cfp["top25"], "CFP Top 25 in the feed differs from the published order in data/manual/published.json"
+        assert list(cfp_last.team) == pub_cfp["top25"], "CFP Top 25 in the feed differs from the published order in data/manual/published.json"
     elif last_cfp_week is not None:
         warn(f"published.json checks CFP week {pub_cfp.get('week')} but the feed's latest is week {last_cfp_week}; update data/manual/published.json")
 
@@ -433,6 +446,7 @@ def main():
                     "preseason_released": published["ap_preseason"].get("released")},
         "cfp": {"latest_week": last_cfp_week, "released": pub_cfp.get("released") if cfp_checked else None,
                 "next_release": pub_cfp.get("next_release") if cfp_checked else None,
+                "source": "hand-entered from the committee's release; the poll feed has not caught up" if cfp_hand_entered else "poll feed",
                 "note": "CFP ranks predate any games played after the release date."},
         "talent": {**published.get("talent", {}), "tiers": TIER_LABELS},
         "latest_poll": {**latest_poll, "note": "'Currently ranked' uses this poll: the AP poll or the CFP ranking, whichever was released last."},

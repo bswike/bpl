@@ -1,37 +1,37 @@
 rank,basis,team_id,team,conference,wins,losses,ap_points,cfp_rank,model_rank,talent_rank
 1,AP Top 25,61,Georgia,SEC,10,1,1711,1,1,1
-2,AP Top 25,254,Utah,Big 12,11,0,1662,2,3,58
-3,AP Top 25,87,Notre Dame,Ind,10,1,1591,6,4,6
+2,AP Top 25,254,Utah,Big 12,11,0,1662,2,2,58
+3,AP Top 25,87,Notre Dame,Ind,10,1,1591,4,4,6
 4,AP Top 25,2390,Miami,ACC,10,1,1491,7,5,12
-5,AP Top 25,251,Texas,SEC,9,2,1392,5,2,2
-6,AP Top 25,333,Alabama,SEC,9,2,1352,3,6,4
-7,AP Top 25,2633,Tennessee,SEC,9,2,1317,9,8,13
-8,AP Top 25,154,Wake Forest,ACC,10,1,1264,11,9,63
-9,AP Top 25,2641,Texas Tech,Big 12,10,1,1166,12,10,29
-10,AP Top 25,26,UCLA,Big Ten,10,1,1156,4,7,25
+5,AP Top 25,251,Texas,SEC,9,2,1392,3,3,2
+6,AP Top 25,333,Alabama,SEC,9,2,1352,6,6,4
+7,AP Top 25,2633,Tennessee,SEC,9,2,1317,5,8,13
+8,AP Top 25,154,Wake Forest,ACC,10,1,1264,8,9,63
+9,AP Top 25,2641,Texas Tech,Big 12,10,1,1166,11,10,29
+10,AP Top 25,26,UCLA,Big Ten,10,1,1156,9,7,25
 11,AP Top 25,252,BYU,Big 12,9,2,1030,10,11,59
-12,AP Top 25,84,Indiana,Big Ten,9,2,958,8,13,37
-13,AP Top 25,2294,Iowa,Big Ten,9,2,912,15,14,44
-14,AP Top 25,2483,Oregon,Big Ten,8,3,865,13,12,3
-15,AP Top 25,30,USC,Big Ten,8,3,699,18,16,9
-16,AP Top 25,12,Arizona,Big 12,8,3,665,19,24,54
-17,AP Top 25,248,Houston,Big 12,8,3,570,20,19,57
-18,AP Top 25,97,Louisville,ACC,8,3,565,23,18,41
-19,AP Top 25,201,Oklahoma,SEC,7,4,341,22,21,17
-20,AP Top 25,57,Florida,SEC,7,4,310,24,22,10
+12,AP Top 25,84,Indiana,Big Ten,9,2,958,14,13,37
+13,AP Top 25,2294,Iowa,Big Ten,9,2,912,13,14,44
+14,AP Top 25,2483,Oregon,Big Ten,8,3,865,12,12,3
+15,AP Top 25,30,USC,Big Ten,8,3,699,15,15,9
+16,AP Top 25,12,Arizona,Big 12,8,3,665,16,24,54
+17,AP Top 25,248,Houston,Big 12,8,3,570,18,19,57
+18,AP Top 25,97,Louisville,ACC,8,3,565,19,18,41
+19,AP Top 25,201,Oklahoma,SEC,7,4,341,17,21,17
+20,AP Top 25,57,Florida,SEC,7,4,310,20,22,10
 21,AP Top 25,2335,Liberty,C-USA,10,1,294,,28,79
-22,AP Top 25,68,Boise State,Pac-12,9,2,207,17,17,74
-23,AP Top 25,145,Ole Miss,SEC,7,4,200,25,20,14
-24,AP Top 25,142,Missouri,SEC,7,4,125,,26,19
-25,AP Top 25,194,Ohio State,Big Ten,7,4,112,14,15,5
+22,AP Top 25,68,Boise State,Pac-12,9,2,207,,17,74
+23,AP Top 25,145,Ole Miss,SEC,7,4,200,22,20,14
+24,AP Top 25,142,Missouri,SEC,7,4,125,23,26,19
+25,AP Top 25,194,Ohio State,Big Ten,7,4,112,21,16,5
 26,AP receiving votes,167,New Mexico,Mountain West,9,2,95,,30,112
-27,AP receiving votes,158,Nebraska,Big Ten,7,4,90,,33,22
+27,AP receiving votes,158,Nebraska,Big Ten,7,4,90,25,33,22
 28,AP receiving votes,2636,UTSA,American,9,2,75,,25,72
-29,AP receiving votes,96,Kentucky,SEC,7,4,62,16,27,23
-30,AP receiving votes,264,Washington,Big Ten,7,4,39,,41,24
+29,AP receiving votes,96,Kentucky,SEC,7,4,62,,27,23
+30,AP receiving votes,264,Washington,Big Ten,7,4,39,24,41,24
 31,AP receiving votes,2348,Louisiana Tech,Sun Belt,9,2,31,,34,124
 32,AP receiving votes,2449,North Dakota State,Mountain West,9,2,25,,35,131
-33,AP receiving votes,2649,Toledo,MAC,9,2,22,,48,116
+33,AP receiving votes,2649,Toledo,MAC,9,2,22,,49,116
 34,AP receiving votes,197,Oklahoma State,Big 12,7,4,12,,31,65
 35,AP receiving votes,2,Auburn,SEC,7,4,10,,29,18
 36,AP receiving votes,2005,Air Force,Mountain West,9,2,7,,37,137
@@ -40,46 +40,46 @@ rank,basis,team_id,team,conference,wins,losses,ap_points,cfp_rank,model_rank,tal
 39,Projected,275,Wisconsin,Big Ten,7,4,,,32,30
 40,Projected,235,Memphis,American,8,3,,,38,67
 41,Projected,326,Texas State,Pac-12,7,4,,,39,83
-42,Projected,2579,South Carolina,SEC,6,5,,21,40,15
+42,Projected,2579,South Carolina,SEC,6,5,,,40,15
 43,Projected,2567,SMU,ACC,7,4,,,42,31
 44,Projected,239,Baylor,Big 12,6,5,,,43,43
 45,Projected,256,James Madison,Sun Belt,8,3,,,44,101
 46,Projected,228,Clemson,ACC,7,4,,,45,16
 47,Projected,130,Michigan,Big Ten,6,5,,,46,11
 48,Projected,356,Illinois,Big Ten,6,5,,,47,51
-49,Projected,77,Northwestern,Big Ten,6,5,,,49,60
+49,Projected,77,Northwestern,Big Ten,6,5,,,48,60
 50,Projected,249,North Texas,American,7,4,,,50,95
 51,Projected,213,Penn State,Big Ten,6,5,,,51,26
-52,Projected,2711,Western Michigan,MAC,8,3,,,52,108
+52,Projected,2132,Cincinnati,Big 12,6,5,,,52,77
 53,Projected,290,Georgia Southern,Sun Belt,7,4,,,53,78
-54,Projected,2132,Cincinnati,Big 12,6,5,,,54,77
-55,Projected,2116,UCF,Big 12,6,5,,,55,66
-56,Projected,309,Louisiana,Sun Belt,8,3,,,56,99
-57,Projected,153,North Carolina,ACC,5,6,,,57,28
-58,Projected,221,Pittsburgh,ACC,6,5,,,58,64
-59,Projected,24,Stanford,ACC,6,5,,,59,50
-60,Projected,135,Minnesota,Big Ten,6,5,,,60,40
+54,Projected,2116,UCF,Big 12,6,5,,,54,66
+55,Projected,309,Louisiana,Sun Belt,8,3,,,55,99
+56,Projected,153,North Carolina,ACC,5,6,,,56,28
+57,Projected,221,Pittsburgh,ACC,6,5,,,57,64
+58,Projected,24,Stanford,ACC,6,5,,,58,50
+59,Projected,135,Minnesota,Big Ten,6,5,,,59,40
+60,Projected,258,Virginia,ACC,6,5,,,60,53
 61,Projected,2226,Florida Atlantic,American,7,4,,,61,98
-62,Projected,258,Virginia,ACC,6,5,,,62,53
-63,Projected,202,Tulsa,American,7,4,,,63,84
-64,Projected,66,Iowa State,Big 12,5,6,,,64,68
-65,Projected,2439,UNLV,Mountain West,7,4,,,65,56
+62,Projected,202,Tulsa,American,7,4,,,62,84
+63,Projected,66,Iowa State,Big 12,5,6,,,63,68
+64,Projected,2439,UNLV,Mountain West,7,4,,,64,56
+65,Projected,2711,Western Michigan,MAC,8,4,,,65,108
 66,Projected,9,Arizona State,Big 12,6,5,,,66,45
 67,Projected,55,Jacksonville State,C-USA,8,3,,,67,93
 68,Projected,344,Mississippi State,SEC,5,6,,,68,20
 69,Projected,2084,Buffalo,MAC,8,3,,,69,120
 70,Projected,204,Oregon State,Pac-12,6,5,,,70,76
 71,Projected,8,Arkansas,SEC,4,7,,,71,36
-72,Projected,2628,TCU,Big 12,5,6,,,72,39
-73,Projected,52,Florida State,ACC,5,6,,,73,21
-74,Projected,259,Virginia Tech,ACC,6,5,,,74,27
+72,Projected,193,Miami (OH),MAC,8,4,,,72,86
+73,Projected,2628,TCU,Big 12,5,6,,,73,39
+74,Projected,52,Florida State,ACC,5,6,,,74,21
 75,Projected,195,Ohio,MAC,8,3,,,75,129
-76,Projected,21,San Diego State,Pac-12,6,5,,,76,89
-77,Projected,278,Fresno State,Pac-12,6,5,,,77,88
-78,Projected,245,Texas A&M,SEC,4,7,,,78,7
-79,Projected,277,West Virginia,Big 12,5,6,,,79,49
-80,Projected,151,East Carolina,American,7,4,,,80,82
-81,Projected,193,Miami (OH),MAC,7,4,,,81,86
+76,Projected,259,Virginia Tech,ACC,6,5,,,76,27
+77,Projected,21,San Diego State,Pac-12,6,5,,,77,89
+78,Projected,278,Fresno State,Pac-12,6,5,,,78,88
+79,Projected,245,Texas A&M,SEC,4,7,,,79,7
+80,Projected,277,West Virginia,Big 12,5,6,,,80,49
+81,Projected,151,East Carolina,American,7,4,,,81,82
 82,Projected,349,Army,American,5,5,,,82,136
 83,Projected,2751,Wyoming,Mountain West,7,4,,,83,127
 84,Projected,152,NC State,ACC,5,6,,,84,32
@@ -88,9 +88,9 @@ rank,basis,team_id,team,conference,wins,losses,ap_points,cfp_rank,model_rank,tal
 87,Projected,2305,Kansas,Big 12,4,7,,,87,62
 88,Projected,183,Syracuse,ACC,5,6,,,88,35
 89,Projected,41,UConn,Ind,6,5,,,89,73
-90,Projected,58,South Florida,American,6,5,,,90,52
+90,Projected,127,Michigan State,Big Ten,3,8,,,90,61
 91,Projected,103,Boston College,ACC,5,6,,,91,71
-92,Projected,127,Michigan State,Big Ten,3,8,,,92,61
+92,Projected,58,South Florida,American,6,5,,,92,52
 93,Projected,2426,Navy,American,4,6,,,93,138
 94,Projected,38,Colorado,Big 12,4,7,,,94,38
 95,Projected,2026,App State,Sun Belt,7,4,,,95,85
@@ -101,8 +101,8 @@ rank,basis,team_id,team,conference,wins,losses,ap_points,cfp_rank,model_rank,tal
 100,Projected,48,Delaware,C-USA,6,5,,,100,134
 101,Projected,2393,Middle Tennessee,C-USA,6,5,,,101,109
 102,Projected,2117,Central Michigan,MAC,5,6,,,102,125
-103,Projected,276,Marshall,Sun Belt,6,5,,,103,97
-104,Projected,2306,Kansas State,Big 12,4,7,,,104,47
+103,Projected,2306,Kansas State,Big 12,4,7,,,103,47
+104,Projected,276,Marshall,Sun Belt,6,5,,,104,97
 105,Projected,2440,Nevada,Mountain West,5,6,,,105,118
 106,Projected,338,Kennesaw State,C-USA,5,6,,,106,133
 107,Projected,328,Utah State,Pac-12,4,7,,,107,123
@@ -116,19 +116,19 @@ rank,basis,team_id,team,conference,wins,losses,ap_points,cfp_rank,model_rank,tal
 115,Projected,98,Western Kentucky,C-USA,4,7,,,115,87
 116,Projected,36,Colorado State,Pac-12,3,8,,,116,75
 117,Projected,113,Massachusetts,MAC,5,6,,,117,128
-118,Projected,2032,Arkansas State,Sun Belt,4,7,,,118,91
-119,Projected,2653,Troy,Sun Belt,4,7,,,119,96
-120,Projected,2199,Eastern Michigan,MAC,4,7,,,120,103
+118,Projected,2199,Eastern Michigan,MAC,5,7,,,118,103
+119,Projected,2032,Arkansas State,Sun Belt,4,7,,,119,91
+120,Projected,2653,Troy,Sun Belt,4,7,,,120,96
 121,Projected,2623,Missouri State,C-USA,4,7,,,121,119
 122,Projected,295,Old Dominion,Sun Belt,3,8,,,122,122
 123,Projected,242,Rice,American,2,9,,,123,100
 124,Projected,62,Hawai'i,Mountain West,3,8,,,124,115
 125,Projected,265,Washington State,Pac-12,2,9,,,125,81
-126,Projected,2050,Ball State,MAC,3,8,,,126,113
-127,Projected,2572,Southern Miss,Sun Belt,3,8,,,127,94
+126,Projected,2572,Southern Miss,Sun Belt,3,8,,,126,94
+127,Projected,2050,Ball State,MAC,3,8,,,127,113
 128,Projected,189,Bowling Green,MAC,3,8,,,128,111
 129,Projected,166,New Mexico State,C-USA,3,8,,,129,135
-130,Projected,2309,Kent State,MAC,3,8,,,130,130
+130,Projected,2309,Kent State,MAC,3,9,,,130,130
 131,Projected,218,Temple,American,2,9,,,131,80
 132,Projected,2006,Akron,MAC,2,9,,,132,121
 133,Projected,2433,UL Monroe,Sun Belt,2,9,,,133,132

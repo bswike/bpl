@@ -10,10 +10,12 @@ they reacted, then `docs/methodology.md` for how each number is defined and what
 
 ## Snapshot
 
-- Games through Saturday 2026-11-21: 822 completed regular-season games, 138 FBS teams, 11 games each for
-  the power-conference teams.
+- Games through Tuesday 2026-11-24: 824 completed regular-season games, 138 FBS teams, 11 games each for
+  the power-conference teams (the two newest are Tuesday-night MAC games).
 - AP poll of 2026-11-22 (13 polls so far, preseason included; 41 teams ranked at least once).
-- CFP committee ranking of 2026-11-17 (next release 2026-11-24). It predates the Nov 21 games.
+- CFP committee ranking of 2026-11-24, covering games through Nov 21 (next release 2026-12-01). It was entered by
+  hand because the poll feed still ended at the Nov 17 ranking.
+- ESPN FPI, strength of record and strength of schedule as ESPN last updated them on 2026-11-25.
 - 247Sports Team Talent Composite as last updated 2026-08-28 (a preseason roster-talent ranking).
 
 `data/json/meta.json` carries these as-of values. Read them from there rather than hard-coding them.
@@ -108,10 +110,24 @@ error if a computed record disagrees with the standings feed, and warns when a h
 
 ## Refreshing after new games or polls
 
-1. `bash pipeline/fetch_raw.sh`
+1. `bash pipeline/fetch_raw.sh` (schedule, standings, polls, play-by-play, ESPN FPI) and `bash pipeline/fetch_box.sh 2026`.
 2. Update `data/manual/`: `ap_receiving_votes.csv` (teams outside the Top 25 with votes are not in any
    feed) and the reference lists and dates in `published.json`.
 3. `python pipeline/build.py` and read its warnings.
+4. `python pipeline/boxscores.py` (box scores and player pages for the new games), then `python pipeline/resume.py`.
+5. `node ../fpl-dashboard/scripts/cfb-export.mjs`, then check the site, push, and confirm the deployment.
+
+Where the hand-entered values come from:
+
+- **CFP ranking:** the poll feed can trail a release by days (on 2026-11-25 it still ended at the Nov 17 ranking).
+  Put the new week, dates and top 25 in `published.json` `cfp_latest`; the build uses that list until the feed has
+  the week and compares the two once it does. Sources: `https://collegefootballplayoff.com/rankings` (official; its
+  release article gives the games-through date and the next release) and ESPN's rankings data at
+  `https://site.api.espn.com/apis/site/v2/sports/football/college-football/rankings`. Use this site's team names
+  ("USC", not "Southern California"). `games_through_cutoff_utc` is the Monday noon UTC before the release.
+- **AP others receiving votes:** the same ESPN rankings data lists them under the AP poll's `others`.
+- **ESPN FPI / SOR / SOS:** nothing to enter. `fetch_raw.sh` saves ESPN's own FPI page data
+  (`data/raw/espn_fpi_2026.json`, refreshed daily) next to the weekly snapshot, and `resume.py` uses the newer one.
 
 ## Past seasons
 

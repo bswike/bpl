@@ -135,7 +135,7 @@ Every category split by where the game was played. One row per FBS team per site
 
 One row per FBS team per completed game (so an FBS-vs-FBS game appears twice, once from each side).
 
-1517 rows.
+1521 rows.
 
 | Column | Meaning |
 |---|---|
@@ -201,7 +201,7 @@ Teams outside the Top 25 that received votes in the latest AP poll. Hand-entered
 
 Every College Football Playoff committee Top 25 released so far.
 
-75 rows.
+100 rows.
 
 | Column | Meaning |
 |---|---|
@@ -214,7 +214,7 @@ Every College Football Playoff committee Top 25 released so far.
 
 Scheduled games not yet played, one row per FBS team per game, with this project's projected spread. Projections are this site's model, not a betting line.
 
-147 rows.
+143 rows.
 
 | Column | Meaning |
 |---|---|
@@ -312,7 +312,7 @@ The same columns as passing_offense for each FBS defense: every number is what o
 
 The same columns for each passer on an FBS team with at least 12 attempts per game his team has played (meta.json passing.min_attempts_per_team_game).
 
-144 rows.
+143 rows.
 
 | Column | Meaning |
 |---|---|
@@ -409,7 +409,7 @@ The same columns as rushing_offense for each FBS defense: every number is what o
 
 The same core columns for each ball carrier on an FBS team with at least 8 carries per game his team has played (meta.json rushing.min_carries_per_team_game).
 
-199 rows.
+200 rows.
 
 | Column | Meaning |
 |---|---|

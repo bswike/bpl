@@ -5,7 +5,7 @@
 
 Writes data/json/resume.json:
 
-    {season, ap_released, fpi_as_of, teams: [{id, team, conf, w, l, pct, ap, cfp, tal, srs, fpi, fpi_rank, sor, sos, games: [[opp_id, opp, result, margin, site,
+    {season, ap_released, cfp_released, games_through, fpi_as_of, fpi_source, teams: [{id, team, conf, w, l, pct, ap, cfp, tal, srs, fpi, fpi_rank, sor, sos, games: [[opp_id, opp, result, margin, site,
      opp_ap_then, opp_qb_out, own_qb_out], ...]}]}
 
 opp_ap_then is the opponent's AP rank going into the game. opp_qb_out is 1 when the opponent's usual starting QB did
@@ -13,9 +13,11 @@ not lead it in pass attempts that game, own_qb_out the same for the row's team: 
 That is an approximation (a mid-season change of starter makes the earlier games count as "starter out"). FCS
 opponents have no starter data and get 0.
 
-fpi / fpi_rank / sor / sos come from ESPN's Football Power Index (data/raw/cfb_fpi_weekly_<season>.parquet, latest
-weekly snapshot): sor is ESPN's strength-of-record rank ("accomplishment"), sos its strength-of-schedule rank
-(games played). ESPN's snapshot can trail the games data by a week; fpi_as_of says when it was taken.
+fpi / fpi_rank / sor / sos come from ESPN's Football Power Index: sor is ESPN's strength-of-record rank
+("accomplishment"), sos its strength-of-schedule rank (games played). Two copies are fetched by fetch_raw.sh, the
+weekly snapshot in cfbfastR-cfb-data (data/raw/cfb_fpi_weekly_<season>.parquet) and ESPN's own FPI page data
+(data/raw/espn_fpi_<season>.json, refreshed daily); the newer one is used. fpi_as_of says when ESPN last updated it
+and fpi_source which copy it was.
 """
 import json
 from pathlib import Path
@@ -42,16 +44,34 @@ def main():
     starter = {int(t): int(a) for t, a in zip(starts.team_id, starts.athlete_id)}
     led_by = {(int(g), int(t)): int(a) for g, t, a in zip(lead.game_id, lead.team_id, lead.athlete_id)}
 
-    # ESPN FPI, strength of record and strength of schedule (latest weekly snapshot)
-    fpi_path = ROOT / "data" / "raw" / f"cfb_fpi_weekly_{SEASON}.parquet"
-    fpi, fpi_as_of = {}, None
-    if fpi_path.exists():
-        f = pd.read_parquet(fpi_path)
+    # ESPN FPI, strength of record and strength of schedule: the newer of the weekly snapshot in cfbfastR-cfb-data and
+    # ESPN's own FPI page data (both fetched by fetch_raw.sh; the page data is refreshed daily)
+    sources = []  # (last updated, source label, {team id: numbers})
+    weekly_path = ROOT / "data" / "raw" / f"cfb_fpi_weekly_{SEASON}.parquet"
+    if weekly_path.exists():
+        f = pd.read_parquet(weekly_path)
         f = f[(f.season_type == 2) & (f.week == f[f.season_type == 2].week.max())]
-        fpi_as_of = str(f.last_updated.max())[:10]
-        for r in f.itertuples():
-            fpi[int(r.team_id)] = {"fpi": round(float(r.fpi), 1), "fpi_rank": int(r.fpirank),
-                                   "sor": int(r.accomplishmentrank) or None, "sos": int(r.avgsosrank) or None}
+        sources.append((str(f.last_updated.max())[:16], "weekly snapshot (cfbfastR-cfb-data)", {
+            int(r.team_id): {"fpi": round(float(r.fpi), 1), "fpi_rank": int(r.fpirank),
+                             "sor": int(r.accomplishmentrank) or None, "sos": int(r.avgsosrank) or None} for r in f.itertuples()}))
+    page_path = ROOT / "data" / "raw" / f"espn_fpi_{SEASON}.json"
+    if page_path.exists():
+        page = json.loads(page_path.read_text())
+        if page.get("requestedSeason", {}).get("year") == SEASON:
+            col = {c["name"]: {n: i for i, n in enumerate(c["names"])} for c in page["categories"]}
+            rows = {}
+            for t in page["teams"]:
+                v = {c["name"]: c["values"] for c in t["categories"]}
+                rows[int(t["team"]["id"])] = {
+                    "fpi": round(float(v["fpi"][col["fpi"]["fpi"]]), 1), "fpi_rank": int(v["fpi"][col["fpi"]["fpirank"]]),
+                    "sor": int(v["resume"][col["resume"]["accomplishmentrank"]]) or None, "sos": int(v["resume"][col["resume"]["avgsosrank"]]) or None}
+            sources.append((page["lastUpdated"][:16], "ESPN FPI page", rows))
+    fpi, fpi_as_of, fpi_source = {}, None, None
+    if sources:
+        updated, fpi_source, fpi = max(sources, key=lambda s: s[0])
+        fpi_as_of = updated[:10]
+        missing = sorted(t["team"] for t in teams if t["team_id"] not in fpi)
+        assert not missing, f"{fpi_source} has no FPI numbers for {missing}"
 
     # each team's AP rank going into each game, to look up the opponent's
     rank_in = {(g["game_id"], g["team_id"]): g["ap_rank_in"] for g in games}
@@ -67,7 +87,7 @@ def main():
             [opp, g["opp"], g["result"], g["margin"], g["site"][0], rank_in.get((g["game_id"], opp)), qb_out(opp), qb_out(g["team_id"])])
 
     out = {"season": SEASON, "ap_released": meta["ap_poll"]["released"], "cfp_released": meta["cfp"]["released"],
-           "games_through": meta["games_through"], "fpi_as_of": fpi_as_of, "teams": []}
+           "games_through": meta["games_through"], "fpi_as_of": fpi_as_of, "fpi_source": fpi_source, "teams": []}
     for t in teams:
         out["teams"].append({
             "id": t["team_id"], "team": t["team"], "conf": t["conference"], "w": t["wins"], "l": t["losses"],

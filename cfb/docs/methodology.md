@@ -2,6 +2,9 @@
 
 How each number is defined, where the data comes from, what was verified, and where the weak spots are.
 
+Counts and examples below are as of games through 2026-11-21 unless a section says otherwise. Current as-of dates
+and totals are in `data/json/meta.json`.
+
 ## Sources
 
 | Data | Source | Notes |
@@ -194,9 +197,18 @@ that sits exactly on a rounding boundary can differ by one unit in the last plac
 
 ## Timing caveats
 
-- The CFP ranking (Nov 17) is older than the records and the AP poll (through Nov 21 and Nov 22). UCLA, for
-  example, was 10-0 when the committee ranked it fourth and is 10-1 in the data.
-- The next CFP ranking is due Nov 24. A new AP poll follows each weekend.
+- As of the 2026-11-25 refresh: games through Tuesday Nov 24, AP poll of Nov 22, CFP ranking of Nov 24 (which
+  covers games through Nov 21), ESPN FPI as ESPN updated it on Nov 25. The CFP ranking is now the newest poll, so
+  "currently ranked" uses it.
+- A committee ranking never reflects games played after its cutoff. The Nov 17 ranking, for example, had UCLA
+  fourth at 10-0 while the data already showed 10-1.
+- The next CFP ranking is due Dec 1. A new AP poll follows each weekend.
+- **When the poll feed trails a release**, the committee's ranking is entered by hand in
+  `data/manual/published.json` from collegefootballplayoff.com and checked against ESPN's rankings data; the build
+  uses it until the feed has that week and then compares the two. The Nov 24 ranking was entered this way.
+- **ESPN FPI, strength of record and strength of schedule** come from the newer of two copies of ESPN's data: the
+  weekly snapshot in cfbfastR-cfb-data and ESPN's own FPI page data, which is refreshed daily. `resume.json` records
+  the date (`fpi_as_of`) and which copy was used (`fpi_source`).
 
 ## Past seasons (2020-2025)
 

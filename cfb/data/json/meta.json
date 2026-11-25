@@ -1,8 +1,8 @@
 {
   "season": 2026,
-  "built_at_utc": "2026-11-24T01:55Z",
-  "games_through": "2026-11-21",
-  "completed_games": 822,
+  "built_at_utc": "2026-11-25T14:13Z",
+  "games_through": "2026-11-24",
+  "completed_games": 824,
   "fbs_teams": 138,
   "ap_poll": {
     "latest_week": 13,
@@ -12,9 +12,10 @@
     "preseason_released": "2026-08-17"
   },
   "cfp": {
-    "latest_week": 12,
-    "released": "2026-11-17",
-    "next_release": "2026-11-24",
+    "latest_week": 13,
+    "released": "2026-11-24",
+    "next_release": "2026-12-01",
+    "source": "hand-entered from the committee's release; the poll feed has not caught up",
     "note": "CFP ranks predate any games played after the release date."
   },
   "talent": {
@@ -29,9 +30,9 @@
     }
   },
   "latest_poll": {
-    "poll": "AP",
+    "poll": "CFP",
     "week": 13,
-    "released": "2026-11-22",
+    "released": "2026-11-24",
     "note": "'Currently ranked' uses this poll: the AP poll or the CFP ranking, whichever was released last."
   },
   "top50": {
@@ -48,21 +49,25 @@
       "srs": 0.3
     },
     "margin_cap": 24,
-    "fitted_home_edge_points": 2.51,
+    "fitted_home_edge_points": 2.49,
     "calibration_vs_cfp_committee": {
-      "committee_week": 12,
-      "games_before_utc": "2026-11-16T12:00Z",
-      "committee_teams_in_model_top25": 24,
+      "committee_week": 13,
+      "games_before_utc": "2026-11-23T12:00Z",
+      "committee_teams_in_model_top25": 22,
       "committee_teams_missed": [
-        "South Carolina"
+        "Missouri",
+        "Nebraska",
+        "Washington"
       ],
       "model_teams_not_ranked": [
-        "LSU"
+        "Boise State",
+        "LSU",
+        "UTSA"
       ]
     }
   },
   "game_control": {
-    "games": 822,
+    "games": 824,
     "games_with_untimed_points": 17,
     "untimed_points": 82,
     "overtime_games": 33,
@@ -70,42 +75,42 @@
     "scope": "regulation time only; overtime counts toward margins but not time shares"
   },
   "passing": {
-    "games": 822,
-    "attempts": 48988,
+    "games": 824,
+    "attempts": 49091,
     "repeated_plays_dropped": 20,
-    "interceptions": 1157,
-    "interceptions_placed": 1114,
-    "attempts_with_depth": 48290,
+    "interceptions": 1161,
+    "interceptions_placed": 1118,
+    "attempts_with_depth": 48392,
     "overall": {
-      "attempts": 48988,
+      "attempts": 49091,
       "with_depth_pct": 0.9858,
       "adot": 8.7,
-      "air_share": 0.5337,
+      "air_share": 0.5336,
       "yac": 5.43,
       "buckets": {
         "behind": {
           "label": "at or behind the line of scrimmage",
-          "share": 0.2118,
-          "cmp_pct": 0.8158,
-          "epa": -0.141
+          "share": 0.2117,
+          "cmp_pct": 0.8159,
+          "epa": -0.142
         },
         "short": {
           "label": "1-9 air yards",
-          "share": 0.4299,
-          "cmp_pct": 0.6624,
-          "epa": 0.098
+          "share": 0.4297,
+          "cmp_pct": 0.6619,
+          "epa": 0.096
         },
         "mid": {
           "label": "10-19 air yards",
           "share": 0.2166,
-          "cmp_pct": 0.5091,
-          "epa": 0.365
+          "cmp_pct": 0.5082,
+          "epa": 0.362
         },
         "deep": {
           "label": "20+ air yards",
-          "share": 0.1417,
-          "cmp_pct": 0.3552,
-          "epa": 0.482
+          "share": 0.142,
+          "cmp_pct": 0.3544,
+          "epa": 0.477
         }
       }
     },
@@ -117,47 +122,47 @@
     },
     "min_attempts_per_team_game": 12,
     "box_score_check": {
-      "team_games_compared": 1517,
-      "team_games_within_one_attempt": 0.9868,
-      "season_attempts": 45451,
-      "season_attempts_box": 45541,
+      "team_games_compared": 1521,
+      "team_games_within_one_attempt": 0.9869,
+      "season_attempts": 45554,
+      "season_attempts_box": 45644,
       "largest_team_season_gap_pct": 2.52
     },
     "note": "Depth is air yards past the line of scrimmage. Interceptions are placed where the ball was picked off. The feed does not label screens, scrambles, play action or routes. 'overall' covers every pass in these games, FCS opponents' included."
   },
   "rushing": {
     "repeated_plays_dropped": 15,
-    "kneel_downs_left_out": 948,
-    "team_rushes_left_out": 163,
-    "games": 822,
-    "runs": 54307,
+    "kneel_downs_left_out": 950,
+    "team_rushes_left_out": 164,
+    "games": 824,
+    "runs": 54444,
     "overall": {
-      "att": 54307,
+      "att": 54444,
       "ypc": 5.14,
       "epa": 0.045,
-      "succ_pct": 0.4388,
-      "stuff_pct": 0.1637,
+      "succ_pct": 0.4386,
+      "stuff_pct": 0.1636,
       "opp_pct": 0.4904,
       "expl_pct": 0.1386,
       "line_ypc": 3.14,
       "hilite_ypo": 3.98,
-      "short_att": 5509,
-      "short_conv_pct": 0.6947,
-      "qb_share": 0.2124,
-      "qb_ypc": 5.63,
+      "short_att": 5514,
+      "short_conv_pct": 0.6941,
+      "qb_share": 0.2127,
+      "qb_ypc": 5.62,
       "qb_epa": 0.185,
-      "back_ypc": 5.0,
+      "back_ypc": 5.01,
       "back_epa": 0.007
     },
     "min_carries_per_team_game": 8,
     "qb_min_pass_attempts": 10,
     "box_score_check": {
-      "player_games_compared": 6204,
-      "player_games_within_one_carry": 0.9969,
-      "carries": 39713,
-      "carries_box": 39865,
-      "yards": 202873,
-      "yards_box": 202282,
+      "player_games_compared": 6213,
+      "player_games_within_one_carry": 0.9973,
+      "carries": 39818,
+      "carries_box": 39962,
+      "yards": 203530,
+      "yards_box": 202852,
       "largest_season_gap_pct_80_carries": 4.05
     },
     "note": "Runs with a ball carrier: sacks, kneel-downs and snaps charged to the team are left out. The feed does not label the kind of run, and a quarterback scramble is written like a designed run. 'overall' covers every run in these games, FCS opponents' included."

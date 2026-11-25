@@ -132,7 +132,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Centennial Bank Stadium",
-  "proj_margin":5.2,
+  "proj_margin":5.1,
   "proj_spread":-5.0
  },
  {
@@ -149,8 +149,8 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"First Community Stadium",
-  "proj_margin":4.7,
-  "proj_spread":-4.5
+  "proj_margin":4.8,
+  "proj_spread":-5.0
  },
  {
   "game_id":401862844,
@@ -200,7 +200,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"LaVell Edwards Stadium",
-  "proj_margin":13.9,
+  "proj_margin":13.8,
   "proj_spread":-14.0
  },
  {
@@ -234,7 +234,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"TDECU Stadium",
-  "proj_margin":-3.4,
+  "proj_margin":-3.3,
   "proj_spread":3.5
  },
  {
@@ -268,7 +268,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Albertsons Stadium",
-  "proj_margin":15.5,
+  "proj_margin":15.4,
   "proj_spread":-15.5
  },
  {
@@ -302,7 +302,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Doyt L. Perry Stadium",
-  "proj_margin":0.2,
+  "proj_margin":0.1,
   "proj_spread":0.0
  },
  {
@@ -336,7 +336,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"California Memorial Stadium",
-  "proj_margin":-9.9,
+  "proj_margin":-10.0,
   "proj_spread":10.0
  },
  {
@@ -387,7 +387,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"LaVell Edwards Stadium",
-  "proj_margin":-13.9,
+  "proj_margin":-13.8,
   "proj_spread":14.0
  },
  {
@@ -510,23 +510,6 @@
   "proj_spread":1.0
  },
  {
-  "game_id":401866470,
-  "date":"2026-11-24",
-  "kickoff_utc":"2026-11-25T00:00Z",
-  "week":13,
-  "season_type":"Regular",
-  "note":null,
-  "team_id":2199,
-  "team":"Eastern Michigan",
-  "opp_id":2309,
-  "opp":"Kent State",
-  "opp_is_fbs":true,
-  "site":"Home",
-  "venue":"Rynearson Stadium",
-  "proj_margin":6.3,
-  "proj_spread":-6.5
- },
- {
   "game_id":401856759,
   "date":"2026-11-27",
   "kickoff_utc":"2026-11-27T20:30Z",
@@ -625,8 +608,8 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Sanford Stadium",
-  "proj_margin":30.8,
-  "proj_spread":-31.0
+  "proj_margin":30.7,
+  "proj_spread":-30.5
  },
  {
   "game_id":401869545,
@@ -659,7 +642,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Allen E. Paulson Stadium",
-  "proj_margin":0.1,
+  "proj_margin":0.0,
   "proj_spread":0.0
  },
  {
@@ -676,7 +659,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Center Parc Stadium",
-  "proj_margin":-2.4,
+  "proj_margin":-2.5,
   "proj_spread":2.5
  },
  {
@@ -693,8 +676,8 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Sanford Stadium",
-  "proj_margin":-30.8,
-  "proj_spread":31.0
+  "proj_margin":-30.7,
+  "proj_spread":30.5
  },
  {
   "game_id":401864547,
@@ -710,7 +693,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Clarence T.C. Ching Athletics Complex",
-  "proj_margin":11.1,
+  "proj_margin":11.0,
   "proj_spread":-11.0
  },
  {
@@ -727,7 +710,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"TDECU Stadium",
-  "proj_margin":3.4,
+  "proj_margin":3.3,
   "proj_spread":-3.5
  },
  {
@@ -829,7 +812,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Williams Stadium (VA)",
-  "proj_margin":-11.6,
+  "proj_margin":-11.5,
   "proj_spread":11.5
  },
  {
@@ -901,23 +884,6 @@
   "proj_spread":-2.0
  },
  {
-  "game_id":401866470,
-  "date":"2026-11-24",
-  "kickoff_utc":"2026-11-25T00:00Z",
-  "week":13,
-  "season_type":"Regular",
-  "note":null,
-  "team_id":2309,
-  "team":"Kent State",
-  "opp_id":2199,
-  "opp":"Eastern Michigan",
-  "opp_is_fbs":true,
-  "site":"Away",
-  "venue":"Rynearson Stadium",
-  "proj_margin":-6.3,
-  "proj_spread":6.5
- },
- {
   "game_id":401856761,
   "date":"2026-11-28",
   "kickoff_utc":"2026-11-28T17:00Z",
@@ -931,7 +897,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Kroger Field",
-  "proj_margin":-3.3,
+  "proj_margin":-3.4,
   "proj_spread":3.5
  },
  {
@@ -982,7 +948,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Williams Stadium (VA)",
-  "proj_margin":11.6,
+  "proj_margin":11.5,
   "proj_spread":-11.5
  },
  {
@@ -999,7 +965,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Center Parc Stadium",
-  "proj_margin":2.4,
+  "proj_margin":2.5,
   "proj_spread":-2.5
  },
  {
@@ -1016,7 +982,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Allen E. Paulson Stadium",
-  "proj_margin":-0.1,
+  "proj_margin":0.0,
   "proj_spread":0.0
  },
  {
@@ -1033,7 +999,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Kroger Field",
-  "proj_margin":3.3,
+  "proj_margin":3.4,
   "proj_spread":-3.5
  },
  {
@@ -1067,7 +1033,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"SECU Stadium",
-  "proj_margin":-4.6,
+  "proj_margin":-4.7,
   "proj_spread":4.5
  },
  {
@@ -1084,7 +1050,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Doyt L. Perry Stadium",
-  "proj_margin":-0.2,
+  "proj_margin":-0.1,
   "proj_spread":0.0
  },
  {
@@ -1137,23 +1103,6 @@
   "venue":"Bank of America Stadium",
   "proj_margin":1.7,
   "proj_spread":-1.5
- },
- {
-  "game_id":401866471,
-  "date":"2026-11-24",
-  "kickoff_utc":"2026-11-25T00:00Z",
-  "week":13,
-  "season_type":"Regular",
-  "note":null,
-  "team_id":193,
-  "team":"Miami (OH)",
-  "opp_id":2711,
-  "opp":"Western Michigan",
-  "opp_is_fbs":true,
-  "site":"Away",
-  "venue":"Waldo Stadium",
-  "proj_margin":-6.0,
-  "proj_spread":6.0
  },
  {
   "game_id":401858540,
@@ -1441,7 +1390,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"DATCU Stadium",
-  "proj_margin":9.9,
+  "proj_margin":9.8,
   "proj_spread":-10.0
  },
  {
@@ -1509,8 +1458,8 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Peden Stadium",
-  "proj_margin":-2.9,
-  "proj_spread":3.0
+  "proj_margin":-2.7,
+  "proj_spread":2.5
  },
  {
   "game_id":401858540,
@@ -1645,7 +1594,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"SECU Stadium",
-  "proj_margin":4.6,
+  "proj_margin":4.7,
   "proj_spread":-4.5
  },
  {
@@ -1662,7 +1611,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"California Memorial Stadium",
-  "proj_margin":9.9,
+  "proj_margin":10.0,
   "proj_spread":-10.0
  },
  {
@@ -1696,8 +1645,8 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"First Community Stadium",
-  "proj_margin":-4.7,
-  "proj_spread":4.5
+  "proj_margin":-4.8,
+  "proj_spread":5.0
  },
  {
   "game_id":401858542,
@@ -1730,7 +1679,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Stanford Stadium",
-  "proj_margin":3.0,
+  "proj_margin":3.1,
   "proj_spread":-3.0
  },
  {
@@ -1747,7 +1696,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Clarence T.C. Ching Athletics Complex",
-  "proj_margin":-11.1,
+  "proj_margin":-11.0,
   "proj_spread":11.0
  },
  {
@@ -1798,7 +1747,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Albertsons Stadium",
-  "proj_margin":-15.5,
+  "proj_margin":-15.4,
   "proj_spread":15.5
  },
  {
@@ -1900,7 +1849,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Stanford Stadium",
-  "proj_margin":-3.0,
+  "proj_margin":-3.1,
   "proj_spread":3.0
  },
  {
@@ -1934,7 +1883,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Galaxy Stadium",
-  "proj_margin":-11.0,
+  "proj_margin":-10.9,
   "proj_spread":11.0
  },
  {
@@ -2036,7 +1985,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Galaxy Stadium",
-  "proj_margin":11.0,
+  "proj_margin":10.9,
   "proj_spread":-11.0
  },
  {
@@ -2053,8 +2002,8 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Peden Stadium",
-  "proj_margin":2.9,
-  "proj_spread":-3.0
+  "proj_margin":2.7,
+  "proj_spread":-2.5
  },
  {
   "game_id":401869939,
@@ -2070,7 +2019,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Centennial Bank Stadium",
-  "proj_margin":-5.2,
+  "proj_margin":-5.1,
   "proj_spread":5.0
  },
  {
@@ -2104,7 +2053,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Alamodome",
-  "proj_margin":-1.7,
+  "proj_margin":-1.6,
   "proj_spread":1.5
  },
  {
@@ -2121,7 +2070,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"DATCU Stadium",
-  "proj_margin":-9.9,
+  "proj_margin":-9.8,
   "proj_spread":10.0
  },
  {
@@ -2155,7 +2104,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Rose Bowl",
-  "proj_margin":8.0,
+  "proj_margin":7.9,
   "proj_spread":-8.0
  },
  {
@@ -2172,8 +2121,8 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"War Memorial Stadium",
-  "proj_margin":3.1,
-  "proj_spread":-3.0
+  "proj_margin":3.3,
+  "proj_spread":-3.5
  },
  {
   "game_id":401871102,
@@ -2223,7 +2172,7 @@
   "opp_is_fbs":true,
   "site":"Away",
   "venue":"Rose Bowl",
-  "proj_margin":-8.0,
+  "proj_margin":-7.9,
   "proj_spread":8.0
  },
  {
@@ -2257,7 +2206,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"Alamodome",
-  "proj_margin":1.7,
+  "proj_margin":1.6,
   "proj_spread":-1.5
  },
  {
@@ -2448,23 +2397,6 @@
   "proj_spread":2.0
  },
  {
-  "game_id":401866471,
-  "date":"2026-11-24",
-  "kickoff_utc":"2026-11-25T00:00Z",
-  "week":13,
-  "season_type":"Regular",
-  "note":null,
-  "team_id":2711,
-  "team":"Western Michigan",
-  "opp_id":193,
-  "opp":"Miami (OH)",
-  "opp_is_fbs":true,
-  "site":"Home",
-  "venue":"Waldo Stadium",
-  "proj_margin":6.0,
-  "proj_spread":-6.0
- },
- {
   "game_id":401858544,
   "date":"2026-11-27",
   "kickoff_utc":"2026-11-28T00:30Z",
@@ -2495,7 +2427,7 @@
   "opp_is_fbs":true,
   "site":"Home",
   "venue":"War Memorial Stadium",
-  "proj_margin":-3.1,
-  "proj_spread":3.0
+  "proj_margin":-3.3,
+  "proj_spread":3.5
  }
 ]
